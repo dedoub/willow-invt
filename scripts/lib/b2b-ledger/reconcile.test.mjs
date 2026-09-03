@@ -83,6 +83,13 @@ test('documents_not_final when documentsFinal is false', () => {
   assert.deepEqual(result.diffs, ['documents_not_final'])
 })
 
+test('documents_not_final when documentsFinal is omitted', () => {
+  const { documentsFinal, ...baseWithoutDocsFinal } = BASE
+  const result = reconcile(baseWithoutDocsFinal)
+  assert.equal(result.ok, false)
+  assert.deepEqual(result.diffs, ['documents_not_final'])
+})
+
 test('multiple diffs accumulate together', () => {
   const result = reconcile({ ...BASE, workSum: 1, documentsFinal: false })
   assert.deepEqual(result.diffs, ['work_sum_mismatch', 'documents_not_final'])

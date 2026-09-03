@@ -34,7 +34,7 @@ export function reconcile({
     diffs.push('engagement_cap_exceeded')
   }
 
-  if (documentsFinal === false) diffs.push('documents_not_final')
+  if (documentsFinal !== true) diffs.push('documents_not_final')
 
   return {
     ok: diffs.length === 0,
