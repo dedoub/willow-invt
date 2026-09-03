@@ -820,3 +820,33 @@ export function CorpSkeleton() {
     </div>
   )
 }
+
+/** 용역 거래 skeleton: KPI 4 + 상태 세그먼트 + 표 8행 (법인 서류함과 같은 구성) */
+export function B2bSkeleton() {
+  const mobile = useIsMobile()
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <CardSkel>
+        <Bone w={130} h={8} />
+        <Bone w={80} h={14} style={{ marginTop: 6 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginTop: 14 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Bone key={i} h={t.density.statH} r={t.radius.md} />
+          ))}
+        </div>
+      </CardSkel>
+      <CardSkel>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Bone w={60} h={14} />
+          <Bone w={150} h={t.density.controlH} r={t.radius.sm} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Bone key={i} h={t.density.rowH - 8} r={3} />
+          ))}
+        </div>
+      </CardSkel>
+    </div>
+  )
+}
