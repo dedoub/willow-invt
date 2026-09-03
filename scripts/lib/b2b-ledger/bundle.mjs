@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { chromium } from 'playwright'
 import { extensionForMime } from '../corp-records/versions.mjs'
+import { BUCKET } from '../corp-records/constants.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..', '..', '..')
@@ -24,6 +25,15 @@ function money(v) {
 
 function fmtDate(v) {
   return v ? String(v).slice(0, 10) : '-'
+}
+
+// {{key}} 치환. 함수형 replacer로 넣어서 값에 든 $&, $$, $` 등 특수 시퀀스가 그대로 보존되게 한다
+// (String.replace/replaceAll에 문자열 치환값을 바로 넘기면 그 시퀀스들이 패턴/매치 참조로 해석되어 깨진다).
+export function fillTemplate(template, values) {
+  return Object.entries(values).reduce(
+    (html, [key, value]) => html.replaceAll(`{{${key}}}`, () => String(value ?? '')),
+    template,
+  )
 }
 
 function table(headers, rows, emptyText = '없음') {
@@ -54,7 +64,10 @@ async function resolveDocument(corp, docNo) {
   return { doc, version }
 }
 
-async function findVersionEventId(corp, doc, version) {
+async function findVersionEventId(corp, doc, version, cache) {
+  const cacheKey = `${doc.doc_no}:${version.version_no}`
+  if (cache.has(cacheKey)) return cache.get(cacheKey)
+  let eventId = null
   try {
     const { data, error } = await corp.client
       .from('willow_corp_events')
@@ -64,11 +77,14 @@ async function findVersionEventId(corp, doc, version) {
       .eq('entity_id', doc.doc_no)
       .eq('event', 'version_added')
       .order('id', { ascending: false })
-    if (error || !data) return null
-    return data.find((e) => Number(e.payload?.version_no) === version.version_no)?.id ?? null
+    if (!error && data) {
+      eventId = data.find((e) => Number(e.payload?.version_no) === version.version_no)?.id ?? null
+    }
   } catch {
-    return null
+    eventId = null
   }
+  cache.set(cacheKey, eventId)
+  return eventId
 }
 
 function buildDocEntries({ agreement, engagement, settlement, works }) {
@@ -161,21 +177,22 @@ function renderIndexHtml({ settlement, agreement, engagement, works, invoices, c
     ]),
   )
 
-  return template
-    .replaceAll('{{ref}}', esc(settlement.ref_no))
-    .replaceAll('{{period}}', esc(settlement.period_label ?? '-'))
-    .replaceAll('{{provider_label}}', esc(COMPANY_LABEL[settlement.provider_company] ?? settlement.provider_company))
-    .replaceAll('{{client_label}}', esc(COMPANY_LABEL[settlement.client_company] ?? settlement.client_company))
-    .replaceAll('{{status}}', esc(settlement.status))
-    .replaceAll('{{generated_at}}', esc(new Date().toISOString()))
-    .replace('{{agreement_table}}', agreementTable)
-    .replace('{{engagement_table}}', engagementTable)
-    .replace('{{works_table}}', worksTable)
-    .replace('{{doc_status_table}}', docStatusTable)
-    .replace('{{invoices_table}}', invoicesTable)
-    .replace('{{cash_table}}', cashTable)
-    .replace('{{reconciliation_block}}', reconciliationBlock)
-    .replace('{{hash_table}}', hashTable)
+  return fillTemplate(template, {
+    ref: esc(settlement.ref_no),
+    period: esc(settlement.period_label ?? '-'),
+    provider_label: esc(COMPANY_LABEL[settlement.provider_company] ?? settlement.provider_company),
+    client_label: esc(COMPANY_LABEL[settlement.client_company] ?? settlement.client_company),
+    status: esc(settlement.status),
+    generated_at: esc(new Date().toISOString()),
+    agreement_table: agreementTable,
+    engagement_table: engagementTable,
+    works_table: worksTable,
+    doc_status_table: docStatusTable,
+    invoices_table: invoicesTable,
+    cash_table: cashTable,
+    reconciliation_block: reconciliationBlock,
+    hash_table: hashTable,
+  })
 }
 
 function buildContentSummary({ settlement, manifest }) {
@@ -210,6 +227,7 @@ export async function buildBundle(db, settlementRef, outDir) {
 
   const entries = buildDocEntries({ agreement, engagement, settlement, works })
   const resolvedCache = new Map()
+  const eventIdCache = new Map()
   const docRows = []
   const manifestDocs = []
 
@@ -231,11 +249,11 @@ export async function buildBundle(db, settlementRef, outDir) {
     const filename = `${doc.doc_no}_v${version.version_no}.${extensionForMime(version.mime)}`
     const destPath = join(docsDir, filename)
     if (!existsSync(destPath)) {
-      const { data, error } = await corp.client.storage.from('corp-records').download(version.storage_path)
+      const { data, error } = await corp.client.storage.from(BUCKET).download(version.storage_path)
       if (error) throw new Error(`download ${doc.doc_no}: ${error.message}`)
       writeFileSync(destPath, Buffer.from(await data.arrayBuffer()))
     }
-    const eventId = await findVersionEventId(corp, doc, version)
+    const eventId = await findVersionEventId(corp, doc, version, eventIdCache)
     docRows.push({ ...entry, status: doc.status, version_no: version.version_no, sha256: version.sha256, file: `docs/${filename}`, event_id: eventId })
     if (!manifestDocs.some((m) => m.doc_no === doc.doc_no && m.version_no === version.version_no)) {
       manifestDocs.push({ doc_no: doc.doc_no, role: entry.role, version_no: version.version_no, sha256: version.sha256, file: `docs/${filename}`, event_id: eventId })
@@ -285,7 +303,30 @@ export async function buildBundle(db, settlementRef, outDir) {
   return { zipPath, indexPdfPath, manifest }
 }
 
-// registerBundle(db, settlementRef, { zipPath, manifest }, { titlePrefix } = {}) → doc_no
+const IDENTICAL_CONTENT_RE = /identical content already stored as (v\d+)/
+
+// 이미 존재하는 문서에 새 버전을 붙인다. 방금 만든 zip과 sha256이 같은 버전이 이미 있으면
+// (재실행인데 내용 변화가 없는 경우) addVersion이 던지는 "identical content already stored"를
+// 잡아서 실패시키지 않고 그 버전을 재사용한 것으로 취급한다.
+async function addVersionOrReuse(corp, docNo, versionInput) {
+  try {
+    await corp.addVersion({ docNo, ...versionInput })
+    return { docNo, note: null }
+  } catch (err) {
+    const match = IDENTICAL_CONTENT_RE.exec(err?.message ?? '')
+    if (!match) throw err
+    return { docNo, note: `content unchanged since last bundle; reused existing ${match[1]} (no new version created)` }
+  }
+}
+
+// registerBundle(db, settlementRef, { zipPath, manifest }, { titlePrefix } = {}) → { docNo, note }
+//
+// 재실행 시 새 evidence_bundle 문서를 또 만들지 않고, 기존 문서에 새 버전(v2, v3, ...)을 붙인다:
+//   1) settlement.bundle_doc_no가 있으면 그 문서에 버전 추가.
+//   2) 없으면 sourceKey('b2b-bundle:'+ref)로 기존 문서를 찾아 재사용(있었지만 정산에 아직 안 연결된 경우 대비).
+//   3) 그래도 없으면 새 문서를 만든다(sourceKey 부여).
+// 세 경로 모두 zip 내용이 직전 버전과 동일하면(addVersion의 "identical content" 에러) 실패시키지 않고
+// 기존 버전을 그대로 재사용한 것으로 보고한다.
 export async function registerBundle(db, settlementRef, built, options = {}) {
   if (!db) throw new Error('db required')
   if (!settlementRef) throw new Error('settlementRef required')
@@ -297,26 +338,42 @@ export async function registerBundle(db, settlementRef, built, options = {}) {
   const provider = settlement.provider_company
   const client = settlement.client_company
   const period = settlement.period_label ?? settlement.ref_no
+  const sourceKey = `b2b-bundle:${settlementRef}`
 
   const buffer = readFileSync(zipPath)
-  const doc = await db.corp.createDocument({
-    company: provider,
-    docType: 'evidence_bundle',
-    category: 'contract',
-    title: `${titlePrefix}증빙 묶음 ${settlementRef} (${period})`,
-    tags: ['b2b', settlementRef],
-  })
-  await db.corp.setCounterparty(doc.doc_no, client)
   const contentText = buildContentSummary({ settlement, manifest })
-  await db.corp.addVersion({
-    docNo: doc.doc_no,
+  const versionInput = {
     kind: 'final_signed',
     buffer,
     mime: 'application/zip',
     contentText,
     note: 'evidence bundle',
     generatedBy: 'agent',
+  }
+
+  if (settlement.bundle_doc_no) {
+    const result = await addVersionOrReuse(db.corp, settlement.bundle_doc_no, versionInput)
+    await db.setBundle(settlementRef, result.docNo)
+    return result
+  }
+
+  const existing = await db.corp.getDocumentByKey(sourceKey)
+  if (existing) {
+    const result = await addVersionOrReuse(db.corp, existing.doc_no, versionInput)
+    await db.setBundle(settlementRef, result.docNo)
+    return result
+  }
+
+  const doc = await db.corp.createDocument({
+    company: provider,
+    docType: 'evidence_bundle',
+    category: 'contract',
+    title: `${titlePrefix}증빙 묶음 ${settlementRef} (${period})`,
+    tags: ['b2b', settlementRef],
+    sourceKey,
   })
-  await db.setBundle(settlementRef, doc.doc_no)
-  return doc.doc_no
+  await db.corp.setCounterparty(doc.doc_no, client)
+  const result = await addVersionOrReuse(db.corp, doc.doc_no, versionInput)
+  await db.setBundle(settlementRef, result.docNo)
+  return result
 }
