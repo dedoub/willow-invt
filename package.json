@@ -30,7 +30,9 @@
     "finance:tax:match": "node scripts/match-finance-tax-obligations.mjs",
     "finance:test": "node --test scripts/lib/cert-dialog.test.mjs scripts/lib/shinhan-bank.test.mjs scripts/lib/hometax-national-tax.test.mjs scripts/lib/nhis.test.mjs scripts/lib/wetax.test.mjs scripts/lib/daily-finance-sync.test.mjs scripts/lib/tax-obligation-matcher.test.mjs scripts/lib/tensw-local-finance.test.mjs scripts/lib/finance-session.test.mjs scripts/lib/finance-notify.test.mjs scripts/lib/akros-invoice-sync.test.mjs scripts/lib/kb-card-keypad.test.mjs scripts/lib/kb-card-local.test.mjs scripts/lib/kb-card-statement.test.mjs scripts/lib/woori-card-local.test.mjs scripts/lib/woori-card-statement.test.mjs",
     "corp": "npx tsx scripts/corp-records.ts",
-    "corp:test": "node --test scripts/lib/corp-records/*.test.mjs"
+    "corp:test": "node --test scripts/lib/corp-records/*.test.mjs",
+    "b2b": "npx tsx scripts/b2b-ledger.ts",
+    "b2b:test": "node --test scripts/lib/b2b-ledger/*.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
