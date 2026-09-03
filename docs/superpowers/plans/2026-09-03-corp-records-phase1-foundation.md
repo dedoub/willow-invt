@@ -1732,12 +1732,57 @@ cp "/Volumes/PRO-G40/Downloads/2-1. 계약서-AI 융합 탐방 퀴즈 콘텐츠 
       "versions": [{ "kind": "final_signed", "url": "https://axcfvieqsaphhvbkyzzv.supabase.co/storage/v1/object/public/wiki-attachments/dw_kim_willowinvt_com/1785935607075_20260716_NIA_independence-movement-data_contract.pdf", "localName": "텐소_NIA_독립운동데이터_계약서_20260716.pdf" }] }
   ],
   "rules": [],
+  "profile": { "key": "tensw-profile-20260203", "asOf": "2026-02-03", "source": "tensw-registry-20260203", "factsFile": "tensw-profile-20260203.json" },
   "actions": [
     { "key": "tensw-act-dokrip-platform-signed", "kind": "provide", "document": "tensw-contract-dokrip-platform-2026", "due": "2026-09-30", "desc": "독립잇다 기념관 탐방 플랫폼 개발 용역계약서 날인본 PDF 제출 (현재 서명 전 docx만 보관)" },
-    { "key": "tensw-act-contract-terms", "kind": "provide", "due": "2026-09-30", "desc": "평택대·NIA 계약의 종료일과 계약금액을 계약서 본문에서 확인해 문서 메타(contract_end, amount)에 반영" }
+    { "key": "tensw-act-contract-terms", "kind": "provide", "due": "2026-09-30", "desc": "평택대·NIA 계약의 종료일과 계약금액을 계약서 본문에서 확인해 문서 메타(contract_end, amount)에 반영" },
+    { "key": "tensw-act-registry-renew", "kind": "provide", "document": "tensw-registry-20260203", "due": "2026-09-15", "desc": "텐소프트웍스 등기부등본 재발급 업로드 (2026-02-03 발급본 만료). 김동욱 사내이사 임기(2023-05-12 취임, 2026-05-12 만료)의 중임 등기 여부 확인이 목적" },
+    { "key": "tensw-act-board-approval-msa", "kind": "confirm", "due": "2026-09-30", "desc": "윌로우-텐소 기본 용역계약 체결 전 텐소 이사회 승인(상법 398조, 김동욱 의결권 배제, 김철형·김성훈 찬성) 의사록 준비" }
   ]
 }
 ```
+
+텐소 문서 2건을 `documents` 배열 앞에 추가한다(위 계약 5건과 같은 배열):
+
+```json
+    { "key": "tensw-registry-20260203", "type": "registry_extract", "category": "registration", "title": "법인등기부등본 (등기사항전부증명서, 2026-02-03 발급)", "issued": "2026-02-03", "issuedBy": "서울중앙지방법원 등기국", "validTo": "2026-05-03",
+      "versions": [{ "kind": "reissue", "file": "텐소프트웍스_법인등기부등본_20260203.pdf", "textFile": "텐소프트웍스_법인등기부등본_20260203.txt", "note": "이미지 스캔 3쪽, 텍스트는 판독본" }] },
+    { "key": "tensw-shareholders-20260310", "type": "shareholder_list", "category": "shareholders_meeting", "title": "주주명부 (2026-03-10)", "issued": "2026-03-10", "issuedBy": "주식회사 텐소프트웍스",
+      "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_주주명부_20260310.docx", "convert": true }] },
+```
+
+`scripts/logs/corp-records/tensw-profile-20260203.json` (등기부 2026-02-03 + 주주명부 2026-03-10 기준):
+
+```json
+{
+  "corp_reg_no": "110111-6730257",
+  "biz_reg_no": "828-88-00992",
+  "name": "주식회사 텐소프트웍스",
+  "incorporated_on": "2018-04-23",
+  "address": "서울특별시 강남구 봉은사로105길 54-5, 202, 203호(삼성동, 리버뷰빌)",
+  "capital": 12860000,
+  "shares_issued": 25720,
+  "par_value": 500,
+  "public_notice": "회사 홈페이지(tenthinc.com), 예비 매일경제신문",
+  "directors": [
+    { "role": "대표이사·사내이사", "name": "김철형", "appointed": "2024-03-12", "term_end": "2027-03-12", "represents": true },
+    { "role": "사내이사", "name": "김동욱", "appointed": "2023-05-12", "term_end": "2026-05-12", "note": "중임 등기 여부 확인 필요" },
+    { "role": "기타비상무이사", "name": "김성훈", "appointed": "2023-07-27", "term_end": "2026-07-27", "note": "중임 등기 여부 확인 필요" }
+  ],
+  "auditors": [],
+  "board_exists": true,
+  "shareholders": [
+    { "name": "김철형", "shares": 12800 }, { "name": "김지원", "shares": 5120 }, { "name": "윌로우인베스트먼트㈜", "shares": 2200 },
+    { "name": "이상준", "shares": 1300 }, { "name": "안성호", "shares": 1260 }, { "name": "김재욱", "shares": 1010 },
+    { "name": "방찬식", "shares": 640 }, { "name": "김소영", "shares": 500 }, { "name": "김류하", "shares": 0, "note": "주주명부 2026-03-10 9번, 주식수는 문서 확인" }
+  ],
+  "shareholders_as_of": "2026-03-10",
+  "related_party_notes": "윌로우인베스트먼트 8.6% 보유, 김동욱(윌로우 대표이사)이 텐소 사내이사 겸직 → 상법 398조 직접 적용",
+  "business_purposes_count": 17
+}
+```
+
+주주명부의 9번 이후 주주(김류하 등)의 주식 수는 시드 전에 docx에서 확인해 채운다.
 
 앞으로 체결되는 모든 계약은 위키 첨부가 아니라 이 서류함이 원본이다. 스킬(2단계)은 "계약 체결" 입력에 `doc new --type contract` + `doc add-version --kind final_signed`를 수행하고, 위키 노트에는 `doc_no`만 적는다.
 
