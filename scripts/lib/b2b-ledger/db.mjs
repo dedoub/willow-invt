@@ -197,6 +197,18 @@ export function createB2bDb({ url, key, actor = 'cli' }) {
   async function attachWork(settlementRef, workRefs = []) {
     if (!workRefs.length) throw new Error('workRefs required')
     const settlement = await getSettlementRow(settlementRef)
+    if (settlement.status === 'closed') throw new Error(`settlement ${settlementRef} is closed`)
+    for (const ref of workRefs) {
+      const work = await getWorkOrThrow(ref)
+      if (work.agreement_id !== settlement.agreement_id) {
+        throw new Error(`work ${ref} belongs to a different agreement`)
+      }
+      if (work.settlement_id != null && work.settlement_id !== settlement.id) {
+        const otherRows = unwrap(await sb.from('b2b_settlements').select('ref_no').eq('id', work.settlement_id).limit(1), 'other settlement')
+        throw new Error(`work ${ref} already belongs to settlement ${otherRows[0]?.ref_no ?? work.settlement_id}`)
+      }
+      // work already attached to this same settlement: no-op, not an error
+    }
     const rows = unwrap(await sb.from('b2b_work_records').update({ settlement_id: settlement.id, status: 'settled' }).in('ref_no', workRefs).select(), 'attach work')
     if (rows.length !== workRefs.length) {
       const found = new Set(rows.map((r) => r.ref_no))
@@ -232,8 +244,8 @@ export function createB2bDb({ url, key, actor = 'cli' }) {
   async function linkCash(settlementRef, { willowIds, tenswIds } = {}) {
     const settlement = await getSettlementRow(settlementRef)
     const patch = {}
-    if (willowIds !== undefined) patch.cash_willow_ids = willowIds
-    if (tenswIds !== undefined) patch.cash_tensw_ids = tenswIds
+    if (willowIds !== undefined) patch.cash_willow_ids = [...new Set(willowIds)]
+    if (tenswIds !== undefined) patch.cash_tensw_ids = [...new Set(tenswIds)]
     if (!Object.keys(patch).length) throw new Error('willowIds or tenswIds required')
     const rows = unwrap(await sb.from('b2b_settlements').update(patch).eq('id', settlement.id).select(), 'link cash')
     await corp.appendEvent({ company: settlement.provider_company, entityType: 'b2b_settlement', entityId: settlementRef, event: 'cash_linked', payload: { willow_ids: willowIds, tensw_ids: tenswIds } })

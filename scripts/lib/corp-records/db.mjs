@@ -13,6 +13,9 @@ function unwrap({ data, error }, what) {
   return data
 }
 
+// b2b-ledger가 사용하는 상대 회사 코드와 동일한 세 값 (scripts/lib/b2b-ledger/constants.mjs COMPANIES)
+const COUNTERPARTY_COMPANIES = ['willow', 'tensw', 'biblo']
+
 export function createCorpDb({ url, key, actor = 'cli' }) {
   if (!url || !key) throw new Error('supabase url/key required (.env.local NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY)')
   const sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -111,8 +114,10 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
   }
 
   async function setCounterparty(docNo, company) {
+    assertIn(COUNTERPARTY_COMPANIES, company, 'counterparty company')
     const rows = unwrap(await sb.from('willow_corp_documents').update({ counterparty_company: company }).eq('doc_no', docNo).select(), 'set counterparty')
     if (!rows[0]) throw new Error(`document not found: ${docNo}`)
+    await appendEvent({ company: rows[0].company, entityType: 'document', entityId: docNo, event: 'counterparty_set', payload: { counterparty_company: company } })
     return rows[0]
   }
 
