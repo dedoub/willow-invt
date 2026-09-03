@@ -1,0 +1,44 @@
+{
+  "company": "willow",
+  "localDir": "scripts/logs/corp-records",
+  "documents": [
+    { "key": "articles-2021", "type": "regulation", "category": "articles_rules", "title": "정관 (2021년 제정, 별첨 임원퇴직금·상여금·유족보상금 규정 포함)", "issued": "2021-04-05", "issuedBy": "윌로우인베스트먼트 주식회사",
+      "versions": [{ "kind": "final_signed", "file": "윌로우인베스트먼트_정관_2021.docx", "textFile": "윌로우인베스트먼트_정관_2021.txt", "note": "원시정관 docx 원본 (soffice/LibreOffice 미설치로 PDF 변환 보류)" }] },
+    { "key": "registry-20260604", "type": "registry_extract", "category": "registration", "title": "법인등기부등본 (등기사항전부증명서, 2026-06-04 발급)", "issued": "2026-06-04", "issuedBy": "법원행정처 등기정보중앙관리소", "validTo": "2026-09-04",
+      "versions": [{ "kind": "reissue", "file": "윌로우인베스트먼트_법인등기부등본_20260604.pdf", "textFile": "윌로우인베스트먼트_법인등기부등본_20260604.txt", "note": "이미지 스캔, 텍스트는 판독본" }] },
+    { "key": "biz-reg", "type": "business_registration", "category": "registration", "title": "사업자등록증 (205-88-01897)", "issued": "2025-09-08", "issuedBy": "삼성세무서",
+      "versions": [
+        { "kind": "reissue", "file": "윌로우인베스트먼트_사업자등록증_20250908.pdf", "note": "2025-09-08 발급" }
+      ] },
+    { "key": "mail-order-20260714", "type": "license_permit", "category": "registration", "title": "통신판매업신고증 (제2026-서울강남-03934호)", "issued": "2026-07-14", "issuedBy": "강남구청",
+      "versions": [{ "kind": "reissue", "file": "윌로우인베스트먼트_통신판매업신고증_20260714.pdf", "textFile": "윌로우인베스트먼트_통신판매업신고증_20260714.txt" }] },
+    { "key": "shareholders-20260717", "type": "shareholder_list", "category": "shareholders_meeting", "title": "주주명부 (2026-07-17)", "issued": "2026-07-17", "issuedBy": "윌로우인베스트먼트 주식회사",
+      "versions": [{ "kind": "final_signed", "file": "윌로우인베스트먼트_주주명부_20260717.docx", "note": "PDF 원본(~/Downloads) 샌드박스 차단 + soffice/LibreOffice 미설치로 docx 원본 그대로 사용" }] },
+    { "key": "contract-akros-2026", "type": "contract", "category": "contract", "title": "자문계약서 — (주)아크로스테크놀로지스 (2026-04-01 체결, 월 ₩12,500,000, 1년 자동연장)", "issued": "2026-04-01", "counterparty": "(주)아크로스테크놀로지스", "contractStart": "2026-04-01", "contractEnd": "2027-03-31", "tags": ["auto-renew", "wiki:91ed9629-e931-4ca1-a57f-bd99348227da"],
+      "versions": [] },
+    { "key": "contract-akros-2023", "type": "contract", "category": "contract", "title": "자문계약서 — (주)아크로스테크놀로지스 (2023-12-29 체결, 2026-03-31 합의 해지)", "issued": "2023-12-29", "counterparty": "(주)아크로스테크놀로지스", "contractStart": "2023-12-29", "contractEnd": "2026-03-31", "tags": ["terminated", "wiki:91ed9629-e931-4ca1-a57f-bd99348227da"],
+      "versions": [] },
+    { "key": "tax-return-2025", "type": "tax_filing", "category": "tax", "title": "2025 사업연도 법인세 신고서", "issued": "2026-03-17", "issuedBy": "세무대리인", "tags": ["fy2025", "wiki:c1811111-ed95-48dd-a200-767576761d0d"],
+      "versions": [{ "kind": "final_signed", "url": "https://axcfvieqsaphhvbkyzzv.supabase.co/storage/v1/object/public/wiki-attachments/uploads/1773712241_willow_2025_tax_return.pdf", "localName": "윌로우인베스트먼트_법인세신고서_2025.pdf" }] },
+    { "key": "fs-2025", "type": "tax_filing", "category": "tax", "title": "재무제표 2025 (제5기)", "issued": "2026-03-17", "issuedBy": "세무대리인", "tags": ["fy2025", "wiki:d5713cf7-f377-47dd-b61c-d12fbf75b7f9"],
+      "versions": [{ "kind": "final_signed", "url": "https://axcfvieqsaphhvbkyzzv.supabase.co/storage/v1/object/public/wiki-attachments/d5713cf7-f377-47dd-b61c-d12fbf75b7f9/financial-statement-willow-2025.pdf", "localName": "윌로우인베스트먼트_재무제표_2025.pdf" }] }
+  ],
+  "rules": [
+    { "key": "articles-v1", "type": "articles", "title": "정관", "version": 1, "from": "2021-04-05", "to": "2026-05-25", "document": "articles-2021", "textFile": "윌로우인베스트먼트_정관_2021.txt", "section": "body", "note": "부칙 시행일 공란 → 회사 성립일(2021-04-05)로 등록" },
+    { "key": "retirement-v1", "type": "retirement_regulation", "title": "임원퇴직금지급규정 (별첨 1)", "version": 1, "from": "2021-04-05", "document": "articles-2021", "parent": "articles-v1", "textFile": "윌로우인베스트먼트_정관_2021.txt", "section": "attachment:1" },
+    { "key": "bonus-v1", "type": "bonus_regulation", "title": "임원상여금지급규정 (별첨 2)", "version": 1, "from": "2021-04-05", "document": "articles-2021", "parent": "articles-v1", "textFile": "윌로우인베스트먼트_정관_2021.txt", "section": "attachment:2" },
+    { "key": "survivor-v1", "type": "survivor_regulation", "title": "임원유족보상금지급규정 (별첨 3)", "version": 1, "from": "2021-04-05", "document": "articles-2021", "parent": "articles-v1", "textFile": "윌로우인베스트먼트_정관_2021.txt", "section": "attachment:3" },
+    { "key": "articles-v2", "type": "articles", "title": "정관 (2026-05-26 제2조 사업목적 개정, 등기부 기준 재구성)", "version": 2, "from": "2026-05-26", "textFile": "윌로우인베스트먼트_정관_2021.txt", "section": "body",
+      "replaceArticle": { "no": "제2조", "body": "회사는 다음의 사업을 영위함을 목적으로 한다.\n1. 전문, 과학 및 기술서비스업\n1. 경영컨설팅업\n1. 공공관계 서비스업\n1. 투자 컨설팅 및 제반업무 대행업\n1. 엔젤투자업\n1. 시스템, 응용 소프트웨어 개발업 및 공급업\n1. 정보통신업\n1. 데이터베이스 및 온라인 정보 제공업\n1. 위 각호에 관련된 개발업\n1. 위 각호에 관련된 도소매업 및 유통업\n1. 위 각호에 관련된 서비스업 및 컨설팅업\n1. 위 각호에 관련된 부대사업 일체" },
+      "note": "개정 정관 원본 미수령. 등기부등본(2026-06-04) 목적란으로 제2조를 재구성. 원본·주주총회 의사록 수령 시 document_id 연결" }
+  ],
+  "profile": { "key": "profile-20260604", "asOf": "2026-06-04", "source": "registry-20260604", "factsFile": "profile-20260604.json" },
+  "actions": [
+    { "key": "act-registry-renew-2026-09", "kind": "provide", "document": "registry-20260604", "due": "2026-09-04", "desc": "등기부등본 재발급 업로드 (2026-06-04 발급본 발급확인 3개월 만료)" },
+    { "key": "act-articles-v2-original", "kind": "provide", "document": "articles-2021", "due": "2026-09-30", "desc": "2026-05-26 사업목적 변경 당시의 개정 정관 원본과 주주총회 의사록 제출 (정관 v2 재구성본 대체)" },
+    { "key": "act-officer-term-2027", "kind": "confirm", "due": "2027-02-28", "desc": "사내이사 김동욱(임기 2027-04-05)·감사 김철형(2027 정기주총 종결) 중임 결의 준비 — 2027년 3월 정기주주총회 안건, 결의 후 등기" },
+    { "key": "act-backfill-ceo-salary", "kind": "provide", "due": "2026-09-30", "desc": "현행 대표이사 기본연봉 8,800만원을 정한 주주총회 결의 문서 제출 (없으면 다음 연봉 변경 건에서 소급 확인 결의)" },
+    { "key": "act-akros-2026-original", "kind": "provide", "document": "contract-akros-2026", "due": "2026-09-30", "desc": "아크로스 자문계약서(2026-04-01) 서명본 PDF 제출 — 위키에는 요약만 있음" },
+    { "key": "act-akros-2023-original", "kind": "provide", "document": "contract-akros-2023", "due": "2026-09-30", "desc": "아크로스 구 자문계약서(2023-12-29)와 2026-03-31 합의해지 문서 제출" }
+  ]
+}
