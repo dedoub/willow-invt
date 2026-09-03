@@ -21,6 +21,7 @@ Next.js 기반 대시보드 애플리케이션. ETF 관리, 업무 관리 등 �
 | `etf-documents` | No | ETF 문서 |
 | `tensw-project-docs` | Yes | 텐소프트웍스 프로젝트 문서 |
 | `ceo-docs` | Yes | CEO 관련 문서 |
+| `corp-records` | No | 법인 서류함 (정관·등기·결의 문서 원본, 삭제 금지, 서명 URL로만 열람) |
 
 ### project-supernova (Akros DB)
 - **Project ID**: `iiicccnrnwdfawsvbacu`
