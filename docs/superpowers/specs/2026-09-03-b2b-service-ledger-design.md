@@ -176,6 +176,15 @@ DB와 법률 사실을 확인한 결과 초안에 없던 요건 네 가지를 �
 
 10절의 여섯 질문은 각각 `work_records`, `work_evidence`, `pricings`, `agreements`+`work_records`, `tax_invoice_*`, `cash_*`로 답한다.
 
+## 6-1. 증빙 묶음 (evidence bundle)
+
+"증빙 내라"는 요청에 파일 하나로 답하기 위한 산출물. 정산 건 하나, 또는 기간·프로젝트 단위로 묶는다.
+
+- 내용: `index.pdf`(표지·목차·6절 체인 요약·4자 대사표·문서 해시 목록) + 관련 문서의 확정본 PDF(기본계약, 개별 약정, 업무확인서, 정산서, 세금계산서 사본이 있으면 포함, 지급 증빙 캡처) + `manifest.json`(문서번호·버전·sha256·이벤트 id).
+- 형식: ZIP. 서류함에 `doc_type = evidence_bundle`, `company = provider`, `counterparty_company = client`로 저장하고, 정산 건에 `bundle_doc_no`로 연결한다. 묶음도 append-only 버전이라 재생성하면 새 버전이 된다.
+- 생성: CLI `b2b bundle <settlement_ref>` 또는 `b2b bundle --period 2026-Q3` / `--project <id>`. 인덱스 PDF는 Playwright HTML→PDF, 압축은 시스템 `zip`.
+- 열람: 정산 상세 화면의 "증빙 묶음" 버튼 → 서명 URL. 대표님은 그 파일만 전달하면 된다.
+
 ## 7. 에이전트 역할
 
 | 시점 | 에이전트 행동 | CEO 행동 |
@@ -202,12 +211,11 @@ DB와 법률 사실을 확인한 결과 초안에 없던 요건 네 가지를 �
 - 정산 상세 다이얼로그: 6절 체인을 위에서 아래로. 문서는 서명 URL로 열기.
 - linear 공식 컴포넌트만 사용. 입력 폼 없음(CLI·윌리 입구).
 
-## 10. 구현 단계 (법인 서류함 2단계 이후)
+## 10. 구현 단계 (CEO 승인 2026-09-03: 1단계부터 착수)
 
-1. **스키마·CLI**: `b2b_*` 5테이블 + 서류함 `counterparty_company` + `scripts/b2b-ledger.ts`(agreement·work·evidence·price·settle·reconcile) + 테스트(대사 계산, ref_no, 합계 검증)
-2. **기본계약 체결**: 계약 초안 템플릿(범위·단가표·약정 방식·398조) + 텐소 승인 결의 → 서류함 등록. 첫 실전 문서
-3. **에이전트 수집·정산**: 스킬 + 흔적 수집기 + 업무확인서·정산서 템플릿 + 세금계산서·현금 매칭 + 대사
-4. **열람**: 텐소·윌로우 화면 블록
+1. **스키마·CLI·열람·증빙 묶음**: `b2b_*` 6테이블 + 서류함 `counterparty_company`·`evidence_bundle` + `scripts/b2b-ledger.ts`(agreement·engagement·work·evidence·price·settle·reconcile·bundle) + 테스트(대사 계산, ref_no, 합계·상한 검증) + `/b2b` 읽기 페이지(정산 목록·상세 체인·묶음 열기)
+2. **세금계산서 감지 → 흔적 수집 → 초안 생성**: 스킬 + 수집기 + 업무확인서·정산서 템플릿(법인 서류함 2단계 문서 파이프라인과 공유) + 세금계산서·현금 매칭
+3. **기본계약 체결**: 계약 값 확정(별지 2 비율표·단가·체결일·지급기한) → 텐소 이사회 의사록 자동 생성 → 양사 서류함 등록 → `b2b_agreements` active
 
 ## 11. 확인이 필요한 사항
 
