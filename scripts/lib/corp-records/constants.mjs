@@ -13,6 +13,8 @@ export const DOC_TYPES = [
   // 상시계
   'registry_extract', 'business_registration', 'license_permit', 'shareholder_list',
   'contract', 'tax_filing', 'tax_payment_proof', 'other',
+  // b2b 용역 거래 원장
+  'evidence_bundle',
 ]
 
 export const RULE_TYPES = ['articles', 'retirement_regulation', 'bonus_regulation', 'survivor_regulation', 'other']

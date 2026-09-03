@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    font-size: 11px;
+    color: #1e293b;
+    margin: 0;
+    padding: 28px 32px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+  .cover-sub { color: #64748b; margin-bottom: 2px; }
+  .cover-grid { display: grid; grid-template-columns: 100px 1fr; row-gap: 4px; margin-top: 12px; }
+  .cover-grid dt { color: #64748b; }
+  .cover-grid dd { margin: 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; }
+  th { background: #f1f5f9; color: #475569; font-weight: 600; }
+  .section-label { font-weight: 600; color: #334155; margin: 10px 0 2px; }
+  .badge-ok { color: #047857; font-weight: 600; }
+  .badge-diff { color: #b91c1c; font-weight: 600; }
+  .mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 9px; word-break: break-all; }
+  .muted { color: #94a3b8; }
+  .footer { margin-top: 24px; color: #94a3b8; font-size: 9px; }
+</style>
+<title>증빙 묶음 {{ref}}</title>
+</head>
+<body>
+  <h1>증빙 묶음 — {{ref}}</h1>
+  <div class="cover-sub">{{provider_label}} → {{client_label}} 용역 정산 증빙</div>
+  <dl class="cover-grid">
+    <dt>정산 기간</dt><dd>{{period}}</dd>
+    <dt>공급사</dt><dd>{{provider_label}}</dd>
+    <dt>수요사</dt><dd>{{client_label}}</dd>
+    <dt>정산 상태</dt><dd>{{status}}</dd>
+    <dt>생성일시</dt><dd>{{generated_at}}</dd>
+  </dl>
+
+  <h2>1. 체인 요약</h2>
+  <div class="section-label">기본계약</div>
+  {{agreement_table}}
+  <div class="section-label">개별 약정</div>
+  {{engagement_table}}
+  <div class="section-label">업무기록</div>
+  {{works_table}}
+  <div class="section-label">업무확인서 · 정산서</div>
+  {{doc_status_table}}
+  <div class="section-label">세금계산서</div>
+  {{invoices_table}}
+  <div class="section-label">입금</div>
+  {{cash_table}}
+  <div class="section-label">대사 결과</div>
+  {{reconciliation_block}}
+
+  <h2>2. 문서 해시 목록</h2>
+  {{hash_table}}
+
+  <div class="footer">이 문서는 자동 생성되었습니다 · Willow Dashboard b2b-ledger bundle</div>
+</body>
+</html>

@@ -5,6 +5,7 @@ const EXT = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/zip': 'zip',
 }
 
 export function sha256Hex(buffer) {

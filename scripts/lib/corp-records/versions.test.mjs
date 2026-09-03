@@ -11,6 +11,7 @@ test('extensionForMime maps known types and falls back to bin', () => {
   assert.equal(extensionForMime('image/png'), 'png')
   assert.equal(extensionForMime('image/jpeg'), 'jpg')
   assert.equal(extensionForMime('application/vnd.openxmlformats-officedocument.wordprocessingml.document'), 'docx')
+  assert.equal(extensionForMime('application/zip'), 'zip')
   assert.equal(extensionForMime('text/weird'), 'bin')
 })
 
