@@ -1731,13 +1731,18 @@ cp "/Volumes/PRO-G40/Downloads/2-1. 계약서-AI 융합 탐방 퀴즈 콘텐츠 
     { "key": "tensw-contract-nia-2026", "type": "contract", "category": "contract", "title": "일반용역계약서 — 한국독립운동 관계 자료 통합개방 데이터 구축 (NIA, 컨소시엄 지분 12%, ₩142,777,800)", "issued": "2026-07-16", "counterparty": "한국지능정보사회진흥원(NIA) 컨소시엄", "contractStart": "2026-07-16", "tags": ["consortium", "wiki:3ef88df1-98aa-4bfc-8ec9-1592a82c7165"],
       "versions": [{ "kind": "final_signed", "url": "https://axcfvieqsaphhvbkyzzv.supabase.co/storage/v1/object/public/wiki-attachments/dw_kim_willowinvt_com/1785935607075_20260716_NIA_independence-movement-data_contract.pdf", "localName": "텐소_NIA_독립운동데이터_계약서_20260716.pdf" }] }
   ],
-  "rules": [],
+  "rules": [
+    { "key": "tensw-articles-v1", "type": "articles", "title": "정관 (2023-08-22 시행, 상호 변경 개정본)", "version": 1, "from": "2023-08-22", "document": "tensw-articles-2023", "textFile": "텐소프트웍스_정관_2023.txt", "section": "body", "note": "제7조 1주 금액 5,000원으로 기재되어 있으나 등기부는 2022-04-03 액면분할로 500원. 정관 정비 필요 액션 참조" },
+    { "key": "tensw-retirement-v1", "type": "retirement_regulation", "title": "임원퇴직금지급규정 (별첨 1)", "version": 1, "from": "2018-04-23", "document": "tensw-articles-2023", "parent": "tensw-articles-v1", "textFile": "텐소프트웍스_정관_2023.txt", "section": "attachment:1", "note": "부칙 시행일 공란 → 회사 성립일" },
+    { "key": "tensw-bonus-v1", "type": "bonus_regulation", "title": "임원상여금지급규정 (별첨 2)", "version": 1, "from": "2018-04-23", "document": "tensw-articles-2023", "parent": "tensw-articles-v1", "textFile": "텐소프트웍스_정관_2023.txt", "section": "attachment:2", "note": "부칙 시행일 공란 → 회사 성립일" }
+  ],
   "profile": { "key": "tensw-profile-20260203", "asOf": "2026-02-03", "source": "tensw-registry-20260203", "factsFile": "tensw-profile-20260203.json" },
   "actions": [
     { "key": "tensw-act-dokrip-platform-signed", "kind": "provide", "document": "tensw-contract-dokrip-platform-2026", "due": "2026-09-30", "desc": "독립잇다 기념관 탐방 플랫폼 개발 용역계약서 날인본 PDF 제출 (현재 서명 전 docx만 보관)" },
     { "key": "tensw-act-contract-terms", "kind": "provide", "due": "2026-09-30", "desc": "평택대·NIA 계약의 종료일과 계약금액을 계약서 본문에서 확인해 문서 메타(contract_end, amount)에 반영" },
     { "key": "tensw-act-registry-renew", "kind": "provide", "document": "tensw-registry-20260203", "due": "2026-09-15", "desc": "텐소프트웍스 등기부등본 재발급 업로드 (2026-02-03 발급본 만료). 김동욱 사내이사 임기(2023-05-12 취임, 2026-05-12 만료)의 중임 등기 여부 확인이 목적" },
-    { "key": "tensw-act-board-approval-msa", "kind": "confirm", "due": "2026-09-30", "desc": "윌로우-텐소 기본 용역계약 체결 전 텐소 이사회 승인(상법 398조, 김동욱 의결권 배제, 김철형·김성훈 찬성) 의사록 준비" }
+    { "key": "tensw-act-board-approval-msa", "kind": "confirm", "due": "2026-09-30", "desc": "윌로우-텐소 기본 용역계약 체결 전 텐소 이사회 승인(상법 398조, 김동욱 의결권 배제, 김철형·김성훈 찬성) 의사록 준비" },
+    { "key": "tensw-act-articles-par-value", "kind": "provide", "document": "tensw-articles-2023", "due": "2026-10-31", "desc": "텐소 정관 제7조(1주 금액 5,000원)가 등기(2022-04-03 액면분할 500원)와 불일치. 액면분할 당시 개정 정관이 따로 있으면 제출, 없으면 정관 정비(주총 특별결의) 안건화" }
   ]
 }
 ```
@@ -1751,6 +1756,8 @@ cp "/Volumes/PRO-G40/Downloads/2-1. 계약서-AI 융합 탐방 퀴즈 콘텐츠 
       "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_주주명부_20260310.docx", "convert": true }] },
     { "key": "tensw-seal", "type": "other", "category": "other", "title": "법인인감 인영 (대표이사 인, 이미지 날인용)", "issued": "2026-09-03", "issuedBy": "주식회사 텐소프트웍스", "tags": ["seal"],
       "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_인감.png", "note": "CEO 제공 원본(234x249)에서 배경 제거한 투명 PNG. 확정 문서 이미지 날인에 사용" }] },
+    { "key": "tensw-articles-2023", "type": "regulation", "category": "articles_rules", "title": "정관 (2023-08-22 시행, 별첨 임원퇴직금·상여금 규정 포함)", "issued": "2023-08-22", "issuedBy": "주식회사 텐소프트웍스",
+      "versions": [{ "kind": "final_signed", "file": "텐소프트웍스_정관_2023.pdf", "textFile": "텐소프트웍스_정관_2023.txt" }] },
 ```
 
 인감 PNG는 `image/png`로 업로드되며 텍스트 추출은 건너뛴다(`extractPdfText`는 PDF에만 호출됨). 시드 러너는 mime이 `image/*`이면 `contentText`를 null로 둔다.
