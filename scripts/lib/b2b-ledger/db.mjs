@@ -225,6 +225,10 @@ export function createB2bDb({ url, key, actor = 'cli' }) {
     if (confirmationDocNo !== undefined) patch.confirmation_doc_no = confirmationDocNo
     if (statementDocNo !== undefined) patch.statement_doc_no = statementDocNo
     if (!Object.keys(patch).length) throw new Error('confirmationDocNo or statementDocNo required')
+    // 서류함에 없는 문서번호를 걸어두면 대사에서 documents_final이 판정 불능이 된다. 먼저 실존을 확인한다.
+    for (const docNo of [confirmationDocNo, statementDocNo]) {
+      if (docNo) await corp.getDocument(docNo)
+    }
     const rows = unwrap(await sb.from('b2b_settlements').update(patch).eq('id', settlement.id).select(), 'set documents')
     await corp.appendEvent({ company: settlement.provider_company, entityType: 'b2b_settlement', entityId: settlementRef, event: 'documents_set', payload: { confirmation_doc_no: confirmationDocNo, statement_doc_no: statementDocNo } })
     return rows[0]
