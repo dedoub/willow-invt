@@ -177,7 +177,7 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
   }
 
   async function verifyChainFor(company = 'willow') {
-    const rows = unwrap(await sb.from('willow_corp_events').select('id, prev_hash, hash, entity_type, entity_id, event, payload, at').eq('company', company).neq('entity_type', 'test').order('id'), 'events')
+    const rows = unwrap(await sb.from('willow_corp_events').select('id, prev_hash, hash, entity_type, entity_id, event, payload, at').eq('company', company).order('id'), 'events')
     return verifyChain(rows)
   }
 
