@@ -59,7 +59,7 @@ export default function B2bPage() {
       const json = await res.json()
       setSettlements(json.settlements ?? [])
     } catch {
-      setLoadError('용역 거래 원장을 불러오지 못했습니다. 새로고침으로 다시 시도해 주세요.')
+      setLoadError('관계사간거래 원장을 불러오지 못했습니다. 새로고침으로 다시 시도해 주세요.')
     } finally {
       setLoaded(true)
     }
@@ -98,7 +98,7 @@ export default function B2bPage() {
       <LCard>
         <LSectionHead
           eyebrow="INTER-COMPANY LEDGER"
-          title="용역 거래"
+          title="관계사간거래"
           note="세금계산서 한 장마다 업무기록·산정·문서·입금을 묶어 대사합니다."
           tools={<LSegmented options={DIRECTION_OPTIONS} value={direction} onChange={changeDirection} />}
         />
