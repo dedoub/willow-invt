@@ -110,6 +110,12 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     return { version, document: updated[0] }
   }
 
+  async function setCounterparty(docNo, company) {
+    const rows = unwrap(await sb.from('willow_corp_documents').update({ counterparty_company: company }).eq('doc_no', docNo).select(), 'set counterparty')
+    if (!rows[0]) throw new Error(`document not found: ${docNo}`)
+    return rows[0]
+  }
+
   async function signedUrl(docNo, versionNo, expiresSec = 3600) {
     const doc = await getDocument(docNo)
     const versions = await listVersions(doc.id)
@@ -269,7 +275,7 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
 
   return {
     client: sb, ensureBucket, nextRefNo, appendEvent,
-    getDocumentByKey, getDocument, listDocuments, createDocument, listVersions, addVersion, signedUrl,
+    getDocumentByKey, getDocument, listDocuments, createDocument, listVersions, addVersion, signedUrl, setCounterparty,
     getRuleByKey, listRules, rulesEffectiveAt, registerRule,
     snapshotProfile, latestProfile, getByKey,
     addAction, listActions, doneAction,
