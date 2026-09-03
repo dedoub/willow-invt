@@ -33,9 +33,14 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     const prevHash = last[0]?.hash ?? GENESIS_HASH
     const at = new Date().toISOString()
     const hash = computeEventHash({ prevHash, entityType, entityId, event, payload, at })
-    const rows = unwrap(await sb.from('willow_corp_events').insert({
+    const res = await sb.from('willow_corp_events').insert({
       company, entity_type: entityType, entity_id: entityId, event, actor, payload, prev_hash: prevHash, hash, at,
-    }).select(), 'insert event')
+    }).select()
+    // (company, prev_hash) 유니크 인덱스 위반 = 다른 쓰기가 같은 끝에 이어 붙였다는 뜻. 체인이 갈라지는 대신 여기서 멈춘다.
+    if (res.error && (res.error.code === '23505' || `${res.error.message ?? ''}`.includes('willow_corp_events_company_prev_hash_uidx'))) {
+      throw new Error('event chain conflict: another writer appended concurrently; retry the operation')
+    }
+    const rows = unwrap(res, 'insert event')
     return rows[0]
   }
 
