@@ -103,6 +103,7 @@ export const CORP_DOC_TYPE_LABEL: Record<string, string> = {
   contract: '계약서',
   tax_filing: '세무 신고',
   tax_payment_proof: '납부 증빙',
+  evidence_bundle: '증빙 묶음',
   other: '기타',
 }
 
