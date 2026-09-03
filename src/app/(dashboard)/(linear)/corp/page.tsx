@@ -100,7 +100,7 @@ export default function CorpPage() {
       <LCard>
         <LSectionHead
           eyebrow="CORPORATE RECORDS"
-          title="법인 서류함"
+          title="법인서류함"
           note={`${CORP_COMPANY_LABEL[company]}의 정관·등기·계약·결의 원본. 확정본은 수정되지 않고 버전으로만 쌓입니다.`}
           tools={<LSegmented options={COMPANY_OPTIONS} value={company} onChange={changeCompany} />}
         />
