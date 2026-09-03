@@ -115,6 +115,11 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Codex Desktop �
 
 > 상세 문서: `docs/mcp.md`
 
+### 법인 서류함 · B2B 용역 원장
+- 쓰기는 CLI만: `npm run corp -- …` (법인 서류함, `scripts/corp-records.ts`), `npm run b2b -- …` (B2B 원장, `scripts/b2b-ledger.ts`). 웹은 열람 전용(`/corp`, `/b2b`).
+- 문서 원본은 private 버킷 `corp-records`, 감사 로그는 `willow_corp_events` 해시체인. 확정 버전·이벤트는 삭제·수정 불가.
+- 스펙: `docs/superpowers/specs/2026-09-03-corp-records-design.md`, `docs/superpowers/specs/2026-09-03-b2b-service-ledger-design.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - wiki-attachments 버킷은 public으로 설정됨
