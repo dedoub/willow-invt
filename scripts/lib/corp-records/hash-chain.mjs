@@ -9,7 +9,9 @@ export function canonicalize(value) {
 }
 
 export function computeEventHash({ prevHash, entityType, entityId, event, payload, at }) {
-  const material = [prevHash, entityType, entityId, event, canonicalize(payload ?? {}), at].join('|')
+  const atDate = new Date(at)
+  if (Number.isNaN(atDate.getTime())) throw new Error('invalid at')
+  const material = [prevHash, entityType, entityId, event, canonicalize(payload ?? {}), atDate.toISOString()].join('|')
   return createHash('sha256').update(material, 'utf8').digest('hex')
 }
 

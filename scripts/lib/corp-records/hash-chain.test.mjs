@@ -47,3 +47,10 @@ test('verifyChain reports a broken link (prev_hash mismatch)', () => {
   rows[1].prev_hash = 'f'.repeat(64)
   assert.deepEqual(verifyChain(rows), { ok: false, brokenAt: 2, count: 3 })
 })
+
+test('computeEventHash normalizes timestamp rendering (Z vs +00:00)', () => {
+  const a = computeEventHash({ ...base, prevHash: GENESIS_HASH, payload: { x: 1 }, at: '2026-09-03T03:00:00.433Z' })
+  const b = computeEventHash({ ...base, prevHash: GENESIS_HASH, payload: { x: 1 }, at: '2026-09-03T03:00:00.433+00:00' })
+  assert.equal(a, b)
+  assert.throws(() => computeEventHash({ ...base, prevHash: GENESIS_HASH, payload: {}, at: 'nope' }), /invalid at/)
+})
