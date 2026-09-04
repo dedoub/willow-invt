@@ -21,6 +21,7 @@
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import { findReservedPayment, paymentKey } from './lib/payment-reconcile.mjs'
 
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
 
@@ -162,7 +163,7 @@ async function main() {
   console.log(`[reconcile] 대상 계산서 ${invoices?.length ?? 0}건 / 입금 ${deposits.length}건 · 출금 ${withdrawals.length}건`)
 
   const used = new Set<string>()
-  const key = (d: Deposit) => `${d.source}|${d.date}|${d.amount}|${d.account ?? ''}`
+  const key = paymentKey
 
   type Invoice = NonNullable<typeof invoices>[number]
   let settled = 0
@@ -176,7 +177,11 @@ async function main() {
     const total = Number(inv.total_amount)
     const label = `${purchase ? '[매입]' : '[매출]'} ${inv.issue_date} ${inv.counterparty} ${total.toLocaleString()}`
     const alreadyComplete = inv.payment_status === 'paid' && inv.paid_amount !== null && inv.bank_ref
-    if (alreadyComplete) { used.add('_'); continue }
+    if (alreadyComplete) {
+      const reserved = findReservedPayment(inv, pool)
+      if (reserved) used.add(key(reserved))
+      continue
+    }
 
     const from = addDays(inv.issue_date, -WINDOW_BEFORE)
     const to = addDays(inv.issue_date, WINDOW_AFTER)

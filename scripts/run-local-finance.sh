@@ -48,6 +48,7 @@ for script in \
   import-local-bank.mjs \
   import-local-card.mjs \
   import-local-tax-invoices.mjs \
+  promote-local-tax-invoices.mjs \
   import-finance-tax-obligations.mjs \
   match-finance-tax-obligations.mjs \
   sync-akros-invoices.mjs \
@@ -65,6 +66,7 @@ done
 
 for lib in \
   tensw-local-finance.mjs daily-finance-sync.mjs tax-obligation-matcher.mjs \
+  tax-invoice-promotion.mjs \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
   finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
@@ -261,7 +263,8 @@ collect_shared_taxes() {
 
 tensw_tax_invoices() {
   run_browser_step "홈택스 세금계산서 수집" $NODE "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" --collect \
-    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company tensw
+    && run_step "세금계산서 적재" $NODE "$RUNTIME/scripts/import-local-tax-invoices.mjs" --company tensw \
+    && run_step "세금계산서 매출관리 반영" $NODE "$RUNTIME/scripts/promote-local-tax-invoices.mjs"
 }
 
 # 카드는 로그인 세션 하나로 승인내역과 명세서를 함께 가져온다. 그래서 Chrome 은
