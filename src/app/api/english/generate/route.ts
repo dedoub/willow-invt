@@ -12,17 +12,29 @@ const MAX_COUNT = 50
 const CHUNKING_RULES = `## Chunking (the core of the exercise)
 - AFTER the English sentence is final, split IT (the English) into real spoken breath units, in order — the phrases you'd say in one breath with one intonation contour. Avoid 1-2 word chunks; merge them into a neighbor (a natural sentence-final standalone is the only exception). A 5-6 word chunk is fine if it's said in one breath. Joining the "en" chunks in order must reproduce the reference sentence exactly.
 - For each English chunk, write the "ko" Korean phrase that means exactly that chunk — same subject/verb/negation/tense scope, nothing borrowed from adjacent chunks. Target 3-4 어절, but matching the en chunk's exact meaning beats the word count. Because chunks follow the ENGLISH sentence order, the Korean verb phrase lands early (with the English verb), not at the end.
+- Never split an English noun phrase across two chunks ("AI search | shadow data", "based on | user-managed ledgers" are wrong). Move the boundary so each chunk holds a whole phrase.
+- EVERY Korean chunk must be sayable on its own. Two hard rules:
+  (a) A trailing English relative clause becomes Korean 관형절 + its head noun, repeated: "to the developer account | that owns the app" → "개발자 계정에요, | 앱을 소유한 계정이요." Never end a chunk on a bare 관형형 ("앱을 소유한.", "제품이 쌓아온.").
+  (b) Never attach 요 to a 관형형 ("통합되는요", "측정하는요" are ungrammatical). Close a trailing fragment with a noun + 요 ("통합되는 원리요"), or with a particle + 요 ("다음 주에요.", "무료로요.").
 - korean_full: the natural Korean full sentence (normal Korean word order).`
 
 const OUTPUT_SPEC = `Do NOT reuse or closely paraphrase any sentence in the "already used" list, and never output the example sentence above as an item.
 Return JSON: {"items":[{"korean_full":"...","reference_english":"...","chunks":[{"en":"...","ko":"..."}],"topic":"..."}]} with exactly 10 items.`
 
 const CEO_SYSTEM = `You create English composition practice items for a Korean CEO of a small investment/software company.
-He wants to practice spoken American business English he would actually say in daily work — meetings, emails read aloud, quick updates, requests, small talk about his projects.
+He wants to practice spoken American English he would actually say — both in daily work (meetings, emails read aloud, quick updates, requests) and in ordinary adult life in the US.
+
+## Sentence mix (HARD quota for each batch of 10 — check before returning)
+- 4 items: grounded in the provided work context (his actual projects, numbers, decisions).
+- 3 items: basic business conversation that needs NO work context — the everyday phrases any professional uses. Scheduling and rescheduling, joining and running a call, introductions, asking someone to repeat or clarify, agreeing and pushing back politely, following up, apologizing for a delay, making and declining a request, wrapping up a meeting, small talk before it starts.
+- 3 items: everyday life an American adult actually speaks in — ordering at a restaurant or coffee shop, groceries and returns, doctor and pharmacy, banking, taxis and airports, hotel check-in, calling about a repair or a bill, talking with neighbors, weekend plans, kids' school, weather and traffic, gym, small complaints and thanks.
+- The 6 non-work items must NOT mention his companies, projects, or metrics. They stand on their own.
+- Vary the opening and the grammar across the batch — no two items may start with the same two words.
 
 ## English style (write this FIRST)
-1. Write ONE natural spoken American English sentence (10-22 words), first person, grounded in the provided work context. Tone: clear, polished, direct, confident — what you'd actually say out loud in a New York business conversation, not written/translated prose. Contractions OK. Natural discourse markers OK when they fit ("I mean", "But the truth is", "From the outside").
-2. Do NOT mirror Korean sentence structure. Capture the speaker's intent and rewrite it in the American English order of thought.
+1. Write ONE natural spoken American English sentence (10-22 words), first person. Tone: clear, direct, confident — what you'd actually say out loud, not written/translated prose. Contractions OK. Natural discourse markers OK when they fit ("I mean", "But the truth is", "From the outside").
+2. For the daily-life items, use the plain phrasing a native adult really uses ("Could I get...", "I'm just going to...", "Do you mind if...", "It looks like...") — not textbook English and not business register.
+3. Do NOT mirror Korean sentence structure. Capture the speaker's intent and rewrite it in the American English order of thought.
 
 ${CHUNKING_RULES}
 - All Korean is 구어체 존댓말 ("~해요/~거예요"), never written style ("~합니다/~됩니다").
@@ -37,6 +49,7 @@ chunks: [
   {"en": "next week.", "ko": "다음 주에요."}
 ]
 - topic: 2-4 word Korean label of the subject matter.
+- kind: "work" for the work-context items, "business_talk" for the general business conversation items, "daily_life" for the everyday life items. Every item must have one.
 
 ${OUTPUT_SPEC}`
 
@@ -140,7 +153,10 @@ export async function POST(req: NextRequest) {
   const system = profile === 'ryuha' ? RYUHA_SYSTEM : CEO_SYSTEM
 
   interface GenChunk { en: string; ko: string }
-  interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string }
+  interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string; kind?: string }
+
+  // ceo는 소재별로 source_type을 나눠 둔다 — 업무 문장만 있는 은행이 되지 않게 비중을 나중에 볼 수 있어야 한다
+  const CEO_SOURCE: Record<string, string> = { work: 'wiki', business_talk: 'business_talk', daily_life: 'daily_life' }
 
   let created = 0
   let lastError: string | null = null
@@ -191,7 +207,7 @@ ${existing.join('\n') || '(none)'}`
         english_chunks: it.chunks.map(c => c.en),
         reference_english: it.reference_english,
         topic: it.topic ?? null,
-        source_type: profile === 'ceo' ? 'wiki' : 'ryuha_notes',
+        source_type: profile === 'ceo' ? (CEO_SOURCE[String(it.kind ?? '')] ?? 'wiki') : 'ryuha_notes',
         profile,
       }))
       const { error } = await supabase.from('english_practice_items').insert(rows)
