@@ -20,6 +20,7 @@ import {
   buildVoicecardsLocalAssetMap,
   LOCAL_SHEET_CREATED_EVENT,
   LOCAL_SHEET_FLUSHED_EVENT,
+  LOCAL_LIBRARY_SNAPSHOT_EVENT,
   type VoicecardsLocalAssets,
   type VoicecardsLocalSheetRow,
 } from '@/lib/voicecards-local-assets'
@@ -1370,18 +1371,19 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
   totalAttempts += Array.from(anonymousLearningMap.values()).reduce((sum, metrics) => sum + metrics.attempts, 0)
 
-  // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 생성 이벤트의 card_count를
+  // 로컬 덱은 users.sheet_ids/user_analytics에 저장되지 않는다. 앱이 보내는 이벤트를
   // 사용자별로 접어 대시보드 시트·카드 수와 활성화 집계에 포함한다.
   //
-  // flush 이벤트까지 함께 읽는 이유는 buildVoicecardsLocalAssetMap 참고 — 백업된
-  // 로컬 덱은 Drive 시트가 되어 sheet_ids/user_analytics가 이미 세고 있다.
+  // 세 이벤트를 함께 읽는 이유는 buildVoicecardsLocalAssetMap 참고 —
+  // 스냅샷은 현재 보유량의 정본이고(삭제·재설치 반영), 생성은 활성화 이력과
+  // 구버전 앱 폴백, flush는 Drive로 옮겨간 덱의 이중 계상 방지에 쓴다.
   let userLocalAssetsMap = new Map<string, VoicecardsLocalAssets>()
   let deviceActivatedIds = new Set<string>()
   try {
     const { data: localSheetRows } = await vc
       .from('anonymous_events')
       .select('device_id, created_at, event_name, properties')
-      .in('event_name', [LOCAL_SHEET_CREATED_EVENT, LOCAL_SHEET_FLUSHED_EVENT])
+      .in('event_name', [LOCAL_SHEET_CREATED_EVENT, LOCAL_SHEET_FLUSHED_EVENT, LOCAL_LIBRARY_SNAPSHOT_EVENT])
     const { assets, activatedOwnerIds } = buildVoicecardsLocalAssetMap(
       (localSheetRows || []) as VoicecardsLocalSheetRow[],
       (deviceId) => {

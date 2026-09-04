@@ -5,6 +5,7 @@ import {
   buildVoicecardsLocalAssetMap,
   LOCAL_SHEET_CREATED_EVENT,
   LOCAL_SHEET_FLUSHED_EVENT,
+  LOCAL_LIBRARY_SNAPSHOT_EVENT,
 } from '../voicecards-local-assets'
 
 const DEVICE = '2bc1b06f-6672-4be5-87b8-df0a2e372f4f'
@@ -133,4 +134,98 @@ test('a device with no visible owner contributes nothing', () => {
 
   assert.equal(assets.size, 0)
   assert.equal(activatedOwnerIds.size, 0)
+})
+
+// ── 스냅샷 기반 현재 보유량 (2026-09-04) ─────────────────────────────
+// 생성 이벤트 누적은 "만든 적 있다"는 이력이지 "지금 갖고 있다"가 아니다.
+// 삭제·재설치가 이벤트로 남지 않아 대시보드가 보유량을 영구히 부풀렸다.
+// 앱이 현재 로컬 덱·카드 수를 스냅샷으로 보내면 그 값이 현재 상태의 정본이다.
+
+test('스냅샷이 있으면 생성 누적 대신 스냅샷이 현재 보유량이다', () => {
+  // 덱 3개를 만들고 2개를 지운 기기. 생성 이벤트는 3개 그대로 남아 있다.
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-09-01T01:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 10 } },
+      { device_id: DEVICE, created_at: '2026-09-01T02:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 20 } },
+      { device_id: DEVICE, created_at: '2026-09-01T03:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 30 } },
+      { device_id: DEVICE, created_at: '2026-09-02T00:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 1, card_count: 30 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 1)
+  assert.equal(assets.get(OWNER)?.cards, 30)
+})
+
+test('스냅샷이 없는 기기는 기존 생성 누적 방식으로 남는다', () => {
+  // 구버전 앱은 스냅샷을 보내지 않는다. 그 기기까지 0으로 만들면 안 된다.
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-09-01T01:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 10 } },
+      { device_id: DEVICE, created_at: '2026-09-01T02:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 20 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 2)
+  assert.equal(assets.get(OWNER)?.cards, 30)
+})
+
+test('재설치로 덱이 0이 되어도 활성화 이력은 지워지지 않는다', () => {
+  const { assets, activatedOwnerIds } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-08-20T01:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 40 } },
+      { device_id: DEVICE, created_at: '2026-09-02T00:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 0, card_count: 0 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 0)
+  assert.equal(assets.get(OWNER)?.cards, 0)
+  assert.equal(assets.get(OWNER)?.firstCreatedAt, '2026-08-20T01:00:00.000Z')
+  assert.ok(activatedOwnerIds.has(OWNER))
+})
+
+test('가장 최근 스냅샷만 현재 상태로 쓴다', () => {
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-09-01T00:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 5, card_count: 100 } },
+      { device_id: DEVICE, created_at: '2026-09-03T00:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 2, card_count: 40 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 2)
+  assert.equal(assets.get(OWNER)?.cards, 40)
+})
+
+test('스냅샷 이후에 만든 덱은 더해진다 (스냅샷 전송 실패 대비)', () => {
+  // 스냅샷은 변경마다 나가지만 전송이 실패할 수 있다. 스냅샷 이후 생성분만
+  // 더한다 — 이전 것은 버리므로 삭제 반영은 그대로 유지된다.
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-09-01T01:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 10 } },
+      { device_id: DEVICE, created_at: '2026-09-02T00:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 1, card_count: 10 } },
+      { device_id: DEVICE, created_at: '2026-09-03T00:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 7 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 2)
+  assert.equal(assets.get(OWNER)?.cards, 17)
+})
+
+test('오늘 증가분은 스냅샷이 있어도 보유 중인 생성분에서 센다', () => {
+  // 보유량은 스냅샷이 정하고, 오늘 증가분은 그 보유분 중 오늘 만든 것이다.
+  const { assets } = buildVoicecardsLocalAssetMap(
+    [
+      { device_id: DEVICE, created_at: '2026-09-04T02:00:00.000Z', event_name: LOCAL_SHEET_CREATED_EVENT, properties: { card_count: 12 } },
+      { device_id: DEVICE, created_at: '2026-09-04T03:00:00.000Z', event_name: LOCAL_LIBRARY_SNAPSHOT_EVENT, properties: { deck_count: 1, card_count: 12 } },
+    ],
+    ownerOf,
+    '2026-09-04',
+  )
+  assert.equal(assets.get(OWNER)?.sheets, 1)
+  assert.equal(assets.get(OWNER)?.sheetsToday, 1)
+  assert.equal(assets.get(OWNER)?.cardsToday, 12)
 })
