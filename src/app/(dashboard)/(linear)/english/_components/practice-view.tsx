@@ -57,6 +57,8 @@ interface GradeResult {
   points: { type: string; note: string }[]
   /** 손글씨 채점일 때 — 모델이 읽어낸 문장 */
   transcript?: string
+  /** false면 연습용 재시도라 시도로 남지 않았다 */
+  recorded?: boolean
 }
 
 const POINT_TONE: Record<string, 'danger' | 'warn' | 'info' | 'pos'> = {
@@ -83,6 +85,9 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const [inputMode, setInputMode] = useState<'type' | 'draw'>(profile === 'ceo' ? 'type' : 'draw')
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
+  // "다시 풀기"로 다시 푸는 중. 교정문·참고 답안을 이미 본 뒤라 이후 채점은
+  // 기록하지 않는다 — 다음 문항으로 넘어가야 풀린다.
+  const [retrying, setRetrying] = useState(false)
   const padRef = useRef<DrawPadHandle | null>(null)
   const taRef = useRef<HTMLTextAreaElement | null>(null)
   // 마이크 받아쓰기 — 인식 결과를 입력창에 이어붙이고, 사용자가 고친 뒤 채점한다.
@@ -135,15 +140,17 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           drawing
-            ? { itemId: current.id, imageBase64, isReview: current.is_review, profile }
-            : { itemId: current.id, answer, isReview: current.is_review, profile },
+            ? { itemId: current.id, imageBase64, isReview: current.is_review, profile, record: !retrying }
+            : { itemId: current.id, answer, isReview: current.is_review, profile, record: !retrying },
         ),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `grade ${res.status}`)
       setResult(data)
-      // 로컬 통계 갱신 — 다음 큐 로드 때 서버값으로 재동기화됨
-      setStats(prev => {
+      // 로컬 통계 갱신 — 다음 큐 로드 때 서버값으로 재동기화됨.
+      // 기록하지 않은 연습 재시도는 건너뛴다. 화면 숫자만 올려두면 다음 큐를
+      // 받는 순간 서버값으로 되돌아가 사용자에게는 숫자가 튀어 보인다.
+      if (data.recorded !== false) setStats(prev => {
         if (!prev) return prev
         const s = structuredClone(prev) as Stats
         if (current.is_review) s.today.review++
@@ -166,10 +173,11 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     } finally {
       setGrading(false)
     }
-  }, [current, answer, grading, result, profile, inputMode, dictation])
+  }, [current, answer, grading, result, profile, inputMode, dictation, retrying])
 
   const next = useCallback(() => {
     dictation.stop()
+    setRetrying(false)
     setAnswer('')
     setResult(null)
     setVcState('idle')
@@ -178,6 +186,18 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     setTool('pen')
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
+    if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
+  }, [mobile, dictation])
+
+  // 같은 문항을 한 번 더. 답을 이미 봤으므로 이후 채점은 기록하지 않는다.
+  const retry = useCallback(() => {
+    dictation.stop()
+    setRetrying(true)
+    setAnswer('')
+    setResult(null)
+    setError(null)
+    padRef.current?.clear()
+    setHasInk(false)
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
   }, [mobile, dictation])
 
@@ -483,10 +503,16 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
                 </LBtn>
               ) : (
-                <LBtn variant="brand" onClick={next}
-                  style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                  {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
-                </LBtn>
+                <>
+                  <LBtn variant="secondary" onClick={retry}
+                    style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                    다시 풀기
+                  </LBtn>
+                  <LBtn variant="brand" onClick={next}
+                    style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                    {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                  </LBtn>
+                </>
               )}
             </div>
           </LCard>
@@ -501,6 +527,8 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   color: result.passed ? t.accent.pos : t.accent.neg,
                 }}>{result.score}</span>
                 <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
+                {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
+                {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
                 <div style={{ marginLeft: 'auto' }}>
                   <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
                     {vcState === 'done' ? '보이스카드 담김 ✓' : vcState === 'sending' ? '담는 중…' : '보이스카드 담기'}

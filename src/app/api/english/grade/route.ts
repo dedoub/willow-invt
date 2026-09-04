@@ -18,8 +18,16 @@ Rules:
 // 실시간 채점 — 속도 1순위라 단발 호출 + 짧은 프롬프트 + JSON 강제.
 // answer(타이핑) 또는 imageBase64(손글씨 캔버스 PNG) 중 하나를 받는다.
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { itemId?: string; answer?: string; imageBase64?: string; isReview?: boolean; profile?: string }
+  const body = await req.json() as {
+    itemId?: string; answer?: string; imageBase64?: string; isReview?: boolean; profile?: string
+    /** false면 채점만 하고 시도로 남기지 않는다 (기본 true). */
+    record?: boolean
+  }
   const { itemId, answer, imageBase64, isReview } = body
+  // "다시 풀기"는 이미 교정문·참고 답안을 본 뒤의 연습이다. 그걸 기록하면 그게
+  // 마지막 시도가 되어 정답률(문장별 마지막 시도 기준)과 복습 큐(마지막 시도가
+  // 불합격인 문장)가 둘 다 답을 보고 쓴 문장으로 채워진다.
+  const record = body.record !== false
   const profile = asProfile(body.profile)
   if (!itemId || (!answer?.trim() && !imageBase64)) {
     return NextResponse.json({ error: 'itemId and answer (or imageBase64) required' }, { status: 400 })
@@ -77,18 +85,23 @@ points: 1-3 items, most important first. If the answer is already great, one "go
     }
     const passed = score >= PASS_SCORE
 
-    const { error: insErr } = await supabase.from('english_practice_attempts').insert({
-      item_id: itemId,
-      user_answer: effectiveAnswer,
-      score,
-      passed,
-      is_review: !!isReview,
-      feedback,
-      profile,
-    })
-    if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+    if (record) {
+      const { error: insErr } = await supabase.from('english_practice_attempts').insert({
+        item_id: itemId,
+        user_answer: effectiveAnswer,
+        score,
+        passed,
+        is_review: !!isReview,
+        feedback,
+        profile,
+      })
+      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+    }
 
-    return NextResponse.json({ ...feedback, passed, reference: item.reference_english, ...(imageBase64 ? { transcript } : {}) })
+    return NextResponse.json({
+      ...feedback, passed, reference: item.reference_english, recorded: record,
+      ...(imageBase64 ? { transcript } : {}),
+    })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'grade failed' }, { status: 500 })
   }
