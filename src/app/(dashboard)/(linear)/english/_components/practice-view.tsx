@@ -11,6 +11,8 @@ import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { useDictation } from './use-dictation'
+import { appendTranscript } from '@/lib/dictation'
 
 type Mode = 'new_heavy' | 'balanced' | 'review_heavy'
 
@@ -83,6 +85,13 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const [hasInk, setHasInk] = useState(false)
   const padRef = useRef<DrawPadHandle | null>(null)
   const taRef = useRef<HTMLTextAreaElement | null>(null)
+  // 마이크 받아쓰기 — 인식 결과를 입력창에 이어붙이고, 사용자가 고친 뒤 채점한다.
+  // 류하는 영국식으로 연습하므로 인식 언어도 갈라 준다.
+  const dictation = useDictation({
+    lang: profile === 'ryuha' ? 'en-GB' : 'en-US',
+    onFinal: (text) => setAnswer(prev => appendTranscript(prev, text)),
+    onError: setError,
+  })
   const generatingRef = useRef(false)
   // 자동 충전이 실패했을 때 무한 재시도 방지 — 수동 생성 버튼을 누르면 해제
   const autoRefillBlockedRef = useRef(false)
@@ -112,6 +121,9 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
 
   const grade = useCallback(async () => {
     if (!current || grading || result) return
+    // 채점에 들어가면 더 받아쓸 이유가 없다. 결과 화면에서 마이크가 켜져 있으면
+    // 다음 문항 답이 이전 답에 붙는다.
+    dictation.stop()
     const drawing = inputMode === 'draw'
     const imageBase64 = drawing ? padRef.current?.getImage() : undefined
     if (drawing ? !imageBase64 : !answer.trim()) return
@@ -154,9 +166,10 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     } finally {
       setGrading(false)
     }
-  }, [current, answer, grading, result, profile, inputMode])
+  }, [current, answer, grading, result, profile, inputMode, dictation])
 
   const next = useCallback(() => {
+    dictation.stop()
     setAnswer('')
     setResult(null)
     setVcState('idle')
@@ -166,7 +179,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
-  }, [mobile])
+  }, [mobile, dictation])
 
   // 현재 문장을 보이스카드 영어 덱에 청크 행으로 추가 (류하봇 청킹번역과 같은 시트 경로)
   const toVoiceCards = useCallback(async () => {
@@ -382,12 +395,27 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
                 <LSegmented<'draw' | 'type'>
                   value={inputMode}
-                  onChange={(v) => { setInputMode(v); setError(null) }}
+                  onChange={(v) => { if (v === 'draw') dictation.stop(); setInputMode(v); setError(null) }}
                   options={[
                     { value: 'draw', label: '✏️ 손글씨' },
                     { value: 'type', label: '키보드' },
                   ]}
                 />
+                {inputMode === 'type' && !result && dictation.supported && (
+                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
+                    {dictation.listening && (
+                      <span style={{ fontSize: t.type.control, color: t.accent.neg }}>● 듣는 중</span>
+                    )}
+                    <LBtn
+                      size="sm"
+                      variant={dictation.listening ? 'danger' : 'secondary'}
+                      disabled={grading}
+                      onClick={() => { setError(null); dictation.toggle() }}
+                    >
+                      {dictation.listening ? '🎤 중지' : '🎤 말하기'}
+                    </LBtn>
+                  </div>
+                )}
                 {inputMode === 'draw' && !result && (
                   <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center', flexWrap: 'wrap' }}>
                     <LSegmented<'pen' | 'eraser'>
@@ -432,6 +460,20 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
                 }}
               />
+            )}
+
+            {/* 아직 확정되지 않은 인식분. 다음 이벤트에서 통째로 갈리는 값이라
+                입력창에 넣지 않고 여기서만 흐리게 보여준다. */}
+            {inputMode === 'type' && dictation.listening && dictation.interim && (
+              <div style={{
+                marginTop: t.density.gapSm,
+                fontSize: 'calc(12px * var(--fz, 1))',
+                lineHeight: 1.5,
+                color: t.neutrals.subtle,
+                fontStyle: 'italic',
+              }}>
+                {dictation.interim}
+              </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapMd }}>
               {!result ? (
