@@ -93,7 +93,10 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 - 08-29: `/en/templates`·`/en/guides/academic-writing` 요청 완료.
 - 08-30: `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair` 요청 완료.
 - 09-01: `/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing` 요청 완료.
-- 다음 후보: `/ko`·`/ja`·`/es`·`/fr`·`/it` 등 미색인 로케일 루트 → 각 로케일 `/pricing`. `/privacy`·`/terms`는 계속 제외.
+- 09-02: `/en/guides/install-and-fullscreen` 요청 완료. `/en/guides/how-to-use-scripta`는 GSC 제출 오류로 실패해 대기열에 유지.
+- 09-03: `/en/guides/how-to-use-scripta` 재시도·`/en/guides/same-language-recall` 요청 완료.
+- 09-04: `/en/guides/study-plans`·`/ko` 요청 완료.
+- 다음 후보: `/ja`·`/es`·`/it` 등 미색인 로케일 루트. `/privacy`·`/terms`는 계속 제외.
 
 ### Portle 초기 대기열 (2026-08-20 추가)
 
@@ -130,6 +133,12 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 08-30에 `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·
 `/ko/guides/currency-impact-on-investment-return` 요청 완료.
 09-01에 신규 Bridge 수요 조사 페이지 `/bridge`·`/ja/bridge`·`/ko/bridge` 요청 완료.
+09-02에 신규 계산기 허브·상세 `/calculators`·`/calculators/average-cost`·
+`/calculators/averaging-down` 요청 완료.
+09-03에 계산기 상세 `/calculators/dividend`·`/calculators/recurring-investment`·
+`/calculators/target-amount` 요청 완료.
+09-04에 로케일 계산기 허브 `/ja/calculators`·`/ko/calculators`와
+`/ja/guides/currency-impact-on-investment-return` 요청 완료.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -175,6 +184,12 @@ Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므�
 09-01에는 `/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·
 `/es/practice/pythagorean` 요청 완료. `/en/practice/grade-5-number-operations`는 GSC 제출 오류로
 실패해 대기열에 유지한다.
+09-02에는 `/en/practice/grade-5-number-operations`을 재시도해 성공했고,
+`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`도 요청 완료.
+09-03에는 09-02 최근 요청 URL을 제외하고 unknown 상태의 `/it/practice/pythagorean`·
+`/ko/practice/pythagorean`·`/uk/practice/pythagorean`을 요청 완료.
+09-04에는 최근 요청 URL을 제외하고 `/fr/practice/grade-4-multiplication`·
+`/it/practice/grade-4-large-numbers`·`/it/practice/linear-system`을 요청 완료.
 
 > 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
 > `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
@@ -247,6 +262,13 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 09-01에 신규 Ham Radio 허브·콘텐츠 `/templates/ham-radio-technician`·
 `/templates/ham-radio-technician-circuits-signals-2026-2030`·
 `/templates/ham-radio-technician-electrical-components-2026-2030` 요청 완료.
+09-02에 `/templates/ham-radio-technician-fcc-rules-2026-2030`·
+`/templates/ham-radio-technician-operating-practices-2026-2030`·
+`/templates/ham-radio-technician-propagation-antennas-2026-2030` 요청 완료.
+`/templates/ham-radio-technician-fcc-rules-2026-2030`은 화면 전환 확인 전 `Request again`이 눌려져 1회 중복 제출됐다.
+09-03에 다음 Ham Radio 후보 `/templates/ham-radio-technician-safety-2026-2030`과
+unknown 상태의 `/ko/voice-flashcard-apps`·`/pl/language-learning` 요청 완료.
+09-04에 `/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep` 요청 완료.
 남은 것: `/uk/voice-flashcard-apps`.
 
 ### 리뷰노트 로케일 허브 (08-15 소진)
@@ -318,6 +340,9 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 | 08-29 | VC 3: `/templates/korean-english`·`/ru/language-learning`·`/vi/language-learning` · RN 3: `/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-4-bar-graph` · Portle 3: `/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules` · Scripta 2: `/en/templates`·`/en/guides/academic-writing` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 21:18~21:29 KST. VC 브리프 상위 2건은 GSC 검사 시 이미 색인돼 제외하고 다음 후보로 교체. RN 08-27 최근 요청 2건도 제외. 08-28 요청분은 VC 3건·RN 3건·Portle 3건·Scripta 2건 전부 신규 색인 확인 |
 | 08-30 | VC 3: `/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep` · RN 3: `/en/guides/ai-credits-explained`·`/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans` · Portle 3: `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return` · Scripta 2: `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair` | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 23:18~23:24 KST. 08-29 요청분 신규 색인 VC 2건·RN 0건·Portle 3건·Scripta 1건, 미색인 VC 1건·RN 3건·Portle 0건·Scripta 1건 |
 | 09-01 | VC 3: `/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030` · RN 4 시도: `/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations`(제출 오류)·`/es/practice/pythagorean` · Portle 3: `/bridge`·`/ja/bridge`·`/ko/bridge` · Scripta 2: `/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing` | ✅ 11건 `Indexing requested`, 제출 오류 1건, quota 초과 없음. 00:24~00:33 KST. 09-01 당일 스냅샷 수동 생성 후 실행. RN `/en/practice/grade-4-large-numbers`·`/en/practice/grade-5-number-operations`는 08-27 요청 후 7일 이내 재시도. 08-30 요청분은 10건 색인, RN `/en/guides/ai-credits-explained` 1건 미색인(Duplicate without user-selected canonical) |
+| 09-02 | VC 3: `/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`·`/templates/ham-radio-technician-propagation-antennas-2026-2030` · RN 3: `/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations` · Portle 3: `/calculators`·`/calculators/average-cost`·`/calculators/averaging-down` · Scripta 2 시도: `/en/guides/how-to-use-scripta`(제출 오류)·`/en/guides/install-and-fullscreen` | ✅ 성공 10건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 02:23~02:33 KST. 네 서비스 09-02 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. VC `/templates/ham-radio-technician-fcc-rules-2026-2030` 1회 중복 제출. 09-01 시도분 신규 색인 VC 3·RN 2·Portle 2·Scripta 2, 미색인 RN 2·Portle 1 |
+| 09-03 | VC 3: `/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning` · RN 3: `/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean` · Portle 3: `/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount` · Scripta 2: `/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 03:23~03:28 KST. 네 서비스 09-03 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. 브리프의 최근 요청 URL을 제외하고 대체 후보 사용. 09-02 요청분 신규 색인 VC 2·RN 0·Portle 2·Scripta 0, 미색인 VC 1·RN 3·Portle 1·Scripta 2 |
+| 09-04 | VC 3: `/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep` · RN 3: `/fr/practice/grade-4-multiplication`·`/it/practice/grade-4-large-numbers`·`/it/practice/linear-system` · Portle 3: `/ja/calculators`·`/ko/calculators`·`/ja/guides/currency-impact-on-investment-return` · Scripta 2: `/en/guides/study-plans`·`/ko` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 05:24~05:30 KST. 네 서비스 09-04 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행. 09-03 요청분 11건 전부 신규 색인, 미색인 0건 |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -531,6 +556,9 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 08-29 | VC 3(`/templates/korean-english`·`/ru/language-learning`·`/vi/language-learning`) + RN 3(`/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-4-bar-graph`) + Portle 3(`/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules`) + Scripta 2(`/en/templates`·`/en/guides/academic-writing`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 21:18~21:29 KST. VC 브리프 상위 2건은 GSC 검사 시 이미 색인돼 제외하고 다음 후보로 교체. RN 08-27 최근 요청 2건도 제외 | 08-28 요청분 신규 색인: VC `/pt/voice-flashcard-apps`·`/ru/faq`·`/zh/language-learning`, RN `/de/practice/grade-4-2-polygons`·`/de/practice/grade-4-angles`·`/de/practice/linear-function`, Portle `/ja/guides`·`/ko/guides`·`/ja/guides/long-term-investing-rules`, Scripta `/en/guides`·`/en/samples`. 미색인 0건 |
 | 08-30 | VC 3(`/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep`) + RN 3(`/en/guides/ai-credits-explained`·`/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans`) + Portle 3(`/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return`) + Scripta 2(`/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair`) | ✅ 11건 전부 `Indexing requested`, quota 초과 없음. 23:18~23:24 KST | 08-29 요청분 신규 색인: VC `/templates/korean-english`·`/vi/language-learning`, RN 0건, Portle `/guides/broker-api-to-google-sheet`·`/ja/guides/stock-sale-tax-estimate`·`/ko/guides/long-term-investing-rules`, Scripta `/en/templates`. 미색인: VC `/ru/language-learning`(Crawled), RN `/de/practice/grade-4-large-numbers`·`/de/practice/grade-5-number-operations`(Discovered)·`/es/practice/grade-4-bar-graph`(Crawled), Portle 0건, Scripta `/en/guides/academic-writing`(Crawled) |
 | 09-01 | VC 3(`/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030`) + RN 4 시도(`/en/practice/grade-4-large-numbers`·`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations` 실패·`/es/practice/pythagorean`) + Portle 3(`/bridge`·`/ja/bridge`·`/ko/bridge`) + Scripta 2(`/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing`) | ✅ 성공 11건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 00:24~00:33 KST. 당일 스냅샷 수동 생성 후 실행. RN 2건은 08-27 요청 후 7일 이내 재시도 | 08-30 요청분 신규 색인: VC `/ja/language-learning`·`/zh/voice-flashcard-apps`·`/de/exam-prep`, RN `/en/guides/import-problems-from-pdf-and-images`·`/en/guides/multiple-study-plans`, Portle `/ko/guides/duplicate-missing-trade-checks`·`/ko/guides/stock-sale-tax-estimate`·`/ko/guides/currency-impact-on-investment-return`, Scripta `/en/guides/business-writing`·`/en/guides/choose-text-and-language-pair`. 미색인: RN `/en/guides/ai-credits-explained`(Duplicate without user-selected canonical) |
+| 09-02 | VC 3(`/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`·`/templates/ham-radio-technician-propagation-antennas-2026-2030`) + RN 3(`/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`) + Portle 3(`/calculators`·`/calculators/average-cost`·`/calculators/averaging-down`) + Scripta 2 시도(`/en/guides/how-to-use-scripta` 실패·`/en/guides/install-and-fullscreen`) | ✅ 성공 10건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 02:23~02:33 KST. 네 서비스 당일 스냅샷 수동 생성 후 실행. VC `/templates/ham-radio-technician-fcc-rules-2026-2030` 1회 중복 제출 | 09-01 시도분 신규 색인: VC 3건(`/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030`), RN 2건(`/en/practice/grade-4-large-numbers`·`/es/practice/pythagorean`), Portle 2건(`/ja/bridge`·`/ko/bridge`), Scripta 2건(`/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing`). 미색인: RN 2건(`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations`), Portle 1건(`/bridge`) |
+| 09-03 | VC 3(`/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning`) + RN 3(`/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean`) + Portle 3(`/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount`) + Scripta 2(`/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 03:23~03:28 KST. 네 서비스 09-03 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. 브리프의 최근 요청 URL은 제외하고 대체 후보 사용 | 09-02 요청분 신규 색인: VC 2건(`/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`), RN 0건, Portle 2건(`/calculators/average-cost`·`/calculators/averaging-down`), Scripta 0건. 미색인: VC 1건(`/templates/ham-radio-technician-propagation-antennas-2026-2030`), RN 3건(`/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`), Portle 1건(`/calculators`), Scripta 2건(`/en/guides/how-to-use-scripta`·`/en/guides/install-and-fullscreen`) |
+| 09-04 | VC 3(`/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep`) + RN 3(`/fr/practice/grade-4-multiplication`·`/it/practice/grade-4-large-numbers`·`/it/practice/linear-system`) + Portle 3(`/ja/calculators`·`/ko/calculators`·`/ja/guides/currency-impact-on-investment-return`) + Scripta 2(`/en/guides/study-plans`·`/ko`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 05:24~05:30 KST. 네 서비스 09-04 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행 | 09-03 요청분 신규 색인: VC 3건(`/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning`), RN 3건(`/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean`), Portle 3건(`/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount`), Scripta 2건(`/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall`). 미색인 0건 |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 
