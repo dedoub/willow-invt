@@ -16,6 +16,14 @@ import { appendTranscript } from '@/lib/dictation'
 
 type Mode = 'new_heavy' | 'balanced' | 'review_heavy'
 
+// 신규 문항 선발 순서 — 서버의 FreshOrder와 같은 값이어야 한다
+const ORDER_OPTIONS: { value: string; label: string; title: string }[] = [
+  { value: 'oldest', label: '오래된 순', title: '아직 안 푼 문항 중 가장 오래된 것부터' },
+  { value: 'spread', label: '종류 고르게', title: '업무·비즈니스 회화·일상을 돌아가며 섞어 출제' },
+  { value: 'random', label: '무작위', title: '아직 안 푼 문항 전체에서 무작위로' },
+  { value: 'newest', label: '최신 순', title: '방금 만든 문항부터' },
+]
+
 export interface PracticeViewProps {
   profile: 'ceo' | 'ryuha'
   eyebrow: string
@@ -71,6 +79,7 @@ const POINT_LABEL: Record<string, string> = {
 export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, sourceLabel }: PracticeViewProps) {
   const mobile = useIsMobile()
   const [mode, setMode] = useState<Mode>('balanced')
+  const [order, setOrder] = useState('oldest')
   const [loading, setLoading] = useState(true)
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [idx, setIdx] = useState(0)
@@ -101,11 +110,11 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   // 자동 충전이 실패했을 때 무한 재시도 방지 — 수동 생성 버튼을 누르면 해제
   const autoRefillBlockedRef = useRef(false)
 
-  const loadQueue = useCallback(async (m: Mode) => {
+  const loadQueue = useCallback(async (m: Mode, o: string) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/english/queue?mode=${m}&profile=${profile}`)
+      const res = await fetch(`/api/english/queue?mode=${m}&profile=${profile}&order=${o}`)
       if (!res.ok) throw new Error(`queue ${res.status}`)
       const data = await res.json()
       setQueue(data.queue)
@@ -120,7 +129,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     }
   }, [profile])
 
-  useEffect(() => { loadQueue(mode) }, [loadQueue, mode])
+  useEffect(() => { loadQueue(mode, order) }, [loadQueue, mode, order])
 
   const current = queue[idx] ?? null
 
@@ -235,7 +244,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
       if (!res.ok) throw new Error(data.error ?? `generate ${res.status}`)
       // 문제은행이 늘었으니 남은 문제 수만 즉시 반영
       setStats(prev => prev ? { ...prev, totalItems: prev.totalItems + data.created, freshRemaining: prev.freshRemaining + data.created } : prev)
-      if (opts?.reloadIfEmpty) loadQueue(mode)
+      if (opts?.reloadIfEmpty) loadQueue(mode, order)
     } catch (e) {
       if (opts?.silent) autoRefillBlockedRef.current = true
       else setError(e instanceof Error ? e.message : '문제 생성 실패')
@@ -243,7 +252,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
       generatingRef.current = false
       setGenerating(false)
     }
-  }, [loadQueue, mode, profile])
+  }, [loadQueue, mode, order, profile])
 
   // 신규 문장이 바닥나면(20개 이하 — 하루 100문장 페이스 기준 큐 하나 분량) 백그라운드로 50개 자동 충전.
   // 풀 게 아예 없을 때는 충전 완료 후 큐도 자동 리로드.
@@ -279,15 +288,39 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
             title={title}
             meta={meta}
             tools={
-              <LSegmented<Mode>
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: 'new_heavy', label: '신규 위주' },
-                  { value: 'balanced', label: '균형' },
-                  { value: 'review_heavy', label: '복습 위주' },
-                ]}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+                <LSegmented<Mode>
+                  value={mode}
+                  onChange={setMode}
+                  options={[
+                    { value: 'new_heavy', label: '신규 위주' },
+                    { value: 'balanced', label: '균형' },
+                    { value: 'review_heavy', label: '복습 위주' },
+                  ]}
+                />
+                {/* 신규 문항 선발 순서. 복습은 오래 묵은 오답부터가 맞아 고를 게 없다. */}
+                <select
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value)}
+                  title={ORDER_OPTIONS.find(o => o.value === order)?.title}
+                  aria-label="신규 문항 출제 순서"
+                  style={{
+                    height: t.density.controlHSm,
+                    fontSize: t.type.control,
+                    padding: `0 ${t.density.controlPadXSm}px`,
+                    borderRadius: t.radius.sm,
+                    background: t.neutrals.inner,
+                    color: t.neutrals.muted,
+                    border: 'none',
+                    fontFamily: t.font.sans,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ORDER_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
             }
             action={<LHeadBtn icon="sparkles" label="문제 생성" title={`${sourceLabel}에서 새 문제 50개 생성`} onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
           />
@@ -365,7 +398,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   : `문제 생성 버튼으로 ${sourceLabel}에서 새 문장 50개를 만드세요.`}
             </div>
             <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'center' }}>
-              <LBtn variant="brand" onClick={() => loadQueue(mode)}>새 큐 받기</LBtn>
+              <LBtn variant="brand" onClick={() => loadQueue(mode, order)}>새 큐 받기</LBtn>
               {queue.length === 0 && !generating && (
                 <LBtn onClick={() => { autoRefillBlockedRef.current = false; generate({ reloadIfEmpty: true }) }}>문제 생성</LBtn>
               )}

@@ -36,7 +36,7 @@ description: 영작연습(/english) 페이지를 웹 대신 대화로 진행할 
 
 1. **상태 확인** — 총 문항, 시도 문항, 마지막 시도 기준 합격/정답률, 미시도 수, 복습대기 수를 먼저 뽑아 한 줄로 알린다.
 2. **큐 뽑기** — 대화 한 라운드는 10문항. 기본은 신규 6 + 복습 4이고, 한쪽 풀이 모자라면 다른 쪽으로 채운다.
-   - 신규 풀: 시도 기록이 하나도 없는 문항. `order by random()`.
+   - 신규 풀: 시도 기록이 하나도 없는 문항. 기본은 페이지와 같은 **오래된 순**(`order by created_at asc`)이고, CEO가 "섞어서"·"회화 위주로" 같은 말을 하면 무작위나 소재 순환으로 바꾼다. 페이지 드롭다운의 네 가지(오래된 순·종류 고르게·무작위·최신 순)와 같은 선택지다 — 구현은 `src/lib/english-queue.ts`.
    - 복습 풀: **마지막** 시도가 불합격인 문항. 오래 묵은 것부터.
 3. **출제** — 번호(n/10), 신규·복습 표시, `topic`, `korean_full`, 그리고 `korean_chunks`를 줄바꿈 목록으로 보여준다.
 4. **채점** — 아래 기준으로 점수·교정·자연스러운 문장·코멘트를 만든다.
@@ -111,7 +111,7 @@ fresh as (
   select i.id, i.korean_full, i.korean_chunks, i.topic, false as is_review, i.created_at as last_at
   from english_practice_items i
   where i.profile='ceo' and not exists (select 1 from latest l where l.item_id=i.id)
-  order by random() limit 6
+  order by i.created_at asc limit 6
 )
 select * from review union all select * from fresh;
 ```

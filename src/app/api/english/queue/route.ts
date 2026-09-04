@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { asProfile } from '@/lib/english'
+import { asFreshOrder, selectFresh, shuffle } from '@/lib/english-queue'
 
 // 모드별 출제 큐 + 통계.
 // 복습 대상 = "마지막 시도가 불합격"인 문장. 정답률도 문장별 마지막 시도 기준 —
@@ -23,6 +24,8 @@ function kstDate(iso: string): string {
 export async function GET(req: NextRequest) {
   const mode = (req.nextUrl.searchParams.get('mode') ?? 'balanced') as PracticeMode
   const profile = asProfile(req.nextUrl.searchParams.get('profile'))
+  // 신규 문항 선발 순서. 미지정이면 지금까지의 동작(오래된 순) 그대로.
+  const order = asFreshOrder(req.nextUrl.searchParams.get('order'))
   const ratio = RATIO[mode] ?? RATIO.balanced
   const supabase = getServiceSupabase()
 
@@ -62,12 +65,10 @@ export async function GET(req: NextRequest) {
     nReview += Math.min(free - addFresh, reviewPool.length - nReview)
   }
 
-  const queue = [
-    ...freshPool.slice(0, nFresh).map(it => ({ ...it, is_review: false })),
+  const queue = shuffle([
+    ...selectFresh(freshPool, order, nFresh).map(it => ({ ...it, is_review: false })),
     ...reviewPool.slice(0, nReview).map(it => ({ ...it, is_review: true })),
-  ]
-  // 신규·복습을 섞어 단조로움 방지 (결정적 셔플은 불필요 — 매 요청 새 큐)
-  queue.sort(() => Math.random() - 0.5)
+  ])
 
   // ── 통계 ──────────────────────────────────────────────
   const today = kstDate(new Date().toISOString())
