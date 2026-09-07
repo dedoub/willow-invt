@@ -696,25 +696,25 @@ export async function getAppDbRevenue(
       .map(user => user.user_id)
   )
 
-  const PAGE = 1000
-  const data: Array<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }> = []
-  let from = 0
-
-  while (true) {
-    const { data: page, error } = await voicecardsSupabase
+  // credits_changed 는 이미 9,906행이라 이 조회는 늘 여러 페이지를 넘긴다.
+  // 예전엔 created_at 단독 정렬로 넘겨서 같은 시각 이벤트가 페이지 경계에 걸리면
+  // 행이 중복되거나 빠질 수 있었고, error 를 break 로 삼켜 부분 매출이 성공처럼 나왔다.
+  // PK(id) tiebreaker 로 정렬을 안정화하고 실패는 위로 올린다.
+  const revenueRes = await fetchAllPaged<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }>(
+    () => voicecardsSupabase!
       .from('anonymous_events')
       .select('created_at, user_id, platform, properties')
       .eq('event_name', 'credits_changed')
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDate}T23:59:59.999Z`)
       .order('created_at', { ascending: true })
-      .range(from, from + PAGE - 1)
-
-    if (error || !page?.length) break
-    data.push(...(page as Array<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }>))
-    if (page.length < PAGE) break
-    from += PAGE
+      .order('id', { ascending: true })
+  )
+  if (revenueRes.error) {
+    console.error('[VoiceCards] credits_changed fetch failed — revenue would be understated:', revenueRes.error)
+    throw revenueRes.error
   }
+  const data = revenueRes.data || []
 
   for (const row of data) {
     if (row.user_id && excludedUserIds.has(row.user_id)) continue
@@ -739,24 +739,24 @@ export async function getAppDbRevenue(
     }
   }
 
-  const payingEvents: Array<{ created_at: string; user_id: string | null; properties: Record<string, unknown> | null }> = []
-  from = 0
-  while (true) {
-    const { data: page, error } = await voicecardsSupabase
-      // mv_real_users: anonymous_events_real_users(→deduped 무거움)의 5분 주기 스냅샷. 로드 속도/타임아웃 개선.
+  // 위 매출 조회와 같은 이유로 PK(id) tiebreaker 를 붙인다 — 이 값이 유료 유저 수
+  // (퍼널 결제 칸)를 만들어서, 경계에서 행이 빠지면 구매자가 조용히 사라진다.
+  const payingRes = await fetchAllPaged<{ created_at: string; user_id: string | null; properties: Record<string, unknown> | null }>(
+    () => voicecardsSupabase!
+      // mv_real_users: anonymous_events_real_users(→deduped 무거움)의 시간별 스냅샷. 로드 속도/타임아웃 개선.
       .from('mv_real_users')
       .select('created_at, user_id, properties')
       .eq('event_name', 'credits_changed')
       .eq('is_likely_bot', false)
       .lte('created_at', `${endDate}T23:59:59.999Z`)
       .order('created_at', { ascending: true })
-      .range(from, from + PAGE - 1)
-
-    if (error || !page?.length) break
-    payingEvents.push(...(page as Array<{ created_at: string; user_id: string | null; properties: Record<string, unknown> | null }>))
-    if (page.length < PAGE) break
-    from += PAGE
+      .order('id', { ascending: true })
+  )
+  if (payingRes.error) {
+    console.error('[VoiceCards] paying-events fetch failed — paid user count would be understated:', payingRes.error)
+    throw payingRes.error
   }
+  const payingEvents = payingRes.data || []
 
   const firstPurchaseByUser = new Map<string, string>()
   for (const row of payingEvents) {
@@ -934,7 +934,9 @@ export interface VoicecardsUserStats {
   // 기기 계정 수 — 로그인 없이 크레딧을 쓰는 사용자. 병합된 계정은 users 행이 남지만
   // 이미 구글 계정으로 세었으므로 중복 계상하지 않는다(merged_into 있는 행 제외).
   deviceAccounts: number
-  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  // 그중 로컬 덱 생성 이벤트가 확인된 수. **퍼널 '학습 활성화'는 이 값을 쓰지 않는다** —
+  // 퍼널과 사용자 표는 행 자체의 isVoicecardsLearningActivated()로 판정해 두 화면이
+  // 어긋나지 않게 한다. 이 필드는 이벤트 기반 교차 확인용으로만 남긴다.
   deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number
@@ -1039,6 +1041,33 @@ export async function getVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 }
 
+// PostgREST 는 한 응답을 1,000행에서 자른다. `.limit(20000)` 을 붙여도 소용없고, `.limit()`
+// 을 아예 안 붙여도 마찬가지다 — 상한이 서버 쪽이라 요청 limit 이 그보다 크면 무시된다.
+// 잘려도 에러가 아니라 짧은 배열이 오므로 조용히 부분 데이터로 돈다(2026-09-07 실측:
+// anonymous_events 를 limit 없이 요청 → `content-range: 0-999/389832`).
+// 이 대시보드의 조회는 전부 이 한도 아래였을 뿐이고(가장 큰 mv_user_rollup 785행),
+// 넘는 순간 사용자 표의 듣기·크레딧이 조용히 0이 된다. Range 헤더로 끝까지 넘긴다.
+//
+// ⚠️ 넘기는 질의에는 **유니크 키를 포함한 안정적 정렬**이 반드시 있어야 한다. 정렬이
+// 불안정하면 페이지 경계에서 같은 행이 두 번 오거나 아예 빠진다.
+export const PGRST_MAX_ROWS = 1000
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAllPaged<T = any>(makeQuery: () => any): Promise<{ data: T[] | null; error: any }> {
+  const all: T[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await makeQuery().range(from, from + PGRST_MAX_ROWS - 1)
+    // 부분 결과를 성공으로 돌려주면 그 잘린 값이 1시간 캐시에 박힌다. 에러는 그대로 올려
+    // 호출부의 lastGood 스냅샷 폴백이 작동하게 한다.
+    if (error) return { data: null, error }
+    const page = (data ?? []) as T[]
+    all.push(...page)
+    if (page.length < PGRST_MAX_ROWS) return { data: all, error: null }
+    from += PGRST_MAX_ROWS
+  }
+}
+
 async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const empty = EMPTY_USER_STATS
 
@@ -1048,44 +1077,39 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }
 
   const vc = voicecardsSupabase
-  // 페이지네이션 헬퍼 — Supabase 기본 1000 row 한도 우회
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function fetchAllPaged<T = any>(makeQuery: () => any): Promise<T[]> {
-    const PAGE = 1000
-    const all: T[] = []
-    let from = 0
-    while (true) {
-      const { data, error } = await makeQuery().range(from, from + PAGE - 1)
-      if (error || !data) break
-      all.push(...(data as T[]))
-      if (data.length < PAGE) break
-      from += PAGE
-    }
-    return all
-  }
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
   const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes, journeysRes] = await Promise.all([
-    vc.from('users').select('*').order('created_at', { ascending: false }),
-    vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id, created_at'),
-    vc.from('user_analytics').select('user_id, last_updated'),
+    // 아래 조회는 전부 1,000행 한도를 넘길 수 있어 fetchAllPaged 로 끝까지 넘긴다.
+    // 정렬 끝에 붙은 유니크 키(user_id / id)는 페이지 경계에서 행이 겹치거나 빠지지 않게 한다.
+    fetchAllPaged(() => vc.from('users').select('*')
+      .order('created_at', { ascending: false }).order('user_id', { ascending: true })),
+    fetchAllPaged(() => vc.from('user_analytics').select('user_id, total_cards, total_attempts, sheet_id, created_at')
+      .order('id', { ascending: true })),
+    fetchAllPaged(() => vc.from('user_analytics').select('user_id, last_updated')
+      .order('id', { ascending: true })),
     fetchAllPaged<{ user_id: string; date: string; problems_learned: number; attempts: number }>(
-      () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts').order('date', { ascending: true })
+      () => vc.from('time_series_analytics').select('user_id, date, problems_learned, attempts')
+        .order('date', { ascending: true }).order('id', { ascending: true })
     ),
     // 통합 롤업 — 듣기/뒤집기/실사용크레딧 + 구매크레딧 + 구매의도 신호를 mv_real_users 1회 스캔으로.
     // (기존 vc_user_listen_counts + vc_user_purchased_credits + vc_user_intent_signals 3 RPC 대체 —
     //  각각 10만행 MV 전체스캔하던 것을 1회로. 출력은 세 RPC 합집합과 동일 검증됨.)
-    vc.rpc('vc_user_rollup'),
+    fetchAllPaged(() => vc.rpc('vc_user_rollup').order('user_id', { ascending: true })),
     // 사용자별 최신 앱버전/플랫폼/언어/국가 + 최근 이벤트 시각 — user당 1행 (DISTINCT ON)
-    vc.rpc('vc_user_latest_meta'),
+    fetchAllPaged(() => vc.rpc('vc_user_latest_meta').order('user_id', { ascending: true })),
     // 사용자별 오늘 증가분(카드/말하기/듣기) + 최근 7일 활동일 수
-    vc.rpc('vc_user_activity_deltas'),
+    fetchAllPaged(() => vc.rpc('vc_user_activity_deltas').order('user_id', { ascending: true })),
     // 타겟 오퍼 — 사용자별 오퍼 행(단계 추적 + 지급된 보너스 크레딧). RLS는 anon USING(true)라
     // service 키로 전수 조회 가능. 캠페인 규모가 작아(수십 건) 전수 select로 충분.
-    vc.from('user_offers').select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at'),
+    fetchAllPaged(() => vc.from('user_offers')
+      .select('user_id, status, seen_at, snoozed_at, redeemed_at, redeemed_credits, expires_at, created_at')
+      .order('id', { ascending: true })),
     // 사용자 표와 활동 차트가 같은 실사용자 모집단을 쓰도록 기기 저니를 함께 가져온다.
     // 이 뷰는 관리자·봇·App Store 심사 기기를 이미 제외한다.
-    vc.from('vc_device_journeys').select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country, active_days_7d'),
+    fetchAllPaged(() => vc.from('vc_device_journeys')
+      .select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country, active_days_7d')
+      .order('device_id', { ascending: true })),
   ])
 
   if (usersRes.error) {
@@ -1180,7 +1204,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   }))
 
   // 일별 학습 활동 (내부 계정 제외, 날짜별 합산)
-  const timeSeriesRows = timeSeriesRes.filter(r => visibleUserIds.has(r.user_id))
+  const timeSeriesRows = (timeSeriesRes.data || []).filter(r => visibleUserIds.has(r.user_id))
   const learnByDate = new Map<string, { cardsLearned: number; attempts: number }>()
   for (const row of timeSeriesRows) {
     const date = row.date as string
@@ -1351,15 +1375,20 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   try {
     const deviceIds = Array.from(deviceOwnerMap.keys())
     if (deviceIds.length > 0) {
-      const anonymousLearningRows = await fetchAllPaged<VoicecardsAnonymousLearningRow>(() => vc
+      // created_at 은 유니크가 아니다 — 같은 밀리초 이벤트가 흔해서 이것만으로 페이징하면
+      // 경계에서 행이 겹치거나 빠진다. PK(id)를 tiebreaker 로 붙여 정렬을 안정화한다.
+      const anonymousLearningRes = await fetchAllPaged<VoicecardsAnonymousLearningRow>(() => vc
         .from('anonymous_events')
         .select('device_id, user_id, event_name, created_at, properties')
         .is('user_id', null)
         .in('device_id', deviceIds)
         .in('event_name', ['card_flipped_manual', 'card_attempted', 'tts_played', 'voice_preview_played', 'device_tts_played'])
-        .order('created_at', { ascending: true }))
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true }))
+      // 부분 결과로 계속하면 듣기·뒤집기가 과소 집계된 채 캐시된다. catch 로 넘겨 비치명 처리.
+      if (anonymousLearningRes.error) throw anonymousLearningRes.error
       for (const [ownerId, metrics] of buildVoicecardsAnonymousLearningMap(
-        anonymousLearningRows,
+        anonymousLearningRes.data || [],
         deviceOwnerMap,
         kstDateKey(new Date()),
       )) {
@@ -1380,12 +1409,16 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   let userLocalAssetsMap = new Map<string, VoicecardsLocalAssets>()
   let deviceActivatedIds = new Set<string>()
   try {
-    const { data: localSheetRows } = await vc
+    // 페이징이 없으면 1,000행에서 잘린다(현재 160행이지만 계속 쌓인다). 잘리는 순간
+    // 로컬 덱의 시트·카드가 과소 집계되고 그만큼 활성화 판정도 빠진다.
+    const localSheetRes = await fetchAllPaged<VoicecardsLocalSheetRow>(() => vc
       .from('anonymous_events')
       .select('device_id, created_at, event_name, properties')
       .in('event_name', [LOCAL_SHEET_CREATED_EVENT, LOCAL_SHEET_FLUSHED_EVENT, LOCAL_LIBRARY_SNAPSHOT_EVENT])
+      .order('id', { ascending: true }))
+    if (localSheetRes.error) throw localSheetRes.error
     const { assets, activatedOwnerIds } = buildVoicecardsLocalAssetMap(
-      (localSheetRows || []) as VoicecardsLocalSheetRow[],
+      (localSheetRes.data || []) as VoicecardsLocalSheetRow[],
       (deviceId) => {
         const ownerId = localAssetOwnerMap.get(deviceId) || `device:${deviceId}`
         return visibleUserIds.has(ownerId) ? ownerId : null
@@ -1539,7 +1572,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     totalUsers: users.filter(u => !isDeviceAccount(u.user_id)).length,
     // 병합된 기기 계정(merged_into 있음)은 그 구글 계정으로 이미 세었으므로 뺀다.
     deviceAccounts: liveDeviceAccounts.length,
-    // 그중 실제로 덱을 만든 수 — 퍼널의 "학습 활성화"에 구글 활성화와 함께 더해진다.
+    // 그중 로컬 덱 생성 이벤트가 확인된 수. 퍼널은 이 값을 쓰지 않는다 — 아래 인터페이스 주석 참고.
     deviceAccountsActivated: liveDeviceAccounts.filter(u => deviceActivatedIds.has(u.user_id)).length,
     activeUsers,
     totalSheets,
@@ -1690,11 +1723,15 @@ export async function getAnonymousEventStats(): Promise<AnonymousEventStats | nu
       signin_clicks: number | null
       signed_in: boolean
     }
-    const fetchJourneys = () => voicecardsSupabase
+    // 예전엔 .limit(1000) 이 걸려 있었다. 그런데 이 목록은 사용자 표에 그대로 행으로 얹히고
+    // 퍼널 '학습 활성화'도 같은 배열을 세므로, 잘리는 순간 누적 지표가 **줄어든다**
+    // (오래 안 본 기기부터 사라진다). 어차피 limit 을 지워도 PostgREST 가 1,000행에서
+    // 자르므로 fetchAllPaged 로 끝까지 넘긴다. device_id 는 이 뷰에서 유니크라 정렬이 안정적이다.
+    const fetchJourneys = () => fetchAllPaged(() => voicecardsSupabase!
       .from('vc_device_journeys')
       .select('device_id, journey_stage, platform, app_version, country, first_seen_at, last_seen_at, active_days, active_days_7d, anon_cards_viewed, anon_cards_learned, anon_flips, anon_credits_spent, add_sheet_opens, ai_gen_opens, signin_clicks, signed_in')
       .order('last_seen_at', { ascending: false })
-      .limit(1000)
+      .order('device_id', { ascending: true }))
     const [initialJourneysRes, ceilingRes] = await Promise.all([
       fetchJourneys(),
       // 출시 버전 상한 — 개발자/테스트 제외한 실사용자 로그인 iOS 최고 버전 (vc_event_stats 와 동일 RPC).
