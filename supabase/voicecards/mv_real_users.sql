@@ -1,3 +1,7 @@
+-- ⚠️ 폐기(2026-09-07): 아래 refresh_vc_mvs() / cron 잡 3 서술은 더 이상 유효하지 않다.
+--    mv_real_users 는 실테이블 + 증분 갱신으로 바뀌었고 크론은 MV 별로 쪼개졌다.
+--    정본: supabase/voicecards/incremental_real_users.sql
+
 -- mv_real_users: anonymous_events_real_users(→anonymous_events_deduped, 세션승자 device dedup을
 -- 매 호출마다 전체 이벤트에 재계산 = ~200ms+, 이벤트 증가할수록 느려지고 타임아웃) 의 스냅샷.
 --
