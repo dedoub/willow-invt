@@ -10,7 +10,14 @@ import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/l
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
-import { voicecardsDeviceDisplayName, voicecardsLearningActivationDate } from '@/lib/voicecards-device-journey'
+import {
+  voicecardsDeviceDisplayName,
+  voicecardsLearningActivationDate,
+  isVoicecardsLearningActivated,
+  isVoicecardsAnonDeviceRow,
+  isVoicecardsDeviceAccountRow,
+  isVoicecardsGoogleUserRow,
+} from '@/lib/voicecards-device-journey'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,7 +26,9 @@ interface UserStats {
   totalUsers: number
   // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
   deviceAccounts: number
-  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  // 그중 로컬 덱 생성 이벤트가 확인된 수. **퍼널 '학습 활성화'는 이 값을 쓰지 않는다** —
+  // 퍼널과 사용자 표는 행 자체의 isVoicecardsLearningActivated()로 판정해 두 화면이
+  // 어긋나지 않게 한다. 이 필드는 이벤트 기반 교차 확인용으로만 남긴다.
   deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number
@@ -656,7 +665,7 @@ export function VoicecardsBlock({
         case 'language': return (a.locale || '').localeCompare(b.locale || '')
         case 'country':  return (a.country || regionOf(a.locale)).localeCompare(b.country || regionOf(b.locale))
         case 'status':   return Number(a.hasFolder) - Number(b.hasFolder)
-        case 'active':   return Number(a.sheetCount > 0 || (a.ownCards ?? a.cards) > 0 || (a.flips ?? 0) > 0) - Number(b.sheetCount > 0 || (b.ownCards ?? b.cards) > 0 || (b.flips ?? 0) > 0)
+        case 'active':   return Number(isVoicecardsLearningActivated(a)) - Number(isVoicecardsLearningActivated(b))
         case 'sheets':   return a.sheetCount - b.sheetCount
         case 'cards':    return a.cards - b.cards
         case 'flips':    return (a.flips ?? 0) - (b.flips ?? 0)
@@ -803,26 +812,34 @@ export function VoicecardsBlock({
           //   (2026-07-25 CEO — 말하기/듣기 없이 눈으로만 카드 넘긴 것도 학습 활동).
           // (구글연동(Drive)과는 별개 축: deferred-Drive라 연동을 마치고도 미활성일 수 있다.
           //  그 교집합 = "연동후대기" — AI draft만 두고 이탈한 코호트, 복귀 유도 타깃.)
-          // 활성화 = 전체 − 미활성
+          //
+          // 판정식은 isVoicecardsLearningActivated() 하나뿐이다 — 사용자 표의 헤더·셀·정렬도
+          // 같은 함수를 부른다. 예전엔 같은 식이 다섯 군데에 손으로 적혀 있었고 그중 이 카드의
+          // 헤드라인만 날짜 유무까지 요구했다(2026-09-07 단일화). 표와 실제로 갈렸던 원인은
+          // 그게 아니라 아래 익명 기기 누락이다.
           // ownCards가 없는 응답(배포 직후 ~60s unstable_cache의 옛 payload)은 cards로
           // 강등 — undefined 비교로 전원 활성화가 되는 착시를 막는다(2026-07-11 실제 발생).
-          const isIdleUser = (u: { sheetCount: number; cards: number; ownCards?: number; flips?: number }) =>
-            u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0
-          // 퍼널 3칸(구글 로그인 → 드라이브 연동 → 학습 활성화)은 모두 같은 모집단,
-          // 즉 구글 로그인 사용자 위에서 세야 한다. userStats.users에는 표에 함께 보여주려고
-          // 기기 계정도 들어 있는데(id가 'device:'), totalUsers는 그걸 빼고 세므로
-          // 여기서 안 빼면 분자만 커져 활성화가 그만큼 깎인다(2026-08-10 실제로 2 깎였다).
-          const googleUsers = (userStats?.users ?? []).filter(u => !u.id.startsWith('device:'))
-          const incompleteSignups = googleUsers.filter(isIdleUser).length
+          //
+          // 퍼널 앞 3칸(구글 로그인 → 드라이브 연동)은 구글 로그인 사용자 위에서 센다.
+          // userStats.users에는 표에 함께 보여주려고 기기 계정도 들어 있는데(id가 'device:'),
+          // totalUsers는 그걸 빼고 세므로 여기서 안 빼면 분자만 커져 활성화가 그만큼
+          // 깎인다(2026-08-10 실제로 2 깎였다).
+          const googleUsers = (userStats?.users ?? []).filter(u => isVoicecardsGoogleUserRow(u.id))
           const linkedUsers = googleUsers.filter(u => u.hasFolder).length
-          // 학습 활성화 = 구글 경로 활성화 + 기기 계정 활성화.
-          // 기기 계정은 구글 로그인도 드라이브도 거치지 않고 바로 여기로 들어온다 —
-          // 덱을 만든 사람을 빼지 않기 위해서다(2026-08-10 CEO). 그래서 이 칸만은
-          // 앞 칸의 부분집합이 아니고, 전환율(연동 대비)도 구글 경로만으로 계산한다.
-          const googleActivated = userStats.totalUsers - incompleteSignups
-          const activatedUsers = (userStats?.users ?? []).filter(u => !!voicecardsLearningActivationDate(u))
-          const deviceActivated = activatedUsers.filter(u => u.id.startsWith('device:')).length
-          const signedUp = activatedUsers.length
+          // 학습 활성화 = 사용자 표에 있는 모든 행 중 활성화된 행. 즉 구글 경로 + 기기 계정 +
+          // 익명 기기다. 기기 계정과 익명 기기는 구글 로그인도 드라이브도 거치지 않고 바로
+          // 여기로 들어온다 — 덱을 만든 사람을 빼지 않기 위해서다(2026-08-10 CEO, 익명 기기는
+          // 2026-09-07 CEO). 그래서 이 칸만은 앞 칸의 부분집합이 아니고, 전환율(연동 대비)도
+          // 구글 경로만으로 계산한다.
+          //
+          // 모집단을 표와 같은 배열(sortedUsers의 재료)로 잡는 게 핵심이다. userStats.users만
+          // 세면 표가 '활성화 완료'로 찍는 익명 기기 행이 여기서 빠져 두 섹션이 어긋난다.
+          const activatedRows = [...(userStats?.users ?? []), ...deviceRows]
+            .filter(isVoicecardsLearningActivated)
+          const googleActivated = googleUsers.filter(isVoicecardsLearningActivated).length
+          const deviceAccountActivated = activatedRows.filter(u => isVoicecardsDeviceAccountRow(u.id)).length
+          const anonDeviceActivated = activatedRows.filter(u => isVoicecardsAnonDeviceRow(u.id)).length
+          const signedUp = activatedRows.length
           const paidUsers = stats?.combined.totalPaidUsers ?? 0
 
           // 활성화 전환율 = 구글연동 대비 (퍼널: 기기 → 연동 → 활성화).
@@ -831,11 +848,11 @@ export function VoicecardsBlock({
           // 결제율 = 유료 / 활성 사용자
           const payRate = signedUp > 0 ? Math.round((paidUsers / signedUp) * 100) : 0
 
-          // 파이 카드 '활성' 탭: 활성화(!isIdleUser) 사용자의 플랫폼/국가 분포.
-          // 기기/결제 탭은 이벤트 기기 기준이지만 활성화는 계정 속성(시트 보유)이라 users로 센다.
-          const distOf = (label: (u: (typeof activatedUsers)[number]) => string) => {
+          // 파이 카드 '활성' 탭: 활성화된 행의 플랫폼/국가 분포 — '학습 활성화' 카드와 같은
+          // activatedRows 위에서 센다. 파이 조각 합이 그 카드의 헤드라인과 맞아야 한다.
+          const distOf = (label: (u: (typeof activatedRows)[number]) => string) => {
             const m = new Map<string, number>()
-            for (const u of activatedUsers) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
+            for (const u of activatedRows) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
             return Array.from(m, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
           }
           const activePlatforms = distOf(u => u.platform === 'ios' ? 'iOS' : u.platform === 'android' ? 'Android' : (u.platform || 'unknown'))
@@ -850,7 +867,7 @@ export function VoicecardsBlock({
             .filter((date): date is string => !!date)
             .map(kstDateKey)
             .sort()
-          const signupDates = activatedUsers
+          const signupDates = activatedRows
             .map(u => voicecardsLearningActivationDate(u))
             .filter((date): date is string => !!date)
             .map(kstDateKey)
@@ -1115,17 +1132,19 @@ export function VoicecardsBlock({
                 />
                 <LStat
                   label="학습 활성화"
-                  title={`첫 덱을 만든 사용자(데모 체험 제외). 구글 경로 ${googleActivated.toLocaleString()}명`
-                    + (deviceActivated > 0 ? ` + 기기 계정 ${deviceActivated.toLocaleString()}명` : '')
-                    + '. 기기 계정은 구글 로그인·드라이브를 거치지 않고 바로 여기로 들어오므로'
-                    + ' 이 칸만은 앞 단계의 부분집합이 아니다.'
+                  title={`첫 덱을 만든 사용자(데모 체험 제외). 사용자 표에서 '활성화 완료'로 찍히는 행 수와 같다.`
+                    + ` 구글 경로 ${googleActivated.toLocaleString()}명`
+                    + (deviceAccountActivated > 0 ? ` + 기기 계정 ${deviceAccountActivated.toLocaleString()}명` : '')
+                    + (anonDeviceActivated > 0 ? ` + 익명 기기 ${anonDeviceActivated.toLocaleString()}대` : '')
+                    + '. 기기 계정·익명 기기는 구글 로그인·드라이브를 거치지 않고 바로 여기로'
+                    + ' 들어오므로 이 칸만은 앞 단계의 부분집합이 아니다.'
                     + ` 전환 ${activeRate}% = 구글 활성화 ${googleActivated.toLocaleString()} ÷ 드라이브 연동 ${linkedUsers.toLocaleString()}`
                     + ' — 기기 계정은 분모(연동)에 없으니 분자에서도 뺀다. 점선도 같은 구글 경로 비율.'}
                   value={signedUp.toLocaleString()}
                   // 이 칸만 배지가 둘이라 좁았다 — 전환율은 뺀다(2026-08-30 CEO). 점선이 같은 값을
                   // 그리고 툴팁에 나눗셈이 적혀 있다. 남기는 건 구성(구글 경로 몇 명)뿐 —
                   // 헤드라인에는 기기 계정이 섞여 있어서 이게 없으면 앞 칸과 어떻게 이어지는지 알 수 없다.
-                  valueExtra={deviceActivated > 0 ? (
+                  valueExtra={(deviceAccountActivated + anonDeviceActivated) > 0 ? (
                     <span style={{
                       fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
                       color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
@@ -1537,18 +1556,23 @@ export function VoicecardsBlock({
             // 기준이라 화면에 보이는 익명 기기 행은 세지 않으면서 퍼널의 미활성과도 값이
             // 달랐다(93 vs 91). 어느 쪽도 표의 행 수를 설명하지 못했다.
             // 이제 셋을 다 적고, 미활성은 퍼널과 같은 기준(구글 사용자)임을 명시한다.
-            const googleRows = userStats.users.filter(u => !u.id.startsWith('device:'))
-            const idleGoogle = googleRows.filter(u => u.sheetCount === 0 && (u.ownCards ?? u.cards) === 0 && (u.flips ?? 0) === 0).length
+            const googleRows = userStats.users.filter(u => isVoicecardsGoogleUserRow(u.id))
+            const idleGoogle = googleRows.filter(u => !isVoicecardsLearningActivated(u)).length
             const deviceRowCount = (userStats.users.length - googleRows.length) + deviceRows.length
+            // 활성화는 표의 모든 행(구글 + 기기 계정 + 익명 기기) 위에서 센다 — 아래 '활성화'
+            // 열이 '완료'를 찍는 행 수이자 퍼널 '학습 활성화' 카드의 헤드라인과 같은 수다.
+            // 판정식은 isVoicecardsLearningActivated() 하나를 셋이 공유한다.
+            const activatedRowCount = sortedUsers.filter(isVoicecardsLearningActivated).length
             return (
               <LSectionHead
                 eyebrow="USERS"
                 title="사용자"
                 meta={(
                   <span title={'구글 = 구글 로그인 사용자. 기기 = 로그인 없이 쓰는 행(기기 계정 + 계정 없는 익명 기기).\n'
-                    + '미활성은 퍼널과 같은 기준으로 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 '
-                    + '구조적으로 항상 미활성이라, 섞으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}>
-                    구글 {googleRows.length} · 기기 {deviceRowCount} · 미활성 {idleGoogle}
+                    + "활성화는 표 전체에서 '활성화' 열이 완료인 행 수 — 퍼널 '학습 활성화' 카드와 같은 값이다.\n"
+                    + '미활성은 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 활성화를 확인할 길이 '
+                    + '없는 행이 섞여 있고, 그걸 미활성에 넣으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}>
+                    구글 {googleRows.length} · 기기 {deviceRowCount} · 활성화 {activatedRowCount} · 미활성 {idleGoogle}
                   </span>
                 )}
                 mb={8}
@@ -1725,9 +1749,9 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: (user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0 || (user.flips ?? 0) > 0) ? t.neutrals.muted : '#B45309',
+                    color: isVoicecardsLearningActivated(user) ? t.neutrals.muted : '#B45309',
                   }}>
-                    {(user.sheetCount > 0 || (user.ownCards ?? user.cards) > 0 || (user.flips ?? 0) > 0) ? '완료' : user.hasFolder ? '대기' : '미완료'}
+                    {isVoicecardsLearningActivated(user) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
                   <NumDeltaCell total={user.sheetCount} delta={user.sheetsDeltaToday} />
                   {/* 카드 합계는 데모 포함(대시보드 정의). 전부 데모면 흐리게 + '데모' 표기 —

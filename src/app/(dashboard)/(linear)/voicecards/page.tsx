@@ -24,7 +24,9 @@ interface UserStats {
   totalUsers: number
   // 기기 계정(로그인 없이 크레딧을 쓰는 사용자). 병합된 계정은 제외.
   deviceAccounts: number
-  // 그중 실제로 덱을 만든 수 — 퍼널 '학습 활성화'에 구글 활성화와 합산된다.
+  // 그중 로컬 덱 생성 이벤트가 확인된 수. **퍼널 '학습 활성화'는 이 값을 쓰지 않는다** —
+  // 퍼널과 사용자 표는 행 자체의 isVoicecardsLearningActivated()로 판정해 두 화면이
+  // 어긋나지 않게 한다. 이 필드는 이벤트 기반 교차 확인용으로만 남긴다.
   deviceAccountsActivated: number
   activeUsers: number
   totalSheets: number

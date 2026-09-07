@@ -99,13 +99,42 @@ export interface VoicecardsLearningActivationUser {
   flips?: number
 }
 
-export function voicecardsLearningActivationDate(user: VoicecardsLearningActivationUser) {
-  const activated = user.sheetCount > 0
+// 학습 활성화 판정 — 퍼널 카드·사용자 표(헤더/셀/정렬)가 **모두** 이 함수를 쓴다.
+// 예전에는 같은 식이 다섯 군데에 손으로 적혀 있었고, 그중 퍼널 헤드라인만
+// voicecardsLearningActivationDate()를 통과해 "날짜가 있을 것"을 추가로 요구했다.
+// 기기 계정은 createdAt이 ''이라 activatedAt·installedAt이 둘 다 비면 활성화인데도
+// 여기서 떨어진다. 2026-09-07 실측으로는 활성화된 기기 계정 23개가 모두 journey 행을
+// 가져 installedAt이 채워져 있어 실제 누락은 0건이었다 — 터지지 않은 함정이지 관측된
+// 버그는 아니다. journey 행이 없는 기기가 활성화되는 순간 조용히 갈리므로 미리 끊는다.
+export function isVoicecardsLearningActivated(user: VoicecardsLearningActivationUser) {
+  return user.sheetCount > 0
     || (user.ownCards ?? user.cards) > 0
     || (user.flips ?? 0) > 0
-  if (!activated) return null
+}
+
+// 활성화 시점. 활성화가 아니면 null, 활성화인데 어떤 날짜도 모르면 null —
+// **활성화 여부 판정에는 쓰지 말 것**(그게 위 버그였다). 추이 축을 그릴 때만 쓴다.
+export function voicecardsLearningActivationDate(user: VoicecardsLearningActivationUser) {
+  if (!isVoicecardsLearningActivated(user)) return null
 
   return user.activatedAt || user.createdAt || user.installedAt || null
+}
+
+// 사용자 표의 행 종류. 표는 셋을 한 표로 합쳐 보여주고(같은 사람이 로그인 전후로
+// 두 곳에 나뉘지 않게), 퍼널은 이 구분으로 각 칸의 모집단을 고른다.
+//   구글 사용자   → users 행, 실제 구글 로그인
+//   기기 계정     → users 행, 'device:<uuid>' (로그인 없이 크레딧을 쓰는 사용자)
+//   익명 기기     → 계정 없는 기기, 클라에서 만든 합성 id 'dev:<uuid>'
+export function isVoicecardsDeviceAccountRow(id: string) {
+  return id.startsWith('device:')
+}
+
+export function isVoicecardsAnonDeviceRow(id: string) {
+  return id.startsWith('dev:')
+}
+
+export function isVoicecardsGoogleUserRow(id: string) {
+  return !isVoicecardsDeviceAccountRow(id) && !isVoicecardsAnonDeviceRow(id)
 }
 
 export function voicecardsLocalActivationOwnerId(
