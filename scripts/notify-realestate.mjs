@@ -250,6 +250,18 @@ async function previousReport() {
 }
 
 async function saveReport(text, facts) {
+  // 같은 날짜는 교체한다. CEO 가 재전송을 요청하면 그때마다 새 행이 쌓이고, 다음 날
+  // "전일 대비"가 참조할 하루치가 여러 벌이 된다(2026-09-08 실제로 2건 쌓였다).
+  const today = kstDate()
+  await fetch(
+    `${url}/rest/v1/investment_real_estate_insights` +
+    `?insight_type=eq.${REPORT_TYPE}&properties->>date=eq.${today}`,
+    {
+      method: 'DELETE',
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'return=minimal' },
+    },
+  ).catch(() => null)
+
   await fetch(`${url}/rest/v1/investment_real_estate_insights`, {
     method: 'POST',
     headers: {
@@ -262,7 +274,7 @@ async function saveReport(text, facts) {
       source: 'notify-realestate.mjs / real_estate_monitoring',
       importance: 'medium',
       tags: ['부동산', '일일보고'],
-      properties: { date: kstDate(), facts },
+      properties: { date: today, facts },
     }),
   }).catch(() => null)
 }
@@ -358,9 +370,16 @@ async function run() {
     body: JSON.stringify({ chat_id: chatId, text: message }),
   })
   if (!sent.ok) throw new Error(`텔레그램 전송 실패: ${sent.status} ${await sent.text()}`)
+  // message_id 를 남긴다. "보냈다"만 찍으면 안 왔다는 얘기가 나왔을 때 대조할 근거가 없다.
+  const body = await sent.json().catch(() => null)
+  const messageId = body?.result?.message_id ?? '?'
+  const sentChat = body?.result?.chat?.id ?? chatId
   // 다음 보고가 "전일 대비"를 쓰려면 오늘 것이 남아 있어야 한다. 전송에 성공한 것만 저장한다.
   if (composed) await saveReport(message, facts)
-  console.log(`[realestate-notify] status=${status} ${composed ? '해석' : '숫자'} 전송 완료`)
+  console.log(
+    `[realestate-notify] status=${status} ${composed ? '해석' : '숫자'} 전송 완료 ` +
+    `(chat=${sentChat}, message_id=${messageId}, ${message.length}자)`,
+  )
 }
 
 run().catch(error => {
