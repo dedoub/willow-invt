@@ -10,6 +10,12 @@ import type {
   CodexProgress,
 } from './agents/runner-types'
 
+// 봇/자동화의 codex 호출이 공유하는 모델. 전역 codex config 는 건드리지 않고 -m 으로 덮는다.
+// 여기 한 곳에만 둔다 — 예전엔 telegram-bot.ts 안에 상수로 있어서 다른 스크립트가
+// 같은 스택을 쓰려면 문자열을 복사해야 했고, 모델을 바꿀 때 갈라지기 딱 좋았다.
+// (모델이 "not supported"로 죽으면 되는 값으로 이 상수만 바꾼다.)
+export const BOT_MODEL = 'gpt-5.6-sol'
+
 export { AgentAbortError }
 export type {
   AgentBackendKind,

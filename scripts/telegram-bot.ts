@@ -7,10 +7,7 @@ import { execSync, spawn } from 'child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join, basename, relative } from 'path'
 import { formatCompactLink, markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
-import { runAgent, runAgentTurn, AgentAbortError, type CodexProgress } from './lib/agent-cli'
-
-// 텔레그램봇 전용 codex 모델 (봇의 모든 codex 호출에 -m 로 오버라이드). 전역 codex config는 건드리지 않음.
-const BOT_MODEL = 'gpt-5.6-sol'
+import { runAgent, runAgentTurn, AgentAbortError, BOT_MODEL, type CodexProgress } from './lib/agent-cli'
 
 // 하이브리드 추론 강도: 일상 대화는 medium(캡 절약), 무거운 분석/코딩/계획 요청만 high로 승격.
 const HEAVY_EFFORT_RE = /분석|왜|원인|디버그|디버깅|조사|리서치|검토|진단|전략|비교|평가|계획|설계|리팩터|최적화|성능|버그|고쳐|코드|스크립트|구현|짜줘|만들어\s*줘/

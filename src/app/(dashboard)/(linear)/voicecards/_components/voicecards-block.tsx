@@ -191,7 +191,11 @@ export interface VoicecardsBlockProps {
   anonymousStats: AnonymousEventStats | null
   chartData?: Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>
   onRefresh: () => void
-  refreshing: boolean
+  // 파트별 새로고침 상태. 섹션마다 실제로 기다리는 소스가 달라서 하나로 묶으면
+  // 이미 갱신이 끝난 섹션도 계속 도는 것처럼 보인다(2026-09-08 CEO).
+  refreshingUsers: boolean
+  refreshingEvents: boolean
+  refreshingRevenue: boolean
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
 }
 
@@ -548,9 +552,13 @@ function SkelUserRow() {
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onRefresh, refreshing, cols,
+  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
+  // 퍼널은 세 소스를 모두 그린다(스토어·설치=events, 로그인·연동·활성화=users, 판매크레딧=revenue).
+  // ENGAGEMENT·사용자 표는 매출을 안 쓰므로 매출 호출이 늦어도 먼저 멈춘다.
+  const refreshingFunnel = refreshingUsers || refreshingEvents || refreshingRevenue
+  const refreshingAccounts = refreshingUsers || refreshingEvents
   const dashCols = cols
   // 매우 좁은 화면(모바일)에서만 sparkline 숨김. LStat이 sub를 자체 줄로 분리해서
   // 일반 PC 해상도에선 sparkline 들어갈 공간 있음.
@@ -757,7 +765,7 @@ export function VoicecardsBlock({
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 가입 → 결제"
           action={
-            <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
+            <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingFunnel} />
           }
         />
 
@@ -791,10 +799,10 @@ export function VoicecardsBlock({
             <span>인사이트 데이터를 불러오지 못했어요</span>
             <button
               onClick={onRefresh}
-              disabled={refreshing}
+              disabled={refreshingFunnel}
               style={{
                 padding: '4px 12px', borderRadius: t.radius.sm, border: 'none',
-                cursor: refreshing ? 'default' : 'pointer', opacity: refreshing ? 0.5 : 1,
+                cursor: refreshingFunnel ? 'default' : 'pointer', opacity: refreshingFunnel ? 0.5 : 1,
                 background: t.brand[500], color: '#fff',
                 fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
               }}
@@ -1282,7 +1290,7 @@ export function VoicecardsBlock({
             eyebrow="ENGAGEMENT"
             title="가입 후 활동 · 매출 동인"
             mb={10}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
           {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
@@ -1296,7 +1304,7 @@ export function VoicecardsBlock({
             eyebrow="ENGAGEMENT"
             title="가입 후 활동 · 매출 동인"
             mb={10}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
 
           {(() => {
@@ -1576,7 +1584,7 @@ export function VoicecardsBlock({
                   </span>
                 )}
                 mb={8}
-                action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+                action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
               />
             )
           })()}

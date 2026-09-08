@@ -153,14 +153,22 @@ export default function VoicecardsPage() {
   const [vcUsersLoading, setVcUsersLoading] = useState(true)
   const [vcEventsLoading, setVcEventsLoading] = useState(true)
   const [vcRevenueLoading, setVcRevenueLoading] = useState(true)
-  const [vcRefreshing, setVcRefreshing] = useState(false)
+  // 새로고침 스피너는 파트별로 따로 돈다. 예전엔 불리언 하나를 셋이 공유해서, 이미 새 값을
+  // 받아 그리고 있는 섹션도 가장 느린 호출이 끝날 때까지 계속 도는 것처럼 보였다(2026-09-08 CEO).
+  const [vcRefreshUsers, setVcRefreshUsers] = useState(false)
+  const [vcRefreshEvents, setVcRefreshEvents] = useState(false)
+  const [vcRefreshRevenue, setVcRefreshRevenue] = useState(false)
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
 
   const loadVoicecards = useCallback(async (refresh = false) => {
-    if (refresh) setVcRefreshing(true)
+    if (refresh) {
+      setVcRefreshUsers(true)
+      setVcRefreshEvents(true)
+      setVcRefreshRevenue(true)
+    }
     if (!refresh) {
       setVcUsersLoading(true)
       setVcEventsLoading(true)
@@ -179,7 +187,7 @@ export default function VoicecardsPage() {
         if (data) setVcUserStats(data.userStats || null)
       })
       .catch(err => console.error('VoiceCards users load error:', err))
-      .finally(() => setVcUsersLoading(false))
+      .finally(() => { setVcUsersLoading(false); setVcRefreshUsers(false) })
 
     const eventsP = fetch(`/api/voicecards/stats/events${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
@@ -187,7 +195,7 @@ export default function VoicecardsPage() {
         if (data) setVcAnonStats(data.anonymousStats || null)
       })
       .catch(err => console.error('VoiceCards events load error:', err))
-      .finally(() => setVcEventsLoading(false))
+      .finally(() => { setVcEventsLoading(false); setVcRefreshEvents(false) })
 
     const revenueP = fetch(`/api/voicecards/stats?startDate=${start}&endDate=${end}${refresh ? '&refresh=1' : ''}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
@@ -198,10 +206,9 @@ export default function VoicecardsPage() {
         }
       })
       .catch(err => console.error('VoiceCards revenue load error:', err))
-      .finally(() => setVcRevenueLoading(false))
+      .finally(() => { setVcRevenueLoading(false); setVcRefreshRevenue(false) })
 
     await Promise.all([usersP, eventsP, revenueP])
-    setVcRefreshing(false)
   }, [])
 
   useEffect(() => {
@@ -256,7 +263,9 @@ export default function VoicecardsPage() {
         anonymousStats={vcAnonStats}
         chartData={vcChartData}
         onRefresh={() => loadVoicecards(true)}
-        refreshing={vcRefreshing}
+        refreshingUsers={vcRefreshUsers}
+        refreshingEvents={vcRefreshEvents}
+        refreshingRevenue={vcRefreshRevenue}
       />
       </div>
     </>
