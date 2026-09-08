@@ -9,13 +9,23 @@
 // "부동산이 오늘 갱신됐나"는 하나의 질문이라, 나뉘어 오면 매일 두 통을 맞춰 봐야 한다.
 // 호가 러너가 끝나는 10:40 KST 는 실거래 크론(07:13 KST) 뒤라 그때는 양쪽이 다 끝나 있다.
 //
-// --print 는 보내지 않고 메시지만 찍는다.
+// 숫자 요약은 최종 보고서가 아니라 **분석 재료**다. agent_prompt_sections 의
+// real_estate_monitoring 프롬프트(윌리가 CEO 피드백으로 자기수정하는 그 프롬프트)를 읽어
+// 같은 codex 스택으로 해석형 보고서를 만들고, 그걸 보낸다.
+//
+// 왜 이렇게 바뀌었나(2026-09-08): 이 스크립트가 텔레그램 sendMessage 로 직접 쏘고 있어서
+// 윌리를 한 번도 거치지 않았다. CEO 가 "이렇게 써라"라고 해서 윌리가 프롬프트를 v5→v6 까지
+// 올려도 매일 나가는 건 여기서 만든 숫자 요약이라 영원히 반영되지 않았다.
+// (v6 본문에 "자동 생성된 숫자 요약은 분석 재료일 뿐 최종 보고서로 발송하지 않는다"가 있다.)
+//
+// --print 는 보내지 않고 메시지만 찍는다. --raw 는 해석 없이 숫자 요약만 낸다.
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
+import { buildRealEstateReport, trendSnapshot } from './lib/realestate-report.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -72,8 +82,10 @@ async function listingState() {
 
   const countOn = date => rest(`re_naver_listings?snapshot_date=eq.${date}&select=id`, { head: true })
   const complexesOn = async date => {
-    const list = await rest(`re_naver_listings?snapshot_date=eq.${date}&select=complex_no`)
-    return new Set(list.map(r => r.complex_no)).size
+    // 원본 매물은 1만 건이 넘어 PostgREST 기본 1,000행 한도에서 단지 수가 잘린다.
+    // 1일 200여 행인 밴드 요약표에서 세면 페이지네이션 없이도 전체를 정확히 센다.
+    const list = await rest(`re_listing_daily_summary?snapshot_date=eq.${date}&select=complex_name`)
+    return new Set(list.map(r => r.complex_name).filter(Boolean)).size
   }
   // 비교 대상은 "어제"가 아니라 "직전에 실제로 있는 스냅샷"이다. 수집이 며칠 멈췄던
   // 뒤에는 어제가 비어 있어서, 어제와 비교하면 전량이 증가분처럼 보인다.
@@ -110,47 +122,47 @@ async function tradeState() {
   }
 }
 
-/** 매매 시세 — 실거래 평당가·괴리율·시가총액을 7일 전과 견준다. */
+/** 매매·전세 괴리율 — 전체와 50평대를 각각 7일 전과 견준다. */
 async function marketState() {
-  const query = `districts=${encodeURIComponent(DISTRICTS)}&period=12`
+  const baseQuery = `districts=${encodeURIComponent(DISTRICTS)}&period=12`
   // 이 API는 로그인 쿠키 아니면 CRON_SECRET 을 요구한다(공개 상태였던 것을 2026-08-27 닫음).
   const secret = process.env.CRON_SECRET
-  const get = type => fetch(`${SITE}/api/willow-mgmt/real-estate?type=${type}&${query}`, {
+  const get = (type, params = '') => fetch(`${SITE}/api/willow-mgmt/real-estate?type=${type}&${baseQuery}${params}`, {
     headers: secret ? { Authorization: `Bearer ${secret}` } : {},
   })
     .then(r => (r.ok ? r.json() : null))
     .catch(() => null)
 
-  const [summaryRes, capRes] = await Promise.all([get('summary'), get('market-cap')])
-  const trend = capRes?.trend ?? []
-  const last = trend[trend.length - 1]
-  if (!last) return null
+  const [summaryRes, fiftyRes, tradeTrendRes, jeonseTrendRes, tradeFiftyTrendRes, jeonseFiftyTrendRes] = await Promise.all([
+    get('summary'),
+    get('summary', '&areaRange=50'),
+    get('listing-trend', '&tradeType=%EB%A7%A4%EB%A7%A4'),
+    get('listing-trend', '&tradeType=%EC%A0%84%EC%84%B8'),
+    get('listing-trend', '&tradeType=%EB%A7%A4%EB%A7%A4&areaRange=50'),
+    get('listing-trend', '&tradeType=%EC%A0%84%EC%84%B8&areaRange=50'),
+  ])
+  const summary = summaryRes?.summary
+  const fifty = fiftyRes?.summary
+  if (!summary || !fifty) return null
 
-  // 7일 전 정확한 날짜가 없을 수 있다(주말·수집 중단). 그 이전 중 가장 가까운 관측을 쓴다.
-  const target = new Date(Date.parse(`${last.date}T00:00:00+09:00`) - 7 * 86400000)
-    .toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-  const earlier = trend.filter(p => p.date <= target)
-  const prev = earlier.length ? earlier[earlier.length - 1] : null
-
-  const gapOf = p => (p.actualValue > 0 ? (p.listingValue / p.actualValue - 1) * 100 : null)
+  const withChange = (gap, pairs, deals, trend) => ({
+    gap,
+    pairs,
+    deals,
+    change: trendSnapshot(trend)?.change ?? null,
+  })
   return {
-    date: last.date,
-    prevDate: prev?.date ?? null,
-    complexCount: capRes?.complexCount ?? null,
-    // 평당가 수준은 화면 요약값을 그대로 쓴다.
-    tradePpp: summaryRes?.summary?.avgTradePpp ?? null,
-    // 면적 가중치가 상수라 실거래 시총의 변화율이 곧 실거래 평당가의 변화율이다.
-    actual: last.actualValue,
-    actualPct: prev && prev.actualValue > 0 ? (last.actualValue / prev.actualValue - 1) * 100 : null,
-    listing: last.listingValue,
-    listingPct: prev && prev.listingValue > 0 ? (last.listingValue / prev.listingValue - 1) * 100 : null,
-    gap: gapOf(last),
-    prevGap: prev ? gapOf(prev) : null,
+    trackedComplexes: summary.trackedComplexes,
+    overall: {
+      trade: withChange(summary.tradeListingGap, summary.tradeGapPairs, summary.tradeGapDeals, tradeTrendRes?.trend),
+      jeonse: withChange(summary.jeonseListingGap, summary.jeonseGapPairs, summary.jeonseGapDeals, jeonseTrendRes?.trend),
+    },
+    fifty: {
+      trade: withChange(fifty.tradeListingGap, fifty.tradeGapPairs, fifty.tradeGapDeals, tradeFiftyTrendRes?.trend),
+      jeonse: withChange(fifty.jeonseListingGap, fifty.jeonseGapPairs, fifty.jeonseGapDeals, jeonseFiftyTrendRes?.trend),
+    },
   }
 }
-
-const signed = (value, digits = 1, unit = '%') =>
-  `${value > 0 ? '+' : ''}${value.toFixed(digits)}${unit}`
 
 function line(label, value) {
   return `· ${label} ${value}`
@@ -159,7 +171,22 @@ function line(label, value) {
 function buildMessage({ status, listing, trade, market, tail }) {
   const ok = status === 'ok'
   const today = kstDate()
-  const out = [ok ? '✅ 부동산 수집 완료' : '🚨 부동산 수집 실패', '']
+  if (ok && listing && trade && market) {
+    return buildRealEstateReport({
+      date: listing.latest,
+      overall: market.overall,
+      fifty: market.fifty,
+      listing: {
+        trackedComplexes: market.trackedComplexes,
+        updatedComplexes: listing.complexes,
+        count: listing.count,
+        previousCount: listing.prevCount,
+      },
+      sync: { trades: trade.trades, rentals: trade.rentals },
+    })
+  }
+
+  const out = [ok ? '⚠️ 부동산 수집 완료 · 분석 데이터 조회 실패' : '🚨 부동산 수집 실패', '']
 
   out.push('[호가 · 네이버]')
   if (!listing?.latest) {
@@ -175,24 +202,6 @@ function buildMessage({ status, listing, trade, market, tail }) {
   } else {
     out.push(line('마지막', `${listing.latest} · ${listing.stale}일 정체`))
     out.push(line('오늘', '수집 없음'))
-  }
-
-  if (market) {
-    const when = market.prevDate ? market.prevDate.slice(5).replace('-', '.') : '기준 없음'
-    out.push('', `[매매 시세 · ${when} 대비]`)
-    if (market.tradePpp) {
-      const pct = market.actualPct != null ? ` (${signed(market.actualPct)})` : ''
-      out.push(line('실거래 평당가', `${market.tradePpp.toLocaleString()}만원${pct}`))
-    }
-    if (market.gap != null) {
-      const was = market.prevGap != null ? ` (${signed(market.gap - market.prevGap, 1, '%p')})` : ''
-      out.push(line('괴리율', `${market.gap.toFixed(1)}%${was}`))
-    }
-    // 두 시총에 각자의 변화율을 붙인다 — 하나만 달면 어느 쪽 값인지 읽는 사람이 헷갈린다.
-    const cap = (label, value, pct) =>
-      `${label} ${value.toFixed(1)}조${pct != null ? ` ${signed(pct)}` : ''}`
-    out.push(line('시가총액',
-      `${cap('실거래', market.actual, market.actualPct)} · ${cap('호가', market.listing, market.listingPct)}`))
   }
 
   out.push('', '[실거래 · 국토부]')
@@ -222,6 +231,79 @@ async function logTail(file, lines = 8) {
   return tail.length > 900 ? `…\n${tail.slice(-900)}` : tail
 }
 
+const PROMPT_KEY = 'real_estate_monitoring'
+const REPORT_TYPE = 'daily_report'
+
+/** CEO 피드백으로 계속 바뀌는 프롬프트. 여기서 읽어야 프롬프트 수정이 실제로 반영된다. */
+async function analysisPrompt() {
+  const rows = await rest(`agent_prompt_sections?section_key=eq.${PROMPT_KEY}&select=content,version`)
+  return rows[0] ?? null
+}
+
+/** 전일 보고 — 프롬프트가 "전일 대비 변화"와 "연속 참조"를 요구한다. */
+async function previousReport() {
+  const rows = await rest(
+    `investment_real_estate_insights?insight_type=eq.${REPORT_TYPE}` +
+    '&select=content,properties,created_at&order=created_at.desc&limit=1',
+  )
+  return rows[0] ?? null
+}
+
+async function saveReport(text, facts) {
+  await fetch(`${url}/rest/v1/investment_real_estate_insights`, {
+    method: 'POST',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({
+      insight_type: REPORT_TYPE,
+      content: text,
+      source: 'notify-realestate.mjs / real_estate_monitoring',
+      importance: 'medium',
+      tags: ['부동산', '일일보고'],
+      properties: { date: kstDate(), facts },
+    }),
+  }).catch(() => null)
+}
+
+/**
+ * 숫자 재료 + 프롬프트 + 전일 보고 → 해석형 보고서.
+ * 봇과 같은 스택(codex CLI, BOT_MODEL)을 쓴다. AI 호출은 Codex CLI 로만 한다는 정책 그대로다.
+ * tsx 로 실행되므로 TS 모듈을 그대로 import 한다 — --raw/plain node 경로에서는 부르지 않는다.
+ */
+async function composeReport(facts) {
+  const [{ runAgent, BOT_MODEL }, prompt, prev] = await Promise.all([
+    import('./lib/agent-cli.ts'),
+    analysisPrompt(),
+    previousReport(),
+  ])
+  if (!prompt?.content) throw new Error(`프롬프트 ${PROMPT_KEY} 없음`)
+
+  const previousBlock = prev
+    ? `## 전일 보고 (${prev.properties?.date ?? prev.created_at?.slice(0, 10) ?? '날짜미상'})\n${prev.content}`
+    : '## 전일 보고\n없음 — 오늘이 첫 보고다. "전일 대비" 항목은 그렇게 적어라.'
+
+  const instruction = [
+    prompt.content,
+    '',
+    '위 지침대로 오늘의 일일 보고서를 작성해라. 아래는 오늘 수집이 끝난 뒤 자동 집계한 숫자다.',
+    '이 숫자는 대시보드와 같은 정의로 계산됐다. 숫자를 새로 만들어내지 말고 이 값만 인용해라.',
+    '',
+    '## 오늘 숫자 (분석 재료)',
+    facts,
+    '',
+    previousBlock,
+    '',
+    '텔레그램 평문으로 보낼 본문만 출력해라. 마크다운 표·코드블록·머리말·맺음말은 넣지 마라.',
+  ].join('\n')
+
+  const text = await runAgent(instruction, { backend: 'codex', model: BOT_MODEL })
+  const body = (text || '').trim()
+  if (!body) throw new Error('빈 응답')
+  return body
+}
+
 async function ceoChatId() {
   const rows = await rest('telegram_conversations?bot_type=eq.ceo&select=chat_id&order=updated_at.desc&limit=1')
   return rows[0]?.chat_id ?? null
@@ -238,7 +320,27 @@ async function run() {
     marketState().catch(() => null),
     logTail(argument('log')),
   ])
-  const message = buildMessage({ status, listing, trade, market, tail })
+  const facts = buildMessage({ status, listing, trade, market, tail })
+
+  // 수집이 실패했으면 해석하지 않는다. 그땐 "돌았나?"가 질문이라 원문 알림이 정답이다.
+  // --raw 는 재료만 보고 싶을 때.
+  const wantAnalysis = status === 'ok' && !!(listing && trade && market)
+    && !process.argv.includes('--raw')
+
+  let message = facts
+  let composed = false
+  if (wantAnalysis) {
+    try {
+      message = await composeReport(facts)
+      composed = true
+    } catch (error) {
+      // 해석에 실패해도 알림 자체는 나가야 한다 — 이 알림의 1차 목적은 수집 성공 여부다.
+      // 조용히 숫자 요약으로 되돌아가면 프롬프트가 반영 안 되는 걸 또 못 알아채므로 표시한다.
+      const why = error instanceof Error ? error.message : String(error)
+      console.error(`[realestate-notify] 분석 생성 실패: ${why}`)
+      message = `${facts}\n\n⚠️ 해석 리포트 생성 실패 — 숫자 요약으로 대체 (${why})`
+    }
+  }
 
   if (process.argv.includes('--print')) {
     console.log(message)
@@ -256,7 +358,9 @@ async function run() {
     body: JSON.stringify({ chat_id: chatId, text: message }),
   })
   if (!sent.ok) throw new Error(`텔레그램 전송 실패: ${sent.status} ${await sent.text()}`)
-  console.log(`[realestate-notify] status=${status} 전송 완료`)
+  // 다음 보고가 "전일 대비"를 쓰려면 오늘 것이 남아 있어야 한다. 전송에 성공한 것만 저장한다.
+  if (composed) await saveReport(message, facts)
+  console.log(`[realestate-notify] status=${status} ${composed ? '해석' : '숫자'} 전송 완료`)
 }
 
 run().catch(error => {
