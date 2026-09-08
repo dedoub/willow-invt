@@ -7026,14 +7026,39 @@ ${text}
 // ============================================================
 // Telegram polling loop
 // ============================================================
+// 폴링 실패를 조용히 삼키지 않는다. 예전엔 ok:false 도 예외도 전부 빈 배열이라,
+// 409 Conflict(다른 소비자가 같은 토큰으로 폴링) 같은 게 나면 봇이 "메시지 없음"으로
+// 알고 영원히 대기했다 — 프로세스는 살아 있고 로그는 조용한데 응답만 없다.
+// 2026-09-08 CEO "응답이 없어" 건이 이 경로였다. 연속 실패는 눈에 보이게 남긴다.
+let updatePollFailures = 0
 async function getUpdates(offset: number): Promise<any[]> {
   try {
     const res = await fetch(`${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=30`, {
       signal: AbortSignal.timeout(35000),
     })
     const data = await res.json()
-    return data.ok ? data.result : []
-  } catch {
+    if (!data.ok) {
+      updatePollFailures++
+      // 409 는 같은 토큰을 두 프로세스가 폴링할 때 난다. 재시작만으로는 안 풀리므로 따로 적는다.
+      console.error(
+        `⚠️ getUpdates 실패 (${updatePollFailures}회 연속): ` +
+        `${data.error_code ?? '?'} ${data.description ?? ''}` +
+        (data.error_code === 409 ? ' — 같은 토큰으로 폴링 중인 다른 프로세스가 있습니다' : ''),
+      )
+      // 폭주 방지. 실패 중에는 30초 롱폴링이 즉시 반환되므로 그냥 돌면 초당 수십 회가 된다.
+      await new Promise(r => setTimeout(r, Math.min(30_000, 2_000 * updatePollFailures)))
+      return []
+    }
+    if (updatePollFailures > 0) {
+      console.log(`✅ getUpdates 복구 (${updatePollFailures}회 실패 후)`)
+      updatePollFailures = 0
+    }
+    return data.result
+  } catch (error) {
+    updatePollFailures++
+    const why = error instanceof Error ? error.message : String(error)
+    console.error(`⚠️ getUpdates 예외 (${updatePollFailures}회 연속): ${why}`)
+    await new Promise(r => setTimeout(r, Math.min(30_000, 2_000 * updatePollFailures)))
     return []
   }
 }
