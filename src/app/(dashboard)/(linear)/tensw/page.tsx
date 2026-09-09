@@ -14,6 +14,7 @@ import { SalesBlock } from './_components/sales-block'
 import { LoanBlock } from './_components/loan-block'
 import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
+import { TenswCorpDocsBlock } from './_components/corp-docs-block'
 import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
 
 // Dialogs
@@ -32,6 +33,7 @@ import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/
 import { TenswMgmtSchedule, TenswMgmtClient, TenswCashItem, TenswTaxInvoice, TenswLoan, TenswCardApproval, TenswCardBilling } from '@/types/tensw-mgmt'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
 import type { FinanceTaxObligation } from '@/types/finance-tax'
+import type { CorpDocument } from '@/types/willow-corp'
 
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
@@ -54,6 +56,9 @@ export default function TenswPage() {
   const [taxObligations, setTaxObligations] = useState<FinanceTaxObligation[]>([])
   const [wikiNotes, setWikiNotes] = useState<WikiNote[]>([])
   const [wikiLoading, setWikiLoading] = useState(true)
+  const [corpDocs, setCorpDocs] = useState<CorpDocument[]>([])
+  const [corpDocsLoading, setCorpDocsLoading] = useState(true)
+  const [corpDocsError, setCorpDocsError] = useState<string | null>(null)
 
   // Schedule dialog state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
@@ -133,6 +138,22 @@ export default function TenswPage() {
     }
   }, [])
 
+  // 법인서류함은 /corp와 같은 읽기 API를 회사만 tensw로 고정해 쓴다.
+  const loadCorpDocs = useCallback(async () => {
+    setCorpDocsLoading(true)
+    setCorpDocsError(null)
+    try {
+      const res = await fetch('/api/willow-corp/documents?company=tensw', { cache: 'no-store' })
+      if (!res.ok) throw new Error(String(res.status))
+      const data = await res.json()
+      setCorpDocs(data.documents ?? [])
+    } catch {
+      setCorpDocsError('법인서류함을 불러오지 못했습니다. 새로고침으로 다시 시도해 주세요.')
+    } finally {
+      setCorpDocsLoading(false)
+    }
+  }, [])
+
   const loadData = useCallback(async () => {
     // 재로드 시 phase 유지 — 달력/사용자 상태 보존 (useState 기본값으로 초기 스켈레톤은 표시됨)
     try {
@@ -177,8 +198,8 @@ export default function TenswPage() {
         setTaxObligations(data.obligations || [])
       }
 
-      // Phase 1: DB + wiki done → show UI (emails still loading)
-      await loadWiki()
+      // Phase 1: DB + wiki + corp docs done → show UI (emails still loading)
+      await Promise.all([loadWiki(), loadCorpDocs()])
       setLoadPhase(1)
 
       // Phase 2: Gmail (slow) → emails appear
@@ -188,7 +209,7 @@ export default function TenswPage() {
       // Even on error, show whatever we have
       setLoadPhase(prev => prev === 0 ? 1 : prev)
     }
-  }, [loadWiki, fetchEmails])
+  }, [loadWiki, loadCorpDocs, fetchEmails])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -206,6 +227,7 @@ export default function TenswPage() {
     return () => { cancelled = true }
   }, [cardYear])
   useAgentRefresh(['tensw_mgmt'], loadData)
+  useAgentRefresh(['willow_corp'], loadCorpDocs)
 
   const reloadClients = useCallback(async () => {
     const res = await fetch('/api/tensw-mgmt/clients')
@@ -533,6 +555,9 @@ export default function TenswPage() {
               isSyncing={isSyncing}
             />
           </div>
+
+          {/* Corporate records (full width) — 텐소프트웍스 문서만, 상세는 /corp와 같은 다이얼로그 */}
+          <TenswCorpDocsBlock documents={corpDocs} loading={corpDocsLoading} error={corpDocsError} />
 
           {/* Projects (full width) — 일단 숨김 */}
           {false && <ProjectBlock projects={projects} />}
