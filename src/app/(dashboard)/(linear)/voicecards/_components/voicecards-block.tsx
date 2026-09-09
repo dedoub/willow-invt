@@ -1558,7 +1558,13 @@ export function VoicecardsBlock({
             {/* 누적 크레딧: 사용 vs 판매 — 쓴 만큼 팔리는지(판매 ÷ 사용)를 본다. 두 시리즈가 같은 단위(크레딧)라 한 축.
                 우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
-              <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
+              <CreditFlowChart
+                sold={soldCumulative} used={usedCumulative}
+                loading={eventsLoading && !anonymousStats}
+                // 매출 API(/api/voicecards/stats)는 캐시가 비면(배포 직후) 10초 넘게 걸린다. 그동안 판매 0으로
+                // 그리면 "판매가 안 로드된다"로 보이므로(2026-09-09) 판매 시리즈만 로딩 상태를 따로 표시한다.
+                soldLoading={revenueLoading && !stats}
+              />
             </div>
           </div>
           </>
@@ -2100,10 +2106,12 @@ function DauTrendCard({ daily, days = 42 }: {
 // 누적 크레딧 사용 vs 판매 — 두 누적선을 한 축에 얹어 소진이 판매를 얼마나 앞서는지 본다.
 // 사용(원장, 무료 지급분 소진 포함)이 판매보다 위에 있으면 그 간격이 아직 결제로 이어지지 않은 소진량이다.
 // 일별 활동자 차트와 같은 문법: 상단 라벨+범례 칩, 절대 좌표 SVG, 호버 툴팁. 두 시리즈가 같은 단위라 축은 하나.
-function CreditFlowChart({ sold, used, loading, days = 90 }: {
+function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
   sold: Array<{ date: string; value: number }>
   used: Array<{ date: string; value: number }>
   loading?: boolean
+  /** 판매 시리즈만 아직 오는 중 — 사용선은 그리고 판매선·비율은 로딩으로 표시 */
+  soldLoading?: boolean
   days?: number
 }) {
   const SOLD = '#2563eb'
@@ -2165,10 +2173,18 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono }}>
           {chip(USED, '사용', formatNumber(latestUsed))}
-          {chip(SOLD, '판매', formatNumber(latestSold))}
-          <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율">
-            판매/사용 {soldPerUsedPct === null ? '-' : `${soldPerUsedPct}%`}
-          </span>
+          {soldLoading ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>
+              <span style={{ width: 10, height: 2, borderRadius: 1, background: SOLD, opacity: 0.4 }} />판매 불러오는 중…
+            </span>
+          ) : (
+            <>
+              {chip(SOLD, '판매', formatNumber(latestSold))}
+              <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율">
+                판매/사용 {soldPerUsedPct === null ? '-' : `${soldPerUsedPct}%`}
+              </span>
+            </>
+          )}
         </div>
       </div>
       {loading ? (
@@ -2194,7 +2210,9 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
             {[0, 50, 100].map(p => (
               <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.neutrals.line} strokeWidth={1} vectorEffect="non-scaling-stroke" />
             ))}
-            <polyline points={path(soldAt)} fill="none" stroke={SOLD} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            {!soldLoading && (
+              <polyline points={path(soldAt)} fill="none" stroke={SOLD} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            )}
             <polyline points={path(usedAt)} fill="none" stroke={USED} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
             {hoverIdx !== null && (
               <line x1={x(hoverIdx)} x2={x(hoverIdx)} y1="0" y2="100" stroke={t.neutrals.muted} strokeWidth={1} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
@@ -2218,12 +2236,18 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ width: 7, height: 2, borderRadius: 1, background: USED }} />사용 누적 {formatNumber(u)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 2, borderRadius: 1, background: SOLD }} />판매 누적 {formatNumber(s)}
-                </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>
-                  {u > 0 ? `판매/사용 ${Math.round((s / u) * 100)}%` : '사용 전'} · 판매−사용 {s - u >= 0 ? '+' : ''}{formatNumber(s - u)}
-                </div>
+                {soldLoading ? (
+                  <div style={{ opacity: 0.7, marginTop: 3 }}>판매 불러오는 중…</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 7, height: 2, borderRadius: 1, background: SOLD }} />판매 누적 {formatNumber(s)}
+                    </div>
+                    <div style={{ opacity: 0.7, marginTop: 3 }}>
+                      {u > 0 ? `판매/사용 ${Math.round((s / u) * 100)}%` : '사용 전'} · 판매−사용 {s - u >= 0 ? '+' : ''}{formatNumber(s - u)}
+                    </div>
+                  </>
+                )}
               </div>
             )
           })()}
