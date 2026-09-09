@@ -1555,7 +1555,7 @@ export function VoicecardsBlock({
               )
             })()}
           </div>
-            {/* 누적 크레딧: 사용 vs 판매 — 소진 속도로 판매 추이를 가늠한다. 두 시리즈가 같은 단위(크레딧)라 한 축.
+            {/* 누적 크레딧: 사용 vs 판매 — 쓴 만큼 팔리는지(판매 ÷ 사용)를 본다. 두 시리즈가 같은 단위(크레딧)라 한 축.
                 우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
               <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
@@ -2127,8 +2127,9 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
   const max = Math.max(0, ...soldAt, ...usedAt)
   const latestSold = soldAt.length ? soldAt[soldAt.length - 1] : 0
   const latestUsed = usedAt.length ? usedAt[usedAt.length - 1] : 0
-  // 소진율 = 사용 ÷ 판매. 100%를 넘으면 무료 지급분까지 태워 쓰고 있다는 뜻이라 판매 여력으로 읽는다.
-  const burnPct = latestSold > 0 ? Math.round((latestUsed / latestSold) * 100) : null
+  // 판매/사용 = 판매 ÷ 사용. 쓴 크레딧 중 얼마가 결제로 채워졌나(CEO 2026-09-09). 100% 미만이면
+  // 그 차이만큼 무료 지급분으로 소진된 것이고, 이 비율이 오르면 소진이 판매로 전환되고 있다는 뜻.
+  const soldPerUsedPct = latestUsed > 0 ? Math.round((latestSold / latestUsed) * 100) : null
   const compactNum = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1).replace(/\.0$/, '')}k` : String(Math.round(v)))
 
   const pickIdx = (el: HTMLElement, clientX: number) => {
@@ -2157,7 +2158,7 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3 }}>
         <div
-          title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다. 소진율 = 사용 ÷ 판매."
+          title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 판매/사용 = 판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율. 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다."
           style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
         >
           누적 크레딧 사용 vs 판매
@@ -2165,8 +2166,8 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono }}>
           {chip(USED, '사용', formatNumber(latestUsed))}
           {chip(SOLD, '판매', formatNumber(latestSold))}
-          <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="사용 ÷ 판매">
-            소진율 {burnPct === null ? '-' : `${burnPct}%`}
+          <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율">
+            판매/사용 {soldPerUsedPct === null ? '-' : `${soldPerUsedPct}%`}
           </span>
         </div>
       </div>
@@ -2221,7 +2222,7 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
                   <span style={{ width: 7, height: 2, borderRadius: 1, background: SOLD }} />판매 누적 {formatNumber(s)}
                 </div>
                 <div style={{ opacity: 0.7, marginTop: 3 }}>
-                  {s > 0 ? `소진율 ${Math.round((u / s) * 100)}%` : '판매 전'} · 차이 {u - s >= 0 ? '+' : ''}{formatNumber(u - s)}
+                  {u > 0 ? `판매/사용 ${Math.round((s / u) * 100)}%` : '사용 전'} · 판매−사용 {s - u >= 0 ? '+' : ''}{formatNumber(s - u)}
                 </div>
               </div>
             )
