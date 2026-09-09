@@ -2,15 +2,17 @@
 
 GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하는 운영 문서.
 현황·진단·해석은 [seo-indexing.md](seo-indexing.md)에, 이 문서는 "오늘 뭘 요청하나"만 다룬다.
-2026-08-20부터 Portle(`portle.quest`), 2026-08-27부터 Scripta(`scripta.quest`)를
-VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
+2026-08-20부터 Portle(`portle.quest`), 2026-08-27부터 Scripta(`scripta.quest`),
+2026-09-09부터 ValueChain.wiki(`valuechain.wiki`)를 VoiceCards·ReviewNotes와
+같은 계정 한도 안에 포함한다.
 
 ## 규칙
 
 - 색인 요청 할당량은 **계정 단위 하루 약 11~12건**으로 합산된다 (2026-08-03 실측:
   보이스카드 8건 + 리뷰노트 3건 = 11건째까지 성공, 12건째 Quota Exceeded).
   프로퍼티를 나눠도 늘어나지 않으므로 하루 예산을 사이트 간 배분해야 한다.
-  기본 배분은 네 사이트 기준 VoiceCards 3건 / ReviewNotes 3건 / Portle 3건 / Scripta 2건이고,
+  기본 배분은 다섯 사이트 기준 VoiceCards 3건 / ReviewNotes 2건 / Portle 2건 /
+  Scripta 2건 / ValueChain.wiki 2건이고,
   유효 후보가 부족한 사이트의 몫은 다음 후보가 있는 사이트가 채운다.
 - rolling 24시간 쿼터 회복 여유를 확보하기 위해 배치 간격은 **25시간**으로 둔다.
   launchd는 매시간 15분에 확인하고 상태 파일의 `nextRunAt`이 지난 경우에만 실행한다.
@@ -52,7 +54,8 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 3. Claude in Chrome으로 GSC URL Inspection → 각 URL 검사 → "Request indexing" 클릭 →
    "Indexing requested" 확인. 프로퍼티: 보이스카드 `sc-domain:voicecards.quest`,
    리뷰노트 `https://reviewnotes.app/` (URL-prefix. 도메인 프로퍼티 아님),
-   Portle `sc-domain:portle.quest`, Scripta `sc-domain:scripta.quest`.
+   Portle `sc-domain:portle.quest`, Scripta `sc-domain:scripta.quest`,
+   ValueChain.wiki `https://valuechain.wiki/` (URL-prefix).
    Quota Exceeded가 뜨면 그날은 중단.
 4. 이 문서의 로그 표와 대기열 갱신, seo-indexing.md 조치 이력에 한 줄 추가.
 5. 완료 보고는 아래 순서로만 쓴다. 해석·후보·계획 문장은 넣지 않고, 실제 성공/실패 수치와
@@ -60,7 +63,7 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 
    ```text
    전체 결과
-   - 대상: VoiceCards n건, ReviewNotes n건, Portle n건, Scripta n건
+   - 대상: VoiceCards n건, ReviewNotes n건, Portle n건, Scripta n건, ValueChain.wiki n건
    - 성공: n건
    - 실패: n건
    - quota: 없음 | Quota Exceeded, 막힌 URL <url>
@@ -70,10 +73,11 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
    - ReviewNotes: <url>, <url>
    - Portle: <url>, <url>
    - Scripta: <url>, <url>
+   - ValueChain.wiki: <url>, <url>
 
    이전 요청 추적
-   - 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>
-   - 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>
+   - 신규 색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>, ValueChain.wiki n건 <url>
+   - 미색인: VoiceCards n건 <url>, ReviewNotes n건 <url>, Portle n건 <url>, Scripta n건 <url>, ValueChain.wiki n건 <url>
 
    이상 여부
    - 없음 | <수치와 URL만 포함한 이상 항목>
@@ -96,7 +100,18 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 - 09-02: `/en/guides/install-and-fullscreen` 요청 완료. `/en/guides/how-to-use-scripta`는 GSC 제출 오류로 실패해 대기열에 유지.
 - 09-03: `/en/guides/how-to-use-scripta` 재시도·`/en/guides/same-language-recall` 요청 완료.
 - 09-04: `/en/guides/study-plans`·`/ko` 요청 완료.
-- 다음 후보: `/ja`·`/es`·`/it` 등 미색인 로케일 루트. `/privacy`·`/terms`는 계속 제외.
+- 09-05: 최근 요청 `/en/guides/install-and-fullscreen`은 제외하고
+  `/en/templates/a-liberal-education`·`/en/templates/elementary-principles-of-composition` 요청 완료.
+- 09-06: 최근 요청 `/en/guides/install-and-fullscreen`은 계속 제외하고
+  `/en/templates/brown-v-board-conclusion`·`/en/templates/food-waste-in-context` 요청 완료.
+- 09-07: 최근 요청 `/en/guides/install-and-fullscreen`은 1주 미경과로 계속 제외하고
+  `/en/templates/gettysburg-address`·`/en/templates/kennedy-inaugural-opening` 요청 완료.
+- 09-08: 최근 요청 `/en/guides/install-and-fullscreen`은 요청 시각 기준 1주 미경과로 계속 제외하고
+  `/en/templates/laws-of-habit`·`/en/templates/of-studies` 요청 완료.
+- 09-09: Portle 첫 요청에서 `Quota Exceeded`가 발생해 Scripta는 요청하지 않았다.
+  `/en/guides/install-and-fullscreen`·`/en/templates/on-liberty-four-grounds`는 대기열에 유지한다.
+- 다음 후보: 남은 미색인 영어 템플릿, 이후 `/ja`·`/es`·`/it` 등 미색인 로케일 루트.
+  `/privacy`·`/terms`는 계속 제외.
 
 ### Portle 초기 대기열 (2026-08-20 추가)
 
@@ -139,6 +154,16 @@ VoiceCards·ReviewNotes와 같은 계정 한도 안에 포함한다.
 `/calculators/target-amount` 요청 완료.
 09-04에 로케일 계산기 허브 `/ja/calculators`·`/ko/calculators`와
 `/ja/guides/currency-impact-on-investment-return` 요청 완료.
+09-05에 `/ja/guides/tax-country-portfolio-tracking`·`/ko/guides/tax-country-portfolio-tracking`·
+`/ko/calculators/dividend` 요청 완료.
+09-06에 `/ja/calculators/dividend`·`/ko/calculators/recurring-investment`·
+`/ja/guides/duplicate-missing-trade-checks` 요청 완료.
+09-07에 `/ko/guides/broker-api-to-google-sheet`·`/ja/calculators/averaging-down`·
+`/ko/calculators/averaging-down` 요청 완료.
+09-08에 `/ko/guides/actual-investment-return-last-month`·`/ko/guides/google-sheets-investment-ledger`·
+`/ko/calculators/target-amount` 요청 완료.
+09-09에는 `/ko/calculators/average-cost` 요청 단계에서 `Quota Exceeded`가 발생해 즉시 중단했다.
+해당 URL과 `/ja/calculators/average-cost`·`/ja/calculators/recurring-investment`는 대기열에 유지한다.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -190,6 +215,19 @@ Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므�
 `/ko/practice/pythagorean`·`/uk/practice/pythagorean`을 요청 완료.
 09-04에는 최근 요청 URL을 제외하고 `/fr/practice/grade-4-multiplication`·
 `/it/practice/grade-4-large-numbers`·`/it/practice/linear-system`을 요청 완료.
+09-05에는 09-02 최근 요청 `/en/practice/grade-5-number-operations`을 제외하고
+`/fr/practice/grade-4-rules`·`/fr/practice/linear-function`·`/ja/practice/grade-4-2-decimals`을 요청 완료.
+09-06에도 09-02 최근 요청 `/en/practice/grade-5-number-operations`을 제외하고
+`/ja/practice/grade-4-transformations`·`/ja/practice/grade-5-number-operations`·
+`/ja/practice/linear-system`을 요청 완료.
+09-07에 `/fr/practice/grade-4-2-fractions`·`/fr/practice/grade-5-number-operations`·
+`/fr/practice/linear-system`을 요청 완료. 첫 URL은 GSC에서 Google-selected canonical이
+외부 도메인 `https://www.747live.bet/`로 표시됐다.
+09-08에 `/it/practice/factor-trinomial`·`/pl/guides/how-to-make-a-mistake-notebook`·
+`/ru/practice/grade-4-transformations`을 요청 완료.
+09-09에는 `/ko/guides/how-to-use-reviewnotes` 요청이 성공했다.
+`/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`은
+live test의 `Indexing request rejected`로 실패해 대기열에 유지한다.
 
 > 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
 > `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
@@ -269,6 +307,11 @@ Aug 6에 멈춰 있어 오늘 배포분이 구글 사본에 없다(아래 참조
 09-03에 다음 Ham Radio 후보 `/templates/ham-radio-technician-safety-2026-2030`과
 unknown 상태의 `/ko/voice-flashcard-apps`·`/pl/language-learning` 요청 완료.
 09-04에 `/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep` 요청 완료.
+09-05에 `/vi/voice-flashcard-apps`·`/zh/memorization`·`/de/audio-flashcards` 요청 완료.
+09-06에 `/vi/memorization`·`/vi/methods`·`/zh/audio-flashcards` 요청 완료.
+09-07에 `/ko/language-learning`·`/zh/exam-prep`·`/it/methods` 요청 완료.
+09-08에 `/zh/faq`·`/de/language-learning`·`/es/exam-prep` 요청 완료.
+09-09에 `/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning` 요청 완료.
 남은 것: `/uk/voice-flashcard-apps`.
 
 ### 리뷰노트 로케일 허브 (08-15 소진)
@@ -343,6 +386,11 @@ unknown 상태의 `/ko/voice-flashcard-apps`·`/pl/language-learning` 요청 완
 | 09-02 | VC 3: `/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`·`/templates/ham-radio-technician-propagation-antennas-2026-2030` · RN 3: `/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations` · Portle 3: `/calculators`·`/calculators/average-cost`·`/calculators/averaging-down` · Scripta 2 시도: `/en/guides/how-to-use-scripta`(제출 오류)·`/en/guides/install-and-fullscreen` | ✅ 성공 10건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 02:23~02:33 KST. 네 서비스 09-02 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. VC `/templates/ham-radio-technician-fcc-rules-2026-2030` 1회 중복 제출. 09-01 시도분 신규 색인 VC 3·RN 2·Portle 2·Scripta 2, 미색인 RN 2·Portle 1 |
 | 09-03 | VC 3: `/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning` · RN 3: `/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean` · Portle 3: `/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount` · Scripta 2: `/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 03:23~03:28 KST. 네 서비스 09-03 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. 브리프의 최근 요청 URL을 제외하고 대체 후보 사용. 09-02 요청분 신규 색인 VC 2·RN 0·Portle 2·Scripta 0, 미색인 VC 1·RN 3·Portle 1·Scripta 2 |
 | 09-04 | VC 3: `/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep` · RN 3: `/fr/practice/grade-4-multiplication`·`/it/practice/grade-4-large-numbers`·`/it/practice/linear-system` · Portle 3: `/ja/calculators`·`/ko/calculators`·`/ja/guides/currency-impact-on-investment-return` · Scripta 2: `/en/guides/study-plans`·`/ko` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 05:24~05:30 KST. 네 서비스 09-04 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행. 09-03 요청분 11건 전부 신규 색인, 미색인 0건 |
+| 09-05 | VC 3: `/vi/voice-flashcard-apps`·`/zh/memorization`·`/de/audio-flashcards` · RN 3: `/fr/practice/grade-4-rules`·`/fr/practice/linear-function`·`/ja/practice/grade-4-2-decimals` · Portle 3: `/ja/guides/tax-country-portfolio-tracking`·`/ko/guides/tax-country-portfolio-tracking`·`/ko/calculators/dividend` · Scripta 2: `/en/templates/a-liberal-education`·`/en/templates/elementary-principles-of-composition` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 06:30~06:35 KST. 네 서비스 09-05 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 09-04 요청분 신규 색인 0건, 미색인 RN 1건(`/it/practice/grade-4-large-numbers`). 사후 대조에서 나머지 10건은 요청 전 09-04 스냅샷부터 이미 색인이었음 |
+| 09-06 | VC 3: `/vi/memorization`·`/vi/methods`·`/zh/audio-flashcards` · RN 3: `/ja/practice/grade-4-transformations`·`/ja/practice/grade-5-number-operations`·`/ja/practice/linear-system` · Portle 3: `/ja/calculators/dividend`·`/ko/calculators/recurring-investment`·`/ja/guides/duplicate-missing-trade-checks` · Scripta 2: `/en/templates/brown-v-board-conclusion`·`/en/templates/food-waste-in-context` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 08:17~08:24 KST. 네 서비스 09-06 스냅샷(총 1,504 URL) 확인 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 09-05 요청분 신규 색인 VC 3·RN 1·Portle 3·Scripta 2, 미색인 RN 2(`/fr/practice/grade-4-rules`·`/fr/practice/linear-function`, Duplicate without user-selected canonical) |
+| 09-07 | VC 3: `/ko/language-learning`·`/zh/exam-prep`·`/it/methods` · RN 3: `/fr/practice/grade-4-2-fractions`·`/fr/practice/grade-5-number-operations`·`/fr/practice/linear-system` · Portle 3: `/ko/guides/broker-api-to-google-sheet`·`/ja/calculators/averaging-down`·`/ko/calculators/averaging-down` · Scripta 2: `/en/templates/gettysburg-address`·`/en/templates/kennedy-inaugural-opening` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 09:17~09:24 KST. 네 서비스 09-07 스냅샷(총 1,505 URL) 확인 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 브리프의 Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 1주 미경과라 다음 영어 템플릿으로 교체. 09-06 요청분 신규 색인 VC 3·RN 2·Portle 3·Scripta 1, 미색인 RN 1(`/ja/practice/grade-5-number-operations`, unknown)·Scripta 1(`/en/templates/food-waste-in-context`, Crawled). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical이 `https://www.747live.bet/`로 표시됨 |
+| 09-08 | VC 3: `/zh/faq`·`/de/language-learning`·`/es/exam-prep` · RN 3: `/it/practice/factor-trinomial`·`/pl/guides/how-to-make-a-mistake-notebook`·`/ru/practice/grade-4-transformations` · Portle 3: `/ko/guides/actual-investment-return-last-month`·`/ko/guides/google-sheets-investment-ledger`·`/ko/calculators/target-amount` · Scripta 2: `/en/templates/laws-of-habit`·`/en/templates/of-studies` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 11:18~11:24 KST. 네 서비스 09-08 스냅샷(총 1,504 URL) 확인 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 브리프의 Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 요청 시각 기준 1주 미경과라 다음 영어 템플릿 2건으로 교체. 09-07 요청분 신규 색인 VC 3·RN 1·Portle 3·Scripta 2, 미색인 RN 2(`/fr/practice/grade-4-2-fractions`, Duplicate without user-selected canonical · `/fr/practice/grade-5-number-operations`, Discovered). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical은 `https://www.747live.bet/` |
+| 09-09 | VC 3: `/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning` · RN 3: `/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`·`/ko/guides/how-to-use-reviewnotes` · Portle 1 시도: `/ko/calculators/average-cost` · Scripta 0 | ⚠️ 성공 4건, 실패 3건. 12:25~12:30 KST. 네 서비스 09-09 스냅샷(총 1,504 URL)과 GSC 실시간 미색인을 확인 후 실행. RN 2건은 live test `Indexing request rejected`, Portle 첫 요청은 `Quota Exceeded`로 실패해 즉시 중단하고 같은 날 재시도하지 않음. 09-08 요청분 신규 색인 VC 3·RN 2·Portle 3·Scripta 2, 미색인 RN 1(`/pl/guides/how-to-make-a-mistake-notebook`, Discovered) |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)
@@ -489,7 +537,7 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 우리 URL | 구글이 고른 정본 |
 |---|---|
 | `/en/practice/factor-trinomial` 외 3건 | `https://www.marcustheatres.com/` (미국 영화관 체인) |
-| `/fr/practice/grade-4-2-triangles`, `/fr/terms` | `https://www.747live.bet/` (도박 사이트) |
+| `/fr/practice/grade-4-2-triangles`, `/fr/practice/grade-4-2-fractions`, `/fr/terms` | `https://www.747live.bet/` (도박 사이트) |
 
 콘텐츠 문제는 아니다. `seo-template-similarity.mjs` 실측에서 **유사도 평균 12.0%(최대 13.3%),
 고유비중 77%, 평균 780단어, 중복 title·desc 0쪽**이 나왔다. 근접 중복 기준(80%↑) 근처도 아니다.
@@ -559,6 +607,11 @@ user-selected canonical**로 떨어졌다. 구글이 붙인 정본이 우리 도
 | 09-02 | VC 3(`/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`·`/templates/ham-radio-technician-propagation-antennas-2026-2030`) + RN 3(`/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`) + Portle 3(`/calculators`·`/calculators/average-cost`·`/calculators/averaging-down`) + Scripta 2 시도(`/en/guides/how-to-use-scripta` 실패·`/en/guides/install-and-fullscreen`) | ✅ 성공 10건, 실패 1건(`We had a problem submitting your indexing request`), quota 초과 없음. 02:23~02:33 KST. 네 서비스 당일 스냅샷 수동 생성 후 실행. VC `/templates/ham-radio-technician-fcc-rules-2026-2030` 1회 중복 제출 | 09-01 시도분 신규 색인: VC 3건(`/templates/ham-radio-technician`·`/templates/ham-radio-technician-circuits-signals-2026-2030`·`/templates/ham-radio-technician-electrical-components-2026-2030`), RN 2건(`/en/practice/grade-4-large-numbers`·`/es/practice/pythagorean`), Portle 2건(`/ja/bridge`·`/ko/bridge`), Scripta 2건(`/en/guides/exam-writing`·`/en/guides/grading-hints-and-passing`). 미색인: RN 2건(`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations`), Portle 1건(`/bridge`) |
 | 09-03 | VC 3(`/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning`) + RN 3(`/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean`) + Portle 3(`/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount`) + Scripta 2(`/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 03:23~03:28 KST. 네 서비스 09-03 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 실행. 브리프의 최근 요청 URL은 제외하고 대체 후보 사용 | 09-02 요청분 신규 색인: VC 2건(`/templates/ham-radio-technician-fcc-rules-2026-2030`·`/templates/ham-radio-technician-operating-practices-2026-2030`), RN 0건, Portle 2건(`/calculators/average-cost`·`/calculators/averaging-down`), Scripta 0건. 미색인: VC 1건(`/templates/ham-radio-technician-propagation-antennas-2026-2030`), RN 3건(`/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`), Portle 1건(`/calculators`), Scripta 2건(`/en/guides/how-to-use-scripta`·`/en/guides/install-and-fullscreen`) |
 | 09-04 | VC 3(`/it/audio-flashcards`·`/pl/exam-prep`·`/vi/exam-prep`) + RN 3(`/fr/practice/grade-4-multiplication`·`/it/practice/grade-4-large-numbers`·`/it/practice/linear-system`) + Portle 3(`/ja/calculators`·`/ko/calculators`·`/ja/guides/currency-impact-on-investment-return`) + Scripta 2(`/en/guides/study-plans`·`/ko`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 05:24~05:30 KST. 네 서비스 09-04 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행 | 09-03 요청분 신규 색인: VC 3건(`/templates/ham-radio-technician-safety-2026-2030`·`/ko/voice-flashcard-apps`·`/pl/language-learning`), RN 3건(`/it/practice/pythagorean`·`/ko/practice/pythagorean`·`/uk/practice/pythagorean`), Portle 3건(`/calculators/dividend`·`/calculators/recurring-investment`·`/calculators/target-amount`), Scripta 2건(`/en/guides/how-to-use-scripta`·`/en/guides/same-language-recall`). 미색인 0건 |
+| 09-05 | VC 3(`/vi/voice-flashcard-apps`·`/zh/memorization`·`/de/audio-flashcards`) + RN 3(`/fr/practice/grade-4-rules`·`/fr/practice/linear-function`·`/ja/practice/grade-4-2-decimals`) + Portle 3(`/ja/guides/tax-country-portfolio-tracking`·`/ko/guides/tax-country-portfolio-tracking`·`/ko/calculators/dividend`) + Scripta 2(`/en/templates/a-liberal-education`·`/en/templates/elementary-principles-of-composition`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 06:30~06:35 KST. 네 서비스 09-05 스냅샷 수동 생성(총 1,427 URL, 검사 실패 0) 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인 | 09-04 요청분 신규 색인: VC 0건, RN 0건, Portle 0건, Scripta 0건. 미색인: RN 1건(`/it/practice/grade-4-large-numbers`, Discovered). 나머지 10건은 요청 전 09-04 스냅샷부터 이미 색인 상태였음 |
+| 09-06 | VC 3(`/vi/memorization`·`/vi/methods`·`/zh/audio-flashcards`) + RN 3(`/ja/practice/grade-4-transformations`·`/ja/practice/grade-5-number-operations`·`/ja/practice/linear-system`) + Portle 3(`/ja/calculators/dividend`·`/ko/calculators/recurring-investment`·`/ja/guides/duplicate-missing-trade-checks`) + Scripta 2(`/en/templates/brown-v-board-conclusion`·`/en/templates/food-waste-in-context`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 08:17~08:24 KST. 네 서비스 09-06 스냅샷(총 1,504 URL) 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인 | 09-05 요청분 신규 색인: VC 3건(`/vi/voice-flashcard-apps`·`/zh/memorization`·`/de/audio-flashcards`), RN 1건(`/ja/practice/grade-4-2-decimals`), Portle 3건(`/ja/guides/tax-country-portfolio-tracking`·`/ko/guides/tax-country-portfolio-tracking`·`/ko/calculators/dividend`), Scripta 2건(`/en/templates/a-liberal-education`·`/en/templates/elementary-principles-of-composition`). 미색인: RN 2건(`/fr/practice/grade-4-rules`·`/fr/practice/linear-function`, Duplicate without user-selected canonical) |
+| 09-07 | VC 3(`/ko/language-learning`·`/zh/exam-prep`·`/it/methods`) + RN 3(`/fr/practice/grade-4-2-fractions`·`/fr/practice/grade-5-number-operations`·`/fr/practice/linear-system`) + Portle 3(`/ko/guides/broker-api-to-google-sheet`·`/ja/calculators/averaging-down`·`/ko/calculators/averaging-down`) + Scripta 2(`/en/templates/gettysburg-address`·`/en/templates/kennedy-inaugural-opening`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 09:17~09:24 KST. 네 서비스 09-07 스냅샷(총 1,505 URL) 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. Scripta 최근 요청 후보 1건은 다음 영어 템플릿으로 교체 | 09-06 요청분 신규 색인: VC 3건(`/vi/memorization`·`/vi/methods`·`/zh/audio-flashcards`), RN 2건(`/ja/practice/grade-4-transformations`·`/ja/practice/linear-system`), Portle 3건(`/ja/calculators/dividend`·`/ko/calculators/recurring-investment`·`/ja/guides/duplicate-missing-trade-checks`), Scripta 1건(`/en/templates/brown-v-board-conclusion`). 미색인: RN 1건(`/ja/practice/grade-5-number-operations`, URL is unknown to Google), Scripta 1건(`/en/templates/food-waste-in-context`, Crawled - currently not indexed). 이상: RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical `https://www.747live.bet/` |
+| 09-08 | VC 3(`/zh/faq`·`/de/language-learning`·`/es/exam-prep`) + RN 3(`/it/practice/factor-trinomial`·`/pl/guides/how-to-make-a-mistake-notebook`·`/ru/practice/grade-4-transformations`) + Portle 3(`/ko/guides/actual-investment-return-last-month`·`/ko/guides/google-sheets-investment-ledger`·`/ko/calculators/target-amount`) + Scripta 2(`/en/templates/laws-of-habit`·`/en/templates/of-studies`) | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 11:18~11:24 KST. 네 서비스 09-08 스냅샷(총 1,504 URL) 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. Scripta 최근 요청 후보 1건은 요청 시각 기준 1주 미경과라 다음 영어 템플릿으로 교체 | 09-07 요청분 신규 색인: VC 3건(`/ko/language-learning`·`/zh/exam-prep`·`/it/methods`), RN 1건(`/fr/practice/linear-system`), Portle 3건(`/ko/guides/broker-api-to-google-sheet`·`/ja/calculators/averaging-down`·`/ko/calculators/averaging-down`), Scripta 2건(`/en/templates/gettysburg-address`·`/en/templates/kennedy-inaugural-opening`). 미색인: RN 2건(`/fr/practice/grade-4-2-fractions`, Duplicate without user-selected canonical · `/fr/practice/grade-5-number-operations`, Discovered - currently not indexed). 이상: RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical `https://www.747live.bet/` |
+| 09-09 | VC 3(`/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning`) + RN 3(`/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`·`/ko/guides/how-to-use-reviewnotes`) + Portle 1 시도(`/ko/calculators/average-cost`) + Scripta 0 | ⚠️ 성공 4건, 실패 3건. 12:25~12:30 KST. RN 앞 2건은 live test `Indexing request rejected`. Portle 첫 요청에서 `Quota Exceeded`가 발생해 즉시 중단하고 같은 날 재시도하지 않음 | 09-08 요청분 신규 색인: VC 3건(`/zh/faq`·`/de/language-learning`·`/es/exam-prep`), RN 2건(`/it/practice/factor-trinomial`·`/ru/practice/grade-4-transformations`), Portle 3건(`/ko/guides/actual-investment-return-last-month`·`/ko/guides/google-sheets-investment-ledger`·`/ko/calculators/target-amount`), Scripta 2건(`/en/templates/laws-of-habit`·`/en/templates/of-studies`). 미색인: RN 1건(`/pl/guides/how-to-make-a-mistake-notebook`, Discovered - currently not indexed). 이상: RN 요청 거절 2건(`/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`), Portle quota 차단 1건(`/ko/calculators/average-cost`) |
 
 ### 노출은 느는데 클릭이 안 는다 (2026-08-11 측정)
 

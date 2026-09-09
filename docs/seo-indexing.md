@@ -1,6 +1,6 @@
 # 색인 추적 (SEO Indexing)
 
-보이스카드/리뷰노트/Portle/Scripta 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
+보이스카드/리뷰노트/Portle/Scripta/ValueChain.wiki 발행 페이지가 구글에 실제로 색인되는지 추적하는 문서.
 노출·클릭 지표는 "이미 노출된 페이지"만 보여주므로, 노출 0의 원인(미발견 / 크롤 후 거부 / 제외)은
 URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 조치 이력을 남긴다.
 
@@ -13,7 +13,7 @@ URL Inspection API로만 갈라진다. 이 문서는 그 스냅샷의 해석과 
 | 스냅샷 테이블 | `seo_index_status` (willow-dash-tensw-todo, `axcfvieqsaphhvbkyzzv`) |
 | 수집 크론 | `/api/cron/seo-index-scan`, 사이트별 매일 21:40~21:55 UTC (06:40~06:55 KST) |
 | 수집 코드 | `src/lib/gsc-index.ts` (`scanSiteIndexStatus`, `getIndexStatusSummary`) |
-| 화면 | 보이스카드/리뷰노트/Portle/Scripta 대상 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
+| 화면 | 보이스카드/리뷰노트/Portle/Scripta/ValueChain.wiki 대상 "검색 노출 → 클릭" 섹션의 색인 상태·버티컬별 색인률 카드 |
 | 수동 실행 | `GET /api/cron/seo-index-scan?secret=$CRON_SECRET[&site=voicecards|reviewnotes|portle|scripta]` |
 
 검사 대상은 사이트맵의 콘텐츠 대표 URL이다. VoiceCards·ReviewNotes·Portle·Scripta는 로케일 변형까지
@@ -221,6 +221,11 @@ title·description 중복이나 누락도 없다. 리뷰노트는 형제 페이�
 | 2026-09-02 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 10건, 실패 1건(Scripta `/en/guides/how-to-use-scripta` GSC 제출 오류), Quota Exceeded 없음. 02:23~02:33 KST. 네 서비스 09-02 스냅샷 1,427 URL 수동 생성(검사 실패 0) 후 실행. VC `/templates/ham-radio-technician-fcc-rules-2026-2030` 1회 중복 제출. 09-01 시도분 신규 색인 VC 3건·RN 2건·Portle 2건·Scripta 2건, 미색인 RN 2건(`/en/guides/schedule-scope-explained`·`/en/practice/grade-5-number-operations`)·Portle 1건(`/bridge`) |
 | 2026-09-03 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 03:23~03:28 KST. 네 서비스 09-03 스냅샷 1,427 URL 수동 생성(검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행. 09-02 요청분 신규 색인 VC 2건·RN 0건·Portle 2건·Scripta 0건, 미색인 VC 1건(`/templates/ham-radio-technician-propagation-antennas-2026-2030`)·RN 3건(`/en/practice/grade-5-number-operations`·`/de/practice/grade-5-number-operations`·`/es/practice/grade-5-number-operations`)·Portle 1건(`/calculators`)·Scripta 2건(`/en/guides/how-to-use-scripta`·`/en/guides/install-and-fullscreen`) |
 | 2026-09-04 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 05:24~05:30 KST. 네 서비스 09-04 스냅샷 1,427 URL 수동 생성(검사 실패 0) 후 최근 요청·색인 URL을 제외해 실행. 09-03 요청분 신규 색인 VC 3건·RN 3건·Portle 3건·Scripta 2건, 미색인 0건 |
+| 2026-09-05 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 06:30~06:35 KST. 네 서비스 09-05 스냅샷 1,427 URL 수동 생성(검사 실패 0) 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. 09-04 요청분 신규 색인 0건, 미색인 RN 1건(`/it/practice/grade-4-large-numbers`, Discovered). 나머지 10건은 요청 전 09-04 스냅샷부터 이미 색인 상태였음 |
+| 2026-09-06 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 08:17~08:24 KST. 네 서비스 09-06 스냅샷 1,504 URL 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. 09-05 요청분 신규 색인 VC 3건·RN 1건·Portle 3건·Scripta 2건, 미색인 RN 2건(`/fr/practice/grade-4-rules`·`/fr/practice/linear-function`, Duplicate without user-selected canonical) |
+| 2026-09-07 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 09:17~09:24 KST. 네 서비스 09-07 스냅샷 1,505 URL 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 1주 미경과라 `/en/templates/kennedy-inaugural-opening`으로 교체. 09-06 요청분 신규 색인 VC 3건·RN 2건·Portle 3건·Scripta 1건, 미색인 RN 1건(`/ja/practice/grade-5-number-operations`, unknown)·Scripta 1건(`/en/templates/food-waste-in-context`, Crawled). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical이 외부 URL `https://www.747live.bet/`로 표시됨 |
+| 2026-09-08 | 보이스카드 3건, 리뷰노트 3건, Portle 3건, Scripta 2건 색인 요청 | 성공 11건, 실패 0건, Quota Exceeded 없음. 11:18~11:24 KST. 네 서비스 09-08 스냅샷 1,504 URL 확인 후 최근 요청·색인 URL 제외 및 GSC 실시간 미색인 확인. Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 요청 시각 기준 1주 미경과라 `/en/templates/laws-of-habit`·`/en/templates/of-studies`로 교체. 09-07 요청분 신규 색인 VC 3건·RN 1건·Portle 3건·Scripta 2건, 미색인 RN 2건(`/fr/practice/grade-4-2-fractions`, Duplicate without user-selected canonical · `/fr/practice/grade-5-number-operations`, Discovered). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical은 외부 URL `https://www.747live.bet/` |
+| 2026-09-09 | 보이스카드 3건, 리뷰노트 3건, Portle 1건 시도, Scripta 0건 | 성공 4건, 실패 3건. 12:25~12:30 KST. 네 서비스 09-09 스냅샷 1,504 URL과 GSC 실시간 미색인을 확인 후 실행. RN `/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`은 live test `Indexing request rejected`. Portle `/ko/calculators/average-cost`에서 Quota Exceeded가 발생해 즉시 중단하고 같은 날 재시도하지 않음. 09-08 요청분 신규 색인 VC 3건·RN 2건·Portle 3건·Scripta 2건, 미색인 RN 1건(`/pl/guides/how-to-make-a-mistake-notebook`, Discovered) |
 
 색인 요청한 URL:
 

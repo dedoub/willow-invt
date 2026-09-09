@@ -68,6 +68,30 @@ test('Scripta is registered for the shared SEO indexing workflow', async () => {
   assert.match(briefSource, /scripta:\s*'en'/)
 })
 
+test('ValueChain.wiki is registered for the daily SEO indexing workflow', async () => {
+  const site = getGscSite('valuechain')
+
+  assert.equal(site?.name, 'ValueChain.wiki')
+  assert.equal(site?.domain, 'valuechain.wiki')
+  assert.equal(site?.property, 'https://valuechain.wiki/')
+  assert.equal(site?.scanLocales, false)
+  assert.equal(site?.defaultLocale, null)
+
+  const routeSource = await readFile(`${ROOT}/src/app/api/cron/seo-index-scan/route.ts`, 'utf8')
+  assert.match(routeSource, /SCHEDULED_SITES\s*=\s*\[[\s\S]*'valuechain'/)
+
+  const briefSource = await readFile(`${ROOT}/scripts/seo-daily-brief.mjs`, 'utf8')
+  assert.match(briefSource, /const SITES = only \? \[only\] : \[[\s\S]*'valuechain'/)
+  assert.match(briefSource, /valuechain:\s*null/)
+
+  const dispatchSource = await readFile(`${ROOT}/scripts/seo-index-dispatch.ts`, 'utf8')
+  assert.match(dispatchSource, /VoiceCards, ReviewNotes, Portle, Scripta, ValueChain\.wiki GSC/)
+  assert.match(dispatchSource, /VoiceCards 3건, ReviewNotes 2건, Portle 2건, Scripta 2건, ValueChain\.wiki 2건/)
+
+  const vercelSource = await readFile(`${ROOT}/vercel.json`, 'utf8')
+  assert.match(vercelSource, /seo-index-scan\?site=valuechain/)
+})
+
 test('manual indexing candidates exclude privacy and terms pages', async () => {
   const source = await readFile(`${ROOT}/scripts/seo-daily-brief.mjs`, 'utf8')
 
@@ -82,13 +106,13 @@ test('daily SEO indexing dispatch requires the structured completion report', as
 
   for (const source of [dispatchSource, briefSource, planSource]) {
     assert.match(source, /전체 결과[\s\S]*서비스별 요청 URL[\s\S]*이전 요청 추적[\s\S]*이상 여부/)
-    assert.match(source, /VoiceCards n건, ReviewNotes n건, Portle n건, Scripta n건/)
+    assert.match(source, /VoiceCards n건, ReviewNotes n건, Portle n건, Scripta n건, ValueChain\.wiki n건/)
     assert.match(source, /Quota Exceeded, 막힌 URL <url>/)
   }
 
   assert.match(dispatchSource, /실제 수치와 실제 URL/)
   assert.match(planSource, /실제 성공\/실패 수치와[\s\S]*실제 요청·추적 URL/)
-  assert.match(dispatchSource, /VoiceCards 3건, ReviewNotes 3건, Portle 3건, Scripta 2건/)
+  assert.match(dispatchSource, /VoiceCards 3건, ReviewNotes 2건, Portle 2건, Scripta 2건, ValueChain\.wiki 2건/)
   assert.match(dispatchSource, /25 \* 60 \* 60 \* 1000/)
 })
 
