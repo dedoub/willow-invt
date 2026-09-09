@@ -511,6 +511,8 @@ export default function TenswPage() {
                 onDelete={handleDeleteLoan}
                 style={{ height: 'fit-content' }}
               />
+              {/* 법인서류함 — 차입금관리 아래(CEO 2026-09-09). 텐소 문서만, 상세는 /corp와 같은 다이얼로그 */}
+              <TenswCorpDocsBlock documents={corpDocs} loading={corpDocsLoading} error={corpDocsError} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
               <SalesBlock
@@ -555,9 +557,6 @@ export default function TenswPage() {
               isSyncing={isSyncing}
             />
           </div>
-
-          {/* Corporate records (full width) — 텐소프트웍스 문서만, 상세는 /corp와 같은 다이얼로그 */}
-          <TenswCorpDocsBlock documents={corpDocs} loading={corpDocsLoading} error={corpDocsError} />
 
           {/* Projects (full width) — 일단 숨김 */}
           {false && <ProjectBlock projects={projects} />}

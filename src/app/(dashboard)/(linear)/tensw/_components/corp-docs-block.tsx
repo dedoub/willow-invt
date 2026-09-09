@@ -24,6 +24,7 @@ export function TenswCorpDocsBlock({ documents, loading, error }: Props) {
   return (
     <LCard>
       <LSectionHead
+        eyebrow="CORPORATE RECORDS"
         title="법인서류함"
         meta={loading ? undefined : `${documents.length}건`}
         note="텐소프트웍스의 계약·등기·결의 원본. 확정본은 수정되지 않고 버전으로만 쌓입니다."
