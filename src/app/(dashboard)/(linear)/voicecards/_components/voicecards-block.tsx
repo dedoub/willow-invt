@@ -1440,7 +1440,7 @@ export function VoicecardsBlock({
             return (
           <>
           {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
-              2열 모드는 3×2 카드 아래 전폭 차트, 모바일은 2열 카드에 차트 숨김(스파크라인과 같은 규칙). */}
+              2열 모드와 모바일은 카드 아래 전폭 차트. 모바일에서도 보인다 — 스파크라인은 장식이지만 이 차트는 그 자체가 지표다(CEO). */}
           <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8, alignContent: 'start' }}>
             <LStat
@@ -1557,11 +1557,9 @@ export function VoicecardsBlock({
           </div>
             {/* 누적 크레딧: 사용 vs 판매 — 소진 속도로 판매 추이를 가늠한다. 두 시리즈가 같은 단위(크레딧)라 한 축.
                 우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
-            {!compact && (
-              <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
-                <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
-              </div>
-            )}
+            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
+              <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
+            </div>
           </div>
           </>
             )
@@ -2133,6 +2131,12 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
   const burnPct = latestSold > 0 ? Math.round((latestUsed / latestSold) * 100) : null
   const compactNum = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1).replace(/\.0$/, '')}k` : String(Math.round(v)))
 
+  const pickIdx = (el: HTMLElement, clientX: number) => {
+    const rect = el.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    setHoverIdx(Math.round(ratio * (dates.length - 1)))
+  }
+
   const x = (i: number) => (dates.length > 1 ? (i / (dates.length - 1)) * 100 : 50)
   const y = (v: number) => (max > 0 ? 100 - (v / max) * 100 : 100)
   const path = (vals: number[]) => vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ')
@@ -2178,11 +2182,11 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
         <div
           style={{ position: 'relative', flex: 1, minHeight: 120 }}
           onMouseLeave={() => setHoverIdx(null)}
-          onMouseMove={e => {
-            const rect = e.currentTarget.getBoundingClientRect()
-            const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-            setHoverIdx(Math.round(ratio * (dates.length - 1)))
-          }}
+          onMouseMove={e => pickIdx(e.currentTarget, e.clientX)}
+          // 모바일: 손가락을 따라 툴팁이 움직이고, 떼면 닫힌다(마우스 hover와 같은 동작).
+          onTouchStart={e => pickIdx(e.currentTarget, e.touches[0].clientX)}
+          onTouchMove={e => pickIdx(e.currentTarget, e.touches[0].clientX)}
+          onTouchEnd={() => setHoverIdx(null)}
         >
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
             {/* 가이드선 — 0·50·100%. 구조선은 필요한 경계에만(t.neutrals.line). */}
