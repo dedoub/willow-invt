@@ -1439,7 +1439,10 @@ export function VoicecardsBlock({
 
             return (
           <>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+          {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
+              2열 모드는 3×2 카드 아래 전폭 차트, 모바일은 2열 카드에 차트 숨김(스파크라인과 같은 규칙). */}
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8, alignContent: 'start' }}>
             <LStat
               label="보유 덱"
               value={formatNumber(userStats.totalSheets)}
@@ -1552,12 +1555,14 @@ export function VoicecardsBlock({
               )
             })()}
           </div>
-            {/* 누적 크레딧: 사용 vs 판매 — 소진 속도로 판매 추이를 가늠한다 (2026-09-09 CEO). 두 시리즈가 같은 단위(크레딧)라 한 축. */}
+            {/* 누적 크레딧: 사용 vs 판매 — 소진 속도로 판매 추이를 가늠한다. 두 시리즈가 같은 단위(크레딧)라 한 축.
+                우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
             {!compact && (
-              <div style={{ marginTop: 8 }}>
+              <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
                 <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
               </div>
             )}
+          </div>
           </>
             )
           })()}
@@ -2142,7 +2147,10 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
   }
 
   return (
-    <div style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px 18px', boxSizing: 'border-box' }}>
+    <div style={{
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px 18px', boxSizing: 'border-box',
+      height: '100%', display: 'flex', flexDirection: 'column',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3 }}>
         <div
           title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다. 소진율 = 사용 ÷ 판매."
@@ -2159,16 +2167,16 @@ function CreditFlowChart({ sold, used, loading, days = 90 }: {
         </div>
       </div>
       {loading ? (
-        <div style={{ height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6 }}>
+        <div style={{ flex: 1, minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6 }}>
           <Bone h={2} /><Bone h={2} w="80%" /><Bone h={2} w="60%" />
         </div>
       ) : dates.length < 2 || max === 0 ? (
-        <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        <div style={{ flex: 1, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
           데이터 없음
         </div>
       ) : (
         <div
-          style={{ position: 'relative', height: 120 }}
+          style={{ position: 'relative', flex: 1, minHeight: 120 }}
           onMouseLeave={() => setHoverIdx(null)}
           onMouseMove={e => {
             const rect = e.currentTarget.getBoundingClientRect()
