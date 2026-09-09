@@ -25,6 +25,13 @@ import {
   type VoicecardsLocalSheetRow,
 } from '@/lib/voicecards-local-assets'
 import { buildVoicecardsCurrentCardMaps } from '@/lib/voicecards-current-inventory'
+import {
+  buildVoicecardsUserPurchaseFacts,
+  mergeVoicecardsPurchaseSignals,
+  summarizeVoicecardsPurchaseSignals,
+  type VoicecardsPurchaseReceipt,
+  type VoicecardsPurchaseSignal,
+} from '@/lib/voicecards-purchase-alert'
 
 // Supabase 클라이언트 (service_role) — willow-dash credentials/cache 저장
 const supabase = createClient(
@@ -668,9 +675,8 @@ export interface AppDbRevenue {
   totalPaidUsers: number
 }
 
-// 앱 DB(anonymous_events)의 credits_changed/reason=purchase 이벤트로 매출 산출.
-// product_id → 정가(USD) 매핑, 그로스 기준. Apple/Google 판매 리포트와 달리 거의
-// 실시간이지만 추정치다(정가 기준 → 지역가·환불·스토어 수수료 미반영).
+// 앱 DB 결제 이벤트와 서버 영수증으로 매출 산출. 영수증을 우선하고 같은 결제의
+// 이벤트는 중복 제거한다. product_id → 정가(USD) 매핑이라 실시간 그로스 추정치다.
 export async function getAppDbRevenue(
   startDate: string,
   endDate: string
@@ -700,10 +706,10 @@ export async function getAppDbRevenue(
   // 예전엔 created_at 단독 정렬로 넘겨서 같은 시각 이벤트가 페이지 경계에 걸리면
   // 행이 중복되거나 빠질 수 있었고, error 를 break 로 삼켜 부분 매출이 성공처럼 나왔다.
   // PK(id) tiebreaker 로 정렬을 안정화하고 실패는 위로 올린다.
-  const revenueRes = await fetchAllPaged<{ created_at: string; user_id: string | null; platform: string | null; properties: Record<string, unknown> | null }>(
+  const revenueRes = await fetchAllPaged<VoicecardsPurchaseSignal>(
     () => voicecardsSupabase!
       .from('anonymous_events')
-      .select('created_at, user_id, platform, properties')
+      .select('id, event_name, created_at, user_id, device_id, country, platform, properties')
       .eq('event_name', 'credits_changed')
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDate}T23:59:59.999Z`)
@@ -714,30 +720,36 @@ export async function getAppDbRevenue(
     console.error('[VoiceCards] credits_changed fetch failed — revenue would be understated:', revenueRes.error)
     throw revenueRes.error
   }
-  const data = revenueRes.data || []
-
-  for (const row of data) {
-    if (row.user_id && excludedUserIds.has(row.user_id)) continue
-    const props = row.properties || {}
-    if (props.reason !== 'purchase') continue
-    const price = CREDIT_PRODUCT_PRICES_USD[String(props.product_id)]
-    if (!price) continue
-    const date = kstDateKey(row.created_at) // KST 날짜
-    // 판매 크레딧: 이벤트의 delta(실제 지급량) 우선, 없으면 상품 매핑 폴백.
-    // delta 를 먼저 쓰면 보너스 수량이 바뀌어도 과거 구매는 그때 지급한 값 그대로 남는다.
-    const credits = Math.max(0, Number(props.delta) || 0) ||
-      (CREDIT_PRODUCT_CREDITS[String(props.product_id)] ?? 0)
-    result.creditsByDate.set(date, (result.creditsByDate.get(date) || 0) + credits)
-    result.creditsTotal += credits
-    if (row.platform === 'android') {
-      result.androidByDate.set(date, (result.androidByDate.get(date) || 0) + price)
-      result.androidTotal += price
-    } else {
-      // platform 미상은 iOS로 귀속(매출 누락 방지). 실데이터상 platform은 항상 채워짐.
-      result.iosByDate.set(date, (result.iosByDate.get(date) || 0) + price)
-      result.iosTotal += price
-    }
+  const receiptsRes = await fetchAllPaged<VoicecardsPurchaseReceipt>(
+    () => voicecardsSupabase!
+      .from('purchase_receipts')
+      .select('store_txn_id, platform, user_id, product_id, credits, created_at')
+      .lte('created_at', `${endDate}T23:59:59.999Z`)
+      .order('created_at', { ascending: true })
+      .order('store_txn_id', { ascending: true })
+  )
+  if (receiptsRes.error) {
+    console.error('[VoiceCards] purchase_receipts fetch failed — revenue would be understated:', receiptsRes.error)
+    throw receiptsRes.error
   }
+  const allReceipts = (receiptsRes.data || []).filter(row => !excludedUserIds.has(row.user_id))
+  const rangeReceipts = allReceipts.filter(row => {
+    const date = kstDateKey(row.created_at)
+    return date >= startDate && date <= endDate
+  })
+  const rangeEvents = (revenueRes.data || []).filter(row => !row.user_id || !excludedUserIds.has(row.user_id))
+  const totals = summarizeVoicecardsPurchaseSignals(
+    mergeVoicecardsPurchaseSignals(rangeEvents, rangeReceipts),
+    CREDIT_PRODUCT_PRICES_USD,
+    CREDIT_PRODUCT_CREDITS,
+    kstDateKey,
+  )
+  result.iosByDate = totals.iosByDate
+  result.androidByDate = totals.androidByDate
+  result.creditsByDate = totals.creditsByDate
+  result.iosTotal = totals.iosTotal
+  result.androidTotal = totals.androidTotal
+  result.creditsTotal = totals.creditsTotal
 
   // 위 매출 조회와 같은 이유로 PK(id) tiebreaker 를 붙인다 — 이 값이 유료 유저 수
   // (퍼널 결제 칸)를 만들어서, 경계에서 행이 빠지면 구매자가 조용히 사라진다.
@@ -766,6 +778,12 @@ export async function getAppDbRevenue(
     const productId = String(props.product_id || '')
     if (!CREDIT_PRODUCT_PRICES_USD[productId]) continue
     if (!firstPurchaseByUser.has(row.user_id)) firstPurchaseByUser.set(row.user_id, row.created_at)
+  }
+  for (const receipt of allReceipts) {
+    const existing = firstPurchaseByUser.get(receipt.user_id)
+    if (!existing || receipt.created_at < existing) {
+      firstPurchaseByUser.set(receipt.user_id, receipt.created_at)
+    }
   }
 
   result.totalPaidUsers = firstPurchaseByUser.size
@@ -1079,7 +1097,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
   const vc = voicecardsSupabase
 
   // 유저 목록 + 학습 통계 + 마지막 활동일 + 일별 학습 활동 + 크레딧 이벤트 + 앱 버전 병렬 조회
-  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes, journeysRes] = await Promise.all([
+  const [usersRes, analyticsRes, lastActivityRes, timeSeriesRes, rollupRes, metaRes, activityRes, offersRes, journeysRes, purchaseReceiptsRes] = await Promise.all([
     // 아래 조회는 전부 1,000행 한도를 넘길 수 있어 fetchAllPaged 로 끝까지 넘긴다.
     // 정렬 끝에 붙은 유니크 키(user_id / id)는 페이지 경계에서 행이 겹치거나 빠지지 않게 한다.
     fetchAllPaged(() => vc.from('users').select('*')
@@ -1110,6 +1128,9 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     fetchAllPaged(() => vc.from('vc_device_journeys')
       .select('device_id, user_id, first_seen_at, last_seen_at, platform, app_version, locale, country, active_days_7d')
       .order('device_id', { ascending: true })),
+    fetchAllPaged<VoicecardsPurchaseReceipt>(() => vc.from('purchase_receipts')
+      .select('store_txn_id, platform, user_id, product_id, credits, created_at')
+      .order('created_at', { ascending: true }).order('store_txn_id', { ascending: true })),
   ])
 
   if (usersRes.error) {
@@ -1271,14 +1292,6 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     if (row.last_event && rowIsLatest) userLastEventMap.set(uid, row.last_event)
   }
 
-  // 사용자별 구매 크레딧 합계
-  const userPurchasedMap = new Map<string, number>()
-  for (const row of ((rollupRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null }>)) {
-    if (!row.user_id) continue
-    const uid = canonicalOwnerId(row.user_id)
-    userPurchasedMap.set(uid, (userPurchasedMap.get(uid) || 0) + (Number(row.purchased_credits) || 0))
-  }
-
   // 사용자별 오늘 증가분 + 7일 활동일
   const userActivityMap = new Map<string, { cardsToday: number; attemptsToday: number; listenToday: number; flipsToday: number; spentToday: number; activeDays7d: number; purchasedToday: number; balanceDeltaToday: number; sheetsDeltaToday: number }>()
   for (const row of ((activityRes.data || []) as Array<{ user_id: string | null; cards_today: number | string | null; attempts_today: number | string | null; listen_today: number | string | null; flips_today: number | string | null; spent_today: number | string | null; active_days_7d: number | null; purchased_today: number | string | null; balance_delta_today: number | string | null; sheets_delta_today: number | string | null }>)) {
@@ -1314,6 +1327,21 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       lastPurchase: [previous?.lastPurchase, row.last_purchase].filter(Boolean).sort().at(-1) || null,
     })
   }
+
+  if (purchaseReceiptsRes.error) {
+    console.error('[VoiceCards] purchase_receipts fetch failed — using event rollup for user purchase facts:', purchaseReceiptsRes.error)
+  }
+  const visibleReceipts = (purchaseReceiptsRes.data || []).filter(receipt =>
+    !excludedUserIds.has(receipt.user_id) && visibleUserIds.has(canonicalOwnerId(receipt.user_id))
+  )
+  const userPurchaseFacts = buildVoicecardsUserPurchaseFacts(
+    (rollupRes.data || []) as Array<{ user_id: string | null; purchased_credits: number | string | null; last_purchase: string | null }>,
+    (activityRes.data || []) as Array<{ user_id: string | null; purchased_today: number | string | null }>,
+    visibleReceipts,
+    canonicalOwnerId,
+    kstDateKey,
+    kstDateKey(new Date().toISOString()),
+  )
 
   // 사용자별 타겟 오퍼 단계 + 지급 보너스 크레딧.
   // 단계 = 유저가 가진 오퍼들 중 가장 진행된 것(redeemed > snoozed > seen > sent > dismissed > expired).
@@ -1451,7 +1479,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
     country: userCountryMap.get(u.user_id) || journeyMetaMap.get(u.user_id)?.country || null,
     hasPurchased: !!u.has_purchased,
     credits: u.credits || 0,
-    purchasedCredits: userPurchasedMap.get(u.user_id) || 0,
+    purchasedCredits: userPurchaseFacts.get(u.user_id)?.purchasedCredits || 0,
     bonusCredits: userOfferMap.get(u.user_id)?.bonus || 0,
     offerStage: userOfferMap.get(u.user_id)?.stage || null,
     offerStageAt: userOfferMap.get(u.user_id)?.stageAt || null,
@@ -1486,7 +1514,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       userActivityMap.get(u.user_id)?.activeDays7d || 0,
       journeyMetaMap.get(u.user_id)?.activeDays7d || 0,
     ),
-    purchasedToday: userActivityMap.get(u.user_id)?.purchasedToday || 0,
+    purchasedToday: userPurchaseFacts.get(u.user_id)?.purchasedToday || 0,
     balanceDeltaToday: userActivityMap.get(u.user_id)?.balanceDeltaToday || 0,
     sheetsDeltaToday: (userActivityMap.get(u.user_id)?.sheetsDeltaToday || 0) + (userLocalAssetsMap.get(u.user_id)?.sheetsToday || 0),
     // 구매 신호 (단순화, 2026-07-09). CEO 정의: 핫리드 = 헤비 유저(TTS 많이 듣고 ·
@@ -1520,7 +1548,7 @@ async function computeVoicecardsUserStats(): Promise<VoicecardsUserStats> {
       return Math.round(listen + sheets * 5 + Math.min(cards, 300) * 0.2 + streak * 8 + clickedUpgrade + premiumCurious + aiCurious + urgency)
     })(),
     lastIntentAt: userIntentMap.get(u.user_id)?.lastIntent || null,
-    lastPurchaseAt: userIntentMap.get(u.user_id)?.lastPurchase || null,
+    lastPurchaseAt: userPurchaseFacts.get(u.user_id)?.lastPurchaseAt || null,
     // 기간권 만료 — users 행에 이미 실려 온다(select '*'). 만료돼도 값은 남아 지난 기간을 읽을 수 있다.
     unlimitedUntil: u.unlimited_until || null,
     unlimitedDaysLeft: (() => {

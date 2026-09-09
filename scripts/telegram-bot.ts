@@ -25,6 +25,7 @@ import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsActivationDateFromEvidence, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
+import { mergeVoicecardsPurchaseSignals, type VoicecardsPurchaseReceipt } from '../src/lib/voicecards-purchase-alert'
 
 // ============================================================
 // Config
@@ -2610,6 +2611,41 @@ async function fetchVoicecardsPurchaseEventsSince(sinceIso: string): Promise<Voi
   )
 }
 
+async function fetchVoicecardsPurchaseReceiptsSince(sinceIso: string): Promise<VoicecardsPurchaseReceipt[]> {
+  const client = voicecardsAdminSupabase || voicecardsSupabase
+  if (!client) return []
+  const excludedUserIds = await fetchVoicecardsExcludedUserIds()
+  const rows = await fetchAllVoicecardsRows<VoicecardsPurchaseReceipt>(async (from, to) =>
+    client
+      .from('purchase_receipts')
+      .select('store_txn_id, platform, user_id, product_id, credits, created_at')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+  )
+  return rows.filter(row => !excludedUserIds.has(row.user_id))
+}
+
+async function fetchVoicecardsPurchaseSignalsSince(sinceIso: string): Promise<VoicecardsEventRow[]> {
+  const [eventResult, receiptResult] = await Promise.allSettled([
+    fetchVoicecardsPurchaseEventsSince(sinceIso),
+    fetchVoicecardsPurchaseReceiptsSince(sinceIso),
+  ])
+  if (eventResult.status === 'rejected') {
+    console.error('VoiceCards purchase event 조회 실패:', eventResult.reason)
+  }
+  if (receiptResult.status === 'rejected') {
+    console.error('VoiceCards purchase receipt 조회 실패:', receiptResult.reason)
+  }
+  if (eventResult.status === 'rejected' && receiptResult.status === 'rejected') {
+    throw new Error('VoiceCards 구매 이벤트와 영수증 조회가 모두 실패했어요.')
+  }
+  return mergeVoicecardsPurchaseSignals(
+    eventResult.status === 'fulfilled' ? eventResult.value : [],
+    receiptResult.status === 'fulfilled' ? receiptResult.value : [],
+  )
+}
+
 async function fetchVoicecardsUsers(userIds: string[]): Promise<Map<string, VoicecardsUserRow>> {
   const ids = Array.from(new Set(userIds.filter(Boolean)))
   if (!voicecardsSupabase || !ids.length) return new Map()
@@ -2890,7 +2926,7 @@ async function monitorVoicecardsPurchasesOnce() {
     ? Math.max(Date.now() - VOICECARDS_PURCHASE_LOOKBACK_CAP_MS, lastEventMs - VOICECARDS_PURCHASE_RESCAN_BUFFER_MS)
     : Date.now() - VOICECARDS_PURCHASE_BOOT_LOOKBACK_MS
 
-  const purchaseEvents = await fetchVoicecardsPurchaseEventsSince(new Date(sinceMs).toISOString())
+  const purchaseEvents = await fetchVoicecardsPurchaseSignalsSince(new Date(sinceMs).toISOString())
   if (!purchaseEvents.length) return
 
   const processedIds = new Set(voicecardsEventMonitorState.processedPurchaseEventIds || [])
