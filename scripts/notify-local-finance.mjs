@@ -14,7 +14,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
 import { financeCompany } from './lib/tensw-local-finance.mjs'
-import { notifyMessage } from './lib/finance-notify.mjs'
+import { notifyMessage, pendingQuestionMessage } from './lib/finance-notify.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -59,6 +59,14 @@ async function countRows(url, key, table, filters) {
   const range = response.headers.get('content-range') ?? ''
   const total = Number(range.split('/')[1])
   return Number.isFinite(total) ? total : null
+}
+
+async function pendingTransactions(url, key, config) {
+  return selectRows(url, key, config.tables.transactions, {
+    select: 'tr_date,tr_time,amount_in,amount_out,account_label,desc1,desc2,desc3,desc4',
+    status: 'eq.new',
+    order: 'tr_date.desc,tr_time.desc',
+  })
 }
 
 /**
@@ -188,6 +196,7 @@ async function run() {
   // 세는 데 실패해도 알림 자체는 나가야 한다.
   const daily = await dailyCounts(url, key, company, config).catch(() => null)
   const outstanding = await outstandingState(url, key, company, config).catch(() => null)
+  const pending = await pendingTransactions(url, key, config).catch(() => [])
 
   const message = notifyMessage({
     company,
@@ -200,9 +209,11 @@ async function run() {
     outstanding,
     logFile: path.join(artifactDir, 'launchd.log'),
   })
+  const pendingMessage = pendingQuestionMessage({ label: config.label, rows: pending })
 
   if (process.argv.includes('--print')) {
     console.log(message)
+    if (pendingMessage) console.log(`\n--- 별도 메시지 ---\n${pendingMessage}`)
     return
   }
 
@@ -217,6 +228,14 @@ async function run() {
     body: JSON.stringify({ chat_id: chatId, text: message }),
   })
   if (!sent.ok) throw new Error(`텔레그램 전송 실패: ${sent.status} ${await sent.text()}`)
+  if (pendingMessage) {
+    const pendingSent = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: pendingMessage }),
+    })
+    if (!pendingSent.ok) throw new Error(`판단 대기 질문 전송 실패: ${pendingSent.status} ${await pendingSent.text()}`)
+  }
   console.log(`[finance-notify] company=${company}, status=${status} 전송 완료`)
 }
 

@@ -171,6 +171,21 @@ export function dailyLines(daily) {
   return lines
 }
 
+/** 판단 대기는 요약과 별개로 CEO가 바로 답할 수 있는 질문 메시지로 보낸다. */
+export function pendingQuestionMessage({ label, rows }) {
+  if (!rows?.length) return null
+
+  const lines = [`${label} 재무에서 판단이 필요한 거래가 있어요.`]
+  for (const row of rows) {
+    const incoming = Number(row.amount_in ?? 0) > 0
+    const amount = incoming ? row.amount_in : row.amount_out
+    const description = [row.desc1, row.desc2, row.desc3, row.desc4].filter(Boolean).join(' ')
+    lines.push(`· ${row.tr_date} · ${incoming ? '입금' : '출금'} ${formatMoney(amount)} · ${row.account_label}${description ? ` · ${description}` : ''}`)
+  }
+  lines.push('어떤 거래인지 알려주세요.')
+  return lines.join('\n')
+}
+
 /**
  * 보낼 메시지 전문. 실패면 어느 단계가 막혔는지가 가장 중요한 정보라 맨 앞에 둔다.
  * 러너가 막힌 묶음을 건너뛰고 나머지를 계속 돌리므로 단계는 여럿일 수 있다.

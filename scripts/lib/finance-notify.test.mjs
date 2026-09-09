@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   balanceLines, collectionGaps, dailyLines, isFresh, notifyMessage, outstandingLines,
+  pendingQuestionMessage,
 } from './finance-notify.mjs'
 import { financeCompany } from './tensw-local-finance.mjs'
 
@@ -152,6 +153,31 @@ test('판단 대기는 사람이 손댈 신호라 따로 세운다', () => {
     dailyLines({ transactions: 2, pending: 5 }),
     ['계좌 거래내역 2건', '판단 대기 5건'],
   )
+})
+
+test('판단 대기는 거래 상세를 담은 별도 질문 메시지로 만든다', () => {
+  const message = pendingQuestionMessage({
+    label: '텐소프트웍스',
+    rows: [{
+      tr_date: '2026-09-07',
+      amount_in: 0,
+      amount_out: 721_101,
+      account_label: '우리 1005-403-461450',
+      desc1: '인터넷',
+      desc2: '신한지에스네오텍(주',
+      desc3: '신림역금융센터',
+      desc4: null,
+    }],
+  })
+
+  assert.match(message, /^텐소프트웍스 재무에서 판단이 필요한 거래가 있어요\./)
+  assert.match(message, /2026-09-07 · 출금 721,101원 · 우리 1005-403-461450/)
+  assert.match(message, /인터넷 신한지에스네오텍\(주 신림역금융센터/)
+  assert.match(message, /어떤 거래인지 알려주세요\.$/)
+})
+
+test('판단 대기 거래가 없으면 별도 질문을 만들지 않는다', () => {
+  assert.equal(pendingQuestionMessage({ label: '윌로우인베스트먼트', rows: [] }), null)
 })
 
 test('세는 데 실패해도 알림은 나간다', () => {
