@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
     key: 'assets',
     label: '자산관리',
     items: [
-      { id: 'invest',     href: '/invest',     label: '주식투자',  icon: 'trending' },
+      { id: 'invest',     href: '/invest',     label: '상장주식',  icon: 'trending' },
       { id: 'realestate', href: '/realestate', label: '부동산',    icon: 'building' },
     ],
   },
