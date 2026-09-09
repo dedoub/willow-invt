@@ -19,6 +19,7 @@ import {
   isVoicecardsGoogleUserRow,
 } from '@/lib/voicecards-device-journey'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1421,7 +1422,23 @@ export function VoicecardsBlock({
             const ratioSpark = (cum: Array<{ date: string; value: number }>) =>
               cum.map(p => { const c = cardsAt(p.date); return { date: p.date, value: c > 0 ? p.value / c : 0 } })
 
+            // 누적 크레딧 사용(원장 기준, '크레딧 사용' 카드와 같은 시리즈) vs 누적 판매(구매 이벤트·영수증).
+            // 사용에는 무료 지급분 소진도 들어가므로 판매보다 클 수 있다 — 그 차이가 '아직 팔리지 않은 소진'이다.
+            const spendRows = anonymousStats?.dailyCreditSpend ?? []
+            const spendTotal = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
+            const usedCumulative = alignToTable(
+              spendRows.map(d => ({ date: d.date, value: (d.tts || 0) + (d.ai || 0) })), spendTotal
+            ).cumulative
+            const soldByDate = new Map<string, number>()
+            for (const row of (chartData ?? [])) soldByDate.set(row.date, (soldByDate.get(row.date) ?? 0) + (row.credits ?? 0))
+            let soldRunning = 0
+            const soldCumulative = [...soldByDate.keys()].sort().map(date => {
+              soldRunning += soldByDate.get(date) ?? 0
+              return { date, value: soldRunning }
+            })
+
             return (
+          <>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
             <LStat
               label="보유 덱"
@@ -1535,6 +1552,13 @@ export function VoicecardsBlock({
               )
             })()}
           </div>
+            {/* 누적 크레딧: 사용 vs 판매 — 소진 속도로 판매 추이를 가늠한다 (2026-09-09 CEO). 두 시리즈가 같은 단위(크레딧)라 한 축. */}
+            {!compact && (
+              <div style={{ marginTop: 8 }}>
+                <CreditFlowChart sold={soldCumulative} used={usedCumulative} loading={eventsLoading && !anonymousStats} />
+              </div>
+            )}
+          </>
             )
           })()}
         </div>
@@ -2061,6 +2085,132 @@ function DauTrendCard({ daily, days = 42 }: {
                   </div>
                 )}
                 <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 누적 크레딧 사용 vs 판매 — 두 누적선을 한 축에 얹어 소진이 판매를 얼마나 앞서는지 본다.
+// 사용(원장, 무료 지급분 소진 포함)이 판매보다 위에 있으면 그 간격이 아직 결제로 이어지지 않은 소진량이다.
+// 일별 활동자 차트와 같은 문법: 상단 라벨+범례 칩, 절대 좌표 SVG, 호버 툴팁. 두 시리즈가 같은 단위라 축은 하나.
+function CreditFlowChart({ sold, used, loading, days = 90 }: {
+  sold: Array<{ date: string; value: number }>
+  used: Array<{ date: string; value: number }>
+  loading?: boolean
+  days?: number
+}) {
+  const SOLD = '#2563eb'
+  const USED = '#ea580c'
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
+  // 두 시리즈는 활동이 있는 날만 행이 있다. 날짜축은 둘의 합집합(최근 days일)으로 만들고,
+  // 누적값은 그날 이전 마지막 값을 이어 받는다(계단식 forward-fill).
+  const dates = [...new Set<string>([...sold.map(d => d.date), ...used.map(d => d.date)])].sort().slice(-days)
+  const stepAt = (series: Array<{ date: string; value: number }>) => {
+    const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date))
+    let i = 0
+    let cur = 0
+    return dates.map(date => {
+      while (i < sorted.length && sorted[i].date <= date) { cur = sorted[i].value; i++ }
+      return cur
+    })
+  }
+  const soldAt = stepAt(sold)
+  const usedAt = stepAt(used)
+  const max = Math.max(0, ...soldAt, ...usedAt)
+  const latestSold = soldAt.length ? soldAt[soldAt.length - 1] : 0
+  const latestUsed = usedAt.length ? usedAt[usedAt.length - 1] : 0
+  // 소진율 = 사용 ÷ 판매. 100%를 넘으면 무료 지급분까지 태워 쓰고 있다는 뜻이라 판매 여력으로 읽는다.
+  const burnPct = latestSold > 0 ? Math.round((latestUsed / latestSold) * 100) : null
+  const compactNum = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1).replace(/\.0$/, '')}k` : String(Math.round(v)))
+
+  const x = (i: number) => (dates.length > 1 ? (i / (dates.length - 1)) * 100 : 50)
+  const y = (v: number) => (max > 0 ? 100 - (v / max) * 100 : 100)
+  const path = (vals: number[]) => vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ')
+
+  const chip = (color: string, label: string, value: string) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+      <span style={{ width: 10, height: 2, borderRadius: 1, background: color }} />{label} {value}
+    </span>
+  )
+  const axisLabel: React.CSSProperties = {
+    position: 'absolute', fontSize: 'calc(8px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+  }
+
+  return (
+    <div style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px 18px', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3 }}>
+        <div
+          title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다. 소진율 = 사용 ÷ 판매."
+          style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
+        >
+          누적 크레딧 사용 vs 판매
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono }}>
+          {chip(USED, '사용', formatNumber(latestUsed))}
+          {chip(SOLD, '판매', formatNumber(latestSold))}
+          <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="사용 ÷ 판매">
+            소진율 {burnPct === null ? '-' : `${burnPct}%`}
+          </span>
+        </div>
+      </div>
+      {loading ? (
+        <div style={{ height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6 }}>
+          <Bone h={2} /><Bone h={2} w="80%" /><Bone h={2} w="60%" />
+        </div>
+      ) : dates.length < 2 || max === 0 ? (
+        <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+          데이터 없음
+        </div>
+      ) : (
+        <div
+          style={{ position: 'relative', height: 120 }}
+          onMouseLeave={() => setHoverIdx(null)}
+          onMouseMove={e => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+            setHoverIdx(Math.round(ratio * (dates.length - 1)))
+          }}
+        >
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+            {/* 가이드선 — 0·50·100%. 구조선은 필요한 경계에만(t.neutrals.line). */}
+            {[0, 50, 100].map(p => (
+              <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.neutrals.line} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            ))}
+            <polyline points={path(soldAt)} fill="none" stroke={SOLD} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={path(usedAt)} fill="none" stroke={USED} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            {hoverIdx !== null && (
+              <line x1={x(hoverIdx)} x2={x(hoverIdx)} y1="0" y2="100" stroke={t.neutrals.muted} strokeWidth={1} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+            )}
+          </svg>
+          {/* 축 라벨 — 좌상단 최대값, 하단 양끝 날짜 */}
+          <span style={{ ...axisLabel, left: 0, top: 0, background: t.neutrals.inner, padding: '0 2px' }}>{compactNum(max)}</span>
+          <span style={{ ...axisLabel, left: 0, bottom: -12 }}>{dates[0].slice(5)}</span>
+          <span style={{ ...axisLabel, right: 0, bottom: -12 }}>{dates[dates.length - 1].slice(5)}</span>
+          {hoverIdx !== null && (() => {
+            const leftPct = Math.min(80, Math.max(20, x(hoverIdx)))
+            const s = soldAt[hoverIdx]
+            const u = usedAt[hoverIdx]
+            return (
+              <div style={{
+                position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)', top: 4, pointerEvents: 'none', zIndex: 10,
+                background: '#1E293B', color: '#F8FAFC', fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+              }}>
+                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(dates[hoverIdx])}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 2, borderRadius: 1, background: USED }} />사용 누적 {formatNumber(u)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 2, borderRadius: 1, background: SOLD }} />판매 누적 {formatNumber(s)}
+                </div>
+                <div style={{ opacity: 0.7, marginTop: 3 }}>
+                  {s > 0 ? `소진율 ${Math.round((u / s) * 100)}%` : '판매 전'} · 차이 {u - s >= 0 ? '+' : ''}{formatNumber(u - s)}
+                </div>
               </div>
             )
           })()}
