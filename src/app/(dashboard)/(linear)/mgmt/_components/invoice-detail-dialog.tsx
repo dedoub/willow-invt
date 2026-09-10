@@ -50,12 +50,12 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
   const isIncome = invoice.type === 'revenue' || invoice.type === 'asset'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div data-modal="" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
 
       {/* Panel */}
-      <div style={{
+      <div data-modal-shell="" style={{
         position: 'relative', width: 420, maxHeight: '85vh',
         background: t.neutrals.card, borderRadius: t.radius.lg + 2,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -63,7 +63,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         {/* Header */}
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div data-eyebrow="" style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               CASHFLOW
             </div>
             <div style={{
@@ -94,8 +94,9 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         {/* Body */}
         <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
           {/* Amount */}
-          <div style={{
+          <div data-modal-panel="" style={{
             padding: `${t.density.blockGap}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.md, background: t.neutrals.inner,
+            // data-modal-panel: 실험 테마에서 회색 판을 벗고 선으로 바꾼다
             display: 'flex', alignItems: 'baseline', gap: t.density.gapSm,
           }}>
             <span style={{
@@ -118,7 +119,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
 
           {/* Description */}
           {invoice.description && (
-            <div style={{
+            <div data-modal-panel="" style={{
               marginTop: t.density.gapSm, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
               background: t.neutrals.inner, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
               fontFamily: t.font.sans, color: t.neutrals.text,
@@ -130,7 +131,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         </div>
 
         {/* Footer */}
-        <div style={{
+        <div data-modal-foot="" style={{
           padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>

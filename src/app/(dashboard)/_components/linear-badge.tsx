@@ -22,7 +22,7 @@ interface LBadgeProps {
 export function LBadge({ tone = 'neutral', palette, children, pill = false, title, style, onClick }: LBadgeProps) {
   const p = palette ?? tonePalettes[tone]
   return (
-    <span title={title} onClick={onClick} style={{
+    <span data-badge="" title={title} onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
       padding: `${t.badge.padY}px ${t.badge.padX}px`,
       background: p.bg, color: p.fg,

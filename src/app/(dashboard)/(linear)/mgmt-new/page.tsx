@@ -430,10 +430,10 @@ export default function MgmtNewPage() {
   return (
     <>
       {loadPhase === 0 ? <MgmtSkeleton /> : (
-      <>
+      /* 카드 구성·내용은 /mgmt 와 같다. theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. */
+      <div className="theme-outline">
 
-      {/* 카드 구성·내용은 /mgmt 와 같다. theme-outline 클래스가 카드 껍데기만 레퍼런스 스타일로 덮는다. */}
-      <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <ScheduleBlock
           schedules={schedules}
           onAddSchedule={handleAddSchedule}
@@ -522,7 +522,7 @@ export default function MgmtNewPage() {
         onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
         onSent={() => { fetchEmails() }}
       />
-      </>
+      </div>
       )}
     </>
   )

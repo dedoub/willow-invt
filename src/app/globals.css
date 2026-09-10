@@ -799,11 +799,33 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 6px !important;
 }
 
+/* 모달 — 카드와 같은 껍데기를 쓴다. 표에서 행을 눌러 열리는 상세도 같은 문법으로 읽히게(CEO 2026-09-10).
+   내부의 회색 판(요약 블록·본문 상자)은 벗기고 선과 여백으로만 나눈다. */
+.theme-outline [data-modal-shell] {
+  border: 1px solid #E5E7EB;
+  border-radius: 16px !important;
+}
+/* 모달 안 구획은 점선으로 나눈다 — 실선 상자가 여럿이면 카드 안에 카드가 겹친 것처럼 보인다 */
+.theme-outline [data-modal-panel] {
+  background: transparent !important;
+  border: 1px dashed #DDE1E5;
+}
+.theme-outline [data-modal-foot] {
+  background: transparent !important;
+  border-top: 1px dashed #DDE1E5;
+}
+
 /* 배지 — 색조는 버리고 회색 한 계열로 두되, 원래 색의 밝기 차이는 남긴다.
    탈색만 하므로 매출·비용·자산·부채·대체가 서로 다른 명도의 회색이 되어 구분은 되고 화면은 조용하다
    (CEO 2026-09-10: 단색은 유지하되 분간은 되게). */
+/* 표 셀 배지 — 카드가 회색 단계를 직접 넘겨주므로 색조만 걷어내면 명도차가 남는다 */
 .theme-outline [data-table-badge] {
-  /* 색조만 걷어낸다. 카드가 회색 단계를 직접 넘겨주면 그 명도차가 그대로 남는다 */
   filter: grayscale(1);
+  border-radius: 6px !important;
+}
+/* 그 밖의 배지(모달·헤더)는 임의 색을 받을 수 있어 회색을 못 박는다 — 색과 배경을 함께 뺀다 */
+.theme-outline [data-badge] {
+  background: #EDEFF2 !important;
+  color: #3A4048 !important;
   border-radius: 6px !important;
 }
