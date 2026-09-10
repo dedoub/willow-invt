@@ -65,7 +65,7 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 
 ### 렌더 배율
 
-인라인 크기는 `calc(Npx * var(--fz))`로 쓰고, `globals.css`가 데스크톱 `--fz: 1.15`, 모바일 `1.3`을 준다. 토큰 값은 배율 전 기준값이다(body 13 → 데스크톱 14.95px). 표 셀 배지(`LTableBadge`)는 `t.tableBadge`(9px·1×5) 조밀 규격을 따른다.
+인라인 크기는 `calc(Npx * var(--fz))`로 쓰고, `globals.css`가 데스크톱 `--fz: 1.2`, 모바일 `1.3`을 준다. 토큰 값은 배율 전 기준값이다(body 13 → 데스크톱 15.6px). 표 셀 배지(`LTableBadge`)는 `t.tableBadge`(9px·1×5) 조밀 규격을 따른다.
 
 ### 서체
 

@@ -661,9 +661,9 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 /* 폰트 확대: zoom/transform 대신 폰트 크기만 스케일.
    인라인 fontSize는 calc(Npx * var(--fz))로 작성되어 이 변수 하나로 일괄 스케일된다.
    레이아웃/위치(zoom 부작용) 영향 없이 글자만 커지고 iOS WebKit에서도 완전 동작.
-   데스크탑 기본 1.15배, 모바일 1.3배 (2026-09-10 1.1로 내려봤다가 CEO 판단으로 1.15 복귀 — 위계·표 배지를 고친 뒤엔 1.15가 맞았다).
-   토큰 값(t.type)은 이 배율을 곱한 값으로 화면에 그려진다: body 13 → 14.95px, control 11 → 12.65px, caption 9 → 10.35px. */
-:root { --fz: 1.15; }
+   데스크탑 기본 1.2배, 모바일 1.3배 (2026-09-10 Pretendard 전환 후 1.1→1.15→1.2로 조정, CEO 판단).
+   토큰 값(t.type)은 이 배율을 곱한 값으로 화면에 그려진다: body 13 → 15.6px, control 11 → 13.2px, caption 9 → 10.8px. */
+:root { --fz: 1.2; }
 @media (max-width: 768px) {
   :root { --fz: 1.3; }
   /* 종목관리 칸반: 박스(프레임·헤더)는 글로벌 1.3배 그대로,
