@@ -1,9 +1,10 @@
 'use client'
 
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
-import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { FigureGrid, type FigureItem } from './figure-grid'
 
 interface Invoice {
   id: string
@@ -16,135 +17,77 @@ interface Invoice {
   status: string
 }
 
-interface InvoiceDetailDialogProps {
+interface Props {
   invoice: Invoice | null
   onClose: () => void
   onDelete: (id: string) => void
   onEdit: (invoice: Invoice) => void
 }
 
-const TYPE_TONES: Record<string, { bg: string; fg: string }> = {
-  revenue:   { bg: '#DCE8F5', fg: '#1F4E79' },
-  expense:   { bg: '#F9E8D0', fg: '#8A5A1A' },
-  asset:     { bg: '#DAEEDD', fg: '#1F5F3D' },
-  liability: { bg: '#F3DADA', fg: '#8A2A2A' },
-}
-
 const TYPE_LABELS: Record<string, string> = {
-  revenue: '매출', expense: '비용', asset: '자산', liability: '부채',
+  revenue: '매출', expense: '비용', asset: '자산', liability: '부채', transfer: '대체', exchange: '환전',
 }
 
-function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
-      <LIcon name={icon} size={14} stroke={1.8} color={t.neutrals.subtle} />
-      <span>{children}</span>
-    </div>
-  )
-}
-
-export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: InvoiceDetailDialogProps) {
+/**
+ * 거래 상세 — 별도 모달 문법을 두지 않고 섹션 카드를 그대로 띄운다.
+ * 껍데기는 LCard, 제목줄은 LSectionHead, 본문은 카드 지표와 같은 라벨/값 격자,
+ * 하단은 카드 푸터. 회색 판·상자선 같은 모달 전용 장식은 쓰지 않는다(CEO 2026-09-10).
+ */
+export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Props) {
   if (!invoice) return null
 
-  const typeTone = TYPE_TONES[invoice.type]
   const isIncome = invoice.type === 'revenue' || invoice.type === 'asset'
+  const cols = 2
+
+  // 표의 열 순서를 그대로 따른다 — 행에서 본 것을 같은 순서로 다시 읽게(CEO 2026-09-10)
+  const facts: FigureItem[] = [
+    { label: '구분', value: TYPE_LABELS[invoice.type] ?? invoice.type },
+    { label: '날짜', value: invoice.payment_date || invoice.issue_date || '-', mono: true },
+    { label: '거래처', value: invoice.counterparty, wrap: true },
+    {
+      label: '금액',
+      value: `${isIncome ? '+' : '-'}${Math.abs(invoice.amount).toLocaleString()}원`,
+      tone: isIncome ? 'pos' : 'neg',
+      mono: true,
+    },
+  ]
+  if (invoice.description) facts.push({ label: '적요', value: invoice.description, prose: true, span: cols })
 
   return (
-    <div data-modal="" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.pagePadX,
+    }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
 
-      {/* Panel */}
-      <div data-modal-shell="" style={{
-        position: 'relative', width: 420, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div data-eyebrow="" style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
-              CASHFLOW
-            </div>
-            <div style={{
-              fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans,
-              color: t.neutrals.text, lineHeight: 1.35,
-            }}>
-              {invoice.counterparty}
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
+      <LCard pad={0} style={{ position: 'relative', width: 420, maxWidth: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+        {/* 제목 없이 닫기만 — 거래처가 아래 항목에 있어 제목이 같은 말을 반복했다(CEO 2026-09-10) */}
+        <div style={{
+          padding: `${t.density.gapSm}px ${t.density.gapSm}px 0`,
+          display: 'flex', justifyContent: 'flex-end',
+        }}>
+          <button onClick={onClose} title="닫기" style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+            display: 'flex', alignItems: 'center',
           }}>
             <LIcon name="x" size={14} stroke={2} />
           </button>
         </div>
 
-        {/* Type + status pills */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          {/* 유형은 분류 배지(기본 반경), 상태는 pill */}
-          <LBadge palette={typeTone}>{TYPE_LABELS[invoice.type]}</LBadge>
-          {invoice.status === 'completed'
-            ? <LBadge tone="done" pill>완료</LBadge>
-            : <LBadge palette={{ bg: t.neutrals.inner, fg: t.neutrals.muted }} pill>발행</LBadge>}
+        <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+          <FigureGrid items={facts} cols={cols} />
         </div>
 
-        {/* Body */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
-          {/* Amount */}
-          <div data-modal-panel="" style={{
-            padding: `${t.density.blockGap}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.md, background: t.neutrals.inner,
-            // data-modal-panel: 실험 테마에서 회색 판을 벗고 선으로 바꾼다
-            display: 'flex', alignItems: 'baseline', gap: t.density.gapSm,
-          }}>
-            <span style={{
-              fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontVariantNumeric: 'tabular-nums',
-              fontFamily: t.font.sans, letterSpacing: -0.5,
-              color: t.neutrals.text,
-            }}>
-              {isIncome ? '+' : '-'}{Math.abs(invoice.amount).toLocaleString()}
-            </span>
-            <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted }}>원</span>
-          </div>
-
-          {/* Dates */}
-          {invoice.issue_date && (
-            <InfoRow icon="calendar">발행일 {invoice.issue_date}</InfoRow>
-          )}
-          {invoice.payment_date && (
-            <InfoRow icon="briefcase">{isIncome ? '입금일' : '지급일'} {invoice.payment_date}</InfoRow>
-          )}
-
-          {/* Description */}
-          {invoice.description && (
-            <div data-modal-panel="" style={{
-              marginTop: t.density.gapSm, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-              background: t.neutrals.inner, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              whiteSpace: 'pre-wrap',
-            }}>
-              {invoice.description}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div data-modal-foot="" style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        <div data-card-foot="" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
+          margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY,
+          paddingBottom: t.density.cardPad,
         }}>
-          <LBtn variant="ghost" size="sm" style={{ color: t.accent.neg }}
-            onClick={() => { onDelete(invoice.id); onClose() }}>
-            삭제
-          </LBtn>
-          <LBtn variant="secondary" size="sm"
-            onClick={() => { onEdit(invoice); onClose() }}>
-            수정
-          </LBtn>
+          <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={() => { onDelete(invoice.id); onClose() }}>삭제</LBtn></span>
+          <LBtn variant="secondary" size="sm" onClick={() => { onEdit(invoice); onClose() }}>수정</LBtn>
         </div>
-      </div>
+      </LCard>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, eventTones, tonePalettes, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -51,12 +51,14 @@ function getMonthGrid(year: number, month: number): Date[][] {
   return weeks
 }
 
+// 분류는 색조 대신 회색 명도로 나눈다 — 윌로우가 가장 진하고 기타가 가장 옅다
+// (2026-09-10 카드 문법: 단색은 유지하되 분간은 되게).
 const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
-  'willow-mgmt': tonePalettes.done,
-  'tensw-mgmt':  tonePalettes.warn,
-  'etf-etc':     tonePalettes.info,
-  'akros':       tonePalettes.brand,
-  'other':       tonePalettes.neutral,
+  'willow-mgmt': { bg: '#D3D7DD', fg: '#1F242B' },
+  'tensw-mgmt':  { bg: '#DCE0E5', fg: '#262C33' },
+  'etf-etc':     { bg: '#E4E7EB', fg: '#2C323A' },
+  'akros':       { bg: '#EAECEF', fg: '#343A42' },
+  'other':       { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -68,7 +70,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 function getScheduleTone(s: WillowMgmtSchedule) {
-  return CATEGORY_TONES[s.category] || eventTones.neutral
+  return CATEGORY_TONES[s.category] || CATEGORY_TONES.other
 }
 
 function matchesDate(s: WillowMgmtSchedule, dateStr: string) {
@@ -147,7 +149,8 @@ function DayCell({
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
-  const [pop, setPop] = useState<{ left: number; top: number } | null>(null)
+  // 셀 안에서 그대로 펼친다 — 뜬 창을 띄우면 달력 위에 겹쳐 읽기가 끊긴다(CEO 2026-09-10)
+  const [expanded, setExpanded] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -156,7 +159,7 @@ function DayCell({
       style={{
         minHeight, padding: compact ? 6 : 8, position: 'relative',
         borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
-        background: isSelected ? t.brand[100] : isToday ? t.brand[50] : 'transparent',
+        background: isSelected ? '#EDEFF2' : isToday ? '#F5F6F8' : 'transparent',
         opacity: dimmed ? 0.35 : 1,
         minWidth: 0, overflow: 'hidden',
         cursor: onClickDate ? 'pointer' : undefined,
@@ -169,7 +172,7 @@ function DayCell({
       }}>
         <span style={{
           fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-          color: isToday ? t.brand[700] : t.neutrals.subtle,
+          color: isToday ? t.chart.mono : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
           {day.getDate()}
@@ -180,7 +183,7 @@ function DayCell({
             onClick={(e) => { e.stopPropagation(); onAdd(dateStr) }}
             style={{
               width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
-              background: t.brand[100], color: t.brand[700],
+              background: 'transparent', color: t.neutrals.muted,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 0, flexShrink: 0,
             }}
@@ -208,20 +211,18 @@ function DayCell({
           </div>
         ) : compact ? (
           <>
-            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {schedules.slice(0, expanded ? schedules.length : 2).map(s => (
+              <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />
+            ))}
             {schedules.length > 2 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                  setPop({ left: Math.min(r.left, window.innerWidth - 252), top: r.bottom + 4 })
-                }}
+                onClick={(e) => { e.stopPropagation(); setExpanded(v => !v) }}
                 style={{
                   alignSelf: 'flex-start', border: 'none', background: 'transparent', padding: 0,
                   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono, cursor: 'pointer',
                 }}
               >
-                +{schedules.length - 2}
+                {expanded ? '접기' : `+${schedules.length - 2}`}
               </button>
             )}
           </>
@@ -229,39 +230,18 @@ function DayCell({
           schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)
         )}
       </div>
-      {pop && (
-        <>
-          <div onClick={(e) => { e.stopPropagation(); setPop(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.04)' }} />
-          <div onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
-              width: 240, maxHeight: 340, overflowY: 'auto',
-              background: t.neutrals.card, borderRadius: t.radius.md,
-              border: `1px solid ${t.neutrals.line}`, padding: t.density.panelPadY,
-              display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
-            }}>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
-              {dateStr.slice(5).replace('-', '월 ')}일
-              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: t.weight.regular, color: t.neutrals.subtle }}>({schedules.length})</span>
-            </div>
-            {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
-            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
-          </div>
-        </>
-      )}
     </div>
   )
 }
 
-// 활성 칩은 카테고리 색을 그대로 쓴다('전체'만 브랜드 기본색).
-const CATEGORY_FILTERS: { value: string; label: string; tone?: { bg: string; fg: string } }[] = [
+// 활성 칩 색은 다른 카드와 같이 테마가 정한다 — 여기서 따로 주지 않는다.
+const CATEGORY_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: '전체' },
-  { value: 'willow-mgmt', label: '윌로우', tone: CATEGORY_TONES['willow-mgmt'] },
-  { value: 'tensw-mgmt', label: '텐소프트웍스', tone: CATEGORY_TONES['tensw-mgmt'] },
-  { value: 'etf-etc', label: 'ETC', tone: CATEGORY_TONES['etf-etc'] },
-  { value: 'akros', label: '아크로스', tone: CATEGORY_TONES['akros'] },
-  { value: 'other', label: '기타', tone: CATEGORY_TONES['other'] },
+  { value: 'willow-mgmt', label: '윌로우' },
+  { value: 'tensw-mgmt', label: '텐소프트웍스' },
+  { value: 'etf-etc', label: 'ETC' },
+  { value: 'akros', label: '아크로스' },
+  { value: 'other', label: '기타' },
 ]
 
 export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
@@ -300,7 +280,6 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
   const weekDays = useMemo(() => getWeekDays(baseDate), [baseDate])
   const monthGrid = useMemo(() => getMonthGrid(baseDate.getFullYear(), baseDate.getMonth()), [baseDate])
 
-  const eyebrow = viewMode === 'week' ? 'SCHEDULE · 주간' : 'SCHEDULE · 월간'
   const navLabel = viewMode === 'week'
     ? (() => {
         const w0 = weekDays[0], w6 = weekDays[6]
@@ -310,21 +289,30 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
     : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
   return (
-    <LCard>
-      <LSectionHead eyebrow={eyebrow} title="일정" tools={
-        <LSegmented
-          value={viewMode}
-          onChange={updateViewMode}
-          options={[
-            { value: 'week', label: '주' },
-            { value: 'month', label: '월' },
-          ]}
-        />
-      } />
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title="일정"
+            tools={
+              <LSegmented
+                value={viewMode}
+                onChange={updateViewMode}
+                options={[
+                  { value: 'week', label: '주' },
+                  { value: 'month', label: '월' },
+                ]}
+              />
+            }
+            toolsInline
+            mb={0}
+          />
+        </div>
 
-      {/* Navigation */}
+      {/* 기간 — 카드 전체에 걸리는 조건이라 달력 위 가운데에 둔다 */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`,
       }}>
         <button onClick={() => navigate(-1)} style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -332,7 +320,10 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         }}>
           <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
-        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+        <span style={{
+          fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+          fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+        }}>
           {navLabel}
         </span>
         <button onClick={() => navigate(1)} style={{
@@ -343,15 +334,16 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         </button>
       </div>
 
-      {/* Category filter */}
-      <div style={{ marginBottom: t.density.gapMd }}>
-        <LFilterChip options={CATEGORY_FILTERS} value={categoryFilter} onChange={setCategoryFilter} />
+      {/* 분류 칩 — 다른 카드의 필터 줄과 같은 자리, 같은 모양 */}
+      <div style={{ marginTop: t.density.gapSm }}>
+        <LFilterChip options={CATEGORY_FILTERS} value={categoryFilter} onChange={setCategoryFilter} gap={t.density.gapXs} />
+      </div>
       </div>
 
-      {/* Day headers */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      {/* 요일 — 표 머리와 같은 문법. 회색 판 대신 아래 선 하나 */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-        background: t.neutrals.inner, borderRadius: `${t.radius.md}px ${t.radius.md}px 0 0`,
         borderBottom: `1px solid ${t.neutrals.line}`,
       }}>
         {DAY_NAMES.map(name => (
@@ -364,12 +356,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       </div>
 
       {viewMode === 'week' ? (
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {weekDays.map((day, i) => {
             const dateStr = formatDateLocal(day)
             return (
@@ -387,11 +374,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
           })}
         </div>
       ) : (
-        <div style={{
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div>
           {monthGrid.map((week, wi) => (
             <div key={wi} style={{
               display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -423,8 +406,8 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         const dayItems = filteredSchedules.filter(s => matchesDate(s, selectedDate))
         return (
           <div style={{
-            marginTop: t.density.kpiGap, padding: t.density.blockGap,
-            background: t.neutrals.inner, borderRadius: t.radius.md,
+            marginTop: t.density.blockGap, paddingTop: t.density.blockGap,
+            borderTop: `1px solid ${t.neutrals.line}`,
             display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -445,6 +428,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
           </div>
         )
       })()}
+      </div>
     </LCard>
   )
 }

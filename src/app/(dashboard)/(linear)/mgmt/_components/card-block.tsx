@@ -165,7 +165,7 @@ interface CardBlockProps {
   style?: React.CSSProperties
 }
 
-export function CardBlockNew({ approvals, billing, year, onYearChange, storageKey = 'tensw-card', style, onRefresh }: CardBlockProps) {
+export function CardBlock({ approvals, billing, year, onYearChange, storageKey = 'tensw-card', style, onRefresh }: CardBlockProps) {
   const mobile = useIsMobile()
   const [basis, setBasis] = useState<Basis>('billing')
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')

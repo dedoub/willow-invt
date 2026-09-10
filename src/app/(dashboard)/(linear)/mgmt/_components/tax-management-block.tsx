@@ -3,13 +3,15 @@
 import { useMemo, useState } from 'react'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
+import { FigureGrid, type FigureItem } from './figure-grid'
+import { TaxDetailDialog } from './tax-detail-dialog'
+import { RecordEditDialog, type EditField } from './record-edit-dialog'
 
 type SourceFilter = 'all' | TaxObligationSource
 
@@ -47,12 +49,23 @@ const SOURCES: Record<TaxObligationSource, string> = {
 const COLUMNS: LColumn<FinanceTaxObligation>[] = [
   { key: 'status', label: '상태', width: '68px' },
   { key: 'source', label: '출처', width: '62px' },
-  { key: 'due', label: '납부기한', width: '92px' },
+  { key: 'due', label: '납부기한', width: '72px' },
+  // 기한 옆에 실제 납부일을 둔다 — 언제까지였는지와 언제 나갔는지를 나란히 읽는다(CEO 2026-09-10)
+  { key: 'paid', label: '납부일', width: '64px' },
   { key: 'title', label: '고지내역', width: 'minmax(130px,1fr)' },
   { key: 'amount', label: '금액', width: 'minmax(80px,110px)', align: 'right' },
 ]
 
 const STATUS_LABELS = { unpaid: '납부예정', paid: '납부완료', overdue: '연체', cancelled: '취소' }
+
+// 상태 칩은 색조 대신 회색 명도로 나눈다 — 연체가 가장 진하고 취소가 가장 옅다
+// (2026-09-10 카드 문법: 단색은 유지하되 분간은 되게).
+const STATUS_TONES: Record<TaxObligationStatus, { bg: string; fg: string }> = {
+  overdue:   { bg: '#C7CCD3', fg: '#171B21' },
+  unpaid:    { bg: '#E4E7EB', fg: '#2C323A' },
+  paid:      { bg: '#EDEFF2', fg: '#3A4048' },
+  cancelled: { bg: '#F5F6F8', fg: '#4B525A' },
+}
 
 // Notices are filed under the year they fall due; the taxable period stands in
 // when a notice carries no due date.
@@ -60,7 +73,7 @@ function obligationYear(item: FinanceTaxObligation): string | null {
   return item.due_date?.slice(0, 4) ?? item.period_label?.slice(0, 4) ?? null
 }
 
-export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObligation[] }) {
+export function TaxManagementBlock({ obligations, onRefresh }: { obligations: FinanceTaxObligation[]; onRefresh?: () => void }) {
   const mobile = useIsMobile()
   const [source, setSource] = useState<SourceFilter>('all')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -68,6 +81,41 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [selected, setSelected] = useState<FinanceTaxObligation | null>(null)
+  const [editing, setEditing] = useState<FinanceTaxObligation | null>(null)
+
+  // 수집 원장이지만 사람이 고칠 수 있는 칸만 연다. 저장하면 다음 수집이 그 줄을 건너뛴다.
+  const EDIT_FIELDS: EditField[] = [
+    { key: 'status', label: '상태', kind: 'chips', options: STATUS_FILTERS.filter(o => o.value !== 'all').map(o => ({ value: o.value, label: o.label })), full: true },
+    { key: 'title', label: '고지내역', required: true, full: true },
+    { key: 'agency', label: '기관', required: true },
+    { key: 'obligation_type', label: '세목' },
+    { key: 'amount', label: '금액', kind: 'number', required: true },
+    { key: 'due_date', label: '납부기한', kind: 'date' },
+    { key: 'issued_date', label: '고지일', kind: 'date' },
+    { key: 'paid_at', label: '납부일', kind: 'date' },
+    { key: 'period_label', label: '과세기간' },
+    { key: 'notice_number', label: '전자납부번호' },
+  ]
+
+  const removeObligation = async (item: FinanceTaxObligation) => {
+    setSelected(null)
+    await fetch(`/api/finance/tax-obligations?id=${item.id}`, { method: 'DELETE' })
+    onRefresh?.()
+  }
+
+  const saveObligation = async (item: FinanceTaxObligation, values: Record<string, string>) => {
+    const res = await fetch('/api/finance/tax-obligations', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, ...values }),
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '저장하지 못했습니다.')
+    setEditing(null)
+    setSelected(null)
+    onRefresh?.()
+  }
 
   const yearScoped = useMemo(
     () => obligations.filter(item => obligationYear(item) === String(year)),
@@ -111,21 +159,26 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead
-          eyebrow="TAX & INSURANCE"
-          title="세금관리"
-          tools={
-            <LSegmented
-              value={source}
-              onChange={handleSourceChange}
-              options={SOURCE_FILTERS}
-            />
-          }
-        />
-        {/* Year navigation */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title="세금관리"
+            tools={
+              <LSegmented
+                value={source}
+                onChange={handleSourceChange}
+                options={SOURCE_FILTERS}
+              />
+            }
+            toolsInline
+            mb={0}
+          />
+        </div>
+
+        {/* 연도 — 카드 전체에 걸리는 조건이라 지표 위 가운데에 둔다 */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`,
         }}>
           <button onClick={() => { setYear(current => current - 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -133,7 +186,10 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+            fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+          }}>
             {year}년
           </span>
           <button onClick={() => { setYear(current => current + 1); setPage(0) }} style={{
@@ -144,64 +200,75 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gap: t.density.kpiGap }}>
-          <LStat label="납부예정" value={`${unpaid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={unpaid.length ? 'warn' : 'default'} sub={`${unpaid.length.toLocaleString()}건`} />
-          <LStat label="납부완료" value={`${paid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone="pos" sub={`${paid.length.toLocaleString()}건`} />
-          <LStat label="연체" value={`${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`} tone={overdue.length ? 'neg' : 'default'} sub={`${overdue.length.toLocaleString()}건`} />
-        </div>
+        {/* 지표 — 배경 박스를 벗고 라벨 위·값 아래에 행 구분선만.
+             색은 부호가 뜻을 갖는 값에만 남긴다 — 여기서는 연체뿐이다. */}
+        {(() => {
+          const cols = mobile ? 2 : 3
+          const figures: FigureItem[] = [
+            { label: '납부예정', value: `${unpaid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`, mono: true, sub: `${unpaid.length.toLocaleString()}건` },
+            { label: '납부완료', value: `${paid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`, mono: true, sub: `${paid.length.toLocaleString()}건` },
+            { label: '연체', value: `${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`, mono: true, tone: overdue.length ? 'neg' : undefined, sub: `${overdue.length.toLocaleString()}건` },
+          ]
+          return <FigureGrid items={figures} cols={cols} />
+        })()}
 
-        {/* Status filter — 현금관리·매출관리와 같은 자리에서 같은 모양으로 고른다. */}
-        <div style={{ marginTop: t.density.blockGap }}>
-          <LFilterChip options={STATUS_FILTERS} value={status} onChange={v => { setStatus(v); setPage(0) }} />
-        </div>
-
-        {/* Search */}
-        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+        {/* 상태 칩 · 검색 한 줄 — 검색에 들어가면 칩은 접혀 자리를 내준다 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+          marginTop: t.density.blockGap, flexWrap: mobile ? 'wrap' : 'nowrap',
+        }}>
+          <div style={{
+            maxWidth: searchOpen ? 0 : 520,
+            opacity: searchOpen ? 0 : 1,
+            overflow: 'hidden',
+            transition: 'max-width .26s ease, opacity .16s ease',
+          }}>
+            <LFilterChip options={STATUS_FILTERS} value={status} onChange={v => { setStatus(v); setPage(0) }} gap={t.density.gapXs} />
           </div>
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0) }}
-            placeholder="세목 · 기관 · 전자납부번호 검색"
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              background: t.neutrals.inner, border: 'none',
-              borderRadius: t.radius.sm, outline: 'none',
-            }}
-          />
-          {search && (
-            <button onClick={() => { setSearch(''); setPage(0) }} style={{
-              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
-            }}>
-              <LIcon name="x" size={12} stroke={2} />
-            </button>
-          )}
+
+          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>
+            <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+              <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+            </div>
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0) }}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => { if (!search) setSearchOpen(false) }}
+              placeholder="세목 · 기관 · 전자납부번호 검색"
+              style={{
+                width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
+                padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                fontFamily: t.font.sans, color: t.neutrals.text,
+                background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                borderRadius: t.radius.sm, outline: 'none',
+              }}
+            />
+            {search && (
+              <button onClick={() => { setSearch(''); setPage(0); setSearchOpen(false) }} style={{
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={12} stroke={2} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapXs}px` }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} />
         {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
           {paged.map(item => {
-            const tone = item.status === 'paid'
-              ? tonePalettes.done
-              : item.status === 'overdue'
-                ? tonePalettes.danger
-                : item.status === 'cancelled'
-                  ? tonePalettes.neutral
-                  : tonePalettes.pending
             return (
-              <LTableRow key={item.id} columns={COLUMNS} mobile={mobile}>
-                <LTableBadge tone={tone}>{STATUS_LABELS[item.status]}</LTableBadge>
+              <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(item)}>
+                <LTableBadge tone={STATUS_TONES[item.status]}>{STATUS_LABELS[item.status]}</LTableBadge>
                 <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SOURCES[item.source]}</span>
                 <LTableDate value={item.due_date} />
+                <LTableDate value={item.paid_at ? item.paid_at.slice(0, 10) : null} tone="muted" />
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: t.weight.medium }} title={`${item.agency} · ${item.title}`}>
                   {item.title}
                 </span>
@@ -216,11 +283,10 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
-          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>은행 출금 자동 매칭</span>
         </div>
 
         {totalPages > 1 && (
@@ -237,7 +303,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
             </span>
             <button
@@ -255,6 +321,33 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           </div>
         )}
       </div>
+
+      <TaxDetailDialog
+        obligation={selected}
+        onClose={() => setSelected(null)}
+        onEdit={() => { if (selected) setEditing(selected) }}
+        onDelete={() => { if (selected) removeObligation(selected) }}
+      />
+      <RecordEditDialog
+        open={!!editing}
+        title="고지 수정"
+        fields={EDIT_FIELDS}
+        initial={editing ? {
+          status: editing.status,
+          title: editing.title,
+          agency: editing.agency,
+          obligation_type: editing.obligation_type,
+          amount: String(editing.amount),
+          due_date: editing.due_date ?? '',
+          issued_date: editing.issued_date ?? '',
+          paid_at: editing.paid_at ?? '',
+          period_label: editing.period_label ?? '',
+          notice_number: editing.notice_number ?? '',
+        } : {}}
+        note="홈택스·위택스·4대보험에서 수집한 고지입니다. 저장하면 다음 수집이 이 줄을 건너뜁니다."
+        onClose={() => setEditing(null)}
+        onSave={values => saveObligation(editing!, values)}
+      />
     </LCard>
   )
 }

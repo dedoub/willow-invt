@@ -2,27 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-
-interface Invoice {
-  id: string
-  type: 'revenue' | 'expense' | 'asset' | 'liability' | 'transfer' | 'exchange'
-  counterparty: string
-  description: string | null
-  amount: number
-  issue_date: string | null
-  payment_date: string | null
-  status: string
-}
-
-interface AddInvoiceDialogProps {
-  open: boolean
-  editingInvoice?: Invoice | null
-  onClose: () => void
-  onSave: (data: InvoiceFormData) => Promise<void>
-}
 
 export interface InvoiceFormData {
   id?: string
@@ -34,6 +18,24 @@ export interface InvoiceFormData {
   payment_date: string
 }
 
+interface Invoice {
+  id: string
+  type: InvoiceFormData['type']
+  counterparty: string
+  description: string | null
+  amount: number
+  issue_date: string | null
+  payment_date: string | null
+  status: string
+}
+
+interface Props {
+  open: boolean
+  editingInvoice?: Invoice | null
+  onClose: () => void
+  onSave: (data: InvoiceFormData) => Promise<void>
+}
+
 const TYPE_OPTIONS: { value: InvoiceFormData['type']; label: string }[] = [
   { value: 'revenue', label: '매출' },
   { value: 'expense', label: '비용' },
@@ -42,11 +44,14 @@ const TYPE_OPTIONS: { value: InvoiceFormData['type']; label: string }[] = [
   { value: 'transfer', label: '대체' },
 ]
 
+// 입력칸은 카드의 검색창과 같은 규격 — 흰 바탕에 선 한 겹, 컨트롤 글자
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', minHeight: t.density.controlHSm,
+  padding: `0 ${t.density.panelPadX}px`,
+  fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
-  background: t.neutrals.inner, color: t.neutrals.text,
-  border: 'none', borderRadius: t.radius.sm, outline: 'none',
+  background: t.neutrals.card, color: t.neutrals.text,
+  border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm, outline: 'none',
   boxSizing: 'border-box',
 }
 
@@ -66,26 +71,27 @@ function fromInvoice(inv: Invoice): InvoiceFormData {
   }
 }
 
-export function AddInvoiceDialog({ open, editingInvoice, onClose, onSave }: AddInvoiceDialogProps) {
+/**
+ * 거래 추가·수정 — 상세 모달과 같은 카드 문법이고, 항목 순서도 상세와 같게 읽힌다.
+ * (2026-09-10 사업관리 카드 문법)
+ */
+export function AddInvoiceDialog({ open, editingInvoice, onClose, onSave }: Props) {
   const isEdit = !!editingInvoice
   const [form, setForm] = useState<InvoiceFormData>(emptyForm())
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    if (editingInvoice) {
-      setForm(fromInvoice(editingInvoice))
-    } else {
-      setForm(emptyForm())
-    }
+    setForm(editingInvoice ? fromInvoice(editingInvoice) : emptyForm())
   }, [open, editingInvoice])
 
   if (!open) return null
 
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }))
+  const ready = !!form.counterparty.trim() && !!form.amount.trim()
 
   const handleSave = async () => {
-    if (!form.counterparty.trim() || !form.amount.trim()) return
+    if (!ready) return
     setSaving(true)
     try {
       await onSave(form)
@@ -95,117 +101,107 @@ export function AddInvoiceDialog({ open, editingInvoice, onClose, onSave }: AddI
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.pagePadX,
+    }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
 
-      {/* Panel */}
-      <div style={{
-        position: 'relative', width: 440, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
+      <LCard pad={0} style={{
+        position: 'relative', width: 440, maxWidth: '100%', maxHeight: '85vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Header */}
-        <div style={{
-          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              CASHFLOW
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '거래 수정' : '거래 추가'}
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title={isEdit ? '거래 수정' : '거래 추가'}
+            action={
+              <button onClick={onClose} title="닫기" style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+                display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={14} stroke={2} />
+              </button>
+            }
+            mb={0}
+          />
         </div>
 
-        {/* Body */}
+        {/* 순서는 상세 모달과 같다 — 구분·날짜, 거래처·금액, 적요 */}
         <div style={{
-          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
+          padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
-          {/* Type chips */}
-          <div>
-            <Label>유형</Label>
-            <LFilterChip options={TYPE_OPTIONS} value={form.type} onChange={v => set('type', v)} gap={t.density.gapSm} />
-          </div>
+          <Field label="구분">
+            <LFilterChip options={TYPE_OPTIONS} value={form.type} onChange={v => set('type', v)} gap={t.density.gapXs} />
+          </Field>
 
-          {/* Counterparty */}
-          <div>
-            <Label required>거래처</Label>
-            <input
-              value={form.counterparty} onChange={e => set('counterparty', e.target.value)}
-              placeholder="거래처명을 입력하세요"
-              style={inputBase} autoFocus
-            />
-          </div>
-
-          {/* Amount */}
-          <div>
-            <Label required>금액</Label>
-            <input
-              value={form.amount} onChange={e => set('amount', e.target.value)}
-              placeholder="0"
-              type="number"
-              style={inputBase}
-            />
-          </div>
-
-          {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>발행일</Label>
+            <Field label="발행일">
               <input type="date" value={form.issue_date} onChange={e => set('issue_date', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>입금/지급일</Label>
+            </Field>
+            <Field label="입금 · 지급일">
               <input type="date" value={form.payment_date} onChange={e => set('payment_date', e.target.value)} style={inputBase} />
-            </div>
+            </Field>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label>설명</Label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+            <Field label="거래처" required>
+              <input
+                value={form.counterparty} onChange={e => set('counterparty', e.target.value)}
+                placeholder="거래처명"
+                style={inputBase} autoFocus
+              />
+            </Field>
+            <Field label="금액" required>
+              <input
+                value={form.amount} onChange={e => set('amount', e.target.value)}
+                placeholder="0" type="number" inputMode="numeric"
+                style={{ ...inputBase, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}
+              />
+            </Field>
+          </div>
+
+          <Field label="적요">
             <textarea
               value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="상세 내용 (선택)"
               rows={2}
-              style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
+              style={{
+                ...inputBase, resize: 'vertical' as const, lineHeight: 1.6,
+                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
+              }}
             />
-          </div>
+          </Field>
         </div>
 
-        {/* Footer */}
         <div style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap,
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: t.density.gapSm,
+          margin: `0 ${t.density.cardPad}px`, paddingBottom: t.density.cardPad,
         }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
-          <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.counterparty.trim() || !form.amount.trim()}>
-            {saving ? '저장 중...' : '저장'}
-          </LBtn>
+          <span data-primary-action="">
+            <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !ready}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
+          </span>
         </div>
-      </div>
+      </LCard>
     </div>
   )
 }
 
-/* ── Sub-components ── */
-
-function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+/** 라벨 위, 입력 아래 — 카드 지표와 같은 순서로 읽는다 */
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{
-      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
-    }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
+    <div style={{ minWidth: 0 }}>
+      <div style={{
+        fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle,
+        fontFamily: t.font.sans, marginBottom: t.density.gapXs,
+      }}>
+        {label}{required && <span style={{ color: t.neutrals.subtle, marginLeft: t.density.tableRowGap }}>*</span>}
+      </div>
+      {children}
     </div>
   )
 }

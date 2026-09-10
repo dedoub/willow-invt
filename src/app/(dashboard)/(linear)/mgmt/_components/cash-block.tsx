@@ -1,12 +1,22 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+/**
+ * 현금관리 카드 — 새 디자인(사업관리 NEW 전용).
+ * 데이터·계산·동작은 /mgmt 의 CashBlock 과 같다. 바꾼 것은 카드 안 배치뿐이다:
+ *   1) 헤더는 제목과 기간 모드 토글만 — 그 오른쪽 아이콘 버튼은 없앴다(CEO 2026-09-10). 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
+ *      월/분기/연 토글은 헤더 오른쪽(원래 자리), 기간 이동 화살표와 라벨은 그 아래 본문 가운데. 구분선은 두지 않는다.
+ *   2) 지표는 원래 3×3 배열 그대로, 배경 박스만 벗고 행 구분선으로 나눈다. 스파크라인은 숫자 아래.
+ *   3) 필터 칩과 검색만 한 줄에 둔다. 검색에 들어가면 칩이 접히고 검색창이 그 폭을 가져간다.
+ * 지표 9개·표 열·행 높이는 그대로라 밀도는 변하지 않는다.
+ */
+
+import { useState, useMemo, useEffect } from 'react'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { FigureGrid, type FigureItem } from './figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 
@@ -51,12 +61,14 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'transfer', label: '대체' },
 ]
 
+// 구분 배지 — 색조 대신 회색 명도로 가른다. 원본 파스텔은 명도가 228~240으로 몰려 있어
+// 탈색만 해서는 서로 구분되지 않았다. 다섯 단계를 눈에 보이는 간격으로 직접 잡는다(CEO 2026-09-10).
 const TYPE_TONES: Record<string, { bg: string; fg: string }> = {
-  revenue:   { bg: '#DCE8F5', fg: '#1F4E79' },
-  expense:   { bg: '#F9E8D0', fg: '#8A5A1A' },
-  asset:     { bg: '#DAEEDD', fg: '#1F5F3D' },
-  liability: { bg: '#F3DADA', fg: '#8A2A2A' },
-  transfer:  { bg: '#E8E0F0', fg: '#5B3D8A' },
+  revenue:   { bg: '#D3D7DD', fg: '#1F242B' },
+  expense:   { bg: '#E4E7EB', fg: '#2C323A' },
+  asset:     { bg: '#EDEFF2', fg: '#3A4048' },
+  liability: { bg: '#C7CCD3', fg: '#171B21' },
+  transfer:  { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -126,14 +138,16 @@ function getStoredCashPageSize(): number {
   return n >= 1 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
+// onAddInvoice·onFileUpload·parsing 은 /mgmt 와 시그니처를 맞추려고 받아 두고 쓰지 않는다 —
+// 새 디자인에서는 업로드·추가 버튼을 카드에서 뺐다(CEO 2026-09-10).
+export function CashBlock({ invoices, onSelectInvoice, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<Invoice>('willow-cash', COLUMNS)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
 
@@ -224,8 +238,8 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     return { krw, fx, totalKrw, asOfDate, hasData: Object.keys(lastByAccount).length > 0 }
   }, [balanceHistory, bankBalances, rangeStart, rangeEnd, usdRate])
 
-  // Build daily total-balance series (KRW-equivalent) with forward-fill,
-  // window: 1 year ending at the selected period's end date
+  // 일자별 총 잔고(원화 환산) — forward-fill.
+  // 창은 선택한 기간 그대로다: 9월이면 9월 한 달, 분기면 그 분기, 연간이면 그 해(CEO 2026-09-10).
   const totalBalanceSpark = useMemo(() => {
     if (!balanceHistory.length) return [] as Array<{ date: string; value: number }>
     const accountSet = new Set<string>()
@@ -239,10 +253,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
     const dates = Array.from(byDate.keys()).sort()
     if (dates.length === 0) return []
 
-    // Window: 1 year ending at rangeEnd (period's last day)
-    const start = new Date(rangeEnd)
-    start.setFullYear(start.getFullYear() - 1)
-    const sparkStart = start.toISOString().slice(0, 10)
+    const sparkStart = rangeStart
 
     const fxTotal = (vals: Record<string, number>) => {
       let total = 0
@@ -286,122 +297,156 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
       if (series.length && series[series.length - 1].date === snapDate) series[series.length - 1] = point
       else series.push(point)
     }
-    return series
-  }, [balanceHistory, bankBalances, usdRate, rangeEnd])
-  const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
-    : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
+    if (!series.length) return series
+
+    // 잔고가 움직인 날에만 점이 있어 기간이 짧으면 선이 두 점짜리 직선이 된다.
+    // 기간의 모든 날짜를 축으로 깔고 값은 직전 잔고를 이어받는다(계단식). 미래는 그리지 않는다.
+    const byDay = new Map(series.map(p => [p.date, p.value]))
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+    const lastDateToDraw = rangeEnd < today ? rangeEnd : today
+    const filled: Array<{ date: string; value: number }> = []
+    let carry = series[0].value
+    for (const d = new Date(series[0].date); ; d.setDate(d.getDate() + 1)) {
+      const key = d.toLocaleDateString('en-CA')
+      if (key > lastDateToDraw) break
+      if (byDay.has(key)) carry = byDay.get(key)!
+      filled.push({ date: key, value: carry })
+    }
+    return filled.length > 1 ? filled : series
+  }, [balanceHistory, bankBalances, usdRate, rangeStart, rangeEnd])
+
+  const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
+  // 검색 중이거나 검색어가 남아 있으면 칩을 접어 둔다
+  const searchOpen = searchFocused || searchQuery.length > 0
 
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        {/* Header: eyebrow+title left, period mode toggle right */}
-        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
-          <LSegmented
-            value={periodMode}
-            onChange={setPeriodMode}
-            options={[
-              { value: 'month', label: MODE_LABELS.month },
-              { value: 'quarter', label: MODE_LABELS.quarter },
-              { value: 'year', label: MODE_LABELS.year },
-            ]}
+        {/* 1) 헤더 한 줄 — 기간 이동까지 여기서 끝낸다 */}
+        {/* 헤더 영역 — 제목만. 액션(업로드·추가)은 표 바로 위 컨트롤 줄로 내렸다(CEO 2026-09-10) */}
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title="현금관리"
+            tools={
+              <LSegmented
+                value={periodMode}
+                onChange={setPeriodMode}
+                options={[
+                  { value: 'month', label: MODE_LABELS.month },
+                  { value: 'quarter', label: MODE_LABELS.quarter },
+                  { value: 'year', label: MODE_LABELS.year },
+                ]}
+              />
+            }
+            toolsInline
+            mb={0}
           />
-        } action={
-          <LHeadBtn icon="file" title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영" onClick={() => !parsing && fileInputRef.current?.click()} busy={parsing} />
-        } />
+        </div>
 
-        {/* Navigation — centered */}
+        {/* 1-2) 기간 — 카드 전체에 걸리는 조건이라 가운데에 크게 두고, 아래 지표와는 점선으로 나눈다 */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: t.density.gapMd, flexWrap: 'wrap' as const,
+          padding: `${t.density.panelPadX}px 0`,
         }}>
-          <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
-          }}>
+          <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={navBtn} title="이전">
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+            fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+          }}>
             {periodLabel}
           </span>
-          <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
-          }}>
+          <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={navBtn} title="다음">
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
         </div>
 
-        {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
-          <LStat label="매출" value={`${revenue.toLocaleString()}원`} />
-          <LStat label="비용" value={`${expense.toLocaleString()}원`} />
-          <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
-          <LStat label="부채" value={`${liability.toLocaleString()}원`} />
-          <LStat label="대체" value={`${transfer.toLocaleString()}원`} />
-          <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
-          <LStat label="원화 잔고" value={`${periodEndBalance.krw.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
-          <LStat label="외화 잔고" value={`$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
-          <LStat label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={mobile ? undefined : totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
-        </div>
+        {/* 2) 지표 — 원래 3×3 배열 그대로. 배경 박스만 벗고 행 구분선으로 나눈다.
+             구분선은 열 수를 보고 첫 줄만 건너뛴다 — 모바일 2열에서 3열 기준으로 그으면 지그재그가 된다. */}
+        {(() => {
+          const cols = mobile ? 2 : 3
+          const figures: FigureItem[] = [
+            { label: '매출', value: `${revenue.toLocaleString()}원`, mono: true },
+            { label: '비용', value: `${expense.toLocaleString()}원`, mono: true },
+            { label: '영업이익', value: `${operatingIncome.toLocaleString()}원`, mono: true, tone: operatingIncome >= 0 ? 'pos' : 'neg' },
+            { label: '부채', value: `${liability.toLocaleString()}원`, mono: true },
+            { label: '대체', value: `${transfer.toLocaleString()}원`, mono: true },
+            { label: '현금흐름', value: `${cashFlow.toLocaleString()}원`, mono: true, tone: cashFlow >= 0 ? 'pos' : 'neg' },
+            { label: '원화 잔고', value: `${periodEndBalance.krw.toLocaleString()}원`, mono: true },
+            { label: '외화 잔고', value: `$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, mono: true },
+            { label: '총 잔고', value: `${periodEndBalance.totalKrw.toLocaleString()}원`, mono: true, sub: asOf ? `${asOf} 기준` : undefined },
+          ]
+          return <FigureGrid items={figures} cols={cols} />
+        })()}
 
-        {/* Type filter chips + add button (모바일에선 줄을 분리) */}
+        {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}
+        {totalBalanceSpark.length > 1 && (
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.panelPadX}px 0` }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              gap: t.density.gapSm, marginBottom: t.density.gapSm,
+            }}>
+              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                총 잔고 추이
+              </span>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                {totalBalanceSpark[0].date} ~ {totalBalanceSpark[totalBalanceSpark.length - 1].date}
+              </span>
+            </div>
+            <BalanceTrend points={totalBalanceSpark} />
+          </div>
+        )}
+
+        {/* 3) 필터 · 검색 · 추가를 한 줄로 */}
         <div style={{
-          display: 'flex',
-          alignItems: mobile ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          flexDirection: mobile ? 'column' : 'row',
-          gap: mobile ? 8 : 0,
-          marginTop: t.density.blockGap,
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+          marginTop: t.density.pagePadBottom, flexWrap: mobile ? 'wrap' : 'nowrap',
         }}>
-          <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapSm} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, justifyContent: mobile ? 'flex-end' : undefined }}>
-            <button onClick={onAddInvoice} style={{
-              width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, border: 'none',
-              background: t.neutrals.inner, color: t.neutrals.muted,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: 0, flexShrink: 0,
-            }}>
-              <LIcon name="plus" size={13} stroke={2.5} />
-            </button>
+          {/* 검색에 들어가면 칩은 접혀 자리를 내준다 — 폭·투명도만 바뀌므로 레이아웃이 튀지 않는다 */}
+          <div style={{
+            maxWidth: searchOpen ? 0 : 520,
+            opacity: searchOpen ? 0 : 1,
+            overflow: 'hidden', flexShrink: 0,
+            transition: 'max-width .26s ease, opacity .16s ease',
+          }}>
+            <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapXs} />
           </div>
-        </div>
-        {/* Search */}
-        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140, transition: 'flex-basis .26s ease' }}>
+            <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+              <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+            </div>
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="거래처 · 적요 검색"
+              style={{
+                width: '100%', boxSizing: 'border-box', height: t.density.controlHSm,
+                padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                fontFamily: t.font.sans, color: t.neutrals.text,
+                background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                borderRadius: t.radius.md, outline: 'none',
+              }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{
+                position: 'absolute', right: t.density.gapSm, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={12} stroke={2} />
+              </button>
+            )}
           </div>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="거래처 · 적요 검색"
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              background: t.neutrals.inner, border: 'none',
-              borderRadius: t.radius.sm, outline: 'none',
-            }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{
-              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
-            }}>
-              <LIcon name="x" size={12} stroke={2} />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* 파일 업로드 — 드롭존은 제거(2026-08-21 CEO), 헤더의 업로드 버튼이 이 hidden input을 연다 */}
-      <input
-        ref={fileInputRef} type="file" accept=".xlsx,.csv,.xls"
-        style={{ display: 'none' }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); e.target.value = '' }}
-      />
 
       {/* Transactions */}
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
@@ -426,14 +471,12 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         </LTableScroll>
       </div>
 
-      {/* Pagination */}
+      {/* 표 바로 아래 붙는 줄 — 페이지 크기와 페이지 이동만 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-          <LPageSize value={pageSize} onChange={applyPageSize} />
-        </div>
+        <LPageSize value={pageSize} onChange={applyPageSize} />
 
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
@@ -450,7 +493,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedList.length)} / {sortedList.length}
             </span>
             <button
@@ -470,5 +513,68 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
         )}
       </div>
     </LCard>
+  )
+}
+
+const navBtn: React.CSSProperties = {
+  background: 'transparent', border: 'none', cursor: 'pointer',
+  padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+  display: 'flex', alignItems: 'center',
+}
+
+/**
+ * 총 잔고 추이 — 선택 기간의 일자별 잔고 한 줄. 시리즈가 하나라 회색 단색이고, y축은 0원 기준이다.
+ */
+function BalanceTrend({ points }: { points: Array<{ date: string; value: number }> }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const values = points.map(p => p.value)
+  // y축은 늘 0원에서 시작한다 — 최솟값을 바닥으로 잡으면 몇 만 원 움직임이 절벽처럼 보인다(CEO 2026-09-10).
+  const max = Math.max(...values, 0)
+  const min = Math.min(...values, 0)
+  const span = max - min || 1
+  const x = (i: number) => (i / (points.length - 1)) * 100
+  const y = (v: number) => 100 - ((v - min) / span) * 100
+  const line = points.map((p, i) => `${x(i).toFixed(2)},${y(p.value).toFixed(2)}`).join(' ')
+
+  return (
+    <div
+      style={{ position: 'relative', height: 92 }}
+      onMouseLeave={() => setHover(null)}
+      onMouseMove={e => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+        setHover(Math.round(ratio * (points.length - 1)))
+      }}
+    >
+      <span style={{
+        position: 'absolute', left: 0, top: -2, fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`,
+        fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+      }}>{max.toLocaleString()}</span>
+      <span style={{
+        position: 'absolute', left: 0, bottom: -2, fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`,
+        fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+      }}>0</span>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+        {[0, 100].map(p => (
+          <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.chart.grid} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        ))}
+        <polygon points={`0,100 ${line} 100,100`} fill={t.chart.monoFill} />
+        <polyline points={line} fill="none" stroke={t.chart.mono} strokeWidth={1.6} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+        {hover !== null && (
+          <line x1={x(hover)} x2={x(hover)} y1="0" y2="100" stroke={t.neutrals.muted} strokeWidth={1} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+        )}
+      </svg>
+      {hover !== null && (
+        <div style={{
+          position: 'absolute', left: `${Math.min(80, Math.max(20, x(hover)))}%`, transform: 'translateX(-50%)', top: -4,
+          background: '#1E293B', color: '#F8FAFC', pointerEvents: 'none', zIndex: 1,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.sans,
+          borderRadius: t.radius.md, padding: `${t.density.gapXs}px ${t.density.gapSm}px`, whiteSpace: 'nowrap', lineHeight: 1.4,
+        }}>
+          <span style={{ opacity: 0.7 }}>{points[hover].date}</span>{' '}
+          <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>{points[hover].value.toLocaleString()}원</span>
+        </div>
+      )}
+    </div>
   )
 }

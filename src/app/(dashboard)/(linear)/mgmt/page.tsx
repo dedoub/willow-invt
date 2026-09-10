@@ -8,9 +8,9 @@ import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { TaxManagementBlock } from './_components/tax-management-block'
 import { SalesBlock } from './_components/sales-block'
-import { CardBlock } from '@/app/(dashboard)/_components/card-block'
-import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
-import { AddInvoiceDialog, InvoiceFormData } from './_components/add-invoice-dialog'
+import { CardBlock } from './_components/card-block'
+import { AddScheduleDialog, type ScheduleFormData } from './_components/add-schedule-dialog'
+import { AddInvoiceDialog, type InvoiceFormData } from './_components/add-invoice-dialog'
 import { InvoiceDetailDialog } from './_components/invoice-detail-dialog'
 import { ParsePreviewDialog, ParsedTransaction } from './_components/parse-preview-dialog'
 import { ScheduleDetailDialog } from './_components/schedule-detail-dialog'
@@ -424,9 +424,9 @@ export default function MgmtPage() {
   return (
     <>
       {loadPhase === 0 ? <MgmtSkeleton /> : (
-      <>
+      /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리 카드 문법(2026-09-11). */
+      <div className="theme-outline">
 
-      {/* 일정 · 현금/매출 · 세금/카드 — 이메일·위키·서류함은 /work 통합 페이지로 옮겼다(CEO 2026-09-10) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <ScheduleBlock
           schedules={schedules}
@@ -447,16 +447,17 @@ export default function MgmtPage() {
               usdRate={usdRate}
               balanceHistory={balanceHistory}
             />
-            <SalesBlock invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} />
+            <SalesBlock invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} onRefresh={loadData} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-            <TaxManagementBlock obligations={taxObligations} />
+            <TaxManagementBlock obligations={taxObligations} onRefresh={loadData} />
             <CardBlock
               approvals={cardApprovals}
               billing={cardBilling}
               year={cardYear}
               onYearChange={setCardYear}
               storageKey="willow-card"
+              onRefresh={loadData}
             />
           </div>
         </div>
@@ -516,7 +517,7 @@ export default function MgmtPage() {
         onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
         onSent={() => { fetchEmails() }}
       />
-      </>
+      </div>
       )}
     </>
   )

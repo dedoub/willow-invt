@@ -2,18 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
-
-interface AddScheduleDialogProps {
-  open: boolean
-  defaultDate: string
-  editingSchedule?: WillowMgmtSchedule | null
-  onClose: () => void
-  onSave: (data: ScheduleFormData) => Promise<void>
-}
 
 export interface ScheduleFormData {
   id?: string
@@ -27,6 +21,14 @@ export interface ScheduleFormData {
   description: string
 }
 
+interface Props {
+  open: boolean
+  defaultDate: string
+  editingSchedule?: WillowMgmtSchedule | null
+  onClose: () => void
+  onSave: (data: ScheduleFormData) => Promise<void>
+}
+
 const CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'willow-mgmt', label: '윌로우' },
   { value: 'tensw-mgmt', label: '텐소프트웍스' },
@@ -35,11 +37,14 @@ const CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'other', label: '기타' },
 ]
 
+// 입력칸은 카드의 검색창과 같은 규격 — 흰 바탕에 선 한 겹, 컨트롤 글자
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', minHeight: t.density.controlHSm,
+  padding: `0 ${t.density.panelPadX}px`,
+  fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
-  background: t.neutrals.inner, color: t.neutrals.text,
-  border: 'none', borderRadius: t.radius.sm, outline: 'none',
+  background: t.neutrals.card, color: t.neutrals.text,
+  border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm, outline: 'none',
   boxSizing: 'border-box',
 }
 
@@ -61,19 +66,18 @@ function fromSchedule(s: WillowMgmtSchedule): ScheduleFormData {
   }
 }
 
-export function AddScheduleDialog({ open, defaultDate, editingSchedule, onClose, onSave }: AddScheduleDialogProps) {
+/**
+ * 일정 추가·수정 — 상세 모달과 같이 섹션 카드를 그대로 띄운다.
+ * 라벨은 지표 라벨과 같은 급, 입력칸은 카드 검색창과 같은 규격이다(2026-09-10).
+ */
+export function AddScheduleDialog({ open, defaultDate, editingSchedule, onClose, onSave }: Props) {
   const isEdit = !!editingSchedule
   const [form, setForm] = useState<ScheduleFormData>(emptyForm(defaultDate))
   const [saving, setSaving] = useState(false)
 
-  // Sync form when dialog opens/changes
   useEffect(() => {
     if (!open) return
-    if (editingSchedule) {
-      setForm(fromSchedule(editingSchedule))
-    } else {
-      setForm(emptyForm(defaultDate))
-    }
+    setForm(editingSchedule ? fromSchedule(editingSchedule) : emptyForm(defaultDate))
   }, [open, editingSchedule, defaultDate])
 
   if (!open) return null
@@ -91,118 +95,106 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, onClose,
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.pagePadX,
+    }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
 
-      {/* Panel */}
-      <div style={{
-        position: 'relative', width: 440, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
+      <LCard pad={0} style={{
+        position: 'relative', width: 440, maxWidth: '100%', maxHeight: '85vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Header */}
-        <div style={{
-          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              SCHEDULE
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '일정 수정' : '일정 추가'}
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title={isEdit ? '일정 수정' : '일정 추가'}
+            action={
+              <button onClick={onClose} title="닫기" style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+                display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={14} stroke={2} />
+              </button>
+            }
+            mb={0}
+          />
         </div>
 
-        {/* Body */}
         <div style={{
-          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
+          padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
-          {/* Title */}
-          <div>
-            <Label required>제목</Label>
+          <Field label="제목" required>
             <input
               value={form.title} onChange={e => set('title', e.target.value)}
               placeholder="일정 제목을 입력하세요"
               style={inputBase} autoFocus
             />
-          </div>
+          </Field>
 
-          {/* Category chips */}
-          <div>
-            <Label>유형</Label>
-            <LFilterChip options={CATEGORY_OPTIONS} value={form.category} onChange={v => set('category', v)} gap={t.density.gapSm} />
-          </div>
+          <Field label="유형">
+            <LFilterChip options={CATEGORY_OPTIONS} value={form.category} onChange={v => set('category', v)} gap={t.density.gapXs} />
+          </Field>
 
-          {/* Dates */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>시작일</Label>
+            <Field label="시작일">
               <input type="date" value={form.schedule_date} onChange={e => set('schedule_date', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>종료일</Label>
+            </Field>
+            <Field label="종료일">
               <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputBase} />
-            </div>
+            </Field>
           </div>
 
-          {/* Times */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>시작 시간</Label>
+            <Field label="시작 시간">
               <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>종료 시간</Label>
+            </Field>
+            <Field label="종료 시간">
               <input type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} style={inputBase} />
-            </div>
+            </Field>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label>설명</Label>
+          <Field label="설명">
             <textarea
               value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="상세 내용 (선택)"
               rows={3}
-              style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
+              style={{
+                ...inputBase, resize: 'vertical' as const, lineHeight: 1.6,
+                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
+              }}
             />
-          </div>
+          </Field>
         </div>
 
-        {/* Footer */}
         <div style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap,
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: t.density.gapSm,
+          margin: `0 ${t.density.cardPad}px`, paddingBottom: t.density.cardPad,
         }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
-          <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
-            {saving ? '저장 중...' : '저장'}
-          </LBtn>
+          <span data-primary-action="">
+            <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
+          </span>
         </div>
-      </div>
+      </LCard>
     </div>
   )
 }
 
-/* ── Sub-components ── */
-
-function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+/** 라벨 위, 입력 아래 — 카드 지표와 같은 순서로 읽는다 */
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{
-      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
-    }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
+    <div style={{ minWidth: 0 }}>
+      <div style={{
+        fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle,
+        fontFamily: t.font.sans, marginBottom: t.density.gapXs,
+      }}>
+        {label}{required && <span style={{ color: t.neutrals.subtle, marginLeft: t.density.tableRowGap }}>*</span>}
+      </div>
+      {children}
     </div>
   )
 }

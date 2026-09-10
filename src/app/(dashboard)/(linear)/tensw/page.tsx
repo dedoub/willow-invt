@@ -15,7 +15,7 @@ import { LoanBlock } from './_components/loan-block'
 import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
 import { TenswCorpDocsBlock } from './_components/corp-docs-block'
-import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
+import { TaxManagementBlock } from './_components/tax-management-block'
 
 // Dialogs
 import { ScheduleAddDialog, TenswScheduleFormData } from './_components/schedule-add-dialog'
