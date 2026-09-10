@@ -269,11 +269,6 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         <LSectionHead
           eyebrow="PROJECTS"
           title="프로젝트"
-          action={
-            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-              {filtered.length}개
-            </span>
-          }
         />
 
         {/* Summary KPIs */}
@@ -412,6 +407,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
+          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{filtered.length}개</span>
         </div>
 
         {totalPages > 1 && (

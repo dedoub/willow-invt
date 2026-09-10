@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { t, tonePalettes } from './linear-tokens'
 import { LCard } from './linear-card'
+import { LCardFoot } from './linear-card-foot'
 import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LStat } from './linear-stat'
 import { useDashCols } from './cols-toggle'
@@ -115,9 +116,6 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
         <LSectionHead
           eyebrow="AI ANSWERS"
           title="AI 답변 점유"
-          meta={data?.latestDay
-            ? `${weekLabel(data.latestDay)} 주${data.latestMeasuredAt ? ` · 마지막 측정 ${measuredLabel(data.latestMeasuredAt)}` : ''} · 질문 ${data.questions.length}개 · ${data.latest.runs}회 실행${hasBaseline ? ` · 기준선 ${weekLabel(data.baselineDay!)} 주` : ' · 기준선 회차'}`
-            : undefined}
           action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}
         />
 
@@ -270,6 +268,13 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
           </div>
         )}
       </div>
+      {data?.latestDay && (
+        <LCardFoot
+          left={`질문 ${data.questions.length}개 · ${data.latest.runs}회 실행${hasBaseline ? ` · 기준선 ${weekLabel(data.baselineDay!)} 주` : ' · 기준선 회차'}`}
+          right={`${weekLabel(data.latestDay)} 주${data.latestMeasuredAt ? ` · 측정 ${measuredLabel(data.latestMeasuredAt)}` : ''}`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
   )
 }

@@ -269,11 +269,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       : undefined
     }>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX, flexShrink: 0 }}>
-        <LSectionHead eyebrow="WIKI" title="업무위키" action={
-          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-            {notes.length}건
-          </span>
-        } />
+        <LSectionHead eyebrow="WIKI" title="업무위키" />
       </div>
 
       <div ref={wrapRef} style={{
@@ -411,6 +407,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             {/* Page size input */}
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={pageSize} onChange={applyPageSize} />
+              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{notes.length}건</span>
             </div>
 
             {/* Page navigation */}

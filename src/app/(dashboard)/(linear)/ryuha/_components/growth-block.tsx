@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -61,7 +62,7 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
       {/* Grid lines */}
       {[0, 0.25, 0.5, 0.75, 1].map(pct => (
         <line key={pct} x1={PX} x2={W - PX} y1={PY + chartH * (1 - pct)} y2={PY + chartH * (1 - pct)}
-          stroke={t.neutrals.line} strokeWidth={1} />
+          stroke={t.chart.grid} strokeWidth={1} />
       ))}
       {/* Height line */}
       {hPoints && <polyline points={hPoints} fill="none" stroke="#6366F1" strokeWidth={2.5} />}
@@ -224,9 +225,6 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 }}>
                   측정 기록
                 </div>
-                <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                  {records.length}건
-                </span>
               </div>
 
               {/* 헤더는 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
@@ -265,6 +263,10 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
             </div>
           </div>
         </div>
+        <LCardFoot
+          right={`${records.length}건`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       </LCard>
 
       {/* Dialog */}

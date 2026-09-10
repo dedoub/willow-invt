@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -184,8 +185,6 @@ export function InquiryInbox() {
         <LSectionHead
           eyebrow="INBOX"
           title="고객문의함"
-          meta={loading ? '불러오는 중' : `${threads.length}건 · 미답변 ${unanswered}건`}
-          note="네 앱 · 미답변 먼저"
           action={<LHeadBtn icon="refresh" title="새로고침" onClick={loadList} busy={loading} />}
         />
 
@@ -259,6 +258,10 @@ export function InquiryInbox() {
             )
           })}
         </div>
+        <LCardFoot
+          left="네 앱 · 미답변 먼저"
+          right={loading ? '불러오는 중' : `${threads.length}건 · 미답변 ${unanswered}건`}
+        />
       </LCard>
 
       {/* ── 대화 ─────────────────────────────────────────────────────────── */}
@@ -283,7 +286,6 @@ export function InquiryInbox() {
               meta={[
                 selectedThread.personEmail && selectedThread.personName ? selectedThread.personEmail : null,
                 shortId(selectedThread.personId),
-                `${fmt(selectedThread.createdAt)} 시작 · 마지막 ${fmt(selectedThread.lastMessageAt)}`,
               ].filter(Boolean).join(' · ')}
               action={selectedMeta?.adminUrl
                 ? <LHeadBtn icon="forward" label="자체 관리자" title={`${selectedMeta.label} 관리자 화면에서 답한다`} href={selectedMeta.adminUrl} />
@@ -414,6 +416,10 @@ export function InquiryInbox() {
                 )}
               </>
             )}
+            <LCardFoot
+              left={`${fmt(selectedThread.createdAt)} 시작`}
+              right={`마지막 ${fmt(selectedThread.lastMessageAt)}`}
+            />
           </>
         )}
       </LCard>

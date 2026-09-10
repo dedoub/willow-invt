@@ -106,11 +106,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
-          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-            {products.length}개
-          </span>
-        } />
+        <LSectionHead eyebrow="PRODUCTS" title="상품관리" />
       </div>
 
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
@@ -147,6 +143,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
+          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{products.length}개</span>
         </div>
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>

@@ -7,7 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LPageSize, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LPageSize, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { CardApproval, CardBilling } from '@/types/finance-card'
 
 // 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
@@ -288,7 +288,6 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
           <LStat
             label={`${MODE_LABELS[periodMode]} 합계`}
             value={`${periodTotal.toLocaleString()}원`}
-            tone="neg"
             sub={basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
             // 기준을 바꾸면 이 타일의 숫자만 바뀐다. 라벨 옆에 붙여야 무엇을 바꾸는 스위치인지 보인다.
             labelExtra={
@@ -402,7 +401,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
                   </span>
                 )}
               </span>
-              <LTableAmount value={a.krw} muted={isCancel} strike={isCancel} />
+              <LTableNumber value={Math.abs(a.krw)} muted={isCancel} strike={isCancel} />
             </LTableRow>
           )
         })}

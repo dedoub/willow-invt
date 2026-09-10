@@ -92,7 +92,7 @@ export function SectorRotationChartModal({
           {!loading && data && data.series.length > 0 && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.series} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke={t.neutrals.line} strokeDasharray="2 4" vertical={false} />
+                <CartesianGrid stroke={t.chart.grid} strokeDasharray="2 4" vertical={false} />
                 <XAxis
                   dataKey="date"
                   tick={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fill: t.neutrals.subtle }}

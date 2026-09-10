@@ -211,12 +211,12 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
               <LStat
                 label="합계"
                 value={`${Math.round(grandTotal).toLocaleString()}원`}
-                tone="pos"
+                tone="default"
                 title={usdRate > 0 ? `해외분은 ${usdRate.toLocaleString()}원/USD 로 환산` : '환율을 불러오지 못해 USD 를 그대로 더했어요'}
               />
             </>
           ) : (
-            <LStat label="매입 합계" value={`${Math.round(grandTotal).toLocaleString()}원`} tone="warn" title="홈택스에서 수집한 매입 전자세금계산서" />
+            <LStat label="매입 합계" value={`${Math.round(grandTotal).toLocaleString()}원`} title="홈택스에서 수집한 매입 전자세금계산서" />
           )}
         </div>
 

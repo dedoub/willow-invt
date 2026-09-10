@@ -117,13 +117,9 @@ export function EmailBlock({
             <span style={{
               fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
               color: connected ? t.accent.pos : t.accent.neg,
-              display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
+              display: 'inline-flex', alignItems: 'center',
               fontWeight: t.weight.medium,
             }}>
-              <span style={{
-                width: 5, height: 5, borderRadius: 3,
-                background: connected ? t.accent.pos : t.accent.neg,
-              }} />
               {connected ? '연결됨' : '미연결'}
             </span>
           </span>

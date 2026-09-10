@@ -136,10 +136,10 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 
         {/* Summary KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
-          <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} tone="info" />
+          <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} />
           <LStat label="평균 이율" value={avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-'} tone="default" />
-          <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} tone="warn" />
-          <LStat label="연 이자" value={totalMonthlyInterest > 0 ? `${(totalMonthlyInterest * 12).toLocaleString()}원` : '-'} tone="neg" />
+          <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} />
+          <LStat label="연 이자" value={totalMonthlyInterest > 0 ? `${(totalMonthlyInterest * 12).toLocaleString()}원` : '-'} />
         </div>
 
         {/* Status filter chips */}
@@ -180,7 +180,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                 <LTableMono align="right">
                   {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
                 </LTableMono>
-                <LTableMono align="right" tone="warn">
+                <LTableMono align="right" tone="text">
                   {monthlyInterest(loan)?.toLocaleString() ?? '-'}
                 </LTableMono>
                 <LTableNumber value={loan.principal} />

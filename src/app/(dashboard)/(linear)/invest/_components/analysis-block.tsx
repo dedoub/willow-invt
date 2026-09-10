@@ -702,7 +702,7 @@ export function AnalysisBlock({
                     allowDataOverflow={useLog || isValue}
                   />
                   {chart.suffix === 'pnl' || chart.suffix === 'pct' ? (
-                    <ReferenceLine y={0} stroke={t.neutrals.line} strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke={t.chart.grid} strokeDasharray="3 3" />
                   ) : null}
                   <Tooltip
                     contentStyle={{

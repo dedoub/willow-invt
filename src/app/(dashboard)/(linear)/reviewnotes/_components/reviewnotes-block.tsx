@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -386,9 +387,6 @@ export function ReviewnotesBlock({
         <LSectionHead
           eyebrow="FUNNEL"
           title="방문 → 가입 → 활성화 → 결제"
-          note={trafficStats?.daily[0]
-            ? `${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작 · 누적 · 봇 제외`
-            : undefined}
           action={
             <>
               <LHeadBtn icon="trending" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
@@ -527,7 +525,6 @@ export function ReviewnotesBlock({
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
               value={trafficStats.totals.visitors.toLocaleString()}
               sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
-              tone="info"
               sparkline={mobile ? undefined : cumVisitors}
             />
             <LStat
@@ -603,7 +600,6 @@ export function ReviewnotesBlock({
               // MAU가 0이면 DAU/MAU는 0으로 나눈 자리라 0%가 아니라 '아직 잴 수 없음'이다.
               valueExtra={mau > 0 ? rateExtra('DAU/MAU', stickiness) : undefined}
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
-              tone={mau > 0 ? 'info' : 'default'}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
               spark2Color={t.accent.warn}
@@ -663,6 +659,13 @@ export function ReviewnotesBlock({
         </div>
       )}
       </div>
+      {trafficStats?.daily[0] && (
+        <LCardFoot
+          left="누적 · 봇 제외"
+          right={`${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
 
     {/* 카드2: 콘텐츠·학습 지표 */}
@@ -793,7 +796,6 @@ export function ReviewnotesBlock({
             <LSectionHead
               eyebrow="USERS"
               title="사용자"
-              meta={excludedCount > 0 ? `운영 계정 ${excludedCount}명은 통계에서 제외` : undefined}
               mb={8}
               tools={mobile ? (
                 // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
@@ -973,6 +975,9 @@ export function ReviewnotesBlock({
                 {/* Page size input */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                   <LPageSize value={userPerPage} onChange={applyUserPerPage} />
+                  {excludedCount > 0 && (
+                    <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>운영 계정 {excludedCount}명 제외</span>
+                  )}
                 </div>
 
                 {/* Page navigation */}

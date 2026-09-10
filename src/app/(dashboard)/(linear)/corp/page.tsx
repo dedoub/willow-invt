@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -101,7 +102,6 @@ export default function CorpPage() {
         <LSectionHead
           eyebrow="CORPORATE RECORDS"
           title="법인서류함"
-          note={`${CORP_COMPANY_LABEL[company]}의 정관·등기·계약·결의 원본. 확정본은 수정되지 않고 버전으로만 쌓입니다.`}
           tools={<LSegmented options={COMPANY_OPTIONS} value={company} onChange={changeCompany} />}
         />
         {loadError && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={loadError} /></div>}
@@ -111,12 +111,12 @@ export default function CorpPage() {
           <LStat label="만료·임박" value={String(stats.expiring)} unit="건" sub="유효기간 30일 이내" tone={stats.expiring ? 'warn' : 'default'} />
           <LStat label="현행 정관" value={stats.articlesVersion ? `v${stats.articlesVersion}` : '-'} sub={stats.articlesFrom ? `${stats.articlesFrom} 시행` : '미등록'} />
         </div>
+        <LCardFoot left={`${CORP_COMPANY_LABEL[company]} 정관·등기·계약·결의 원본`} right="확정본은 버전으로 보존" />
       </LCard>
 
       <LCard>
         <LSectionHead
           title={mode === 'documents' ? '문서' : mode === 'rules' ? '정관·규정' : '요청'}
-          meta={mode === 'documents' ? `${documents.length}건` : mode === 'rules' ? `${rules.length}개 버전` : `${stats.pending}건 대기`}
           tools={<LSegmented options={MODE_OPTIONS} value={mode} onChange={setMode} />}
           mb={10}
         />

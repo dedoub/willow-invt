@@ -16,6 +16,7 @@ import { useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
@@ -143,8 +144,6 @@ export default function RatesPage() {
           <LSectionHead
             eyebrow="RATES"
             title={app.label}
-            meta={app.costSource ? `실측 ${app.costSource}` : '실측 없음 — 공급가 정가로 판정'}
-            note={app.table}
             action={<LHeadBtn icon="refresh" title="다시 읽기" onClick={load} busy={refreshing} />}
           />
           {app.error && <LNotice tone="danger" text={app.error} />}
@@ -242,6 +241,10 @@ export default function RatesPage() {
               )
             })}
           </div>
+          <LCardFoot
+            left={app.table}
+            right={app.costSource ? `실측 ${app.costSource}` : '공급가 정가 기준'}
+          />
         </LCard>
   )
 

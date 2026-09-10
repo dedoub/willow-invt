@@ -42,7 +42,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
     lineHeight: 1.4, wordBreak: 'keep-all' as const,
   }
   return (
-    <div style={{ marginBottom: mb ?? t.density.gapMd }}>
+    <div data-section-head="" style={{ marginBottom: mb ?? t.density.gapMd }}>
       {/* 1행: 제목 + 기본 컨트롤(action) — 어떤 화면에서도 이 줄은 깨지지 않는다.
           제목은 넘치면 줄임표, action은 flexShrink 0.
           tools는 데스크톱에서 이 줄에 합류하고, toolsInline이면 모바일에서도 남는다. */}

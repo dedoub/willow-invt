@@ -225,9 +225,6 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                 {fmtKrwSigned(closed.total)}
               </span>
             )}
-            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-              {search && filteredCount !== totalCount ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
-            </span>
           </div>
         } />
       </div>
@@ -370,6 +367,9 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
+          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>
+            {search && filteredCount !== totalCount ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
+          </span>
         </div>
 
         {totalPages > 1 && (

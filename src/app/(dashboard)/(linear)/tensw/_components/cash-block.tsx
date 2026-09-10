@@ -8,7 +8,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
-import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
 interface BankBalance {
@@ -325,11 +325,11 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
 
         {/* KPI */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
-          <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
-          <LStat label="비용" value={`${expense.toLocaleString()}원`} tone="neg" />
+          <LStat label="매출" value={`${revenue.toLocaleString()}원`} />
+          <LStat label="비용" value={`${expense.toLocaleString()}원`} />
           <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
-          <LStat label="부채" value={`${liability.toLocaleString()}원`} tone="warn" />
-          <LStat label="대체" value={`${transfer.toLocaleString()}원`} tone={transfer >= 0 ? 'pos' : 'neg'} />
+          <LStat label="부채" value={`${liability.toLocaleString()}원`} />
+          <LStat label="대체" value={`${transfer.toLocaleString()}원`} />
           <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
           <div onClick={() => setBalanceModal('우리')} style={{ cursor: 'pointer' }}>
             <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
@@ -382,12 +382,6 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
-          // 윌로우 현금관리와 동일한 규칙:
-          // expense: 양수=지출(−로 표시), 음수=환급(+로 표시 — 비용 감소)
-          // liability/asset/transfer/exchange: amount 부호 그대로
-          const isIncome = item.type === 'revenue' ? true
-            : item.type === 'expense' ? item.amount < 0
-            : item.amount >= 0
           return (
             <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(item)}>
               <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
@@ -410,7 +404,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
               <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.description}
               </span>
-              <LTableAmount value={item.amount} positive={isIncome} />
+              <LTableNumber value={item.amount} />
             </LTableRow>
           )
         })}

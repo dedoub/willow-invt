@@ -684,3 +684,28 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   border-radius: 4px;
 }
+
+
+/* ──────────────────────────────────────────────────────────────
+   카드 껍데기 실험 테마 (.theme-outline) — 2026-09-10
+   사업관리 NEW에서만 켠다. 카드 안의 내용·밀도·데이터는 건드리지 않고
+   카드의 겉모습만 레퍼런스(coderthemes Simple)처럼 바꿔 비교한다:
+   흰 면 + 1px 회색 테두리 + 큰 반경, 헤더 아래 점선 구분선, 하단 메타 바 실선.
+   확정되면 여기 값을 토큰으로 올리고 이 블록은 지운다.
+   ────────────────────────────────────────────────────────────── */
+.theme-outline [data-lcard] {
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+}
+.theme-outline [data-lcard] [data-lcard] {
+  /* 카드 안 카드는 겹선이 되지 않게 */
+  border: none;
+  border-radius: 8px;
+}
+.theme-outline [data-section-head] {
+  border-bottom: 1px dashed #E5E7EB;
+  padding-bottom: 12px;
+}
+.theme-outline [data-card-foot] {
+  border-top-color: #E5E7EB;
+}

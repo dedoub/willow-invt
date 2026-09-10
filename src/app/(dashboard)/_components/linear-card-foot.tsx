@@ -11,7 +11,7 @@ import { t } from './linear-tokens'
 export function LCardFoot({ left, right, style }: { left?: ReactNode; right?: ReactNode; style?: React.CSSProperties }) {
   if (!left && !right) return null
   return (
-    <div style={{
+    <div data-card-foot="" style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap,
       marginTop: t.density.gapMd, paddingTop: t.density.panelPadY,
       borderTop: `1px solid ${t.neutrals.line}`,

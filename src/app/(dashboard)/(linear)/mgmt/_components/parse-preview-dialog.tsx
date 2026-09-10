@@ -158,7 +158,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
                 </span>
                 <span style={{
                   textAlign: 'right', fontWeight: t.weight.medium, fontVariantNumeric: 'tabular-nums',
-                  color: isIncome ? t.accent.pos : t.accent.neg, whiteSpace: 'nowrap',
+                  color: t.neutrals.text, whiteSpace: 'nowrap',
                 }}>
                   {isIncome ? '+' : '-'}{row.amount.toLocaleString()}
                 </span>

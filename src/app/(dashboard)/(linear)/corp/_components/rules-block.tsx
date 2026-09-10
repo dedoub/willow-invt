@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableRow, LTableScroll, type LColumn,
@@ -61,9 +62,6 @@ export function RulesBlock({ rules, onSelect }: Props) {
           value={onlyEffective ? 'effective' : 'all'}
           onChange={(v) => setOnlyEffective(v === 'effective')}
         />
-        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-          {shown.length}건
-        </span>
       </div>
 
       <LTableScroll columns={COLUMNS} mobile={mobile}>
@@ -98,6 +96,7 @@ export function RulesBlock({ rules, onSelect }: Props) {
           })}
         </LTableBody>
       </LTableScroll>
+      <LCardFoot left={onlyEffective ? `${at} 기준 시행 중` : '전체 버전'} right={`${shown.length}건`} />
     </>
   )
 }

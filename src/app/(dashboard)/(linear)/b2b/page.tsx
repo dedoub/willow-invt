@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -99,7 +100,6 @@ export default function B2bPage() {
         <LSectionHead
           eyebrow="INTER-COMPANY LEDGER"
           title="관계사간거래"
-          note="세금계산서 한 장마다 업무기록·산정·문서·입금을 묶어 대사합니다."
           tools={<LSegmented options={DIRECTION_OPTIONS} value={direction} onChange={changeDirection} />}
         />
         {loadError && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={loadError} /></div>}
@@ -109,16 +109,17 @@ export default function B2bPage() {
           <LStat label="올해 공급가액 합계" value={`₩${Math.round(stats.yearSupply).toLocaleString()}`} />
           <LStat label="증빙 묶음" value={String(stats.bundled)} unit="건" />
         </div>
+        <LCardFoot left="세금계산서별 업무기록·산정·문서·입금 대사" />
       </LCard>
 
       <LCard>
         <LSectionHead
           title="정산"
-          meta={`${settlements.length}건`}
           tools={<LSegmented options={STATUS_OPTIONS} value={status} onChange={setStatus} />}
           mb={10}
         />
         <SettlementsTable settlements={settlements} status={status} onSelect={s => setSelectedRef(s.ref_no)} />
+        <LCardFoot right={`${settlements.length}건`} />
       </LCard>
 
       <SettlementDialog

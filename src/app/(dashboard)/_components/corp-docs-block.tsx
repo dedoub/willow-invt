@@ -55,8 +55,6 @@ export function CorpDocsBlock({ company, documents: given, loading: givenLoading
       <LSectionHead
         eyebrow="CORPORATE RECORDS"
         title="법인서류함"
-        meta={loading ? undefined : `${documents.length}건`}
-        note={`${CORP_COMPANY_LABEL[company]}의 계약·등기·결의 원본. 확정본은 수정되지 않고 버전으로만 쌓입니다.`}
         action={<LHeadBtn icon="chevronRight" title="전체 법인서류함" href="/corp" />}
         mb={10}
       />
@@ -66,7 +64,11 @@ export function CorpDocsBlock({ company, documents: given, loading: givenLoading
           {Array.from({ length: 5 }, (_, i) => <Bone key={i} h={26} />)}
         </div>
       ) : (
-        <DocumentsBlock documents={documents} onSelect={setSelected} />
+        <DocumentsBlock
+          documents={documents}
+          onSelect={setSelected}
+          footerNote={`${CORP_COMPANY_LABEL[company]} 계약·등기·결의 원본 · 확정본은 버전으로 보존`}
+        />
       )}
       <DocumentDialog company={company} document={selected} onClose={close} />
     </LCard>

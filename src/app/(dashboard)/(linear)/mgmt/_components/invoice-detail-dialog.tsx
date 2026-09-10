@@ -101,7 +101,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
             <span style={{
               fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontVariantNumeric: 'tabular-nums',
               fontFamily: t.font.sans, letterSpacing: -0.5,
-              color: isIncome ? t.accent.pos : t.accent.neg,
+              color: t.neutrals.text,
             }}>
               {isIncome ? '+' : '-'}{Math.abs(invoice.amount).toLocaleString()}
             </span>

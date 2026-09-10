@@ -270,7 +270,6 @@ export default function ValueChainPage() {
                 label={FACET_META[q.facet]?.q ?? q.facet}
                 value={q.total.toLocaleString()}
                 sub={q.total > 0 && q.top ? `최다 ${q.top}` : '패싯 인용 대기'}
-                tone={q.total > 0 ? 'info' : 'default'}
                 title={`AI가 /${q.facet} 패싯 페이지를 인용에 가져간 횟수. 쌓이면 이 유형의 질문 수요를 뜻한다.`}
               />
             ))}
@@ -279,8 +278,8 @@ export default function ValueChainPage() {
           {/* ② 방향: 방문자 패널 확장 */}
           <div style={{ ...qHead, marginTop: t.density.blockGap }}>② 어느 방향을 파고드나 <span style={qHeadSub}>방문자가 펼친 거래처 패널</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: t.density.kpiGap }}>
-            <LStat label="매출쪽 · 수요" value={crawl.panelSignal.revenue.toLocaleString()} sub="누가 사주나" tone={crawl.panelSignal.revenue > 0 ? 'info' : 'default'} title="방문자가 노드 페이지에서 매출처 패널을 펼친 횟수. 수요(고객) 방향 관심." />
-            <LStat label="비용쪽 · 공급" value={crawl.panelSignal.cost.toLocaleString()} sub="어디에 의존하나" tone={crawl.panelSignal.cost > 0 ? 'pos' : 'default'} title="방문자가 노드 페이지에서 지급처 패널을 펼친 횟수. 공급(의존) 방향 관심." />
+            <LStat label="매출쪽 · 수요" value={crawl.panelSignal.revenue.toLocaleString()} sub="누가 사주나" title="방문자가 노드 페이지에서 매출처 패널을 펼친 횟수. 수요(고객) 방향 관심." />
+            <LStat label="비용쪽 · 공급" value={crawl.panelSignal.cost.toLocaleString()} sub="어디에 의존하나" title="방문자가 노드 페이지에서 지급처 패널을 펼친 횟수. 공급(의존) 방향 관심." />
           </div>
           {crawl.panelSignal.recent.length > 0 && (
             <div style={{ marginTop: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
@@ -370,7 +369,7 @@ export default function ValueChainPage() {
 
         {/* 분석 아티클 업데이트 현황 (vc_articles) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular }}>{articleUpdates.length}건</span></div>
+          <div style={sectionLabel}>분석 아티클 업데이트</div>
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 540, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 헤더 (정렬 가능) — 최초 | 수정 | 제목 | 변경 | 학습·인덱싱·인용·방문 */}
@@ -398,6 +397,7 @@ export default function ValueChainPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, padding: `${t.density.panelPadY}px ${t.density.panelPadY}px 0` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={articlePerPage} onChange={applyArticlePerPage} />
+              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{articleUpdates.length}건</span>
             </div>
             {articlePages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
@@ -444,9 +444,8 @@ function MiniBars({ data }: { data: number[] }) {
     <svg width={W} height={H} style={{ display: 'block' }} aria-hidden="true">
       {data.map((v, i) => {
         const h = Math.max(1, Math.round((v / max) * (H - 1)))
-        return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={1} fill={v > 0 ? t.brand[400] : t.neutrals.line} />
+        return <rect key={i} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={1} fill={v > 0 ? t.chart.mono : t.chart.monoSoft} />
       })}
     </svg>
   )
 }
-

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -385,9 +386,6 @@ export function ScriptaBlock({
         <LSectionHead
           eyebrow="FUNNEL"
           title="가입 → 글 등록 → 연습 → 결제"
-          note={stats?.users.daily[0]
-            ? `${stats.users.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작 · 누적`
-            : undefined}
           action={
             <>
               <LHeadBtn icon="pencil" title="Scripta 앱" href="https://scripta.quest" />
@@ -483,7 +481,6 @@ export function ScriptaBlock({
               title="Scripta 계정 누적 (auth.users). 랜딩 트래픽 수집이 없어 방문 대비 전환은 아직 못 잰다."
               value={stats.users.total.toLocaleString()}
               sub={subOf(stats.users, '명')}
-              tone="info"
               sparkline={mobile ? undefined : cumOf(stats.users.daily, win)}
             />
             <LStat
@@ -557,7 +554,6 @@ export function ScriptaBlock({
               // MAU가 0이면 DAU/MAU는 0으로 나눈 자리라 0%가 아니라 '아직 잴 수 없음'이다.
               valueExtra={mau > 0 ? rateExtra('DAU/MAU', stickiness) : undefined}
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
-              tone={mau > 0 ? 'info' : 'default'}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
               spark2Color={t.accent.warn}
@@ -606,6 +602,13 @@ export function ScriptaBlock({
         )
       })()}
       </div>
+      {stats?.users.daily[0] && (
+        <LCardFoot
+          left="누적 집계"
+          right={`${stats.users.daily[0].date.slice(2).replace(/-/g, '.')} 시작`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
 
     {/* 카드2: 콘텐츠 계층 (Cortex → 글 → 문단 → 문장 → 청크) */}
@@ -643,7 +646,6 @@ export function ScriptaBlock({
             <LSectionHead
               eyebrow="CONTENT"
               title="학습 구조"
-              meta={`AI 채점 ${stats.aiGrades.total.toLocaleString()}회`}
               mb={10}
               action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
             />
@@ -678,6 +680,13 @@ export function ScriptaBlock({
           </div>
         )
       })()}
+      {!loading && stats && (
+        <LCardFoot
+          left="AI 채점"
+          right={`${stats.aiGrades.total.toLocaleString()}회`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
     </div>
 
@@ -704,7 +713,6 @@ export function ScriptaBlock({
           <LSectionHead
             eyebrow="USERS"
             title="사용자"
-            meta={excludedCount > 0 ? `운영 계정 ${excludedCount}명은 통계에서 제외` : undefined}
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
@@ -867,6 +875,9 @@ export function ScriptaBlock({
               {/* Page size input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <LPageSize value={userPerPage} onChange={applyUserPerPage} />
+                {excludedCount > 0 && (
+                  <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>운영 계정 {excludedCount}명 제외</span>
+                )}
               </div>
 
               {/* Page navigation */}

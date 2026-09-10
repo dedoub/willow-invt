@@ -118,7 +118,7 @@ function Sparkline({
         <circle cx={lastX} cy={lastY} r={1.6} fill={color} />
         {hover != null && (
           <>
-            <line x1={xy[hover].x} y1={0} x2={xy[hover].x} y2={h} stroke={t.neutrals.line} strokeWidth={0.8} strokeDasharray="2 2" />
+            <line x1={xy[hover].x} y1={0} x2={xy[hover].x} y2={h} stroke={t.chart.grid} strokeWidth={0.8} strokeDasharray="2 2" />
             {xy2 && xy2[hover] && (
               <circle cx={xy2[hover].x} cy={xy2[hover].y} r={2} fill={color2 ?? t.accent.warn} stroke={t.neutrals.card} strokeWidth={1} />
             )}
@@ -169,9 +169,9 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
   const sparkData2: SparkPoint[] = (sparkline2 ?? []).map((p, i) =>
     typeof p === 'number' ? { date: String(i), value: p } : p
   )
-  const sparkColor = sparkData.length > 1
+  const sparkColor = sparkData2.length > 1
     ? (sparkData[sparkData.length - 1].value >= sparkData[0].value ? t.accent.pos : t.accent.neg)
-    : t.neutrals.muted
+    : t.chart.mono
   const hasSpark = sparkData.length > 1
   return (
     <div

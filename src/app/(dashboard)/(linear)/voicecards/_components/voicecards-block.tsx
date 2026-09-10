@@ -729,6 +729,10 @@ export function VoicecardsBlock({
     (safeUserPage - 1) * userPerPage,
     safeUserPage * userPerPage
   )
+  const googleRows = (userStats?.users ?? []).filter(u => isVoicecardsGoogleUserRow(u.id))
+  const idleGoogle = googleRows.filter(u => !isVoicecardsLearningActivated(u)).length
+  const deviceRowCount = ((userStats?.users.length ?? 0) - googleRows.length) + deviceRows.length
+  const activatedRowCount = sortedUsers.filter(isVoicecardsLearningActivated).length
 
   const persistSorts = (next: SortCrit[]) => {
     setUserSorts(next)
@@ -1071,7 +1075,6 @@ export function VoicecardsBlock({
                     </span>
                   ) : undefined}
                   sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : '수집 대기'}
-                  tone="info"
                   sparkline={compact || svTotal === 0 ? undefined : storeVisitsData}
                 />
                 <LStat
@@ -1087,7 +1090,6 @@ export function VoicecardsBlock({
                     </span>
                   ) : undefined}
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
-                  tone="info"
                   sparkline={compact ? undefined : devicesData}
                   sparkline2={compact || svTotal === 0 ? undefined : installRateData}
                   sparkFormat2={(v) => `${v}%`}
@@ -1588,36 +1590,12 @@ export function VoicecardsBlock({
       )}
       {userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          {(() => {
-            // 이 표에는 모집단이 셋 섞여 있다: 구글 사용자 · 기기 계정 · 계정 없는 익명 기기.
-            // 예전 헤더는 "미활성 N" 하나만 보여줬는데, 그 N이 userStats.users(구글+기기계정)
-            // 기준이라 화면에 보이는 익명 기기 행은 세지 않으면서 퍼널의 미활성과도 값이
-            // 달랐다(93 vs 91). 어느 쪽도 표의 행 수를 설명하지 못했다.
-            // 이제 셋을 다 적고, 미활성은 퍼널과 같은 기준(구글 사용자)임을 명시한다.
-            const googleRows = userStats.users.filter(u => isVoicecardsGoogleUserRow(u.id))
-            const idleGoogle = googleRows.filter(u => !isVoicecardsLearningActivated(u)).length
-            const deviceRowCount = (userStats.users.length - googleRows.length) + deviceRows.length
-            // 활성화는 표의 모든 행(구글 + 기기 계정 + 익명 기기) 위에서 센다 — 아래 '활성화'
-            // 열이 '완료'를 찍는 행 수이자 퍼널 '학습 활성화' 카드의 헤드라인과 같은 수다.
-            // 판정식은 isVoicecardsLearningActivated() 하나를 셋이 공유한다.
-            const activatedRowCount = sortedUsers.filter(isVoicecardsLearningActivated).length
-            return (
-              <LSectionHead
-                eyebrow="USERS"
-                title="사용자"
-                meta={(
-                  <span title={'구글 = 구글 로그인 사용자. 기기 = 로그인 없이 쓰는 행(기기 계정 + 계정 없는 익명 기기).\n'
-                    + "활성화는 표 전체에서 '활성화' 열이 완료인 행 수 — 퍼널 '학습 활성화' 카드와 같은 값이다.\n"
-                    + '미활성은 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 활성화를 확인할 길이 '
-                    + '없는 행이 섞여 있고, 그걸 미활성에 넣으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}>
-                    구글 {googleRows.length} · 기기 {deviceRowCount} · 활성화 {activatedRowCount} · 미활성 {idleGoogle}
-                  </span>
-                )}
-                mb={8}
-                action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
-              />
-            )
-          })()}
+          <LSectionHead
+            eyebrow="USERS"
+            title="사용자"
+            mb={8}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
+          />
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
@@ -1832,6 +1810,15 @@ export function VoicecardsBlock({
               {/* Page size input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <LPageSize value={userPerPage} onChange={applyUserPerPage} />
+                <span
+                  title={'구글 = 구글 로그인 사용자. 기기 = 로그인 없이 쓰는 행(기기 계정 + 계정 없는 익명 기기).\n'
+                    + "활성화는 표 전체에서 '활성화' 열이 완료인 행 수 — 퍼널 '학습 활성화' 카드와 같은 값이다.\n"
+                    + '미활성은 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 활성화를 확인할 길이 '
+                    + '없는 행이 섞여 있고, 그걸 미활성에 넣으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}
+                  style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}
+                >
+                  구글 {googleRows.length} · 기기 {deviceRowCount} · 활성화 {activatedRowCount} · 미활성 {idleGoogle}
+                </span>
               </div>
 
               {/* Page navigation */}
@@ -2182,9 +2169,9 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
           onTouchEnd={() => setHoverIdx(null)}
         >
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
-            {/* 가이드선 — 0·50·100%. 구조선은 필요한 경계에만(t.neutrals.line). */}
+            {/* 가이드선 — 0·50·100%. */}
             {[0, 50, 100].map(p => (
-              <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.neutrals.line} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.chart.grid} strokeWidth={1} vectorEffect="non-scaling-stroke" />
             ))}
             {!soldLoading && (
               <polyline points={path(soldAt)} fill="none" stroke={SOLD} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />

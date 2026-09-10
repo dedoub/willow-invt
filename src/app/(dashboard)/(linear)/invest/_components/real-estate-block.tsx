@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -199,7 +200,7 @@ function PriceChart({ data, complexes, height = 200 }: {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.chart.grid} />
         <XAxis
           dataKey="month" tickFormatter={fmtMonth}
           tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
@@ -254,7 +255,7 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.chart.grid} />
         <XAxis
           dataKey="date" tickFormatter={fmtDate}
           tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
@@ -275,7 +276,7 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
         {complexes.map((name, i) => (
           <Line
             key={name} type="monotone" dataKey={name} name={name}
-            stroke={COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
+            stroke={complexes.length === 1 ? t.chart.mono : COMPLEX_COLORS[i % COMPLEX_COLORS.length]}
             strokeWidth={1.5} dot={false} connectNulls
           />
         ))}
@@ -291,7 +292,7 @@ function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; heig
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.chart.grid} />
         <XAxis
           dataKey="date" tickFormatter={fmtDate}
           tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
@@ -327,7 +328,7 @@ function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: numbe
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.chart.grid} />
         <XAxis
           dataKey="date" tickFormatter={fmtDate}
           tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
@@ -349,10 +350,10 @@ function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: numbe
             return [`${Number(value).toFixed(1)}%${meta}`, '괴리율']
           }}
         />
-        <ReferenceLine y={0} stroke={t.neutrals.subtle} strokeDasharray="3 3" />
+        <ReferenceLine y={0} stroke={t.chart.grid} strokeDasharray="3 3" />
         <Line
           type="monotone" dataKey="gapRate" name="괴리율"
-          stroke="#6366f1" strokeWidth={1.5} dot={false} connectNulls
+          stroke={t.chart.mono} strokeWidth={1.5} dot={false} connectNulls
         />
       </ComposedChart>
     </ResponsiveContainer>
@@ -882,7 +883,6 @@ export function RealEstateBlock() {
         <LSectionHead
           eyebrow="REAL ESTATE"
           title="부동산 리서치"
-          meta={<ListingFreshness date={listingSnapshotDate} staleDays={listingStaleDays} />}
           tools={
             <LFilterChip
               multi
@@ -1221,7 +1221,7 @@ export function RealEstateBlock() {
                 return (
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={reJeonseRatio} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={t.neutrals.line} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={t.chart.grid} />
                     <XAxis
                       dataKey="month" tickFormatter={fmtMonth}
                       tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
@@ -1245,8 +1245,8 @@ export function RealEstateBlock() {
                         return [`${Number(value).toFixed(1)}% (${parts.join(' · ')})`, '전세가율']
                       }}
                     />
-                    <ReferenceLine y={40} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }} />
-                    <ReferenceLine y={60} stroke={t.neutrals.subtle} strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }} />
+                    <ReferenceLine y={40} stroke={t.chart.grid} strokeDasharray="3 3" label={{ value: '40%', position: 'right', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }} />
+                    <ReferenceLine y={60} stroke={t.chart.grid} strokeDasharray="3 3" label={{ value: '60%', position: 'right', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }} />
                     {/*
                       신고가 아직 채워지는 구간의 시작점에 세로선을 세운다. 오른쪽은 확정치가
                       아니다 — 2026-08 은 추적 단지 매매가 15건뿐인데(7월 88건) 선만 보면
@@ -1263,7 +1263,7 @@ export function RealEstateBlock() {
                     )}
                     <Area
                       type="monotone" dataKey="ratio" name="전세가율"
-                      stroke="#6366f1" fill="#6366f1" fillOpacity={0.1}
+                      stroke={t.chart.mono} fill={t.chart.monoFill} fillOpacity={1}
                       strokeWidth={1.5} connectNulls dot={false}
                     />
                   </AreaChart>
@@ -1277,6 +1277,12 @@ export function RealEstateBlock() {
           </div>
         </div>
       </div>
+
+      <LCardFoot
+        left="네이버 호가 스냅샷"
+        right={<ListingFreshness date={listingSnapshotDate} staleDays={listingStaleDays} />}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
 
       {/* Click outside to close dropdown */}
       {complexDropdownOpen && (

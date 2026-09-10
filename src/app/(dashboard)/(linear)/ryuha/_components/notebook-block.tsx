@@ -276,11 +276,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="NOTEBOOK" title="류하 수첩" action={
-          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-            {notes.length}건
-          </span>
-        } />
+        <LSectionHead eyebrow="NOTEBOOK" title="류하 수첩" />
       </div>
 
       <div style={{
@@ -389,6 +385,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={pageSize} onChange={applyPageSize} />
+              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{notes.length}건</span>
             </div>
             {totalPages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>

@@ -263,11 +263,12 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
  * 표 안 모노 칸의 공통 껍데기. 날짜·숫자·비율이 서로 다른 크기로 찍히던 것을
  * 여기 하나로 모은다.
  */
-export function LTableMono({ children, align = 'left', tone, strong }: {
+export function LTableMono({ children, align = 'left', tone, strong, strike }: {
   children: React.ReactNode
   align?: 'left' | 'right'
   tone?: 'muted' | 'text' | 'warn' | 'neg'
   strong?: boolean
+  strike?: boolean
 }) {
   const color = tone === 'text' ? t.neutrals.text
     : tone === 'warn' ? t.accent.warn
@@ -279,6 +280,7 @@ export function LTableMono({ children, align = 'left', tone, strong }: {
       fontWeight: strong ? 500 : undefined,
       fontVariantNumeric: 'tabular-nums',
       fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
+      textDecoration: strike ? 'line-through' : undefined,
     }}>
       {children}
     </span>
@@ -300,12 +302,14 @@ export function LTableDate({ value, format = 'md', tone }: {
 }
 
 /** 부호 없이 값만 읽는 숫자 칸. 부호와 색이 필요하면 LTableAmount를 쓴다. */
-export function LTableNumber({ value, align = 'right', tone = 'text' }: {
+export function LTableNumber({ value, align = 'right', tone = 'text', muted, strike }: {
   value: number
   align?: 'left' | 'right'
   tone?: 'muted' | 'text' | 'warn' | 'neg'
+  muted?: boolean
+  strike?: boolean
 }) {
-  return <LTableMono align={align} tone={tone} strong>{Math.round(value).toLocaleString()}</LTableMono>
+  return <LTableMono align={align} tone={muted ? 'muted' : tone} strong strike={strike}>{Math.round(value).toLocaleString()}</LTableMono>
 }
 
 export function LTableAmount({

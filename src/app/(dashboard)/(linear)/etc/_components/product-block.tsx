@@ -74,9 +74,6 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
-              {etfs.length}개
-            </span>
             <LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />
             <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={onAdd}>추가</LBtn>
           </div>
@@ -132,6 +129,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
+          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{etfs.length}개</span>
         </div>
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableRow, LTableScroll, type LColumn,
 } from '@/app/(dashboard)/_components/linear-table'
@@ -45,7 +46,6 @@ export function ActionsBlock({ actions, documents, onSelectDocument }: Props) {
           value={status} onChange={setStatus}
           options={[{ value: 'pending', label: '대기' }, { value: 'done', label: '완료' }, { value: 'all', label: '전체' }]}
         />
-        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>{shown.length}건</span>
       </div>
 
       <LTableScroll columns={COLUMNS} mobile={mobile}>
@@ -77,6 +77,7 @@ export function ActionsBlock({ actions, documents, onSelectDocument }: Props) {
           })}
         </LTableBody>
       </LTableScroll>
+      <LCardFoot left={status === 'pending' ? '대기 요청' : status === 'done' ? '완료 요청' : '전체 요청'} right={`${shown.length}건`} />
     </>
   )
 }

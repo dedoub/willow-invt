@@ -110,6 +110,8 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
   `/en/templates/laws-of-habit`·`/en/templates/of-studies` 요청 완료.
 - 09-09: Portle 첫 요청에서 `Quota Exceeded`가 발생해 Scripta는 요청하지 않았다.
   `/en/guides/install-and-fullscreen`·`/en/templates/on-liberty-four-grounds`는 대기열에 유지한다.
+- 09-10: 신규 영어 가이드 `/en/guides/copywork-vs-dictation-vs-active-recall`·
+  `/en/guides/how-to-memorize-an-essay` 요청 완료.
 - 다음 후보: 남은 미색인 영어 템플릿, 이후 `/ja`·`/es`·`/it` 등 미색인 로케일 루트.
   `/privacy`·`/terms`는 계속 제외.
 
@@ -164,6 +166,8 @@ GSC 수동 색인 요청의 대기열·일일 배치·실행 기록을 관리하
 `/ko/calculators/target-amount` 요청 완료.
 09-09에는 `/ko/calculators/average-cost` 요청 단계에서 `Quota Exceeded`가 발생해 즉시 중단했다.
 해당 URL과 `/ja/calculators/average-cost`·`/ja/calculators/recurring-investment`는 대기열에 유지한다.
+09-10에 `/ko/calculators/average-cost`·`/ja/calculators/average-cost` 요청 완료.
+남은 다음 후보는 `/ja/calculators/recurring-investment`이며 당일 스냅샷으로 다시 고른다.
 Portle 권한은 08-21에 붙었고 GSC URL Inspection 요청까지 검증됐다.
 
 ### 보이스카드 독일어권 (신규 클러스터, 최우선)
@@ -228,6 +232,8 @@ Discovered·Duplicate). 원본 우선 규칙을 지킬 대상이 더 없으므�
 09-09에는 `/ko/guides/how-to-use-reviewnotes` 요청이 성공했다.
 `/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`은
 live test의 `Indexing request rejected`로 실패해 대기열에 유지한다.
+09-10에 `/de/guides/assign-problems-without-student-accounts`·
+`/fr/guides/assign-problems-without-student-accounts` 요청 완료.
 
 > 브리프가 낸 후보를 그대로 태우면 안 되는 경우가 있다. 08-09 브리프는
 > `/en/practice/grade-4-large-numbers`·`grade-5-number-operations`·`/en/templates/mistake-notebook`을
@@ -312,7 +318,16 @@ unknown 상태의 `/ko/voice-flashcard-apps`·`/pl/language-learning` 요청 완
 09-07에 `/ko/language-learning`·`/zh/exam-prep`·`/it/methods` 요청 완료.
 09-08에 `/zh/faq`·`/de/language-learning`·`/es/exam-prep` 요청 완료.
 09-09에 `/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning` 요청 완료.
+09-10에 `/de/faq`·`/ru/exam-prep`·`/pl/audio-flashcards` 요청 완료.
 남은 것: `/uk/voice-flashcard-apps`.
+
+### ValueChain.wiki 초기 대기열 (2026-09-10 첫 요청)
+
+- 공개 도메인: `https://valuechain.wiki`
+- GSC 속성: `https://valuechain.wiki/` (URL-prefix)
+- 2026-09-10 첫 스냅샷: 1,200쪽 추적, 색인 8, unknown 132, crawled-not-indexed 1,058.
+- 09-10: 검색 의도가 있는 기업 핵심 페이지 `/advantest`·`/alchip` 요청 완료.
+- 다음 후보는 당일 스냅샷과 최근 요청 로그를 다시 대조해 고른다. `/privacy`·`/terms`는 제외한다.
 
 ### 리뷰노트 로케일 허브 (08-15 소진)
 
@@ -391,6 +406,7 @@ unknown 상태의 `/ko/voice-flashcard-apps`·`/pl/language-learning` 요청 완
 | 09-07 | VC 3: `/ko/language-learning`·`/zh/exam-prep`·`/it/methods` · RN 3: `/fr/practice/grade-4-2-fractions`·`/fr/practice/grade-5-number-operations`·`/fr/practice/linear-system` · Portle 3: `/ko/guides/broker-api-to-google-sheet`·`/ja/calculators/averaging-down`·`/ko/calculators/averaging-down` · Scripta 2: `/en/templates/gettysburg-address`·`/en/templates/kennedy-inaugural-opening` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 09:17~09:24 KST. 네 서비스 09-07 스냅샷(총 1,505 URL) 확인 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 브리프의 Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 1주 미경과라 다음 영어 템플릿으로 교체. 09-06 요청분 신규 색인 VC 3·RN 2·Portle 3·Scripta 1, 미색인 RN 1(`/ja/practice/grade-5-number-operations`, unknown)·Scripta 1(`/en/templates/food-waste-in-context`, Crawled). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical이 `https://www.747live.bet/`로 표시됨 |
 | 09-08 | VC 3: `/zh/faq`·`/de/language-learning`·`/es/exam-prep` · RN 3: `/it/practice/factor-trinomial`·`/pl/guides/how-to-make-a-mistake-notebook`·`/ru/practice/grade-4-transformations` · Portle 3: `/ko/guides/actual-investment-return-last-month`·`/ko/guides/google-sheets-investment-ledger`·`/ko/calculators/target-amount` · Scripta 2: `/en/templates/laws-of-habit`·`/en/templates/of-studies` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 11:18~11:24 KST. 네 서비스 09-08 스냅샷(총 1,504 URL) 확인 후 최근 요청·색인 URL을 제외하고 GSC 실시간 미색인까지 확인해 실행. 브리프의 Scripta `/en/guides/install-and-fullscreen`은 09-02 요청 후 요청 시각 기준 1주 미경과라 다음 영어 템플릿 2건으로 교체. 09-07 요청분 신규 색인 VC 3·RN 1·Portle 3·Scripta 2, 미색인 RN 2(`/fr/practice/grade-4-2-fractions`, Duplicate without user-selected canonical · `/fr/practice/grade-5-number-operations`, Discovered). RN `/fr/practice/grade-4-2-fractions`의 Google-selected canonical은 `https://www.747live.bet/` |
 | 09-09 | VC 3: `/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning` · RN 3: `/es/practice/grade-5-number-operations`·`/fr/practice/grade-4-transformations`·`/ko/guides/how-to-use-reviewnotes` · Portle 1 시도: `/ko/calculators/average-cost` · Scripta 0 | ⚠️ 성공 4건, 실패 3건. 12:25~12:30 KST. 네 서비스 09-09 스냅샷(총 1,504 URL)과 GSC 실시간 미색인을 확인 후 실행. RN 2건은 live test `Indexing request rejected`, Portle 첫 요청은 `Quota Exceeded`로 실패해 즉시 중단하고 같은 날 재시도하지 않음. 09-08 요청분 신규 색인 VC 3·RN 2·Portle 3·Scripta 2, 미색인 RN 1(`/pl/guides/how-to-make-a-mistake-notebook`, Discovered) |
+| 09-10 | VC 3: `/de/faq`·`/ru/exam-prep`·`/pl/audio-flashcards` · RN 2: `/de/guides/assign-problems-without-student-accounts`·`/fr/guides/assign-problems-without-student-accounts` · Portle 2: `/ko/calculators/average-cost`·`/ja/calculators/average-cost` · Scripta 2: `/en/guides/copywork-vs-dictation-vs-active-recall`·`/en/guides/how-to-memorize-an-essay` · ValueChain.wiki 2: `/advantest`·`/alchip` | ✅ 11건 전부 `Indexing requested`, 실패·quota 초과 없음. 14:20 KST 완료. 다섯 서비스 09-10 스냅샷(총 2,293 URL)과 최근 요청 로그를 확인해 실행. 09-09 성공 요청분 신규 색인 VC 3(`/uk/memorization`·`/uk/audio-flashcards`·`/uk/language-learning`), 미색인 RN 1(`/ko/guides/how-to-use-reviewnotes`, Duplicate without user-selected canonical) |
 | 08-06~ | 스냅샷 기준 재평가. 요청분이 색인으로 넘어가는 속도를 보고 계속/중단 결정 | - |
 
 ### 08-07 배치 결과 (08-08 스냅샷)

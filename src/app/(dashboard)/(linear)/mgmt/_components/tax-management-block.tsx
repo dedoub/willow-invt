@@ -115,7 +115,6 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         <LSectionHead
           eyebrow="TAX & INSURANCE"
           title="세금관리"
-          meta="은행 출금 자동 매칭"
           tools={
             <LSegmented
               value={source}
@@ -221,6 +220,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
+          <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>은행 출금 자동 매칭</span>
         </div>
 
         {totalPages > 1 && (

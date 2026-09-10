@@ -27,9 +27,10 @@ const COLUMNS: LColumn<CorpDocument>[] = [
 interface Props {
   documents: CorpDocument[]
   onSelect: (doc: CorpDocument) => void
+  footerNote?: string
 }
 
-export function DocumentsBlock({ documents, onSelect }: Props) {
+export function DocumentsBlock({ documents, onSelect, footerNote }: Props) {
   const mobile = useIsMobile()
   const [group, setGroup] = useState<DocGroup>('all')
   const [page, setPage] = useState(0)
@@ -101,15 +102,16 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
 
       <Pagination
         page={safePage} totalPages={totalPages} pageSize={pageSize} total={sorted.length}
-        onPage={setPage} onPageSize={applyPageSize}
+        onPage={setPage} onPageSize={applyPageSize} footerNote={footerNote}
       />
     </>
   )
 }
 
-export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSize }: {
+export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSize, footerNote }: {
   page: number; totalPages: number; pageSize: number; total: number
   onPage: (updater: (p: number) => number) => void; onPageSize: (n: number) => void
+  footerNote?: string
 }) {
   const atStart = page === 0
   const atEnd = page >= totalPages - 1
@@ -118,7 +120,15 @@ export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSi
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: `${t.density.gapSm}px 0 0`, marginTop: t.density.gapSm, borderTop: `1px solid ${t.neutrals.line}`,
     }}>
-      <LPageSize value={pageSize} onChange={onPageSize} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0, flex: 1 }}>
+        <LPageSize value={pageSize} onChange={onPageSize} />
+        <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{total}건</span>
+        {footerNote && (
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>
+            {footerNote}
+          </span>
+        )}
+      </div>
       {totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
           <button disabled={atStart} onClick={() => onPage(p => Math.max(0, p - 1))} style={pagerBtn(atStart)}>

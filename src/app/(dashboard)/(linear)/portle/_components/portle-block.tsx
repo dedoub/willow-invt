@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
@@ -293,7 +294,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         <LSectionHead
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 로그인 → 활성화 → 구독"
-          note="서버 AI 로그 기준 · 원장은 기기/Drive"
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
 
@@ -405,7 +405,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   </span>
                 ) : undefined}
                 sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : PENDING_STORE}
-                tone="info"
                 sparkline={mobile || svTotal === 0 ? undefined : storeVisitsData}
               />
               <LStat
@@ -414,7 +413,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 value={installs.length > 0 ? installs.length.toLocaleString() : '—'}
                 valueExtra={installConv !== null ? rateExtra('전환', installConv) : undefined}
                 sub={installs.length > 0 ? todaySub(installs) : PENDING_APP}
-                tone="info"
                 sparkline={mobile || installs.length === 0 ? undefined : installsCum}
               />
               <LStat
@@ -471,6 +469,11 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           )
         })()}
       </div>
+      <LCardFoot
+        left="서버 AI 로그 기준"
+        right="원장: 기기/Drive"
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
 
     {/* 카드2: AI 안정성 · 기능별 — 호출량/성공률/토큰 + kind별 분해 */}
@@ -503,7 +506,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기 — 기기 사용자도 정상 경로)."
                 value={totals.subjects.toLocaleString()}
                 sub={`오늘 ${totals.subjectsToday.toLocaleString()}명 · 7일 ${totals.subjects7d.toLocaleString()}명`}
-                tone="info"
               />
               <LStat
                 label="AI 호출"
@@ -614,7 +616,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           <LSectionHead
             eyebrow="USERS"
             title="사용자"
-            meta={`${sortedUsers.length}명 · AI 호출 기준`}
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
@@ -719,6 +720,13 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           </div>
           </div>
         </div>
+      )}
+      {!loading && stats && (
+        <LCardFoot
+          left="AI 호출 기준"
+          right={`${sortedUsers.length}명`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       )}
     </LCard>
     </div>

@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, useIsMobile } from './linear-tokens'
 import { LCard } from './linear-card'
+import { LCardFoot } from './linear-card-foot'
 import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LSegmented } from './linear-segmented'
 import { LStat } from './linear-stat'
@@ -667,7 +668,6 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           <LSectionHead
             eyebrow="SEARCH CONSOLE"
             title="검색 노출 → 클릭"
-            meta={gsc ? `${gsc.range.startDate} ~ ${gsc.range.endDate} · 구글 집계 ${gsc.range.lagDays}일 지연` : undefined}
             tools={periodToggle}
             toolsInline
             action={
@@ -809,6 +809,13 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             </div>
           )}
         </div>
+        {gsc && (
+          <LCardFoot
+            left={`${gsc.range.startDate} ~ ${gsc.range.endDate}`}
+            right={`구글 집계 ${gsc.range.lagDays}일 지연`}
+            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          />
+        )}
       </LCard>
 
       {/* ── 섹션 2: 진입 후 행동 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
@@ -817,7 +824,6 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           <LSectionHead
             eyebrow="UMAMI"
             title="진입 후 행동"
-            meta={data ? `최근 ${data.range.days}일 · 자기 방문 미제외` : undefined}
             action={
               <>
                 {data && <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} />}
@@ -946,6 +952,12 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             </div>
           )}
         </div>
+        {data && (
+          <LCardFoot
+            left="자기 방문 미제외"
+            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          />
+        )}
       </LCard>
     </>
   )
