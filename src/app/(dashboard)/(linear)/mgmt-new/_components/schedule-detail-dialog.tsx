@@ -82,7 +82,7 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
           />
         </div>
 
-        <div style={{ padding: `0 ${t.density.cardPad - t.density.panelPadX}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
           {facts.map((f, i) => (
             <div key={f.label} style={{
               padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
@@ -112,14 +112,14 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
 
         {/* 태스크 — 카드 안 목록과 같은 문법. 행 사이는 얇은 선으로만 나눈다 */}
         {tasks.length > 0 && (
-          <div style={{ padding: `${t.density.panelPadY}px ${t.density.cardPad}px 0`, borderTop: `1px solid ${t.neutrals.line}`, marginTop: t.density.panelPadY }}>
+          <div style={{ margin: `${t.density.panelPadY}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY, borderTop: `1px solid ${t.neutrals.line}` }}>
             <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapSm }}>
               태스크 {tasks.filter(task => task.is_completed).length}/{tasks.length}
             </div>
             {tasks.map((task, i) => (
               <div key={task.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: t.density.kpiGap,
-                padding: `${t.density.gapSm}px 0`,
+                padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`,
                 borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : undefined,
               }}>
                 <span style={{

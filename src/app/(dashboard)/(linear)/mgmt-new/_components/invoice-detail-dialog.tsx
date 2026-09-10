@@ -88,7 +88,7 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
           />
         </div>
 
-        <div style={{ padding: `0 ${t.density.cardPad - t.density.panelPadX}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
           {facts.map((f, i) => (
             <div key={f.label} style={{
               padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
