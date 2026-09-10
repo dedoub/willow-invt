@@ -79,20 +79,17 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
         position: 'relative', width: 'min(560px, calc(100vw - 24px))', maxHeight: '85vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead
-            title={doc.title}
-            action={
-              <button onClick={onClose} title="닫기" style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
-                display: 'flex', alignItems: 'center',
-              }}>
-                <LIcon name="x" size={14} stroke={2} />
-              </button>
-            }
-            mb={0}
-          />
+        {/* 닫기는 다른 상세 모달과 같은 자리 — 카드 모서리에서 10px(2026-09-11) */}
+        <button onClick={onClose} aria-label="닫기" title="닫기" style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted, display: 'flex',
+        }}>
+          <LIcon name="x" size={14} stroke={2} />
+        </button>
+
+        <div style={{ padding: `${t.density.cardPad}px 32px ${t.density.panelPadY}px ${t.density.cardPad}px` }}>
+          <LSectionHead title={doc.title} mb={0} />
         </div>
 
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
