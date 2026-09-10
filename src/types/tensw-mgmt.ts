@@ -42,6 +42,8 @@ export interface TenswMgmtSchedule {
   start_time: string | null
   end_time: string | null
   type: 'task' | 'meeting' | 'deadline'
+  category: 'finance' | 'other'
+  source_key: string | null
   color: string | null
   client_id: string | null
   milestone_id: string | null

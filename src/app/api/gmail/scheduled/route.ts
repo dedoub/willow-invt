@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
+import { isInvoiceDeliveryTargetAllowed, type InvoiceDeliveryTarget } from '@/lib/invoice/delivery-policy'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest) {
     const bcc = formData.get('bcc') as string | null
     const replyTo = formData.get('replyTo') as string | null
     const scheduledAt = formData.get('scheduledAt') as string
+    const invoiceId = formData.get('invoiceId') as string | null
+    const invoiceTarget = formData.get('invoiceTarget') as InvoiceDeliveryTarget | null
 
     if (!to || !subject || !body || !scheduledAt) {
       return NextResponse.json(
@@ -29,6 +32,20 @@ export async function POST(request: NextRequest) {
         { error: 'Scheduled time must be in the future' },
         { status: 400 }
       )
+    }
+
+    if (invoiceId && invoiceTarget) {
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('willow_invoices')
+        .select('line_items')
+        .eq('id', invoiceId)
+        .single()
+      if (invoiceError || !invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+      if (!isInvoiceDeliveryTargetAllowed(invoice, invoiceTarget)) {
+        return NextResponse.json({ error: 'Referral Fee invoices can only be sent to the bank' }, { status: 400 })
+      }
     }
 
     // Upload attachments to Storage

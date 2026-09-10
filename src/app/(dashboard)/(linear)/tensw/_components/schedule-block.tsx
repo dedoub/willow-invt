@@ -6,11 +6,11 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { TenswMgmtSchedule, TenswMgmtClient } from '@/types/tensw-mgmt'
+import { TenswMgmtSchedule } from '@/types/tensw-mgmt'
+import { getScheduleCategory, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
 
 interface ScheduleBlockProps {
   schedules: TenswMgmtSchedule[]
-  clients: TenswMgmtClient[]
   onAddSchedule: (date: string) => void
   onToggleComplete: (id: string, completed: boolean) => void
   onSelectSchedule: (schedule: TenswMgmtSchedule) => void
@@ -50,10 +50,8 @@ function getMonthGrid(year: number, month: number): Date[][] {
   return weeks
 }
 
-function getClientTone(s: TenswMgmtSchedule): { bg: string; fg: string } {
-  const color = s.client?.color
-  if (color) return { bg: color + '20', fg: color }
-  // fallback by type
+function getScheduleTone(s: TenswMgmtSchedule): { bg: string; fg: string } {
+  if (getScheduleCategory(s) === 'finance') return tonePalettes.info
   if (s.type === 'deadline') return tonePalettes.warn
   if (s.type === 'meeting') return tonePalettes.info
   return tonePalettes.neutral
@@ -69,7 +67,7 @@ function EventChip({ s, compact, onToggle, onSelect }: {
   onToggle: (id: string, completed: boolean) => void
   onSelect: (schedule: TenswMgmtSchedule) => void
 }) {
-  const colors = getClientTone(s)
+  const colors = getScheduleTone(s)
   const done = s.is_completed
   return (
     <div style={{
@@ -182,7 +180,7 @@ function DayCell({
         {dotsOnly ? (
           <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: t.density.gapXs, marginTop: t.density.tableRowGap }}>
             {schedules.slice(0, 6).map(s => {
-              const tone = getClientTone(s)
+              const tone = getScheduleTone(s)
               return (
                 <span key={s.id} style={{
                   width: 6, height: 6, borderRadius: '50%',
@@ -242,7 +240,7 @@ function DayCell({
   )
 }
 
-export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
+export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
   const mobile = useIsMobile()
   const [selectedDate, setSelectedDate] = useState<string>(() => formatDateLocal(new Date()))
   const [viewMode, setViewMode] = useState<'week' | 'month'>(() => {
@@ -258,13 +256,13 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
     localStorage.setItem('tensw-schedule-view-mode', mode)
   }
   const [baseDate, setBaseDate] = useState(new Date())
-  const [clientFilter, setClientFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | ScheduleCategory>('all')
   const todayStr = formatDateLocal(new Date())
 
   const filteredSchedules = useMemo(() => {
-    if (clientFilter === 'all') return schedules
-    return schedules.filter(s => s.client_id === clientFilter)
-  }, [schedules, clientFilter])
+    if (categoryFilter === 'all') return schedules
+    return schedules.filter(s => getScheduleCategory(s) === categoryFilter)
+  }, [schedules, categoryFilter])
 
   const navigate = (dir: -1 | 1) => {
     setBaseDate(prev => {
@@ -321,42 +319,31 @@ export function ScheduleBlock({ schedules, clients, onAddSchedule, onToggleCompl
         </button>
       </div>
 
-      {/* Client filter chips */}
+      {/* Category filter chips */}
       <div style={{
         display: 'flex', gap: t.density.gapXs, marginBottom: t.density.gapMd, flexWrap: 'wrap',
       }}>
-        {/* All chip */}
-        <button
-          onClick={() => setClientFilter('all')}
-          style={{
-            border: 'none', cursor: 'pointer',
-            padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-            fontFamily: t.font.sans,
-            fontWeight: clientFilter === 'all' ? t.weight.medium : t.weight.regular,
-            background: clientFilter === 'all' ? t.brand[100] : t.neutrals.inner,
-            color: clientFilter === 'all' ? t.brand[700] : t.neutrals.muted,
-            transition: 'all .12s',
-          }}
-        >
-          전체
-        </button>
-        {clients.map((client) => {
-          const active = clientFilter === client.id
+        {([
+          { value: 'all', label: '전체' },
+          { value: 'finance', label: '재무' },
+          { value: 'other', label: '기타' },
+        ] as const).map(option => {
+          const active = categoryFilter === option.value
           return (
             <button
-              key={client.id}
-              onClick={() => setClientFilter(client.id)}
+              key={option.value}
+              onClick={() => setCategoryFilter(option.value)}
               style={{
                 border: 'none', cursor: 'pointer',
                 padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans,
                 fontWeight: active ? t.weight.medium : t.weight.regular,
-                background: active ? client.color + '20' : t.neutrals.inner,
-                color: active ? client.color : t.neutrals.muted,
+                background: active ? t.brand[100] : t.neutrals.inner,
+                color: active ? t.brand[700] : t.neutrals.muted,
                 transition: 'all .12s',
               }}
             >
-              {client.name}
+              {option.label}
             </button>
           )
         })}

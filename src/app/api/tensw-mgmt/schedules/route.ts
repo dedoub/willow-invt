@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('tensw_mgmt_schedules')
-      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, category, source_key, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .order('schedule_date')
       .order('start_time')
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('tensw_mgmt_schedules')
       .insert(body)
-      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, category, source_key, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .single()
 
     if (error) throw error
@@ -118,7 +118,7 @@ export async function PUT(request: Request) {
       .from('tensw_mgmt_schedules')
       .update(updates)
       .eq('id', id)
-      .select('id, title, schedule_date, end_date, start_time, end_time, type, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
+      .select('id, title, schedule_date, end_date, start_time, end_time, type, category, source_key, is_completed, description, client_id, milestone_ids, client:tensw_mgmt_clients(name, color), tasks:tensw_mgmt_tasks(id, content, is_completed, deadline)')
       .single()
 
     if (error) throw error

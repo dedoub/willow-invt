@@ -5,6 +5,7 @@ import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule, TenswMgmtClient } from '@/types/tensw-mgmt'
+import { getScheduleCategory, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
 
 interface ScheduleAddDialogProps {
   open: boolean
@@ -24,6 +25,7 @@ export interface TenswScheduleFormData {
   start_time: string
   end_time: string
   type: 'task' | 'meeting' | 'deadline'
+  category: ScheduleCategory
   client_id: string
   description: string
 }
@@ -46,7 +48,7 @@ function emptyForm(date: string): TenswScheduleFormData {
   return {
     title: '', schedule_date: date, end_date: '',
     start_time: '', end_time: '',
-    type: 'task', client_id: '', description: '',
+    type: 'task', category: 'other', client_id: '', description: '',
   }
 }
 
@@ -59,6 +61,7 @@ function fromSchedule(s: TenswMgmtSchedule): TenswScheduleFormData {
     start_time: s.start_time || '',
     end_time: s.end_time || '',
     type: s.type,
+    category: getScheduleCategory(s),
     client_id: s.client_id || '',
     description: s.description || '',
   }
@@ -181,6 +184,15 @@ export function ScheduleAddDialog({
                   {t_.label}
                 </ChipBtn>
               ))}
+            </div>
+          </div>
+
+          {/* Category chips */}
+          <div>
+            <Label>일정 분류</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
+              <ChipBtn active={form.category === 'finance'} onClick={() => set('category', 'finance')}>재무</ChipBtn>
+              <ChipBtn active={form.category === 'other'} onClick={() => set('category', 'other')}>기타</ChipBtn>
             </div>
           </div>
 

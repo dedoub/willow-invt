@@ -217,6 +217,7 @@ export async function tenswCreateSchedule(params: {
   start_time?: string
   end_time?: string
   type?: string
+  category?: 'finance' | 'other'
   client_id?: string
   milestone_ids?: string[]
   description?: string
@@ -242,6 +243,7 @@ export async function tenswUpdateSchedule(params: {
   start_time?: string
   end_time?: string
   type?: string
+  category?: 'finance' | 'other'
   client_id?: string
   milestone_ids?: string[]
   description?: string
