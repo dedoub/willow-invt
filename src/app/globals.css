@@ -805,10 +805,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border: 1px solid #E5E7EB;
   border-radius: 16px !important;
 }
-/* 모달 안 구획은 점선으로 나눈다 — 실선 상자가 여럿이면 카드 안에 카드가 겹친 것처럼 보인다 */
+/* 모달 안 상자는 회색 판을 벗고 실선 한 겹만. 점선은 푸터 구분선에만 쓴다 */
 .theme-outline [data-modal-panel] {
   background: transparent !important;
-  border: 1px dashed #DDE1E5;
+  border: 1px solid #E7E9EB;
 }
 .theme-outline [data-modal-foot] {
   background: transparent !important;
