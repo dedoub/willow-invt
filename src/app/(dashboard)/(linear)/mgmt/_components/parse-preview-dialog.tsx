@@ -85,17 +85,17 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               IMPORT PREVIEW
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              파싱 결과 확인 {bankName && <span style={{ fontWeight: 400, color: t.neutrals.muted, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, marginLeft: 6 }}>· {bankName}</span>}
+              파싱 결과 확인 {bankName && <span style={{ fontWeight: 400, color: t.neutrals.muted, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, marginLeft: t.density.gapSm }}>· {bankName}</span>}
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -105,19 +105,19 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
 
         {/* Info bar */}
         <div style={{
-          margin: '0 20px 8px', padding: '8px 12px', borderRadius: t.radius.sm,
+          margin: '0 20px 8px', padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
           background: t.neutrals.inner, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans,
         }}>
           {rows.length}건 파싱됨 · {selectedCount}건 선택 · 유형 배지를 클릭하면 변경 가능
         </div>
 
         {/* Table */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: `0 ${t.density.pagePadX}px` }}>
           <LTableScroll minWidth={480}>
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '28px 72px 44px 1fr 1.2fr auto',
-            gap: 6, padding: '8px 0', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
+            gap: t.density.gapSm, padding: `${t.density.panelPadY}px 0`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
             color: t.neutrals.subtle, letterSpacing: 0.5, textTransform: 'uppercase' as const,
           }}>
             <span style={{ cursor: 'pointer' }} onClick={toggleAll}>
@@ -136,7 +136,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
             return (
               <div key={idx} style={{
                 display: 'grid', gridTemplateColumns: '28px 72px 44px 1fr 1.2fr auto',
-                gap: 6, padding: '8px 0', alignItems: 'center',
+                gap: t.density.gapSm, padding: `${t.density.panelPadY}px 0`, alignItems: 'center',
                 borderTop: `1px solid ${t.neutrals.line}`,
                 fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, opacity: row._selected ? 1 : 0.4,
               }}>
@@ -147,7 +147,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
                   {row.date.slice(5)}
                 </span>
                 <span onClick={() => cycleType(idx)} style={{
-                  display: 'inline-block', padding: '2px 5px', borderRadius: t.radius.sm,
+                  display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center', cursor: 'pointer',
                   background: tone.bg, color: tone.fg,
                 }}>
@@ -173,13 +173,13 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
             {selectedCount}건 반영 예정
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
             <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
             <LBtn variant="brand" size="sm" onClick={handleConfirm} disabled={saving || selectedCount === 0}>
               {saving ? '저장 중...' : `${selectedCount}건 반영`}
@@ -194,7 +194,7 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
 function CheckBox({ checked }: { checked: boolean }) {
   return (
     <div style={{
-      width: 16, height: 16, borderRadius: 4,
+      width: 16, height: 16, borderRadius: t.radius.sm,
       background: checked ? t.brand[600] : t.neutrals.inner,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'all .12s',

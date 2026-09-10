@@ -118,7 +118,7 @@ export function InvoiceBlock({
     background: active ? activeBg : 'none',
     border: 'none',
     cursor: 'pointer',
-    padding: '2px 5px',
+    padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
     borderRadius: t.radius.sm,
     fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
     fontFamily: t.font.mono,
@@ -128,7 +128,7 @@ export function InvoiceBlock({
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead
           eyebrow="INVOICES"
           title="인보이스"
@@ -145,7 +145,7 @@ export function InvoiceBlock({
       </div>
 
       {/* Invoice rows */}
-      <div style={{ padding: '0 4px 4px' }}>
+      <div style={{ padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
         {paged.map(inv => {
           const effective = getEffectiveInvoiceStatus(inv)
           const sty = STATUS_STYLES[effective]
@@ -156,9 +156,9 @@ export function InvoiceBlock({
             <div
               key={inv.id}
               style={{
-                padding: '8px 10px',
+                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
                 borderRadius: t.radius.sm,
-                marginBottom: 2,
+                marginBottom: t.density.tableRowGap,
               }}
             >
               {/* Line 1: status badge | invoice_no | date — actions right */}
@@ -166,13 +166,13 @@ export function InvoiceBlock({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: 6,
+                gap: t.density.gapSm,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0, overflow: 'hidden' }}>
                   <span style={{
                     fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
-                    padding: '2px 6px',
+                    padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
                     borderRadius: t.radius.sm,
                     background: sty.bg,
                     color: sty.fg,
@@ -209,7 +209,7 @@ export function InvoiceBlock({
                 </div>
 
                 {/* Action buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
                   {/* PDF */}
                   <a
                     href={`/api/invoices/${inv.id}/pdf`}
@@ -219,7 +219,7 @@ export function InvoiceBlock({
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      padding: '2px 5px',
+                      padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
                       borderRadius: t.radius.sm,
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
                       fontFamily: t.font.mono,
@@ -275,7 +275,7 @@ export function InvoiceBlock({
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      padding: 4,
+                      padding: t.density.gapXs,
                       color: t.neutrals.subtle,
                     }}
                   >
@@ -288,9 +288,9 @@ export function InvoiceBlock({
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                marginTop: 3,
-                paddingLeft: 2,
+                gap: t.density.kpiGap,
+                marginTop: t.density.gapXs,
+                paddingLeft: t.density.tableRowGap,
                 minWidth: 0,
               }}>
                 <span style={{
@@ -331,20 +331,20 @@ export function InvoiceBlock({
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -360,7 +360,7 @@ export function InvoiceBlock({
               onClick={() => setPage(p => p + 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,

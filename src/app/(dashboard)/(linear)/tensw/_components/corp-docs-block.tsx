@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/app/(dashboard)/_components/linear-tokens'
+
 import { useCallback, useState } from 'react'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
@@ -31,9 +33,9 @@ export function TenswCorpDocsBlock({ documents, loading, error }: Props) {
         action={<LHeadBtn icon="chevronRight" title="전체 법인서류함" href="/corp" />}
         mb={10}
       />
-      {error && <div style={{ marginBottom: 10 }}><LNotice tone="danger" text={error} /></div>}
+      {error && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={error} /></div>}
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
           {Array.from({ length: 5 }, (_, i) => <Bone key={i} h={26} />)}
         </div>
       ) : (

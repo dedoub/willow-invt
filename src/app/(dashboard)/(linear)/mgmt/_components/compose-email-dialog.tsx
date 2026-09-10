@@ -18,7 +18,7 @@ interface ComposeEmailDialogProps {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -99,9 +99,9 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: t.density.tableRowGap }}>
               COMPOSE
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
@@ -109,7 +109,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -118,7 +118,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
         </div>
 
         {/* Body */}
-        <div style={{ padding: '0 20px 16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <div>
             <Label required>받는 사람</Label>
             <input value={to} onChange={e => setTo(e.target.value)} placeholder="email@example.com" style={inputStyle} autoFocus />
@@ -143,10 +143,10 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
           {/* File attach */}
           <div>
             <Label>첨부파일</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
               {files.map((f, i) => (
                 <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px',
+                  display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`,
                   borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                 }}>
                   <LIcon name="file" size={10} stroke={1.8} color={t.neutrals.subtle} />
@@ -160,7 +160,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
                 </span>
               ))}
               <label style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px',
+                display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.panelPadX}px`,
                 borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                 color: t.neutrals.subtle, cursor: 'pointer',
               }}>
@@ -175,7 +175,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px', background: t.neutrals.inner, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner, display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
           <LBtn variant="brand" size="sm" onClick={handleSend} disabled={sending || !to.trim() || !subject.trim()}>
             {sending ? '전송 중...' : '전송'}
@@ -188,8 +188,8 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 5 }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+    <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: t.density.gapSm }}>
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }

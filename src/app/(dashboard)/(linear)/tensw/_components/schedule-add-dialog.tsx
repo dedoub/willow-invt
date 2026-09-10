@@ -35,7 +35,7 @@ const TYPE_OPTIONS: { key: 'task' | 'meeting' | 'deadline'; label: string }[] = 
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -134,10 +134,10 @@ export function ScheduleAddDialog({
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               SCHEDULE
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
@@ -145,7 +145,7 @@ export function ScheduleAddDialog({
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -155,8 +155,8 @@ export function ScheduleAddDialog({
 
         {/* Body */}
         <div style={{
-          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: 16,
+          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
         }}>
           {/* Title */}
           <div>
@@ -171,7 +171,7 @@ export function ScheduleAddDialog({
           {/* Type chips */}
           <div>
             <Label>업무 유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
               {TYPE_OPTIONS.map(t_ => (
                 <ChipBtn
                   key={t_.key}
@@ -187,7 +187,7 @@ export function ScheduleAddDialog({
           {/* Client chips */}
           <div>
             <Label>클라이언트</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, alignItems: 'center' }}>
               {/* No client option */}
               <ChipBtn
                 active={form.client_id === ''}
@@ -225,9 +225,9 @@ export function ScheduleAddDialog({
             {/* Inline add client form */}
             {addingClient && (
               <div style={{
-                marginTop: 8, padding: 10, borderRadius: t.radius.md,
+                marginTop: t.density.kpiGap, padding: t.density.panelPadX, borderRadius: t.radius.md,
                 background: t.neutrals.inner,
-                display: 'flex', flexDirection: 'column', gap: 8,
+                display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
               }}>
                 <input
                   value={newClientName}
@@ -237,13 +237,13 @@ export function ScheduleAddDialog({
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter') handleAddClient() }}
                 />
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: t.density.gapXs }}>
                   {CLIENT_COLORS.map(c => (
                     <button
                       key={c}
                       onClick={() => setNewClientColor(c)}
                       style={{
-                        width: 20, height: 20, borderRadius: 999,
+                        width: 20, height: 20, borderRadius: t.radius.pill,
                         background: c, border: 'none', cursor: 'pointer', padding: 0,
                         // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
                         color: readableOn(c), fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
@@ -252,11 +252,11 @@ export function ScheduleAddDialog({
                     >{newClientColor === c ? '✓' : ''}</button>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => { setAddingClient(false); setNewClientName('') }}
                     style={{
-                      padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
+                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
                       background: 'transparent', border: 'none', cursor: 'pointer',
                       color: t.neutrals.muted, fontFamily: t.font.sans,
                     }}
@@ -265,7 +265,7 @@ export function ScheduleAddDialog({
                     onClick={handleAddClient}
                     disabled={savingClient || !newClientName.trim()}
                     style={{
-                      padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
+                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
                       background: t.brand[600], border: 'none', cursor: 'pointer',
                       color: '#fff', fontFamily: t.font.sans, fontWeight: t.weight.regular,
                       opacity: !newClientName.trim() ? 0.5 : 1,
@@ -277,7 +277,7 @@ export function ScheduleAddDialog({
           </div>
 
           {/* Dates */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>시작일</Label>
               <input type="date" value={form.schedule_date} onChange={e => set('schedule_date', e.target.value)} style={inputBase} />
@@ -289,7 +289,7 @@ export function ScheduleAddDialog({
           </div>
 
           {/* Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>시작 시간</Label>
               <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} style={inputBase} />
@@ -314,8 +314,8 @@ export function ScheduleAddDialog({
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
+          display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap,
         }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
           <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
@@ -333,9 +333,9 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }
@@ -351,7 +351,7 @@ function ChipBtn({
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? (activeStyle?.background ?? t.brand[100]) : t.neutrals.inner,
       color: active ? (activeStyle?.color ?? t.brand[700]) : t.neutrals.muted,

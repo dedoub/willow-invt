@@ -104,7 +104,7 @@ export default function CorpPage() {
           note={`${CORP_COMPANY_LABEL[company]}의 정관·등기·계약·결의 원본. 확정본은 수정되지 않고 버전으로만 쌓입니다.`}
           tools={<LSegmented options={COMPANY_OPTIONS} value={company} onChange={changeCompany} />}
         />
-        {loadError && <div style={{ marginBottom: 10 }}><LNotice tone="danger" text={loadError} /></div>}
+        {loadError && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={loadError} /></div>}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap }}>
           <LStat label="문서" value={String(documents.length)} unit="건" sub={`확정 버전 ${stats.finalVersions}개`} />
           <LStat label="대기 요청" value={String(stats.pending)} unit="건" sub={stats.overdue ? `기한 지남 ${stats.overdue}건` : '기한 내'} tone={stats.overdue ? 'neg' : stats.pending ? 'warn' : 'default'} />

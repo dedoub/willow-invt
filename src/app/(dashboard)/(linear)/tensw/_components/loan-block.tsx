@@ -125,14 +125,14 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
   return (
     <LCard pad={0} style={style}>
       {/* Header */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow="LOANS"
           title="차입금관리"
         />
 
         {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
           <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} tone="info" />
           <LStat label="평균 이율" value={avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-'} tone="default" />
           <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} tone="warn" />
@@ -140,7 +140,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
         </div>
 
         {/* Status filter chips */}
-        <div style={{ display: 'flex', gap: 5 }}>
+        <div style={{ display: 'flex', gap: t.density.gapSm }}>
           {STATUS_FILTERS.map(f => {
             const active = statusFilter === f.value
             const tone = f.value !== 'all' ? STATUS_TONES[f.value] : null
@@ -150,7 +150,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                 onClick={() => handleFilterChange(f.value)}
                 style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active && tone ? tone.bg : active ? t.brand[100] : t.neutrals.inner,
                   color: active && tone ? tone.fg : active ? t.brand[700] : t.neutrals.muted,
@@ -165,7 +165,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
       </div>
 
       {/* Loan rows */}
-      <div style={{ padding: '0 16px 4px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapXs}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>차입금 데이터가 없습니다</LTableEmpty>}
@@ -184,8 +184,8 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   {loan.bank}
                   {maturityWarning && (
                     <span style={{
-                      marginLeft: 6, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
-                      padding: '1px 5px', borderRadius: t.radius.sm,
+                      marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                      padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                       background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
                       whiteSpace: 'nowrap',
                     }}>
@@ -209,10 +209,10 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 
               {/* Expanded detail */}
               {expanded && (
-                <div style={{ padding: '0 0 12px' }}>
+                <div style={{ padding: `0 0 ${t.density.blockGap}px` }}>
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
-                    padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                    padding: t.density.blockGap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap,
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="대출유형" value={loan.loan_type} />
@@ -234,7 +234,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   {/* Memo */}
                   {loan.memo && (
                     <div style={{
-                      marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
+                      marginTop: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
                       background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
@@ -244,7 +244,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 
                   {/* Attachments */}
                   {loan.attachments?.length > 0 && (
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ marginTop: t.density.kpiGap, display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
                       {loan.attachments.map((att, i) => (
                         <a
                           key={i}
@@ -252,8 +252,8 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '4px 8px', borderRadius: t.radius.sm,
+                            display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                             background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                             color: t.brand[700], textDecoration: 'none',
                           }}
@@ -266,15 +266,15 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   )}
 
                   {/* Edit button */}
-                  <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); onEdit(loan) }}
                       style={{
-                        padding: '4px 12px', borderRadius: t.radius.sm,
+                        padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
                         fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
+                        display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                       }}
                     >
                       <LIcon name="pencil" size={10} stroke={2} />
@@ -293,20 +293,20 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -322,7 +322,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
               onClick={() => setPage(p => p + 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
@@ -340,7 +340,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

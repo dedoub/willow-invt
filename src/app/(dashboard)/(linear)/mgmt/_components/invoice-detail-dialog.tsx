@@ -35,7 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
       <LIcon name={icon} size={14} stroke={1.8} color={t.neutrals.subtle} />
       <span>{children}</span>
     </div>
@@ -60,9 +60,9 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               CASHFLOW
             </div>
             <div style={{
@@ -73,7 +73,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, flexShrink: 0,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -82,16 +82,16 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         </div>
 
         {/* Type + status pills */}
-        <div style={{ padding: '0 20px 12px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
           <span style={{
-            display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
+            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: typeTone.bg, color: typeTone.fg,
           }}>
             {TYPE_LABELS[invoice.type]}
           </span>
           <span style={{
-            display: 'inline-block', padding: '3px 10px', borderRadius: t.radius.pill,
+            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
             background: invoice.status === 'completed' ? '#DAEEDD' : t.neutrals.inner,
             color: invoice.status === 'completed' ? '#1F5F3D' : t.neutrals.muted,
@@ -101,11 +101,11 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         </div>
 
         {/* Body */}
-        <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
           {/* Amount */}
           <div style={{
-            padding: '12px 14px', borderRadius: t.radius.md, background: t.neutrals.inner,
-            display: 'flex', alignItems: 'baseline', gap: 6,
+            padding: `${t.density.blockGap}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.md, background: t.neutrals.inner,
+            display: 'flex', alignItems: 'baseline', gap: t.density.gapSm,
           }}>
             <span style={{
               fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
@@ -128,7 +128,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
           {/* Description */}
           {invoice.description && (
             <div style={{
-              marginTop: 6, padding: '10px 12px', borderRadius: t.radius.md,
+              marginTop: t.density.gapSm, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
               background: t.neutrals.inner, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
               fontFamily: t.font.sans, color: t.neutrals.text,
               whiteSpace: 'pre-wrap',
@@ -140,7 +140,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <LBtn variant="ghost" size="sm" style={{ color: t.accent.neg }}

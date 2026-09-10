@@ -96,7 +96,7 @@ function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
       background: colors.bg, color: colors.fg,
       fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: 500, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
-      display: 'flex', alignItems: 'flex-start', gap: 4,
+      display: 'flex', alignItems: 'flex-start', gap: t.density.gapXs,
     }}>
       {/* Check circle */}
       <button
@@ -105,7 +105,7 @@ function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
           flexShrink: 0, width: compact ? 10 : 12, height: compact ? 10 : 12,
           marginTop: compact ? 1 : 2,
           // 선 대신 채움으로 상태 구분 — 미완료는 같은 색을 옅게, 완료는 진하게(2026-09-10 감사 반영).
-          borderRadius: 999, border: 'none',
+          borderRadius: t.radius.pill, border: 'none',
           background: colors.fg,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 0, opacity: done ? 1 : 0.3,
@@ -157,7 +157,7 @@ function MemoChip({ content, compact, onClick }: {
         background: tonePalettes.done.bg, color: tonePalettes.done.fg,
         fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: 500, lineHeight: 1.3,
         minWidth: 0, overflow: 'hidden', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 3,
+        display: 'flex', alignItems: 'center', gap: t.density.gapXs,
       }}
     >
       <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
@@ -217,13 +217,13 @@ function DayCell({
           {!compact && isToday && ' · TODAY'}
         </span>
         {hovered && (
-          <div style={{ display: 'flex', gap: 2 }}>
+          <div style={{ display: 'flex', gap: t.density.tableRowGap }}>
             {!memo && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMemoClick(dateStr) }}
                 title="메모 추가"
                 style={{
-                  width: 16, height: 16, borderRadius: 4, border: 'none',
+                  width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
                   background: tonePalettes.done.bg, color: tonePalettes.done.fg,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: 0, flexShrink: 0, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
@@ -236,7 +236,7 @@ function DayCell({
               onClick={(e) => { e.stopPropagation(); onAdd(dateStr) }}
               title="일정 추가"
               style={{
-                width: 16, height: 16, borderRadius: 4, border: 'none',
+                width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
                 background: t.brand[100], color: t.brand[700],
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0, flexShrink: 0,
@@ -250,7 +250,7 @@ function DayCell({
       {/* Events + Memo */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 2 : 3 }}>
         {dotsOnly ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 3, marginTop: 2 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: t.density.gapXs, marginTop: t.density.tableRowGap }}>
             {schedules.slice(0, 6).map(s => (
               <span key={s.id} style={{
                 width: 6, height: 6, borderRadius: '50%',
@@ -298,12 +298,12 @@ function DayCell({
               position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
               width: 240, maxHeight: 340, overflowY: 'auto',
               background: t.neutrals.card, borderRadius: t.radius.md,
-              border: `1px solid ${t.neutrals.line}`, padding: 8,
-              display: 'flex', flexDirection: 'column', gap: 4,
+              border: `1px solid ${t.neutrals.line}`, padding: t.density.panelPadY,
+              display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
             }}>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
               {dateStr.slice(5).replace('-', '월 ')}일
-              <span style={{ marginLeft: 4, fontFamily: t.font.mono, fontWeight: 400, color: t.neutrals.subtle }}>({schedules.length})</span>
+              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: 400, color: t.neutrals.subtle }}>({schedules.length})</span>
             </div>
             {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
             {schedules.map(s => <EventChip key={s.id} s={s} dateStr={dateStr} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
@@ -385,11 +385,11 @@ export function CalendarBlock({
 
       {/* Navigation */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
       }}>
         <button onClick={() => navigate(-1)} style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: 4, borderRadius: 4, color: t.neutrals.muted,
+          padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
         }}>
           <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
@@ -398,7 +398,7 @@ export function CalendarBlock({
         </span>
         <button onClick={() => navigate(1)} style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: 4, borderRadius: 4, color: t.neutrals.muted,
+          padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
         }}>
           <LIcon name="chevronRight" size={14} stroke={2} />
         </button>
@@ -406,7 +406,7 @@ export function CalendarBlock({
 
       {/* Category filter */}
       <div style={{
-        display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap',
+        display: 'flex', gap: t.density.gapXs, marginBottom: t.density.gapMd, flexWrap: 'wrap',
       }}>
         {CATEGORY_FILTERS.map(({ key, label }) => {
           const active = categoryFilter === key
@@ -414,7 +414,7 @@ export function CalendarBlock({
           return (
             <button key={key} onClick={() => setCategoryFilter(key)} style={{
               border: 'none', cursor: 'pointer',
-              padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+              padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
               fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? (tone ? tone.bg : t.brand[100]) : t.neutrals.inner,
               color: active ? (tone ? tone.fg : t.brand[700]) : t.neutrals.muted,
@@ -432,7 +432,7 @@ export function CalendarBlock({
       }}>
         {DAY_NAMES.map(name => (
           <div key={name} style={{
-            padding: '6px 8px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
             color: name === '토' || name === '일' ? t.neutrals.subtle : t.neutrals.muted,
             letterSpacing: 0.5, textAlign: 'center',
           }}>{name}</div>
@@ -505,14 +505,14 @@ export function CalendarBlock({
         const dayMemo = memoMap[selectedDate]
         return (
           <div style={{
-            marginTop: 8, padding: 12,
+            marginTop: t.density.kpiGap, padding: t.density.blockGap,
             background: t.neutrals.inner, borderRadius: t.radius.md,
-            display: 'flex', flexDirection: 'column', gap: 8,
+            display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
                 {selectedDate.slice(5).replace('-', '월 ')}일
-                <span style={{ marginLeft: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   {dayItems.length}개 일정
                 </span>
               </div>
@@ -520,13 +520,13 @@ export function CalendarBlock({
                 onClick={() => onAddSchedule(selectedDate)}
                 style={{
                   border: 'none', background: t.brand[100], color: t.brand[700],
-                  padding: '3px 8px', borderRadius: t.radius.sm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                  padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                   cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
                 }}
               >+ 일정 추가</button>
             </div>
             {dayItems.length === 0 && !dayMemo && (
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>일정이 없습니다.</div>
+              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>일정이 없습니다.</div>
             )}
             {dayItems.map(s => (
               <EventChip key={s.id} s={s} dateStr={selectedDate} onToggle={onToggleComplete} onSelect={onEditSchedule} />
@@ -537,7 +537,7 @@ export function CalendarBlock({
                 onClick={() => setMemoDialogDate(selectedDate)}
                 style={{
                   border: 'none', background: 'transparent', color: t.neutrals.subtle,
-                  padding: '4px 0', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer', textAlign: 'left' as const,
+                  padding: `${t.density.gapXs}px 0`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer', textAlign: 'left' as const,
                 }}
               >+ 메모 작성</button>
             )}
@@ -597,7 +597,7 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 10px', borderRadius: t.radius.sm,
+    width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
     fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text,
     resize: 'vertical', outline: 'none', lineHeight: 1.6,
@@ -609,11 +609,11 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
       position: 'fixed', inset: 0, zIndex: 200,
       background: 'rgba(0,0,0,0.35)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
+      padding: t.density.cardPad,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: t.neutrals.card, borderRadius: t.radius.lg,
-        width: '100%', maxWidth: 440, padding: 20,
+        width: '100%', maxWidth: 440, padding: t.density.pagePadX,
         maxHeight: '80vh', display: 'flex', flexDirection: 'column',
       }}>
         {/* Header */}
@@ -629,7 +629,7 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
           </h3>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: t.radius.sm,
+            padding: t.density.gapXs, borderRadius: t.radius.sm,
             color: t.neutrals.subtle,
           }}>
             <LIcon name="x" size={16} />
@@ -649,25 +649,25 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
         {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: initialContent ? 'space-between' : 'flex-end',
-          alignItems: 'center', gap: 8, marginTop: 14,
+          alignItems: 'center', gap: t.density.kpiGap, marginTop: 14,
         }}>
           {initialContent && (
             <button onClick={handleDelete} disabled={saving} style={{
-              padding: '5px 12px', borderRadius: t.radius.sm,
+              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
               background: '#FEE2E2', border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               color: '#DC2626', cursor: 'pointer', fontFamily: t.font.sans,
               fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,
             }}>삭제</button>
           )}
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <button onClick={onClose} style={{
-              padding: '5px 12px', borderRadius: t.radius.sm,
+              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               color: t.neutrals.muted, cursor: 'pointer', fontFamily: t.font.sans,
               fontWeight: t.weight.regular,
             }}>취소</button>
             <button onClick={handleSave} disabled={saving} style={{
-              padding: '5px 12px', borderRadius: t.radius.sm,
+              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               color: t.neutrals.text, cursor: 'pointer', fontFamily: t.font.sans,
               fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,

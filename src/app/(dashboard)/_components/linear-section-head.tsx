@@ -80,7 +80,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
             {showNote && (
               <span style={{
                 fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 500, whiteSpace: 'nowrap' as const,
-                padding: '2px 6px', borderRadius: t.radius.sm,
+                padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                 background: t.neutrals.inner, color: t.neutrals.muted,
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{note}</span>
@@ -94,11 +94,11 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
       {tools && mobile && !toolsInline && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
-          justifyContent: 'flex-end', marginTop: 6,
+          justifyContent: 'flex-end', marginTop: t.density.gapSm,
         }}>{tools}</div>
       )}
       {/* 모바일 meta — 제목 옆이 아니라 헤더 아랫줄 전체 폭으로 */}
-      {meta && mobile && <div style={{ ...metaStyle, marginTop: 3 }}>{meta}</div>}
+      {meta && mobile && <div style={{ ...metaStyle, marginTop: t.density.gapXs }}>{meta}</div>}
     </div>
   )
 }
@@ -125,7 +125,7 @@ interface LHeadBtnProps {
 
 export function LHeadBtn({ icon, label, title, onClick, href, busy }: LHeadBtnProps) {
   const style: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: t.density.gapXs,
     height: t.density.controlHSm, minWidth: t.density.controlHSm,
     padding: label ? '0 8px' : 0, boxSizing: 'border-box',
     borderRadius: t.radius.sm, background: t.neutrals.inner, border: 'none',

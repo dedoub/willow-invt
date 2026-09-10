@@ -41,7 +41,7 @@ function FeeTierEditor({
   onChange: (v: FeeStructure) => void
 }) {
   const inputStyle: React.CSSProperties = {
-    padding: '4px 6px',
+    padding: `${t.density.gapXs}px ${t.density.gapSm}px`,
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
@@ -82,13 +82,13 @@ function FeeTierEditor({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.muted, fontFamily: t.font.sans }}>
         {label}
       </span>
 
       {/* Min Fee */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
         <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
           Min Fee ($)
         </span>
@@ -104,7 +104,7 @@ function FeeTierEditor({
 
       {/* Tiers */}
       {value.tiers.map((tier, idx) => (
-        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.sans, minWidth: 56 }}>
             Up to
           </span>
@@ -129,7 +129,7 @@ function FeeTierEditor({
             onClick={() => removeTier(idx)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: '2px 4px', color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
+              padding: `${t.density.tableRowGap}px ${t.density.gapXs}px`, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
             }}
           >
             <LIcon name="x" size={12} />
@@ -142,7 +142,7 @@ function FeeTierEditor({
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
           fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.brand[500],
-          padding: '2px 0', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4,
+          padding: `${t.density.tableRowGap}px 0`, textAlign: 'left', display: 'flex', alignItems: 'center', gap: t.density.gapXs,
         }}
       >
         <LIcon name="plus" size={11} color={t.brand[500]} />
@@ -207,7 +207,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '6px 8px',
+    padding: `${t.density.gapSm}px ${t.density.panelPadY}px`,
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
@@ -223,7 +223,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
     fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
     color: t.neutrals.subtle,
     fontFamily: t.font.sans,
-    marginBottom: 4,
+    marginBottom: t.density.gapXs,
   }
 
   const handleSave = async () => {
@@ -280,7 +280,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           borderRadius: t.radius.lg,
           width: '100%',
           maxWidth: 480,
-          padding: 20,
+          padding: t.density.pagePadX,
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
@@ -289,7 +289,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingBottom: 14, marginBottom: 0,
+          paddingBottom: t.density.controlPadXMd, marginBottom: 0,
           borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{
@@ -302,7 +302,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: 4, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
+              padding: t.density.gapXs, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
               borderRadius: t.radius.sm,
             }}
           >
@@ -313,7 +313,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
         {/* Scrollable body */}
         <div style={{
           flex: 1, overflowY: 'auto', maxHeight: '70vh',
-          paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12,
+          paddingTop: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
           {/* Symbol */}
           <div>
@@ -360,7 +360,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           </div>
 
           {/* Bank & Currency (row) */}
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: t.density.gapMd }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Bank</label>
               <input
@@ -394,7 +394,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           </div>
 
           {/* Divider */}
-          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, margin: '4px 0' }} />
+          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, margin: `${t.density.gapXs}px 0` }} />
 
           {/* Platform Fee Tiers */}
           <FeeTierEditor
@@ -404,7 +404,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           />
 
           {/* Divider */}
-          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, margin: '4px 0' }} />
+          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, margin: `${t.density.gapXs}px 0` }} />
 
           {/* PM Fee Tiers */}
           <FeeTierEditor
@@ -417,7 +417,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
         {/* Footer */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingTop: 14, borderTop: `1px solid ${t.neutrals.line}`,
+          paddingTop: t.density.controlPadXMd, borderTop: `1px solid ${t.neutrals.line}`,
           marginTop: 14,
         }}>
           {editEtf ? (
@@ -427,7 +427,7 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           ) : (
             <div />
           )}
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <LBtn variant="secondary" size="sm" onClick={onClose} disabled={saving}>
               취소
             </LBtn>

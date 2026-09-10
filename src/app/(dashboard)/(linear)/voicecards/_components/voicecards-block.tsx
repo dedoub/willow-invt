@@ -302,11 +302,11 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
           <span title="핫리드: 최근 7일 활성 미구매자 중 구매 가능성 상위 10%" style={{
             fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, background: '#FEE2E2', color: '#B91C1C',
-            borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
+            borderRadius: 3, padding: `0 ${t.density.gapXs}px`, fontWeight: t.weight.medium,
           }}>🔥</span>
         )}
         {u.intentBanner && (
@@ -363,7 +363,7 @@ function OfferStageCell({ stage, at }: { stage: string | null; at: string | null
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <span title={s.title} style={{
         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
-        color: s.fg, background: s.bg, padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+        color: s.fg, background: s.bg, padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
       }}>
         {stage === 'redeemed' ? '💰' + s.label : s.label}
       </span>
@@ -468,18 +468,18 @@ function SkelStat({ compact }: { compact: boolean }) {
   // LStat 2열 배치와 동일: 좌측 라벨/값/오늘·7일/보조라벨 4줄, 우측 스파크라인(≤50% 폭·80% 높이)
   return (
     <div style={{
-      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 10, minHeight: 84,
+      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: t.density.gapMd, minHeight: 84,
       minWidth: 0, overflow: 'hidden',
     }}>
       <div style={{ minWidth: 0 }}>
-        <SkelBar width={56} height={9} style={{ marginBottom: 6 }} />
-        <SkelBar width={64} height={16} style={{ marginBottom: 5 }} />
-        <SkelBar width={76} height={9} style={{ marginBottom: 4 }} />
+        <SkelBar width={56} height={9} style={{ marginBottom: t.density.gapSm }} />
+        <SkelBar width={64} height={16} style={{ marginBottom: t.density.gapSm }} />
+        <SkelBar width={76} height={9} style={{ marginBottom: t.density.gapXs }} />
         <SkelBar width={68} height={9} />
       </div>
       {!compact && (
-        <div className="l-skeleton" style={{ flex: 1, minWidth: 20, maxWidth: '50%', height: '80%', alignSelf: 'center', borderRadius: 4 }} />
+        <div className="l-skeleton" style={{ flex: 1, minWidth: 20, maxWidth: '50%', height: '80%', alignSelf: 'center', borderRadius: t.radius.sm }} />
       )}
     </div>
   )
@@ -489,17 +489,17 @@ function SkelPie() {
   // DistributionPie 세로 스택과 동일: 제목+탭 → 도넛(72) 가운데 → 범례 행들
   return (
     <div style={{
-      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 150,
+      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: t.density.gapSm, minHeight: 150,
       minWidth: 0, overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs }}>
         <SkelBar width={40} height={10} />
         <SkelBar width={64} height={12} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flex: 1, padding: `${t.density.gapXs}px 0` }}>
         <div className="l-skeleton" style={{ width: 80, height: 80, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, flex: 1, minWidth: 0 }}>
           <SkelBar width="85%" height={9} />
           <SkelBar width="70%" height={9} />
         </div>
@@ -512,13 +512,13 @@ function SkelBars() {
   // SkelPie와 동일한 컨테이너 높이(minHeight 150)에 42일 바 차트 실물과 동일한 밀도로 채움.
   return (
     <div style={{
-      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', flexDirection: 'column', gap: 6, minHeight: 150, height: '100%', boxSizing: 'border-box',
+      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', flexDirection: 'column', gap: t.density.gapSm, minHeight: 150, height: '100%', boxSizing: 'border-box',
       minWidth: 0, overflow: 'hidden',
     }}>
       <SkelBar width={70} height={10} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, width: '100%', height: '100%', minHeight: 96 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: `${t.density.gapSm}px 0` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.tableRowGap, width: '100%', height: '100%', minHeight: 96 }}>
           {Array.from({ length: 42 }).map((_, i) => (
             <div
               key={i}
@@ -535,12 +535,12 @@ function SkelBars() {
 function SkelUserRow() {
   return (
     <div style={{
-      padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-      display: 'flex', alignItems: 'center', gap: 8,
+      padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+      display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
     }}>
       <div className="l-skeleton" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <SkelBar width={120} height={10} style={{ marginBottom: 4 }} />
+        <SkelBar width={120} height={10} style={{ marginBottom: t.density.gapXs }} />
         <SkelBar width="80%" height={9} />
       </div>
       <SkelBar width={36} height={9} />
@@ -761,7 +761,7 @@ export function VoicecardsBlock({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 가입 → 결제"
@@ -773,12 +773,12 @@ export function VoicecardsBlock({
         {/* 인사이트 — 사용자/이벤트/매출 모두 필요 */}
         {(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
                   {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
                   <SkelPie />
                   <SkelPie />
                   <SkelPie />
@@ -793,8 +793,8 @@ export function VoicecardsBlock({
         {/* 로딩 끝났는데 데이터가 없으면(최초 로드 실패) 빈 화면 대신 재시도 UI */}
         {!(usersLoading || eventsLoading || revenueLoading) && !(userStats && anonymousStats?.summary) && (
           <div style={{
-            padding: '18px 12px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            padding: `${t.density.controlPadXLg}px ${t.density.blockGap}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: t.density.kpiGap,
             color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
           }}>
             <span>인사이트 데이터를 불러오지 못했어요</span>
@@ -802,7 +802,7 @@ export function VoicecardsBlock({
               onClick={onRefresh}
               disabled={refreshingFunnel}
               style={{
-                padding: '4px 12px', borderRadius: t.radius.sm, border: 'none',
+                padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm, border: 'none',
                 cursor: refreshingFunnel ? 'default' : 'pointer', opacity: refreshingFunnel ? 0.5 : 1,
                 background: t.brand[500], color: '#fff',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
@@ -1058,16 +1058,16 @@ export function VoicecardsBlock({
             <>
 
               {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (와이드 모드 전용, CEO 레이아웃) */}
-              <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
                 <LStat
                   label="스토어 방문"
                   title="플레이·앱스토어 등록정보 방문자 누적(값 옆 = 마지막 집계일). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문→설치→구글 로그인→드라이브 연동→학습 활성화→결제."
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                   valueExtra={svLast ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                       fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       {svLast.date.slice(5)} 기준
@@ -1083,7 +1083,7 @@ export function VoicecardsBlock({
                   value={devices.toLocaleString()}
                   valueExtra={svTotal > 0 ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {installRate}%</span>
@@ -1103,7 +1103,7 @@ export function VoicecardsBlock({
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {loginRate}%</span>
@@ -1125,7 +1125,7 @@ export function VoicecardsBlock({
                   value={linkedUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {linkedRate}%</span>
@@ -1155,7 +1155,7 @@ export function VoicecardsBlock({
                   // 헤드라인에는 기기 계정이 섞여 있어서 이게 없으면 앞 칸과 어떻게 이어지는지 알 수 없다.
                   valueExtra={(deviceAccountActivated + anonDeviceActivated) > 0 ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                       color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       구글 {googleActivated.toLocaleString()}
@@ -1179,7 +1179,7 @@ export function VoicecardsBlock({
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
-                        fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                        fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
                         CPMAU {fmtPerMau(creditsPerMau)}
@@ -1206,7 +1206,7 @@ export function VoicecardsBlock({
               </div>
 
             {/* 플랫폼 / 국가 / 앱버전 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
@@ -1294,7 +1294,7 @@ export function VoicecardsBlock({
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
           {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: t.density.kpiGap }}>
             {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
           </div>
         </div>
@@ -1404,7 +1404,7 @@ export function VoicecardsBlock({
             // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
             const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
               <span style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                 fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
               }}>
                 {(n / userStats.totalCards).toFixed(1)}x
@@ -1441,8 +1441,8 @@ export function VoicecardsBlock({
           <>
           {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
               2열 모드와 모바일은 카드 아래 전폭 차트. 모바일에서도 보인다 — 스파크라인은 장식이지만 이 차트는 그 자체가 지표다(CEO). */}
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8, alignContent: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap, alignContent: 'start' }}>
             <LStat
               label="보유 덱"
               value={formatNumber(userStats.totalSheets)}
@@ -1584,7 +1584,7 @@ export function VoicecardsBlock({
       {usersLoading && !userStats && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>
         </div>
@@ -1622,10 +1622,10 @@ export function VoicecardsBlock({
             )
           })()}
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
                 여러 컬럼이 활성이면 우선순위 번호 표시. */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const sIdx = userSorts.findIndex(s => s.key === col.key)
                 const active = sIdx >= 0
@@ -1638,7 +1638,7 @@ export function VoicecardsBlock({
                     title={active ? `${col.label}: ${dir === 'asc' ? '오름차순' : '내림차순'} (재클릭: 방향전환→해제)` : `${col.label} 기준 정렬 추가`}
                     style={{
                       ...userHeadCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, width: '100%',
                       justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start',
                       color: active ? t.neutrals.text : t.neutrals.subtle,
                     }}
@@ -1667,8 +1667,8 @@ export function VoicecardsBlock({
               const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
               return (
                 <div key={user.id} style={{
-                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
-                  padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                  padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   {/* 설치 — 앱을 처음 연 날. 로그인보다 앞선다. 뷰 이전 가입자는 '—' */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
@@ -1697,7 +1697,7 @@ export function VoicecardsBlock({
                     ) : '—'}
                   </div>
                   {/* 닉네임 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
@@ -1722,7 +1722,7 @@ export function VoicecardsBlock({
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
                         background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
-                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
                       </span>
@@ -1736,7 +1736,7 @@ export function VoicecardsBlock({
                       <span style={{
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: t.neutrals.muted, background: t.neutrals.card,
-                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
+                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
                       }}>
                         v{user.appVersion}
@@ -1751,7 +1751,7 @@ export function VoicecardsBlock({
                       <span style={{
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: '#6B21A8', background: '#F3E8FF',
-                        padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
+                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.locale}
                       </span>
@@ -1767,7 +1767,7 @@ export function VoicecardsBlock({
                         <span title={c.name} style={{
                           fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                           color: '#1E40AF', background: '#DBEAFE',
-                          padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+                          padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                         }}>
                           {c.flag} {c.code}
                         </span>
@@ -1810,7 +1810,7 @@ export function VoicecardsBlock({
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                       color: user.hasPurchased ? '#166534' : t.neutrals.muted,
                       background: user.hasPurchased ? '#DCFCE7' : t.neutrals.card,
-                      padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
+                      padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                     }}>
                       {user.hasPurchased ? '유료' : '무료'}
                     </span>
@@ -1850,22 +1850,22 @@ export function VoicecardsBlock({
           {sortedUsers.length > 0 && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '6px 14px',
+              padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
               borderTop: `1px solid ${t.neutrals.line}`,
             }}>
               {/* Page size input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <LPageSize value={userPerPage} onChange={applyUserPerPage} />
               </div>
 
               {/* Page navigation */}
               {totalUserPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <button disabled={safeUserPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}
                     style={{
                       background: 'transparent', border: 'none',
                       cursor: safeUserPage === 1 ? 'default' : 'pointer',
-                      padding: 4, borderRadius: 4,
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
                       color: safeUserPage === 1 ? t.neutrals.line : t.neutrals.muted,
                       opacity: safeUserPage === 1 ? 0.4 : 1,
                     }}>
@@ -1880,7 +1880,7 @@ export function VoicecardsBlock({
                     style={{
                       background: 'transparent', border: 'none',
                       cursor: safeUserPage >= totalUserPages ? 'default' : 'pointer',
-                      padding: 4, borderRadius: 4,
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
                       color: safeUserPage >= totalUserPages ? t.neutrals.line : t.neutrals.muted,
                       opacity: safeUserPage >= totalUserPages ? 0.4 : 1,
                     }}>
@@ -1963,12 +1963,12 @@ function DauTrendCard({ daily, days = 42 }: {
 
   return (
     <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
+        gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs,
       }}>
         <div style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
@@ -1977,30 +1977,30 @@ function DauTrendCard({ daily, days = 42 }: {
           일별 활동자
         </div>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
           // 칩 6개(4버킷 + 7일평균 + 로그인율) — 모바일 폭에서 한 줄에 안 들어간다.
           // 컨테이너 nowrap을 풀어 자연스럽게 접히게 하고, 줄바꿈은 칩 경계에서만
           // 일어나도록 nowrap을 칩 각각으로 내렸다. flex-end라 접혀도 우측 정렬 유지.
-          flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
+          flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: t.density.gapXs, minWidth: 0,
           fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />로그인·기존 {latest ? memberOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />로그인·신규 {latest ? newOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_MEMBER }} />기기·기존 {latest ? devMemberOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: DEV_NEW }} />기기·신규 {latest ? devNewOf(latest) : 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
           {hasLoginRate && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="회원 stickiness 7일평균: 그날 회원 로그인 / 최근 30일 활동 회원(롤링)의 7일 이동평균. 회원 DAU/MAU와 같은 척도.">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }} title="회원 stickiness 7일평균: 그날 회원 로그인 / 최근 30일 활동 회원(롤링)의 7일 이동평균. 회원 DAU/MAU와 같은 척도.">
               <span style={{ width: 10, height: 2, borderRadius: 1, background: LOGIN_RATE_COLOR, backgroundImage: `repeating-linear-gradient(90deg, ${LOGIN_RATE_COLOR} 0 3px, transparent 3px 5px)` }} />로그인율(7일) {loginRateMA.length ? `${Math.round(loginRateMA[loginRateMA.length - 1] * 10) / 10}%` : '0%'}
             </span>
           )}
@@ -2014,7 +2014,7 @@ function DauTrendCard({ daily, days = 42 }: {
           데이터 없음
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
             const devNewH = barPct(devNewOf(r))
             const devMemberH = barPct(devMemberOf(r))
@@ -2032,7 +2032,7 @@ function DauTrendCard({ daily, days = 42 }: {
                 {r.devices > 0 && (
                   <span style={{
                     fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
-                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: t.density.tableRowGap,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.devices}</span>
                 )}
@@ -2073,27 +2073,27 @@ function DauTrendCard({ daily, days = 42 }: {
                 bottom: `calc(${barPct(r.devices).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />기존 로그인 {memberOf(r)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 로그인 {newOf(r)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: DEV_MEMBER }} />기존 기기 {devMemberOf(r)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: DEV_NEW }} />신규 기기 {devNewOf(r)}
                 </div>
                 {hasLoginRate && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                     <span style={{ width: 7, height: 2, borderRadius: 1, background: LOGIN_RATE_SWATCH_ON_DARK }} />로그인율 7일평균 {Math.round(loginRateMA[hoverIdx] * 10) / 10}% <span style={{ opacity: 0.6 }}>(당일 {Math.round(loginRate[hoverIdx] * 10) / 10}% · 최근30일 회원 {r.memberActive30 ?? 0} 중 {memberOf(r)})</span>
                   </div>
                 )}
-                <div style={{ opacity: 0.7, marginTop: 3 }}>총 {r.devices} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>총 {r.devices} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
@@ -2151,7 +2151,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
   const path = (vals: number[]) => vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ')
 
   const chip = (color: string, label: string, value: string) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
       <span style={{ width: 10, height: 2, borderRadius: 1, background: color }} />{label} {value}
     </span>
   )
@@ -2161,20 +2161,20 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
 
   return (
     <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px 18px', boxSizing: 'border-box',
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px ${t.density.controlPadXLg}px`, boxSizing: 'border-box',
       height: '100%', display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs }}>
         <div
           title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 판매/사용 = 판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율. 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다."
           style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
         >
           누적 크레딧 사용 vs 판매
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: t.density.gapXs, minWidth: 0, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
           {chip(USED, '사용', formatNumber(latestUsed))}
           {soldLoading ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>
               <span style={{ width: 10, height: 2, borderRadius: 1, background: SOLD, opacity: 0.4 }} />판매 불러오는 중…
             </span>
           ) : (
@@ -2188,7 +2188,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
         </div>
       </div>
       {loading ? (
-        <div style={{ flex: 1, minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6 }}>
+        <div style={{ flex: 1, minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: t.density.gapSm }}>
           <Bone h={2} /><Bone h={2} w="80%" /><Bone h={2} w="60%" />
         </div>
       ) : dates.length < 2 || max === 0 ? (
@@ -2219,7 +2219,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
             )}
           </svg>
           {/* 축 라벨 — 좌상단 최대값, 하단 양끝 날짜 */}
-          <span style={{ ...axisLabel, left: 0, top: 0, background: t.neutrals.inner, padding: '0 2px' }}>{compactNum(max)}</span>
+          <span style={{ ...axisLabel, left: 0, top: 0, background: t.neutrals.inner, padding: `0 ${t.density.tableRowGap}px` }}>{compactNum(max)}</span>
           <span style={{ ...axisLabel, left: 0, bottom: -12 }}>{dates[0].slice(5)}</span>
           <span style={{ ...axisLabel, right: 0, bottom: -12 }}>{dates[dates.length - 1].slice(5)}</span>
           {hoverIdx !== null && (() => {
@@ -2230,20 +2230,20 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)', top: 4, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(dates[hoverIdx])}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(dates[hoverIdx])}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 2, borderRadius: 1, background: USED }} />사용 누적 {formatNumber(u)}
                 </div>
                 {soldLoading ? (
-                  <div style={{ opacity: 0.7, marginTop: 3 }}>판매 불러오는 중…</div>
+                  <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>판매 불러오는 중…</div>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                       <span style={{ width: 7, height: 2, borderRadius: 1, background: SOLD }} />판매 누적 {formatNumber(s)}
                     </div>
-                    <div style={{ opacity: 0.7, marginTop: 3 }}>
+                    <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>
                       {u > 0 ? `판매/사용 ${Math.round((s / u) * 100)}%` : '사용 전'} · 판매−사용 {s - u >= 0 ? '+' : ''}{formatNumber(s - u)}
                     </div>
                   </>

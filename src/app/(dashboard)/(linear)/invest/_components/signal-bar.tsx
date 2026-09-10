@@ -28,14 +28,14 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
   if (loading) {
     return (
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
               background: t.neutrals.inner, borderRadius: t.radius.sm,
-              padding: '8px 10px', height: t.density.statH,
+              padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, height: t.density.statH,
             }} />
           ))}
         </div>
@@ -51,7 +51,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>

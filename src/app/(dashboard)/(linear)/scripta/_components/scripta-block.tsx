@@ -62,7 +62,7 @@ function fmtArpu(cents: number): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -139,24 +139,24 @@ function ScDauTrendCard({ daily, days = 42 }: {
   })
   return (
     <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm }}>
         <div style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 활동자
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />회원 {latest?.member ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />신규 {latest?.newUsers ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
         </div>
@@ -166,7 +166,7 @@ function ScDauTrendCard({ daily, days = 42 }: {
           데이터 없음
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
             const newH = barPct(r.newUsers)
             const memberH = barPct(r.member)
@@ -199,16 +199,16 @@ function ScDauTrendCard({ daily, days = 42 }: {
                 bottom: `calc(${barPct(r.active).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{scWithWeekday(r.date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{scWithWeekday(r.date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />회원 {r.member}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 {r.newUsers}
                 </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>활동 {r.active}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>활동 {r.active}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
@@ -380,7 +380,7 @@ export function ScriptaBlock({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 퍼널 + 인사이트 */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           eyebrow="FUNNEL"
           title="가입 → 글 등록 → 연습 → 결제"
@@ -399,9 +399,9 @@ export function ScriptaBlock({
         {/* Error */}
         {error && (
           <div style={{
-            padding: '8px 12px', borderRadius: t.radius.md,
+            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: 10,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: t.density.gapMd,
           }}>
             {error}
           </div>
@@ -409,14 +409,14 @@ export function ScriptaBlock({
 
         {loading && (() => {
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
                 {/* 퍼널 6카드 */}
-                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
                   {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
                 </div>
                 {/* 분포 파이 3 */}
-                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
                   {[0, 1, 2].map(i => <Bone key={i} h={150} />)}
                 </div>
               </div>
@@ -481,10 +481,10 @@ export function ScriptaBlock({
 
         return (
           <div>
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
           {/* 좌: 퍼널 카드(3×2) + 파이 · 우: 일별 활동자 전체높이 (1열 모드 전용, 리뷰노트와 동일) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
             <LStat
               label="가입"
               title="Scripta 계정 누적 (auth.users). 랜딩 트래픽 수집이 없어 방문 대비 전환은 아직 못 잰다."
@@ -533,7 +533,7 @@ export function ScriptaBlock({
               value={sales ? sales.creditsSold.toLocaleString() : '—'}
               valueExtra={sales ? (
                 <span style={{
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                   color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatUsd(sales.revenueUsd)}
@@ -573,7 +573,7 @@ export function ScriptaBlock({
             />
           </div>
           {/* 연습 단위 / 크레딧 사용처 / 목표 언어 — 리뷰노트의 유입경로·국가·기기 자리 */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
             <DistributionPie
               title="연습 단위"
               tabs={[
@@ -655,7 +655,7 @@ export function ScriptaBlock({
               action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
             />
             {/* Cortex → 글 → 문단 → 문장 → 청크 + 크레딧 소진. 와이드(1열) 한 줄, 2열 모드 3+3, 모바일 2열. */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: t.density.kpiGap }}>
               {card('Cortex', c.cortices, '개', '하나의 쓰기 목표와 채점 기준을 공유하는 학습 컨테이너.')}
               {card('글', c.texts, '개', '사용자가 등록한 목표 글(Text) 누적.')}
               {card('문단', c.paragraphs, '개')}
@@ -667,7 +667,7 @@ export function ScriptaBlock({
                 value={stats.credits.spent.toLocaleString()}
                 valueExtra={stats.credits.refunded > 0 ? (
                   <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     환불 {stats.credits.refunded.toLocaleString()}
@@ -699,7 +699,7 @@ export function ScriptaBlock({
       {loading && (
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
               <Bone key={i} h={40} />
             ))}
@@ -715,12 +715,12 @@ export function ScriptaBlock({
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <select
                   value={userSort}
                   onChange={e => handleSortChange(e.target.value as UserSortKey)}
                   style={{
-                    height: t.density.controlHSm, padding: '0 6px', borderRadius: t.radius.sm,
+                    height: t.density.controlHSm, padding: `0 ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     border: 'none', cursor: 'pointer',
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                     background: t.neutrals.inner, color: t.neutrals.text,
@@ -741,9 +741,9 @@ export function ScriptaBlock({
           />
           {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (리뷰노트 사용자 테이블과 동일) */}
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const active = userSort === col.key
                 return (
@@ -753,7 +753,7 @@ export function ScriptaBlock({
                     title={`${col.label} 기준 정렬`}
                     style={{
                       ...userHeadCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, width: '100%',
                       justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start',
                       color: active ? t.neutrals.text : t.neutrals.subtle,
                     }}
@@ -768,7 +768,7 @@ export function ScriptaBlock({
             </div>
             {paginatedUsers.length === 0 && (
               <div style={{
-                padding: '18px 8px', textAlign: 'center',
+                padding: `${t.density.controlPadXLg}px ${t.density.panelPadY}px`, textAlign: 'center',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle,
               }}>
                 가입자 없음
@@ -779,8 +779,8 @@ export function ScriptaBlock({
               const lowBalance = user.balance > 0 && user.balance < 20
               return (
                 <div key={user.userId} style={{
-                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
-                  padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                  padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   {/* 가입 — 두 줄: 날짜 / (요일) 시각 */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
@@ -799,7 +799,7 @@ export function ScriptaBlock({
                     )}
                   </div>
                   {/* 닉네임 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
@@ -822,7 +822,7 @@ export function ScriptaBlock({
                     {isExcludedScriptaUser(user) && (
                       <span title="통계 제외 계정" style={{
                         fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
-                        padding: '1px 3px', borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
+                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
                         background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
                       }}>
                         ADMIN
@@ -872,22 +872,22 @@ export function ScriptaBlock({
           {totalUsers > 0 && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '6px 14px',
+              padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
               borderTop: `1px solid ${t.neutrals.line}`,
             }}>
               {/* Page size input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <LPageSize value={userPerPage} onChange={applyUserPerPage} />
               </div>
 
               {/* Page navigation */}
               {totalUserPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <button disabled={safeUserPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}
                     style={{
                       background: 'transparent', border: 'none',
                       cursor: safeUserPage === 1 ? 'default' : 'pointer',
-                      padding: 4, borderRadius: 4,
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
                       color: safeUserPage === 1 ? t.neutrals.line : t.neutrals.muted,
                       opacity: safeUserPage === 1 ? 0.4 : 1,
                     }}>
@@ -902,7 +902,7 @@ export function ScriptaBlock({
                     style={{
                       background: 'transparent', border: 'none',
                       cursor: safeUserPage >= totalUserPages ? 'default' : 'pointer',
-                      padding: 4, borderRadius: 4,
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
                       color: safeUserPage >= totalUserPages ? t.neutrals.line : t.neutrals.muted,
                       opacity: safeUserPage >= totalUserPages ? 0.4 : 1,
                     }}>
@@ -924,7 +924,7 @@ export function ScriptaBlock({
 
 function SkeletonRow({ count }: { count: number }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: t.density.kpiGap }}>
       {Array.from({ length: count }).map((_, i) => (
         <Bone key={i} h={t.density.statH} />
       ))}

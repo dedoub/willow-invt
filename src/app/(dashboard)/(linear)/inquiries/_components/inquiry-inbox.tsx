@@ -229,7 +229,7 @@ export function InquiryInbox() {
                   fontFamily: t.font.sans,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
                   <span style={{
                     width: 6, height: 6, borderRadius: t.radius.pill, flexShrink: 0,
                     background: meta?.dot ?? t.neutrals.subtle,
@@ -313,7 +313,7 @@ export function InquiryInbox() {
                   padding: `${t.density.gapSm}px ${t.density.gapMd}px`,
                 }}>
                   <div style={{
-                    display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, marginBottom: 3,
+                    display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, marginBottom: t.density.gapXs,
                   }}>
                     <span style={{
                       fontSize: `calc(${t.type.helper}px * var(--fz, 1))`,
@@ -430,7 +430,7 @@ function InboxSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
       {[0, 1, 2, 3, 4].map(i => (
         <div key={i} style={{ padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapSm }}>
             <Bone w={6} h={6} r={t.radius.pill} />
             <Bone w={64} h={9} />
             <Bone w={38} h={12} r={t.radius.sm} />

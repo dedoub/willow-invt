@@ -97,9 +97,9 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
         background: t.neutrals.card, borderRadius: t.radius.lg + 2,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               {refNo}
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
@@ -107,7 +107,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
             </div>
           </div>
           <button onClick={onClose} aria-label="닫기" style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, flexShrink: 0,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -116,7 +116,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
         </div>
 
         {s && (
-          <div style={{ padding: '0 20px 12px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
             <LTableBadge tone={tonePalettes.neutral}>{B2B_COMPANY_LABEL[s.provider_company]} → {B2B_COMPANY_LABEL[s.client_company]}</LTableBadge>
             <LTableBadge tone={s.status === 'closed' ? tonePalettes.done : s.status === 'disputed' ? tonePalettes.danger : tonePalettes.pending}>
               {B2B_SETTLEMENT_STATUS_LABEL[s.status]}
@@ -124,22 +124,22 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
           </div>
         )}
 
-        <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapMd, overflowY: 'auto', minHeight: 0 }}>
           {!detail && !loadError && (
-            <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '16px 0' }}>불러오는 중</div>
+            <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.cardPad}px 0` }}>불러오는 중</div>
           )}
           {loadError && <LNotice tone="danger" text={loadError} />}
 
           {detail && s && (
             <>
-              <div style={{ padding: '10px 12px', borderRadius: t.radius.md, background: t.neutrals.inner, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 12px' }}>
+              <div style={{ padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md, background: t.neutrals.inner, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: `${t.density.gapSm}px ${t.density.blockGap}px` }}>
                 <Field label="공급가액" value={`₩${Math.round(s.supply_amount).toLocaleString()}`} />
                 <Field label="세액" value={`₩${Math.round(s.vat_amount).toLocaleString()}`} />
                 <Field label="합계" value={`₩${Math.round(s.total_amount).toLocaleString()}`} />
               </div>
 
               <Section title="기본계약·약정">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
                   <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {detail.agreement.title}
                   </span>
@@ -153,8 +153,8 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
                   )}
                 </div>
                 {detail.engagement ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
                       <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{detail.engagement.ref_no}</span>
                       <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                         {FEE_BASIS_LABEL[detail.engagement.fee_basis] ?? detail.engagement.fee_basis}
@@ -171,7 +171,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
                     )}
                   </div>
                 ) : (
-                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
                     프로젝트 무관 업무 (개별 약정 없음)
                   </div>
                 )}
@@ -179,7 +179,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
 
               <Section title={`업무기록 ${detail.works.length}건`}>
                 {detail.works.length === 0 && (
-                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>아직 업무기록이 없습니다.</div>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>아직 업무기록이 없습니다.</div>
                 )}
                 {detail.works.map(w => <WorkRow key={w.id} work={w} expanded={expanded.has(w.id)} onToggle={() => toggleWork(w.id)} />)}
               </Section>
@@ -200,28 +200,28 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
               </Section>
 
               <Section title="대사 결과">
-                <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>현재 대사</div>
+                <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>현재 대사</div>
                 {s.reconciliation == null && (
-                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>대사 결과가 없습니다.</div>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>대사 결과가 없습니다.</div>
                 )}
                 {s.reconciliation && s.reconciliation.ok && (
-                  <div style={{ padding: '6px 0' }}><LTableBadge tone={tonePalettes.done}>일치</LTableBadge></div>
+                  <div style={{ padding: `${t.density.gapSm}px 0` }}><LTableBadge tone={tonePalettes.done}>일치</LTableBadge></div>
                 )}
                 {s.reconciliation && !s.reconciliation.ok && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, padding: `${t.density.gapSm}px 0` }}>
                     {s.reconciliation.diffs.map(code => (
-                      <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div key={code} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                         <LTableBadge tone={tonePalettes.danger}>{B2B_DIFF_LABEL[code] ?? code}</LTableBadge>
                       </div>
                     ))}
                   </div>
                 )}
                 {storedReconciliation != null && storedReconciliation.ok !== s.reconciliation?.ok && (
-                  <div style={{ marginTop: 4, paddingTop: 8, borderTop: `1px solid ${t.neutrals.line}` }}>
-                    <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>
+                  <div style={{ marginTop: t.density.gapXs, paddingTop: t.density.panelPadY, borderTop: `1px solid ${t.neutrals.line}` }}>
+                    <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>
                       저장된 대사{storedUpdatedAt ? ` · ${formatTimestamp(storedUpdatedAt)}` : ''}
                     </div>
-                    <div style={{ padding: '2px 0' }}>
+                    <div style={{ padding: `${t.density.tableRowGap}px 0` }}>
                       <LTableBadge tone={storedReconciliation.ok ? tonePalettes.done : tonePalettes.danger}>
                         {storedReconciliation.ok ? '일치' : '불일치'}
                       </LTableBadge>
@@ -236,7 +236,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
         </div>
 
         {s?.bundle_doc_no && (
-          <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.neutrals.line}`, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.pagePadX}px`, borderTop: `1px solid ${t.neutrals.line}`, display: 'flex', justifyContent: 'flex-end' }}>
             <LBtn variant="secondary" size="sm" onClick={() => openDoc(s.bundle_doc_no!)} disabled={openingDoc !== null}>
               {openingDoc === s.bundle_doc_no ? '여는 중' : '증빙 묶음 열기'}
             </LBtn>
@@ -253,7 +253,7 @@ function WorkRow({ work, expanded, onToggle }: { work: B2bWorkRecordDetail; expa
     : '-'
   return (
     <div style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
-      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}>
+      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.gapSm}px 0`, cursor: 'pointer' }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {work.title}
         </span>
@@ -264,15 +264,15 @@ function WorkRow({ work, expanded, onToggle }: { work: B2bWorkRecordDetail; expa
         <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
       </div>
       {expanded && (
-        <div style={{ padding: '0 0 8px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ padding: `0 0 ${t.density.panelPadY}px 0`, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
           {work.performed_text && <Field label="수행 내용" value={work.performed_text} block />}
           {work.pricing?.basis_text && <Field label="산정 근거" value={work.pricing.basis_text} block />}
           {work.evidence.length > 0 && (
             <div>
-              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 3 }}>증거 링크</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>증거 링크</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
                 {work.evidence.map(ev => (
-                  <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
+                  <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                     <LTableBadge tone={tonePalettes.neutral}>{EVIDENCE_KIND_LABEL[ev.kind] ?? ev.kind}</LTableBadge>
                     {ev.url ? (
                       <a href={ev.url} target="_blank" rel="noopener noreferrer" style={{ color: t.brand[600], minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -299,7 +299,7 @@ function DocRow({ label, doc, onOpen, opening }: {
   opening: string | null
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
       <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text }}>{label}</span>
       {doc ? (
         <>
@@ -320,7 +320,7 @@ function InvoiceRow({ label, invoice }: {
   invoice: { approval_no: string | null; issue_date: string | null; supply_amount: number; total_amount: number } | null
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
       <span style={{ width: 48, flexShrink: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>{label}</span>
       {invoice ? (
         <>
@@ -341,11 +341,11 @@ function InvoiceRow({ label, invoice }: {
 
 function CashRows({ label, rows }: { label: string; rows: { id: string; payment_date: string; amount: number; counterparty: string | null }[] }) {
   return (
-    <div style={{ padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+    <div style={{ padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
       <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, marginBottom: rows.length ? 3 : 0 }}>{label}</div>
       {rows.length === 0 && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>미확인</div>}
       {rows.map(r => (
-        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '2px 0' }}>
+        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px 0` }}>
           <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle }}>{r.payment_date}</span>
           <span style={{ flex: 1, minWidth: 0, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.counterparty ?? '-'}</span>
           <span style={{ fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text }}>₩{Math.round(Math.abs(r.amount)).toLocaleString()}</span>
@@ -358,7 +358,7 @@ function CashRows({ label, rows }: { label: string; rows: { id: string; payment_
 function Field({ label, value, block }: { label: string; value: string; block?: boolean }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
       <div style={block
         ? { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, lineHeight: 1.5, wordBreak: 'break-word' as const, whiteSpace: 'pre-wrap' as const }
         : { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
@@ -370,7 +370,7 @@ function Field({ label, value, block }: { label: string; value: string; block?: 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: 4 }}>
+      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>
         {title}
       </div>
       {children}

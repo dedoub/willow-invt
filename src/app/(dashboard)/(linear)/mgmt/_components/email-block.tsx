@@ -107,14 +107,14 @@ export function EmailBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead eyebrow={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm }}>
             {eyebrow}
             <span style={{
               fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
               color: connected ? t.accent.pos : t.accent.neg,
-              display: 'inline-flex', alignItems: 'center', gap: 3,
+              display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
               fontWeight: t.weight.medium,
             }}>
               <span style={{
@@ -125,7 +125,7 @@ export function EmailBlock({
             </span>
           </span>
         } title={title} tools={connected ? (
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: t.density.gapXs }}>
             <LHeadBtn icon="refresh" label="동기화" title="이메일 동기화" onClick={onSync} busy={isSyncing} />
             <LHeadBtn icon="send" label="이메일 작성" title="이메일 작성" onClick={onCompose} />
           </div>
@@ -134,9 +134,9 @@ export function EmailBlock({
 
       {/* Source filter */}
       {connected && (
-        <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px`, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
           {activeFilters.length > 0 && (
-            <div style={{ display: 'flex', gap: 5 }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm }}>
               {activeFilters.map(f => {
                 const active = sourceFilter === f.key
                 return (
@@ -144,7 +144,7 @@ export function EmailBlock({
                     key={f.key}
                     onClick={() => handleFilterChange(f.key)}
                     style={{
-                      padding: '4px 10px', borderRadius: t.radius.pill,
+                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
                       border: 'none', cursor: 'pointer',
                       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                       fontWeight: active ? t.weight.medium : t.weight.regular,
@@ -172,26 +172,26 @@ export function EmailBlock({
               onClick={() => onSelectEmail(m)}
               style={{
                 display: 'grid', gridTemplateColumns: '1fr 50px',
-                gap: 8, padding: '9px 16px', alignItems: 'center',
+                gap: t.density.kpiGap, padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, alignItems: 'center',
                 borderTop: `1px solid ${t.neutrals.line}`,
                 fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer',
                 background: m.unread ? 'transparent' : t.neutrals.inner + '40',
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.tableRowGap }}>
                   {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
                   {m.direction === 'outbound' && (
                     <span style={{
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
-                      padding: '0 4px', borderRadius: 2,
+                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
                       background: '#DAEEDD', color: '#1F5F3D',
                     }}>발신</span>
                   )}
                   {m.sourceLabel && sourceFilter === 'all' && activeFilters.length > 0 && (
                     <span style={{
                       fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
-                      padding: '0 4px', borderRadius: 2,
+                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
                       background: srcTone?.bg || t.neutrals.inner,
                       color: srcTone?.fg || t.neutrals.subtle,
                       flexShrink: 0,
@@ -208,7 +208,7 @@ export function EmailBlock({
                   {m.category && (
                     <span style={{
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
-                      padding: '0 4px', borderRadius: 2,
+                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
                       background: t.neutrals.inner, color: t.neutrals.subtle,
                       flexShrink: 0,
                     }}>{m.category}</span>
@@ -228,14 +228,14 @@ export function EmailBlock({
         })}
         {filtered.length === 0 && connected && (
           <div style={{
-            padding: '20px 16px', textAlign: 'center',
+            padding: `${t.density.pagePadX}px ${t.density.cardPad}px`, textAlign: 'center',
             fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>이메일이 없습니다</div>
         )}
         {!connected && (
           <div style={{
-            padding: '20px 16px', textAlign: 'center',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            padding: `${t.density.pagePadX}px ${t.density.cardPad}px`, textAlign: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: t.density.gapMd,
             fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>
             <div>Gmail 연결이 필요합니다</div>
@@ -243,7 +243,7 @@ export function EmailBlock({
               <button
                 onClick={onConnect}
                 style={{
-                  padding: '6px 14px', borderRadius: t.radius.pill, border: 'none',
+                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.pill, border: 'none',
                   cursor: 'pointer', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   fontFamily: t.font.sans, fontWeight: t.weight.medium,
                   background: t.brand[100], color: t.brand[700],
@@ -257,22 +257,22 @@ export function EmailBlock({
       {/* Pagination bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px',
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`,
         borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         {/* Page size input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {/* Page navigation */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
                 cursor: page === 0 ? 'default' : 'pointer',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
               }}>
@@ -287,7 +287,7 @@ export function EmailBlock({
               style={{
                 background: 'transparent', border: 'none',
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
               }}>

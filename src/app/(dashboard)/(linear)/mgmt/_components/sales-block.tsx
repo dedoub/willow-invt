@@ -164,7 +164,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow="TAX INVOICES"
           title={mode === 'purchase' ? '매입관리' : '매출관리'}
@@ -181,10 +181,10 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
         />
 
         {/* Year navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
           <button onClick={() => { setYear(y => y - 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -193,7 +193,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
@@ -202,7 +202,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
         <div style={{
           display: 'grid',
           gridTemplateColumns: mode === 'sales' ? 'repeat(3, 1fr)' : '1fr',
-          gap: 8, marginBottom: 12,
+          gap: t.density.kpiGap, marginBottom: t.density.blockGap,
         }}>
           {mode === 'sales' ? (
             <>
@@ -241,7 +241,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
             <button onClick={() => { setSearch(''); setPage(0) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -249,7 +249,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 4px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapXs}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
@@ -289,10 +289,10 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
               </LTableRow>
 
               {expanded && (
-                <div style={{ padding: '0 0 12px' }}>
+                <div style={{ padding: `0 0 ${t.density.blockGap}px` }}>
                   <div style={{
                     display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-                    gap: 10, padding: '10px 12px', borderRadius: t.radius.md,
+                    gap: t.density.gapMd, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
                     background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                   }}>
                     {row.regNumber && <DetailRow label="사업자번호" value={row.regNumber} mono />}
@@ -316,19 +316,19 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={safePage === 0}
               onClick={() => setPage(p => Math.max(0, p - 1))}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: safePage === 0 ? 'default' : 'pointer',
                 color: safePage === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: safePage === 0 ? 0.4 : 1,
@@ -343,7 +343,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
               disabled={safePage >= totalPages - 1}
               onClick={() => setPage(p => p + 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
                 color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: safePage >= totalPages - 1 ? 0.4 : 1,
@@ -361,7 +361,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>{value}</div>
     </div>
   )

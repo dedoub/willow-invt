@@ -22,7 +22,7 @@ interface MaskedCredentials {
 }
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -38,7 +38,7 @@ function Label({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
       {children}
     </div>
@@ -131,19 +131,19 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{
               fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
-              textTransform: 'uppercase' as const, marginBottom: 2,
+              textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap,
             }}>API SETTINGS</div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               보이스카드 API 설정
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -152,19 +152,19 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
         </div>
 
         {/* Body */}
-        <div style={{ padding: '0 20px 16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
           {loadingCreds ? (
-            <div style={{ padding: '20px 0', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>
+            <div style={{ padding: `${t.density.pagePadX}px 0`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>
               설정 불러오는 중...
             </div>
           ) : (
             <>
               {/* iOS Section */}
               <div>
-                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: t.density.kpiGap, display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   App Store Connect API
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, paddingLeft: t.density.blockGap }}>
                   <div>
                     <Label>Issuer ID</Label>
                     <input
@@ -216,10 +216,10 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
 
               {/* Android Section */}
               <div>
-                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, marginBottom: t.density.kpiGap, display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   Google Play Developer API
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingLeft: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, paddingLeft: t.density.blockGap }}>
                   <div>
                     <Label>Service Account JSON</Label>
                     <textarea
@@ -247,8 +247,8 @@ export function VoicecardsSettingsDialog({ open, onClose, onSave }: VoicecardsSe
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: t.density.kpiGap,
         }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
           <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || loadingCreds}>

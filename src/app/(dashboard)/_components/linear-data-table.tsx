@@ -222,7 +222,7 @@ export function DataTable({
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <button disabled={safePage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
                 style={{
-                  background: 'transparent', border: 'none', padding: 3, borderRadius: t.radius.sm,
+                  background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                   cursor: safePage === 1 ? 'default' : 'pointer',
                   color: safePage === 1 ? t.neutrals.line : t.neutrals.muted,
                   opacity: safePage === 1 ? 0.4 : 1,
@@ -234,7 +234,7 @@ export function DataTable({
               </span>
               <button disabled={safePage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 style={{
-                  background: 'transparent', border: 'none', padding: 3, borderRadius: t.radius.sm,
+                  background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                   cursor: safePage >= totalPages ? 'default' : 'pointer',
                   color: safePage >= totalPages ? t.neutrals.line : t.neutrals.muted,
                   opacity: safePage >= totalPages ? 0.4 : 1,

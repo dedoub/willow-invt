@@ -127,7 +127,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         e.dataTransfer.effectAllowed = 'move'
       }}
       style={{
-        padding: '8px 10px',
+        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
         borderRadius: t.radius.md,
         // 추매+돌파(강한 매수)면 배경 하이라이트(진한 녹색 틴트, 추매구간과 구분), 핀이면 노랑, 기본은 inner
         background: (data.pyramiding?.status === 'BUY' && data.breakout) ? '#BCE6C9'
@@ -144,7 +144,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       {/* Action buttons on hover */}
       {hovered && (onRemove || onPin) && (
         <div style={{
-          position: 'absolute', top: 4, right: 4, display: 'flex', gap: 2, zIndex: 1,
+          position: 'absolute', top: 4, right: 4, display: 'flex', gap: t.density.tableRowGap, zIndex: 1,
         }}>
           {onPin && (
             <button
@@ -179,8 +179,8 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
         </div>
       )}
       {/* Row 1: ticker + name + price/mcap */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
           <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text }}>
             {data.ticker.replace('.KS', '')}
           </span>
@@ -195,12 +195,12 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               </svg>
               <span className="info-tip-content" style={{
                 display: 'none', position: 'absolute', left: '50%', bottom: '100%',
-                transform: 'translateX(-50%)', marginBottom: 6,
+                transform: 'translateX(-50%)', marginBottom: t.density.gapSm,
                 background: '#1E293B', color: '#F8FAFC', fontSize: `calc(${t.type.label}px * var(--fz, 1))`, lineHeight: 1.5,
-                padding: '8px 10px', borderRadius: 6, width: 240, zIndex: 100,
+                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.md, width: 240, zIndex: 100,
                 whiteSpace: 'normal', pointerEvents: 'none',
               }}>
-                {data.valueChainPosition && <div style={{ fontWeight: 600, marginBottom: 3 }}>{data.valueChainPosition}</div>}
+                {data.valueChainPosition && <div style={{ fontWeight: 600, marginBottom: t.density.gapXs }}>{data.valueChainPosition}</div>}
                 {data.structuralThesis}
               </span>
               <style>{`.info-tip:hover .info-tip-content{display:block!important}`}</style>
@@ -209,19 +209,19 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
           {data.breakout && (
             <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
               flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
             }}>돌파{data.breakoutGap != null && ` +${data.breakoutGap.toFixed(1)}%`}</span>
           )}
           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (
             <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
               flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
             }}>QLD 전환 후보</span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0 }}>
           {data.marketCapLabel && (
             <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
               {data.marketCapLabel}
@@ -236,22 +236,22 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       </div>
 
       {/* Row 2: 세부 sector(라벨) + 스몰캡 + change% — 부모 axis는 sub-group 헤더와 중복되어 제거 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
           {data.sector ? (
             <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
               borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted,
             }}>{data.sector}</span>
           ) : (data.group === 'watchlist' || data.group === 'research') ? (
             <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
               borderRadius: t.radius.sm, background: '#FEF3C7', color: '#B45309',
             }}>미분류</span>
           ) : null}
           {data.sourceType === 'smallcap' && (
             <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 4px',
+              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapXs}px`,
               borderRadius: t.radius.sm, background: '#E0E7FF', color: '#4338CA',
             }}>스몰캡</span>
           )}
@@ -265,11 +265,11 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       </div>
 
       {/* Row 3: signal + momentum + holdings */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           {data.signal && SIGNAL_STYLE[data.signal] && (
             <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
               borderRadius: t.radius.pill, background: SIGNAL_STYLE[data.signal].bg, color: SIGNAL_STYLE[data.signal].fg,
             }}>
               {SIGNAL_STYLE[data.signal].label}
@@ -280,7 +280,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             const mt = momentumTone(data.momentumScore)
             return (
               <span style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
                 borderRadius: t.radius.pill, background: mt.bg, color: mt.fg,
               }}>
                 M {data.momentumScore}
@@ -295,7 +295,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           {/* Research: verdict + composite */}
           {data.group === 'research' && data.verdict && (
             <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
               borderRadius: t.radius.pill,
               background: data.verdict === 'pass_tier1' ? tonePalettes.done.bg : tonePalettes.info.bg,
               color: data.verdict === 'pass_tier1' ? tonePalettes.done.fg : tonePalettes.info.fg,
@@ -313,13 +313,13 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
 
       {/* Row 4: Monitoring (pinned watchlist) */}
       {data.monitor && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
           {(() => {
             const mt = data.monitor.stage >= 7 ? { bg: '#EDE5F5', fg: '#5B3A8C' }
               : data.monitor.stage >= 4 ? tonePalettes.info : tonePalettes.neutral
             return (
               <span style={{
-                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: '1px 4px',
+                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`,
                 borderRadius: t.radius.sm, background: mt.bg, color: mt.fg,
               }}>M{data.monitor.stage}</span>
             )
@@ -334,7 +334,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
               {' '}→ +{data.monitor.nextThresholdPct.toFixed(0)}%
               {data.monitor.nextThresholdPrice != null && (
-                <span style={{ color: t.neutrals.subtle, marginLeft: 2, opacity: 0.6 }}>
+                <span style={{ color: t.neutrals.subtle, marginLeft: t.density.tableRowGap, opacity: 0.6 }}>
                   {fmtTargetPrice(data.monitor.nextThresholdPrice, data.currency)}
                 </span>
               )}
@@ -346,13 +346,13 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
 
       {/* Row 5: Pyramiding (portfolio) */}
       {data.pyramiding && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             {(() => {
               const tt = trancheTone(data.pyramiding.tranche)
               return (
                 <span style={{
-                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: '1px 4px',
+                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`,
                   borderRadius: t.radius.sm, background: tt.bg, color: tt.fg,
                 }}>T{data.pyramiding.tranche}</span>
               )
@@ -368,7 +368,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 → +{data.pyramiding.nextTriggerPct.toFixed(0)}%
                 {data.pyramiding.nextTriggerPrice != null && (
-                  <span style={{ marginLeft: 2, opacity: 0.6 }}>
+                  <span style={{ marginLeft: t.density.tableRowGap, opacity: 0.6 }}>
                     {fmtTargetPrice(data.pyramiding.nextTriggerPrice, data.currency)}
                   </span>
                 )}
@@ -379,7 +379,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             const ps = PYRAMID_STATUS[data.pyramiding.status]
             return ps ? (
               <span style={{
-                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: '1px 6px',
+                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapSm}px`,
                 borderRadius: t.radius.pill, background: ps.bg, color: ps.fg,
               }}>{ps.label}</span>
             ) : null

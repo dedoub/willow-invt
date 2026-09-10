@@ -82,7 +82,7 @@ export default function ValueChainPage() {
 
   const sectionLabel: React.CSSProperties = {
     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
-    fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 10,
+    fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: t.density.gapMd,
     whiteSpace: 'nowrap',
   }
   // 업데이트 테이블 — 위키 /roadmap 노드 현황과 동일 항목:
@@ -94,7 +94,7 @@ export default function ValueChainPage() {
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
   // 질문 역설계 블록 공통 스타일
-  const qHead: React.CSSProperties = { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: 6, display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }
+  const qHead: React.CSSProperties = { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: t.density.gapSm, display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, whiteSpace: 'nowrap', overflow: 'hidden' }
   const qHeadSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, overflow: 'hidden', textOverflow: 'ellipsis' }
   const ellip: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
@@ -111,7 +111,7 @@ export default function ValueChainPage() {
     return (
       <button onClick={() => onSort(colKey)} style={{
         ...headCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-        display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+        display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, width: '100%',
         justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
         color: active ? t.neutrals.text : t.neutrals.subtle,
       }}>
@@ -180,7 +180,7 @@ export default function ValueChainPage() {
   const articleRows = articleSorted.slice((artSafe - 1) * articlePerPage, artSafe * articlePerPage)
   const chevBtn = (disabled: boolean): React.CSSProperties => ({
     background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
-    padding: 4, borderRadius: 4, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
+    padding: t.density.gapXs, borderRadius: t.radius.sm, color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
   })
 
   return (
@@ -200,7 +200,7 @@ export default function ValueChainPage() {
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
       <LCard pad={0}>
         {/* 헤더 + 현황 */}
-        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             eyebrow="WIKI"
             title="ValueChain"
@@ -214,7 +214,7 @@ export default function ValueChainPage() {
 
           {/* 인사이트 KPI */}
           <div style={sectionLabel}>인사이트</div>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
             <LStat label="노드" value={summary.nodes.toLocaleString()} sub={`오늘 ${trends.nodes.today.toLocaleString()}개 · 7일 ${trends.nodes.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.nodes.series} />
             <LStat label="관계" value={summary.edges.toLocaleString()} sub={`오늘 ${trends.edges.today.toLocaleString()}개 · 7일 ${trends.edges.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.edges.series} />
             <LStat label="출처" value={summary.sources.toLocaleString()} sub={`오늘 ${trends.sources.today.toLocaleString()}개 · 7일 ${trends.sources.last7.toLocaleString()}개`} sparkline={mobile ? undefined : trends.sources.series} />
@@ -228,9 +228,9 @@ export default function ValueChainPage() {
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>AI 인용 퍼널</div>
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 500, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: 500, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 헤더행 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               <span style={headCell}>단계</span>
               <span style={headCell}>7일</span>
               <span style={headCell}>총</span>
@@ -239,9 +239,9 @@ export default function ValueChainPage() {
               <span style={headCell}>상위봇</span>
             </div>
             {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite], ['④', '사용자 방문', crawl.funnel.visit]] as const).map(([num, label, tier]) => (
-              <div key={label} style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner }}>
                 <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginRight: t.density.gapXs }}>{num}</span>{label}
                 </span>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.last7d.toLocaleString()}</span>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.total.toLocaleString()}</span>
@@ -262,7 +262,7 @@ export default function ValueChainPage() {
 
           {/* ① 측면: 질문형 패싯 fetch — 인사이트 KPI와 동일한 칩 그리드 */}
           <div style={qHead}>① 어떤 측면을 물었나 <span style={qHeadSub}>AI가 가져간 질문형 패싯</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: t.density.kpiGap }}>
             {crawl.questionTypes.map(q => (
               <LStat
                 key={q.facet}
@@ -276,19 +276,19 @@ export default function ValueChainPage() {
           </div>
 
           {/* ② 방향: 방문자 패널 확장 */}
-          <div style={{ ...qHead, marginTop: 12 }}>② 어느 방향을 파고드나 <span style={qHeadSub}>방문자가 펼친 거래처 패널</span></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+          <div style={{ ...qHead, marginTop: t.density.blockGap }}>② 어느 방향을 파고드나 <span style={qHeadSub}>방문자가 펼친 거래처 패널</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: t.density.kpiGap }}>
             <LStat label="매출쪽 · 수요" value={crawl.panelSignal.revenue.toLocaleString()} sub="누가 사주나" tone={crawl.panelSignal.revenue > 0 ? 'info' : 'default'} title="방문자가 노드 페이지에서 매출처 패널을 펼친 횟수. 수요(고객) 방향 관심." />
             <LStat label="비용쪽 · 공급" value={crawl.panelSignal.cost.toLocaleString()} sub="어디에 의존하나" tone={crawl.panelSignal.cost > 0 ? 'pos' : 'default'} title="방문자가 노드 페이지에서 지급처 패널을 펼친 횟수. 공급(의존) 방향 관심." />
           </div>
           {crawl.panelSignal.recent.length > 0 && (
-            <div style={{ marginTop: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
+            <div style={{ marginTop: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
               최근 {crawl.panelSignal.recent.slice(0, 3).map(x => `${x.from} →${x.side === 'in' ? '매출' : '비용'}→ ${x.to}`).join(' · ')}
             </div>
           )}
 
           {/* ③ 묶음: co-fetch 세션 */}
-          <div style={{ ...qHead, marginTop: 12 }}>
+          <div style={{ ...qHead, marginTop: t.density.blockGap }}>
             ③ 무엇과 엮어 물었나
             <span style={qHeadSub}>
               한 질문이 함께 가져간 기업 묶음{crawl.cofetch.multi > 0 && ` · ${crawl.cofetch.multi}묶음 / ${crawl.cofetch.total}세션 · 관계형 ${crawl.cofetch.relation} · 테마형 ${crawl.cofetch.multi - crawl.cofetch.relation}`}
@@ -297,9 +297,9 @@ export default function ValueChainPage() {
           {crawl.cofetch.multi === 0 ? (
             <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5 }}>아직 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
               {crawl.cofetch.recent.map((x, i) => (
-                <div key={i} title={`${x.bot} 세션 — 관계형은 밸류체인으로 연결된 기업끼리, 테마형은 연결 없는 비교`} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
+                <div key={i} title={`${x.bot} 세션 — 관계형은 밸류체인으로 연결된 기업끼리, 테마형은 연결 없는 비교`} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'baseline', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
                   <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', ...ellip }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
                   <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
                   <span style={{ color: t.neutrals.text, ...ellip }}>{x.seq.join(' + ')}</span>
@@ -314,9 +314,9 @@ export default function ValueChainPage() {
           <div style={sectionLabel}>기업 노드 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>증명(P) · 파급(R) 각 6점</span></div>
           {/* 최근 업데이트 내역 — 위키 /roadmap 노드 현황과 동일 항목 + 인용퍼널 */}
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭 정렬 */}
-            <div style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: t.density.kpiGap, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {sortHead('created', '최초', 'left', updateSort, onUpdateSort)}
               {sortHead('date', '수정', 'left', updateSort, onUpdateSort)}
               {sortHead('name', '노드', 'left', updateSort, onUpdateSort)}
@@ -334,13 +334,13 @@ export default function ValueChainPage() {
             </div>
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
-                style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: t.density.kpiGap, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
                 <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
                 <span style={{ whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier}</span>
-                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: 4, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: t.density.gapXs, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
                 </span>
                 <AxisMini proof={n.proof} prop={n.prop} />
                 {([n.seg, n.rev, n.cost, n.inv, n.research, n.linked, n.src, n.verified] as const).map((v, i) => (
@@ -349,16 +349,16 @@ export default function ValueChainPage() {
                 {FUNNEL_HEADS.map(h => { const v = h.get(n.funnel); return <span key={h.key} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
-            {updates.recent.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
+            {updates.recent.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: t.density.panelPadY }}>업데이트 내역 없음</span>}
           </div>
           </div>
           {/* 페이저 — N개씩 보기(좌) + 페이지 이동(우), 다른 테이블과 동일 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, padding: `${t.density.panelPadY}px ${t.density.panelPadY}px 0` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={updatePerPage} onChange={applyUpdatePerPage} />
             </div>
             {updatePages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                 <button disabled={updSafe === 1} onClick={() => setUpdatePage(p => Math.max(1, p - 1))} style={chevBtn(updSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(updSafe - 1) * updatePerPage + 1}-{Math.min(updSafe * updatePerPage, updateSorted.length)} / {updateSorted.length}</span>
                 <button disabled={updSafe >= updatePages} onClick={() => setUpdatePage(p => Math.min(updatePages, p + 1))} style={chevBtn(updSafe >= updatePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
@@ -371,9 +371,9 @@ export default function ValueChainPage() {
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 540, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: 540, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 헤더 (정렬 가능) — 최초 | 수정 | 제목 | 변경 | 학습·인덱싱·인용·방문 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: 8, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: t.density.kpiGap, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {sortHead('published', '최초', 'left', articleSort, onArticleSort)}
               {sortHead('updated', '수정', 'left', articleSort, onArticleSort)}
               {sortHead('title', '제목', 'left', articleSort, onArticleSort)}
@@ -382,7 +382,7 @@ export default function ValueChainPage() {
             </div>
             {articleRows.map(a => (
               <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
-                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
+                style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: t.density.kpiGap, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
@@ -390,16 +390,16 @@ export default function ValueChainPage() {
                 {FUNNEL_HEADS.map(h => { const v = h.get(a.funnel); return <span key={h.key} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
-            {articleUpdates.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
+            {articleUpdates.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: t.density.panelPadY }}>아티클 없음</span>}
           </div>
           </div>
           {/* 페이저 — N개씩(좌) + 이동(우), 업데이트 테이블과 동일 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 8px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, padding: `${t.density.panelPadY}px ${t.density.panelPadY}px 0` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={articlePerPage} onChange={applyArticlePerPage} />
             </div>
             {articlePages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                 <button disabled={artSafe === 1} onClick={() => setArticlePage(p => Math.max(1, p - 1))} style={chevBtn(artSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(artSafe - 1) * articlePerPage + 1}-{Math.min(artSafe * articlePerPage, articleUpdates.length)} / {articleUpdates.length}</span>
                 <button disabled={artSafe >= articlePages} onClick={() => setArticlePage(p => Math.min(articlePages, p + 1))} style={chevBtn(artSafe >= articlePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
@@ -420,9 +420,9 @@ export default function ValueChainPage() {
 function AxisMini({ proof, prop }: { proof: number; prop: number }) {
   const rows: [string, number, string][] = [['증', proof, t.brand[500]], ['파', prop, '#10b981']]
   return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={`증명 ${proof}/6 · 파급 ${prop}/6`}>
+    <span style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap, minWidth: 0 }} title={`증명 ${proof}/6 · 파급 ${prop}/6`}>
       {rows.map(([lbl, v, color]) => (
-        <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{lbl}</span>
           <span style={{ flex: 1, height: 3, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
             <span style={{ display: 'block', width: `${(v / 6) * 100}%`, height: '100%', borderRadius: 2, background: color }} />
@@ -451,11 +451,11 @@ function MiniBars({ data }: { data: number[] }) {
 
 function refreshBtnStyle(active = false): React.CSSProperties {
   return {
-    display: 'inline-flex', alignItems: 'center', gap: 5,
+    display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm,
     background: t.neutrals.inner, color: t.neutrals.muted,
-    border: 'none', borderRadius: t.radius.md, padding: '5px 10px',
+    border: 'none', borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
     fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
     cursor: active ? 'default' : 'pointer', fontFamily: t.font.sans,
-    opacity: active ? 0.6 : 1, marginTop: 8,
+    opacity: active ? 0.6 : 1, marginTop: t.density.kpiGap,
   }
 }

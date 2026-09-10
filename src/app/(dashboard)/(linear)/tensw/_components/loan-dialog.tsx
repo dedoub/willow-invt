@@ -46,7 +46,7 @@ const STATUS_OPTIONS = [
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -141,13 +141,13 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <div style={{
               fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
-              textTransform: 'uppercase' as const, marginBottom: 2,
+              textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap,
             }}>
               LOAN
             </div>
@@ -158,7 +158,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           <button
             onClick={onClose}
             style={{
-              width: 28, height: 28, borderRadius: t.radius.sm,
+              width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
             }}
@@ -169,11 +169,11 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
 
         {/* Body */}
         <div style={{
-          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
+          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
           display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
           {/* 은행 + 계좌번호 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label required>은행</Label>
               <input
@@ -207,7 +207,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           </div>
 
           {/* 원금 + 이율 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label required>대출원금</Label>
               <input
@@ -235,7 +235,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           </div>
 
           {/* 월평균 이자 + 이자납입일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>월평균 이자</Label>
               <input
@@ -264,7 +264,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           </div>
 
           {/* 대출일 + 만기일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>대출일</Label>
               <input type="date" value={form.loan_date} onChange={e => set('loan_date', e.target.value)} style={inputBase} />
@@ -276,7 +276,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           </div>
 
           {/* 최근 연장일 + 다음 이자일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>최근 연장일</Label>
               <input type="date" value={form.last_extension_date} onChange={e => set('last_extension_date', e.target.value)} style={inputBase} />
@@ -288,10 +288,10 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           </div>
 
           {/* 상환방식 + 상태 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>상환방식</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
                 {REPAYMENT_TYPES.map(rt => (
                   <ChipBtn key={rt.key} active={form.repayment_type === rt.key} onClick={() => set('repayment_type', rt.key)}>
                     {rt.label}
@@ -301,7 +301,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
             </div>
             <div>
               <Label>상태</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
                 {STATUS_OPTIONS.map(s => (
                   <ChipBtn key={s.key} active={form.status === s.key} onClick={() => set('status', s.key)}>
                     {s.label}
@@ -326,12 +326,12 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px',
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`,
           background: t.neutrals.inner,
           display: 'flex',
           justifyContent: isEdit ? 'space-between' : 'flex-end',
           alignItems: 'center',
-          gap: 8,
+          gap: t.density.kpiGap,
         }}>
           {isEdit && (
             <LBtn
@@ -344,7 +344,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
               {deleting ? '삭제 중...' : '삭제'}
             </LBtn>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
             <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
             <LBtn
               variant="brand"
@@ -367,9 +367,9 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }
@@ -380,7 +380,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
       onClick={onClick}
       style={{
         border: 'none', cursor: 'pointer',
-        padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+        padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
         fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
         background: active ? t.brand[100] : t.neutrals.inner,
         color: active ? t.brand[700] : t.neutrals.muted,

@@ -61,20 +61,20 @@ export function SectorRotationChartModal({
         fontFamily: t.font.sans,
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.panelPadY}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               TRAILING {period.toUpperCase()} RETURN · LAST 1Y
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
               {ticker} <span style={{ color: t.neutrals.muted, fontWeight: t.weight.regular }}>· {etfName}</span>
             </div>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginTop: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginTop: t.density.tableRowGap }}>
               매일 시점의 {PERIOD_LABEL[period]} 수익률 추이 — 벤치마크와 비교
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -83,7 +83,7 @@ export function SectorRotationChartModal({
         </div>
 
         {/* Chart */}
-        <div style={{ padding: '0 20px 20px', height: mobile ? 280 : 360 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.pagePadX}px`, height: mobile ? 280 : 360 }}>
           {loading && (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
               데이터 로딩 중…
@@ -111,7 +111,7 @@ export function SectorRotationChartModal({
                   labelFormatter={(d) => d}
                   formatter={(v) => typeof v === 'number' ? `${(v * 100).toFixed(2)}%` : String(v ?? '')}
                 />
-                <Legend wrapperStyle={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, paddingTop: 6 }} />
+                <Legend wrapperStyle={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, paddingTop: t.density.gapSm }} />
                 <ReferenceLine y={0} stroke={t.neutrals.muted} strokeDasharray="3 3" />
                 <Line type="monotone" dataKey="etf" name={ticker} stroke="#6366F1" strokeWidth={2.2} dot={false} isAnimationActive={false} />
                 {ticker !== 'SPY' && <Line type="monotone" dataKey="spy" name="SPY" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />}

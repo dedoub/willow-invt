@@ -82,7 +82,7 @@ function HeaderCell({
         fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: active ? t.neutrals.text : t.neutrals.subtle,
         fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
         display: 'flex', alignItems: 'center', justifyContent: justify,
-        gap: 2,
+        gap: t.density.tableRowGap,
       }}
     >
       <span>{label}</span>
@@ -166,15 +166,15 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
 
   return (
     <div style={{ background: t.neutrals.card, borderRadius: t.radius.lg, padding: mobile ? 12 : 16 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: t.density.kpiGap, flexWrap: 'wrap', gap: t.density.gapSm }}>
         <div>
-          <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+          <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
             SECTOR ROTATION
           </div>
           <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
             섹터/테마 ETF 상대 수익률
             {latestDate && (
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.subtle, marginLeft: 6, fontFamily: t.font.mono }}>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.subtle, marginLeft: t.density.gapSm, fontFamily: t.font.mono }}>
                 as of {latestDate}
               </span>
             )}
@@ -183,7 +183,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       </div>
 
       {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="l-skeleton" style={{ height: 24, borderRadius: t.radius.sm }} />
           ))}
@@ -191,12 +191,12 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       )}
 
       {!loading && sorted.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
           {/* Header row — 각 헤더 클릭 시 정렬 (같은 헤더 재클릭 시 방향 토글) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
-            gap: 4, padding: '4px 6px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
+            gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.gapSm}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
             fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
           }}>
             <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
@@ -219,14 +219,14 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             <div key={etf.ticker} style={{
               display: 'grid',
               gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
-              gap: 4, alignItems: 'center', padding: '0 6px',
+              gap: t.density.gapXs, alignItems: 'center', padding: `0 ${t.density.gapSm}px`,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
               background: rowBg, // 그룹 구분은 배경 색조만 — 좌측 색 테두리는 중복이라 뺐다(2026-09-10)
               borderRadius: t.radius.sm,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
                 <span style={{
-                  fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, padding: '0 4px', borderRadius: 3,
+                  fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, padding: `0 ${t.density.gapXs}px`, borderRadius: 3,
                   background: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
                   color: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
                   flexShrink: 0,
@@ -254,7 +254,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
                     onClick={clickable ? () => setOpenChart({ ticker: etf.ticker, name: etf.name, period: p }) : undefined}
                     disabled={!clickable}
                     style={{
-                      padding: '3px 6px', borderRadius: t.radius.sm,
+                      padding: `${t.density.gapXs}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                       background: c.bg, color: c.fg,
                       fontSize: `calc(${mobile ? 10 : 10.5}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       fontFamily: t.font.mono, textAlign: 'right' as const,
@@ -277,7 +277,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       )}
 
       {!loading && sorted.length === 0 && (
-        <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '20px 0', textAlign: 'center' as const }}>
+        <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.pagePadX}px 0`, textAlign: 'center' as const }}>
           데이터가 없습니다. 수집 스크립트를 실행해 주세요.
         </div>
       )}

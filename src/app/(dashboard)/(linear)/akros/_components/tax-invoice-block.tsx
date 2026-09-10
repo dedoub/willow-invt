@@ -142,14 +142,14 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
+    width: '100%', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
     fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
   }
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead eyebrow="TAX INVOICES" title="세금계산서" action={
           <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />}
             onClick={() => setAddOpen(true)}>추가</LBtn>
@@ -157,25 +157,25 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
       </div>
 
       {/* Invoice rows */}
-      <div style={{ padding: '0 4px 4px' }}>
+      <div style={{ padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
         {paged.map(inv => {
           const status = getStatus(inv)
           const sty = STATUS_STYLES[status]
           const isEditing = editInv?.id === inv.id
           return (
             <div key={inv.id} style={{
-              padding: '8px 10px', borderRadius: t.radius.sm,
-              marginBottom: 2, background: isEditing ? t.neutrals.inner : 'transparent',
+              padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
+              marginBottom: t.density.tableRowGap, background: isEditing ? t.neutrals.inner : 'transparent',
             }}>
               {isEditing ? (
                 /* Edit form */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
                   <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputStyle} />
                   <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} placeholder="금액" style={inputStyle} />
                   <input value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="비고" style={inputStyle} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
                     <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: t.density.gapSm }}>
                       <LBtn variant="secondary" size="sm" onClick={() => setEditInv(null)}>취소</LBtn>
                       <LBtn size="sm" onClick={handleUpdate} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn>
                     </div>
@@ -184,10 +184,10 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
               ) : (
                 /* Read row — 2-line layout for narrow containers */
                 <div style={{ overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                       <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, padding: '2px 6px',
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
                         borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: 500,
                         flexShrink: 0,
                       }}>{sty.label}</span>
@@ -195,35 +195,35 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                         {inv.invoice_date}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
                       {inv.file_url && (
-                        <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: 4, color: t.neutrals.subtle }}>
+                        <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: t.density.gapXs, color: t.neutrals.subtle }}>
                           <LIcon name="file" size={12} />
                         </a>
                       )}
                       <button onClick={() => toggleStatus(inv, 'issued_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
-                        padding: '2px 5px', borderRadius: t.radius.sm,
+                        padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
                         color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
                         backgroundColor: inv.issued_at ? tonePalettes.info.bg : 'transparent',
                       }}>발행</button>
                       <button onClick={() => toggleStatus(inv, 'paid_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
-                        padding: '2px 5px', borderRadius: t.radius.sm,
+                        padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
                         color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
                         backgroundColor: inv.paid_at ? tonePalettes.done.bg : 'transparent',
                       }}>입금</button>
                       <button onClick={() => openEdit(inv)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                        background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
                         color: t.neutrals.subtle,
                       }}>
                         <LIcon name="pencil" size={12} />
                       </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, paddingLeft: 2, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.gapXs, paddingLeft: t.density.tableRowGap, minWidth: 0 }}>
                     <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {inv.amount.toLocaleString()}원
                     </span>
@@ -248,16 +248,16 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+              background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
               cursor: page === 0 ? 'default' : 'pointer',
               color: page === 0 ? t.neutrals.line : t.neutrals.muted,
               opacity: page === 0 ? 0.4 : 1,
@@ -268,7 +268,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, invoices.length)} / {invoices.length}
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} style={{
-              background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+              background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
               cursor: page >= totalPages - 1 ? 'default' : 'pointer',
               color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
               opacity: page >= totalPages - 1 ? 0.4 : 1,
@@ -283,35 +283,35 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
       {addOpen && (
         <div onClick={() => resetAdd()} style={{
           position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.cardPad,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: t.neutrals.card, borderRadius: t.radius.lg,
-            width: '100%', maxWidth: 400, padding: 20,
+            width: '100%', maxWidth: 400, padding: t.density.pagePadX,
           }}>
             <h3 style={{ margin: '0 0 14px', fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, fontFamily: t.font.sans }}>
               세금계산서 추가
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
               <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>발행일 *</label>
+                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>발행일 *</label>
                 <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>금액 (원) *</label>
+                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>금액 (원) *</label>
                 <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>비고</label>
+                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>비고</label>
                 <input value={addNotes} onChange={e => setAddNotes(e.target.value)} style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block' }}>PDF 파일</label>
+                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>PDF 파일</label>
                 <input type="file" accept=".pdf" onChange={e => setAddFile(e.target.files?.[0] || null)}
                   style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }} />
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: 14 }}>
               <LBtn variant="secondary" size="sm" onClick={resetAdd}>취소</LBtn>
               <LBtn size="sm" onClick={handleCreate} disabled={saving || !addDate || !addAmount}>
                 {saving ? '저장중...' : '저장'}

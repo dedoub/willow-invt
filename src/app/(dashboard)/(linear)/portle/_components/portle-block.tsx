@@ -40,7 +40,7 @@ function formatDateShort(dateString?: string | null): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -76,27 +76,27 @@ function PortleAiTrendCard({ daily, days = 42 }: {
   })
   return (
     <div style={{
-      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+      background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm }}>
         <div style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 AI 호출
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: OK }} />성공 {latest?.success ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: EMPTY }} />빈응답 {latest?.empty ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: FAIL }} />실패 {latest?.failure ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
           </span>
         </div>
@@ -106,7 +106,7 @@ function PortleAiTrendCard({ daily, days = 42 }: {
           데이터 없음
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
             const failH = barPct(r.failure)
             const emptyH = barPct(r.empty)
@@ -141,19 +141,19 @@ function PortleAiTrendCard({ daily, days = 42 }: {
                 bottom: `calc(${barPct(totalOf(r)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: OK }} />성공 {r.success}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: EMPTY }} />빈응답 {r.empty}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: FAIL }} />실패 {r.failure}
                 </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>사용자 {r.subjects}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>사용자 {r.subjects}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
@@ -287,7 +287,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: AI 사용 · 안정성 */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           eyebrow="FUNNEL"
           title="스토어 → 설치 → 로그인 → 활성화 → 구독"
@@ -297,9 +297,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
 
         {error && (
           <div style={{
-            padding: '8px 12px', borderRadius: t.radius.md,
+            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: 10,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: t.density.gapMd,
           }}>
             {error}
           </div>
@@ -307,8 +307,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
 
         {loading && (() => {
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
                 {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
               </div>
               <Bone h={splitLayout ? undefined : 190} style={{ minWidth: 0, height: splitLayout ? '100%' : 190 }} />
@@ -395,16 +395,16 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const PENDING_APP = '수집 대기 (앱 이벤트)'
 
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: 8, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
             {/* 좌: 퍼널 6카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
               <LStat
                 label="스토어 방문"
                 title="플레이·앱스토어 등록정보 방문자 누적 (portle_store_visits). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문 → 설치 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독."
                 value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                 valueExtra={svLast ? (
                   <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     {svLast.date.slice(5)} 기준
@@ -489,7 +489,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
         {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2].map(i => (
               <Bone key={i} h={36} />
             ))}
@@ -503,7 +503,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const todayCalls = todayRow ? todayRow.success + todayRow.empty + todayRow.failure : 0
           const todayRate = todayCalls > 0 && todayRow ? rate(todayRow.success, todayCalls) : null
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
               <LStat
                 label="AI 사용자"
                 title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기 — 기기 사용자도 정상 경로)."
@@ -543,8 +543,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         })()}
         {!loading && stats && (
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 560, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px', gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+          <div style={{ minWidth: 560, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px', gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {['기능', '호출', '성공 · 빈 · 실패', '성공률', '사용자', '토큰', '마지막'].map((h, i) => (
                 <div key={h} style={{ ...userHeadCell, textAlign: i === 0 ? 'left' : 'center' }}>{h}</div>
               ))}
@@ -554,7 +554,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               return (
                 <div key={k.kind} style={{
                   display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px',
-                  gap: 6, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  gap: t.density.gapSm, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   <div style={{ ...userTextCell, color: t.neutrals.text, fontWeight: 500 }}>
                     {PORTLE_KIND_LABELS[k.kind] ?? k.kind}
@@ -575,7 +575,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     <span style={{ color: '#DC2626' }}>{k.failure}</span>
                   </div>
                   {/* 성공률 바 — 낮을수록 문제 기능이 한눈에 보이도록 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{ flex: 1, height: 4, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
                       <div style={{ width: `${okPct}%`, height: '100%', borderRadius: 2, background: okPct >= 80 ? '#10b981' : okPct >= 50 ? '#f59e0b' : '#ef4444' }} />
                     </div>
@@ -608,7 +608,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             mb={8}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5].map(i => (
               <Bone key={i} h={40} />
             ))}
@@ -624,12 +624,12 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             mb={8}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                 <select
                   value={userSort}
                   onChange={e => handleSortChange(e.target.value as UserSortKey)}
                   style={{
-                    height: t.density.controlHSm, padding: '0 6px', borderRadius: t.radius.sm,
+                    height: t.density.controlHSm, padding: `0 ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     border: 'none', cursor: 'pointer',
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                     background: t.neutrals.inner, color: t.neutrals.text,
@@ -650,9 +650,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           />
           {/* PC/모바일 동일 테이블 — 모바일은 가로 스크롤 (보이스카드와 동일) */}
           <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center', padding: '0 8px 5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const active = userSort === col.key
                 return (
@@ -662,7 +662,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     title={`${col.label} 기준 정렬`}
                     style={{
                       ...userHeadCell, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-                      display: 'flex', alignItems: 'center', gap: 2, width: '100%',
+                      display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, width: '100%',
                       justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start',
                       color: active ? t.neutrals.text : t.neutrals.subtle,
                     }}
@@ -681,8 +681,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               const ent = user.entitlement
               return (
                 <div key={user.subject} style={{
-                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: 6, alignItems: 'center',
-                  padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                  padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   {/* 첫 사용 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
@@ -694,10 +694,10 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.lastAt)}) {kstTime(user.lastAt)}</span>
                   </div>
                   {/* 사용자 — 유형 배지 + 축약 ID (전체 ID는 title로) */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }} title={user.subject}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }} title={user.subject}>
                     <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, padding: '1px 5px',
-                      borderRadius: 999, background: typeTone.bg, color: typeTone.fg, whiteSpace: 'nowrap' as const,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, padding: `1px ${t.density.gapSm}px`,
+                      borderRadius: t.radius.pill, background: typeTone.bg, color: typeTone.fg, whiteSpace: 'nowrap' as const,
                     }}>
                       {typeTone.label}
                     </span>
@@ -715,7 +715,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   <div style={{ ...userNumCell, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
                     {ent ? (
                       <span style={{
-                        padding: '1px 6px', borderRadius: 999, fontWeight: 600,
+                        padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.pill, fontWeight: 600,
                         background: ent.active ? tonePalettes.pos.bg : t.neutrals.inner,
                         color: ent.active ? tonePalettes.pos.fg : t.neutrals.subtle,
                       }}>
@@ -727,7 +727,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               )
             })}
             {sortedUsers.length === 0 && (
-              <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+              <div style={{ padding: `${t.density.cardPad}px ${t.density.panelPadY}px`, textAlign: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 아직 AI를 호출한 사용자가 없습니다
               </div>
             )}

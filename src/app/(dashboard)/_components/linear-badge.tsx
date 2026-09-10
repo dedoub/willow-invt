@@ -13,7 +13,7 @@ export function LBadge({ tone = 'neutral', children, pill = false }: LBadgeProps
   const p = tonePalettes[tone]
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
+      display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
       padding: `${t.badge.padY}px ${t.badge.padX}px`,
       background: p.bg, color: p.fg,
       fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,

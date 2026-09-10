@@ -27,7 +27,7 @@ function orderItems(items: NavItem[], order: string[]): NavItem[] {
 const GROUP_LABEL_STYLE: CSSProperties = {
   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, letterSpacing: 0.8,
   textTransform: 'uppercase' as const, color: t.sidebar.subtle,
-  padding: '12px 8px 4px',
+  padding: `${t.density.blockGap}px ${t.density.panelPadY}px ${t.density.gapXs}px`,
 }
 
 // 섹션 머리글. onToggle이 있으면 통째로 누를 수 있는 접기 버튼이 된다.
@@ -47,7 +47,7 @@ function GroupLabel({ label, collapsed, onToggle }: {
       title={collapsed ? `${label} 펼치기` : `${label} 접기`}
       style={{
         ...GROUP_LABEL_STYLE,
-        display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+        display: 'flex', alignItems: 'center', gap: t.density.gapXs, width: '100%',
         background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
         fontFamily: 'inherit',
       }}
@@ -84,9 +84,9 @@ function RailTip({ label, sub, enabled, children }: {
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left,
           transform: 'translateY(-50%)',
-          display: 'flex', alignItems: 'center', gap: 6,
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm,
           background: t.brand[800], color: '#fff',
-          padding: '5px 9px', borderRadius: 7,
+          padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, borderRadius: 7,
           fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', zIndex: 200, pointerEvents: 'none',
           fontFamily: t.font.sans, letterSpacing: -0.1,
@@ -178,10 +178,10 @@ function NavRow({ href, icon, label, dot, mark, tag, isActive, rail, onClose }: 
         onMouseLeave={() => setHover(false)}
         style={{
           position: 'relative', width: '100%', display: 'flex', alignItems: 'center',
-          justifyContent: rail ? 'center' : undefined, gap: 10,
+          justifyContent: rail ? 'center' : undefined, gap: t.density.gapMd,
           padding: rail ? '8px 0' : '7px 10px',
           background: bg, color, fontWeight: isActive ? t.weight.medium : t.weight.regular,
-          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, borderRadius: 6, textDecoration: 'none',
+          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, borderRadius: t.radius.md, textDecoration: 'none',
           marginBottom: 1, letterSpacing: -0.1, cursor: href ? 'pointer' : 'default',
           transition: 'background .12s ease, color .12s ease',
         }}
@@ -212,7 +212,7 @@ function GhostIconBtn({ onClick, title, children }: { onClick?: () => void; titl
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
         background: h ? t.sidebar.hover : 'none', border: 'none', cursor: 'pointer',
-        padding: 4, borderRadius: 5, flexShrink: 0, display: 'inline-flex', alignItems: 'center',
+        padding: t.density.gapXs, borderRadius: 5, flexShrink: 0, display: 'inline-flex', alignItems: 'center',
         color: h ? t.sidebar.text : t.sidebar.subtle, transition: 'background .12s ease, color .12s ease',
       }}
     >
@@ -339,7 +339,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const sortableGroup = (key: string, label: string, group: ReturnType<typeof useOrderedGroup>) => (
     <>
       {!rail && groupHead(key, label)}
-      {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
+      {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
       {rail ? (
         group.ordered.map(c => (
           <NavRow key={c.id} href={c.href} icon={c.icon} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
@@ -379,7 +379,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         )}
         {mobile && !rail && (
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
             color: t.brand[200],
           }}>
             <LIcon name="x" size={16} />
@@ -388,7 +388,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <nav style={{ flex: 1, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, overflowY: 'auto', overflowX: 'hidden' }}>
         {!rail && groupHead(willow.key, willow.label)}
         {!isFolded(willow.key) && willow.items.map(navLink)}
 
@@ -397,7 +397,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
         {/* 자산관리 — 윌로우 명의 투자자산 */}
         {!rail && groupHead(assets.key, assets.label)}
-        {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
+        {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
         {!isFolded(assets.key) && assets.items.map(navLink)}
 
         {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
@@ -407,7 +407,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {isAdmin && (
           <>
             {!rail && groupHead(inquiries.key, inquiries.label)}
-            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
+            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
             {!isFolded(inquiries.key) && inquiries.items.map(navLink)}
           </>
         )}
@@ -417,7 +417,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {isAdmin && (
           <>
             {!rail && groupHead(admin.key, admin.label)}
-            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: '8px 6px' }} />}
+            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
             {!isFolded(admin.key) && admin.items.map(navLink)}
           </>
         )}
@@ -428,12 +428,12 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         <div style={{
           padding: rail ? '10px 0' : '10px 12px', borderTop: `1px solid ${t.sidebar.line}`,
           display: 'flex', alignItems: 'center',
-          justifyContent: rail ? 'center' : undefined, gap: 10,
+          justifyContent: rail ? 'center' : undefined, gap: t.density.gapMd,
         }}>
           <RailTip label={user.name} sub={user.email} enabled={rail}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 28, height: 28, borderRadius: 28, flexShrink: 0,
+              width: 28, height: t.density.controlHSm, borderRadius: 28, flexShrink: 0,
               background: t.brand[200], color: t.brand[800],
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
             }}>{user.name.slice(0, 2).toUpperCase()}</span>

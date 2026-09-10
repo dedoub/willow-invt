@@ -144,10 +144,10 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block',
+    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block',
   }
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
+    width: '100%', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
     fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
   }
@@ -171,16 +171,16 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
-            gap: 8, alignItems: 'stretch',
+            gap: t.density.kpiGap, alignItems: 'stretch',
           }}>
             {/* 좌: 추이 */}
             <div style={{
-              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px',
+              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
               height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
+                gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs,
               }}>
                 <div style={{
                   fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
@@ -190,15 +190,15 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 </div>
                 {/* 범례는 SVG 밖 칩으로 — 최신값을 같이 읽고, 차트는 그만큼 넓게 쓴다 */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
+                  display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
+                  flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: t.density.gapXs, minWidth: 0,
                   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
                 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
                     <span style={{ width: 10, height: 2, borderRadius: 1, background: '#6366F1' }} />
                     키 {latest?.height_cm ?? '-'}cm
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
                     <span style={{ width: 10, height: 2, borderRadius: 1, background: '#F97316' }} />
                     몸무게 {latest?.weight_kg ?? '-'}kg
                   </span>
@@ -209,13 +209,13 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
 
             {/* 우: 측정 기록 */}
             <div style={{
-              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 0 0',
+              background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px 0 0`,
               height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
               overflow: 'hidden',
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                gap: 4, marginBottom: 6, padding: '0 10px',
+                gap: t.density.gapXs, marginBottom: t.density.gapSm, padding: `0 ${t.density.panelPadX}px`,
               }}>
                 <div style={{
                   fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
@@ -232,7 +232,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               <LTableScroll minWidth={360}>
                 <div style={{
                   display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
-                  gap: 8, padding: '0 10px 5px', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+                  gap: t.density.kpiGap, padding: `0 ${t.density.panelPadX}px ${t.density.gapSm}px`, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                   color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
                 }}>
                   <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
@@ -241,7 +241,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                   {sorted.slice(0, 20).map(r => (
                     <div key={r.id} onClick={() => openDialog(r)} style={{
                       display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
-                      gap: 8, padding: '6px 10px', alignItems: 'center',
+                      gap: t.density.kpiGap, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, alignItems: 'center',
                       borderTop: `1px solid ${t.neutrals.line}`,
                       fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer',
                     }}>
@@ -271,31 +271,31 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
         <div onClick={() => setDialogOpen(false)} style={{
           position: 'fixed', inset: 0, zIndex: 200,
           background: 'rgba(0,0,0,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.cardPad,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: t.neutrals.card, borderRadius: t.radius.lg,
             width: '100%', maxWidth: 380, fontFamily: t.font.sans,
           }}>
             <div style={{
-              padding: '14px 16px', display: 'flex', justifyContent: 'space-between',
+              padding: `${t.density.controlPadXMd}px ${t.density.cardPad}px`, display: 'flex', justifyContent: 'space-between',
               alignItems: 'center', borderBottom: `1px solid ${t.neutrals.line}`,
             }}>
               <span style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>
                 {editRecord ? '기록 수정' : '새 기록'}
               </span>
               <button onClick={() => setDialogOpen(false)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: t.neutrals.subtle, padding: 4,
+                background: 'none', border: 'none', cursor: 'pointer', color: t.neutrals.subtle, padding: t.density.gapXs,
               }}><LIcon name="x" size={16} /></button>
             </div>
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
               <div>
                 <label style={labelStyle}>날짜 *</label>
                 <input type="date" value={form.record_date}
                   onChange={e => setForm({ ...form, record_date: e.target.value })}
                   style={inputStyle} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap }}>
                 <div>
                   <label style={labelStyle}>키 (cm)</label>
                   <input value={form.height_cm}
@@ -316,24 +316,24 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               </div>
             </div>
             <div style={{
-              padding: '12px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+              padding: `${t.density.blockGap}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
               display: 'flex', justifyContent: 'space-between',
             }}>
               {editRecord ? (
                 <button onClick={handleDelete} disabled={saving} style={{
-                  padding: '6px 12px', borderRadius: t.radius.sm,
+                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
                   background: '#FEE2E2', border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
                 }}>삭제</button>
               ) : <div />}
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: t.density.gapSm }}>
                 <button onClick={() => setDialogOpen(false)} style={{
-                  padding: '6px 14px', borderRadius: t.radius.sm,
+                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.sm,
                   background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: t.neutrals.muted, cursor: 'pointer',
                 }}>취소</button>
                 <button onClick={handleSave} disabled={saving} style={{
-                  padding: '6px 14px', borderRadius: t.radius.sm,
+                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.sm,
                   background: t.brand[600], border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
                   opacity: saving ? 0.5 : 1,

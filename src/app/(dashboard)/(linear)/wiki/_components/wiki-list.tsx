@@ -89,7 +89,7 @@ function ModalShell({ children, onClose }: { children: React.ReactNode; onClose:
       }}>
         <button onClick={onClose} aria-label="닫기" style={{
           position: 'absolute', top: 10, right: 10, zIndex: 1,
-          background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm, padding: 6,
+          background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm, padding: t.density.gapSm,
           cursor: 'pointer', color: t.neutrals.muted, display: 'flex',
         }}>
           <LIcon name="x" size={14} stroke={2} />
@@ -266,7 +266,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       : fillHeight ? { display: 'flex', flexDirection: 'column' }
       : undefined
     }>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10, flexShrink: 0 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX, flexShrink: 0 }}>
         <LSectionHead eyebrow="WIKI" title="업무위키" action={
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {notes.length}건
@@ -297,12 +297,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           ...(fill && !compact ? { minHeight: 0 } : {}),
         }}>
           {/* Filter bar */}
-          <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.blockGap}px ${t.density.panelPadY}px`, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm }}>
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 4, flex: 1,
+                display: 'flex', alignItems: 'center', gap: t.density.gapXs, flex: 1,
                 background: t.neutrals.inner, borderRadius: t.radius.sm,
-                padding: '0 8px', height: 28,
+                padding: `0 ${t.density.panelPadY}px`, height: t.density.controlHSm,
               }}>
                 <LIcon name="search" size={13} color={t.neutrals.subtle} />
                 <input
@@ -328,7 +328,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               </LBtn>
             </div>
             {!hideFilter && (
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
               <LFilterChip options={SECTION_FILTERS} value={sectionFilter} onChange={handleFilterChange} />
               <div style={{ flex: 1 }} />
               <LSegmented
@@ -341,7 +341,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           </div>
 
           {/* Note rows — 뷰포트에 맞춘 높이 안에서 내부 스크롤 */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 4px 4px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
             {loading ? (
               <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 로딩 중...
@@ -359,8 +359,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     key={note.id}
                     onClick={() => { setSelectedId(note.id); setAdding(false); setEditing(false) }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '7px 10px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
+                      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, cursor: 'pointer',
                       background: isSelected ? t.neutrals.inner : 'transparent',
                       borderRadius: t.radius.sm, transition: 'background 0.1s',
                     }}
@@ -380,11 +380,11 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                         {note.title || '(제목 없음)'}
                       </div>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6, marginTop: 2,
+                        display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap,
                       }}>
                         <span style={{
                           fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.badge.weight,
-                          padding: '1px 5px', borderRadius: 3,
+                          padding: `1px ${t.density.gapSm}px`, borderRadius: 3,
                           background: badge.bg, color: badge.fg,
                         }}>
                           {badge.label}
@@ -393,7 +393,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                           {fmtDate(note.updated_at)}
                         </span>
                         {note.attachments && note.attachments.length > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                             <LIcon name="paperclip" size={9} />
                             {note.attachments.length}
                           </span>
@@ -409,22 +409,22 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           {/* Pagination bar */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '6px 12px',
+            padding: `${t.density.gapSm}px ${t.density.blockGap}px`,
             borderTop: `1px solid ${t.neutrals.line}`,
           }}>
             {/* Page size input */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={pageSize} onChange={applyPageSize} />
             </div>
 
             {/* Page navigation */}
             {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                 <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
                   style={{
                     background: 'transparent', border: 'none',
                     cursor: page === 0 ? 'default' : 'pointer',
-                    padding: 4, borderRadius: 4,
+                    padding: t.density.gapXs, borderRadius: t.radius.sm,
                     color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                     opacity: page === 0 ? 0.4 : 1,
                   }}>
@@ -439,7 +439,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                   style={{
                     background: 'transparent', border: 'none',
                     cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-                    padding: 4, borderRadius: 4,
+                    padding: t.density.gapXs, borderRadius: t.radius.sm,
                     color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                     opacity: page >= totalPages - 1 ? 0.4 : 1,
                   }}>
@@ -468,9 +468,9 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             <button
               onClick={closeDetail}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
+                display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: '10px 14px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600],
+                padding: `${t.density.panelPadX}px ${t.density.controlPadXMd}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600],
                 fontFamily: t.font.sans,
               }}
             >
@@ -509,30 +509,30 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 // 본문이 길어 스크롤해도 제목·배지·편집은 위에 남는다(CEO 2026-09-10).
                 position: 'sticky', top: 0, zIndex: 1, background: t.neutrals.card,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
                   <h2 style={{
                     margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     color: t.neutrals.text, fontFamily: t.font.sans,
                   }}>
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
                     <button onClick={handlePin} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                      background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
                       borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
                     <button onClick={() => setEditing(true)} style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.muted,
-                      fontFamily: t.font.sans, padding: '4px 8px', borderRadius: t.radius.sm,
+                      fontFamily: t.font.sans, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                       whiteSpace: 'nowrap' as const, flexShrink: 0,
                     }}>
                       편집
                     </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
                   {(() => {
                     const badge = SECTION_BADGES[selectedNote.section] || SECTION_BADGES['akros']
                     return (
@@ -553,7 +553,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               </div>
 
               {/* Detail body */}
-              <div style={{ padding: '14px 18px', flex: 1 }}>
+              <div style={{ padding: `${t.density.controlPadXMd}px ${t.density.controlPadXLg}px`, flex: 1 }}>
                 {hasSelectedContent ? (
                   <div
                     style={{
@@ -572,12 +572,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 )}
 
                 {selectedNote.attachments && selectedNote.attachments.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 14 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs, marginTop: 14 }}>
                     {selectedNote.attachments.map((f, i) => (
                       <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
                         background: t.neutrals.inner, borderRadius: t.radius.sm,
-                        padding: '4px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],
+                        padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],
                         textDecoration: 'none',
                       }}>
                         <LIcon name="paperclip" size={11} />
@@ -588,16 +588,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 )}
 
                 {/* 노트 메모 — 윌리가 점검해 후속조치 (📝 미확인 / ✅ 확인됨) */}
-                <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.neutrals.line}` }}>
-                  <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 8 }}>
+                <div style={{ marginTop: 18, paddingTop: t.density.blockGap, borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: t.density.kpiGap }}>
                     메모{(selectedNote.memos?.length || 0) > 0 ? ` (${selectedNote.memos!.length})` : ''}
                   </div>
 
                   {(selectedNote.memos || []).map(m => (
                     <div key={m.id} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 6,
+                      display: 'flex', alignItems: 'flex-start', gap: t.density.gapSm,
                       background: t.neutrals.inner, borderRadius: t.radius.sm,
-                      padding: '6px 8px', marginBottom: 4,
+                      padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, marginBottom: t.density.gapXs,
                     }}>
                       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
                         {m.reviewed_at ? '✅' : '📝'}
@@ -605,19 +605,19 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       <span style={{ flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
                         {m.text}
                       </span>
-                      <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: 2 }}>
+                      <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: t.density.tableRowGap }}>
                         {fmtDate(m.created_at)}
                       </span>
                       <button onClick={() => handleDeleteMemo(m.id)} style={{
                         background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        color: t.neutrals.subtle, flexShrink: 0, lineHeight: 1, marginTop: 2,
+                        color: t.neutrals.subtle, flexShrink: 0, lineHeight: 1, marginTop: t.density.tableRowGap,
                       }} title="삭제">
                         <LIcon name="x" size={11} />
                       </button>
                     </div>
                   ))}
 
-                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <div style={{ display: 'flex', gap: t.density.gapSm, marginTop: t.density.gapSm }}>
                     <input
                       value={newMemo}
                       onChange={e => setNewMemo(e.target.value)}
@@ -626,7 +626,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       style={{
                         flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                         background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-                        padding: '7px 9px', color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
+                        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
                       }}
                     />
                     <button
@@ -634,7 +634,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       disabled={savingMemo || !newMemo.trim()}
                       style={{
                         background: t.neutrals.inner, border: 'none',
-                        borderRadius: t.radius.sm, padding: '7px 12px',
+                        borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
                         fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
                         cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
                       }}

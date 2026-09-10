@@ -53,14 +53,14 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6 }}>
                 EMAIL
               </span>
               <span style={{
-                padding: '1px 6px', borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+                padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                 background: isInbound ? '#DCE8F5' : '#DAEEDD',
                 color: isInbound ? '#1F4E79' : '#1F5F3D',
               }}>
@@ -68,7 +68,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
               </span>
               {email.category && (
                 <span style={{
-                  padding: '1px 6px', borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+                  padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                   background: t.neutrals.inner, color: t.neutrals.muted,
                 }}>
                   {email.category}
@@ -83,7 +83,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, flexShrink: 0,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -92,7 +92,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
         </div>
 
         {/* Meta */}
-        <div style={{ padding: '0 20px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
           <MetaRow label="From" value={email.fromName ? `${email.fromName} <${email.from}>` : email.from} />
           <MetaRow label="To" value={email.to} />
           <MetaRow label="Date" value={formatDate(email.date)} />
@@ -100,14 +100,14 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
 
         {/* Attachments */}
         {email.attachments && email.attachments.length > 0 && (
-          <div style={{ padding: '0 20px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.panelPadX}px`, display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
             {email.attachments.map((att, i) => (
               <a
                 key={i}
                 href={`/api/gmail/attachments/${email.id}/${att.attachmentId}?context=${email.gmailContext || 'willow'}`}
                 target="_blank" rel="noopener noreferrer"
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+                  display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm, padding: `${t.density.gapXs}px ${t.density.panelPadX}px`,
                   borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none',
                   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans,
                 }}
@@ -126,10 +126,10 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
 
         {/* Body */}
         <div style={{
-          flex: 1, overflowY: 'auto', padding: '0 20px 16px',
+          flex: 1, overflowY: 'auto', padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`,
         }}>
           <div style={{
-            padding: '12px 14px', borderRadius: t.radius.md, background: t.neutrals.inner,
+            padding: `${t.density.blockGap}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.md, background: t.neutrals.inner,
             fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.7, fontFamily: t.font.sans, color: t.neutrals.text,
             whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 320, overflowY: 'auto',
           }}>
@@ -139,8 +139,8 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
+          display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap,
         }}>
           <LBtn variant="ghost" size="sm" onClick={() => { onForward(email); onClose() }}>
             전달
@@ -156,7 +156,7 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
 
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
       <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, minWidth: 32, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         {label}
       </span>

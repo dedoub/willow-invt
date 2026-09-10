@@ -261,7 +261,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
   return (
     <LCard pad={0}>
       {/* Header */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow="PROJECTS"
           title="프로젝트"
@@ -273,7 +273,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         />
 
         {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
           <LStat label="배정 대기" value={String(totalPending)} tone="warn" />
           <LStat label="진행 중" value={String(totalInProgress)} tone="info" />
           <LStat label="완료" value={String(totalCompleted)} tone="pos" />
@@ -281,7 +281,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         </div>
 
         {/* Filter badges */}
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: t.density.gapXs, flexWrap: 'wrap' }}>
           {filters.map(f => {
             const active = filter === f.key
             return (
@@ -289,7 +289,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 key={f.key}
                 onClick={() => handleFilterChange(f.key)}
                 style={{
-                  padding: '4px 10px', borderRadius: t.radius.pill,
+                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
                   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                   fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
@@ -298,7 +298,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 }}
               >
                 {f.label}{f.count > 0 && (
-                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, marginLeft: 2 }}>{f.count}</span>
+                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, marginLeft: t.density.tableRowGap }}>{f.count}</span>
                 )}
               </button>
             )
@@ -307,10 +307,10 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
       </div>
 
       {/* Project rows */}
-      <div style={{ padding: '0 0 4px' }}>
+      <div style={{ padding: `0 0 ${t.density.gapXs}px` }}>
         {paged.length === 0 && (
           <div style={{
-            padding: '20px 16px', textAlign: 'center',
+            padding: `${t.density.pagePadX}px ${t.density.cardPad}px`, textAlign: 'center',
             fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>
             프로젝트 데이터가 없습니다
@@ -329,8 +329,8 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
               {/* Compact row */}
               <div
                 style={{
-                  padding: '10px 16px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
                 }}
                 onClick={() => setExpandedId(expanded ? null : project.id)}
               >
@@ -360,7 +360,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
 
                 {/* Status badge */}
                 <span style={{
-                  display: 'inline-block', padding: '2px 7px', borderRadius: t.radius.pill,
+                  display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
                   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                   background: statusStyle.bg, color: statusStyle.fg,
                   whiteSpace: 'nowrap', flexShrink: 0,
@@ -370,7 +370,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
 
                 {/* Stats mini: 대기/진행/완료 */}
                 <div style={{
-                  display: 'flex', gap: 8, flexShrink: 0,
+                  display: 'flex', gap: t.density.kpiGap, flexShrink: 0,
                   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
                 }}>
                   <span style={{ color: tonePalettes.pending.fg }}>
@@ -427,20 +427,20 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -456,7 +456,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
               onClick={() => setPage(p => p + 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
@@ -488,10 +488,10 @@ function ExpandedDetail({
   const hasServiceUrls = project.serviceUrls.length > 0
 
   return (
-    <div style={{ padding: '0 16px 12px' }}>
+    <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
       {/* Stats KPIs */}
       <div style={{
-        display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 10,
+        display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
       }}>
         <LStat label="배정 대기" value={String(waiting)} tone="warn" />
         <LStat label="진행 중" value={String(inProgress)} tone="info" />
@@ -502,17 +502,17 @@ function ExpandedDetail({
       {/* Member breakdowns */}
       {(project.inProgressByMember.length > 0 || project.completedByMember.length > 0) && (
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
         }}>
           {project.inProgressByMember.length > 0 && (
             <div style={{
-              background: t.neutrals.inner, borderRadius: t.radius.md, padding: 10,
+              background: t.neutrals.inner, borderRadius: t.radius.md, padding: t.density.panelPadX,
             }}>
-              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4 }}>진행 중 (담당자별)</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>진행 중 (담당자별)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.inProgressByMember.slice(0, 4).map((m, i) => (
                   <span key={i} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     background: tonePalettes.info.bg, color: tonePalettes.info.fg,
                   }}>
                     {m.name} {m.count}
@@ -526,13 +526,13 @@ function ExpandedDetail({
           )}
           {project.completedByMember.length > 0 && (
             <div style={{
-              background: t.neutrals.inner, borderRadius: t.radius.md, padding: 10,
+              background: t.neutrals.inner, borderRadius: t.radius.md, padding: t.density.panelPadX,
             }}>
-              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4 }}>완료 (담당자별)</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>완료 (담당자별)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.completedByMember.slice(0, 4).map((m, i) => (
                   <span key={i} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
                   }}>
                     {m.name} {m.count}
@@ -550,7 +550,7 @@ function ExpandedDetail({
       {/* Avg completion time + AI Score */}
       {(project.avgCompletionTime || project.aiProgressScore != null) && (
         <div style={{
-          display: 'flex', gap: 12, marginBottom: 10, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+          display: 'flex', gap: t.density.blockGap, marginBottom: t.density.gapMd, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
         }}>
           {project.avgCompletionTime && (
             <span style={{ color: t.neutrals.muted }}>
@@ -566,9 +566,9 @@ function ExpandedDetail({
       )}
 
       {/* Two-column: left (info/schedules/docs/members) + right (activity) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
         {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
           {/* Service URLs */}
           {hasServiceUrls && (
             <DetailSection label="서비스 URL">
@@ -580,7 +580,7 @@ function ExpandedDetail({
                   rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
+                    display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], textDecoration: 'none',
                   }}
                 >
@@ -595,7 +595,7 @@ function ExpandedDetail({
           {hasSchedules && (
             <DetailSection label="일정">
               {project.schedules.slice(0, 5).map(s => (
-                <div key={s.id} style={{ display: 'flex', gap: 8, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
+                <div key={s.id} style={{ display: 'flex', gap: t.density.kpiGap, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                   <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, flexShrink: 0, width: 36 }}>
                     {formatDate(s.start_date)}
                   </span>
@@ -613,10 +613,10 @@ function ExpandedDetail({
           {/* Documents */}
           {hasDocs && (
             <DetailSection label="문서">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.docs.slice(0, 6).map(doc => (
                   <span key={doc.id} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: '2px 6px', borderRadius: t.radius.sm,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     background: t.neutrals.inner, color: t.neutrals.text,
                   }}>
                     {doc.title}
@@ -632,12 +632,12 @@ function ExpandedDetail({
           {/* Members */}
           {hasMembers && (
             <DetailSection label="멤버">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                 {project.members.filter(m => m.is_manager).map(m => (
-                  <span key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <span key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
                     <span style={{ color: t.neutrals.text }}>{m.name}</span>
                     <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: '1px 4px', borderRadius: t.radius.sm,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm,
                       background: '#EDE9FE', color: '#7C3AED',
                     }}>매니저</span>
                   </span>
@@ -656,15 +656,15 @@ function ExpandedDetail({
         <div>
           {hasActivity && (
             <DetailSection label="최근 활동">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
                 {project.recentActivity.slice(0, 5).map(act => {
                   const actTone = ACTIVITY_TONES[act.type] ?? { bg: '#E5E7EB', fg: '#6B7280', label: act.type }
                   return (
                     <div key={act.id} style={{
-                      padding: '6px 8px', borderRadius: t.radius.sm,
+                      padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                       background: actTone.bg,
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, marginBottom: t.density.tableRowGap }}>
                         <span style={{
                           fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, color: actTone.fg,
                         }}>
@@ -682,7 +682,7 @@ function ExpandedDetail({
                       }}>
                         {act.title}
                       </div>
-                      <div style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: actTone.fg, opacity: 0.7, marginTop: 2 }}>
+                      <div style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: actTone.fg, opacity: 0.7, marginTop: t.density.tableRowGap }}>
                         {formatRelativeTime(act.created_at)}
                         {act.due_date && ` · 마감 ${formatDate(act.due_date)}`}
                       </div>
@@ -697,13 +697,13 @@ function ExpandedDetail({
 
       {/* Todos */}
       {hasTodos && (
-        <DetailSection label="할 일" style={{ marginBottom: 10 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <DetailSection label="할 일" style={{ marginBottom: t.density.gapMd }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {project.todos.map(todo => {
               const pTone = PRIORITY_TONES[todo.priority] ?? PRIORITY_TONES.low
               return (
                 <div key={todo.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                  display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                 }}>
                   {todo.readable_id && (
                     <span style={{
@@ -719,7 +719,7 @@ function ExpandedDetail({
                     {todo.title}
                   </span>
                   <span style={{
-                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: '1px 5px', borderRadius: t.radius.sm,
+                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                     background: pTone.bg, color: pTone.fg, fontWeight: 500, flexShrink: 0,
                   }}>
                     {PRIORITY_LABELS[todo.priority] ?? todo.priority}
@@ -747,16 +747,16 @@ function ExpandedDetail({
       {/* Memo */}
       {project.memo && (
         <div style={{
-          padding: '8px 12px', borderRadius: t.radius.md,
+          padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
           background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-          lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 8,
+          lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: t.density.kpiGap,
         }}>
           {project.memo}
         </div>
       )}
 
       {/* Project link + external link */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap }}>
         {project.project_url && (
           <a
             href={project.project_url}
@@ -764,11 +764,11 @@ function ExpandedDetail({
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             style={{
-              padding: '4px 12px', borderRadius: t.radius.sm,
+              padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
               color: t.brand[700], cursor: 'pointer', textDecoration: 'none',
-              display: 'flex', alignItems: 'center', gap: 4,
+              display: 'flex', alignItems: 'center', gap: t.density.gapXs,
             }}
           >
             <LIcon name="trending" size={10} stroke={2} />
@@ -781,11 +781,11 @@ function ExpandedDetail({
           rel="noopener noreferrer"
           onClick={e => e.stopPropagation()}
           style={{
-            padding: '4px 12px', borderRadius: t.radius.sm,
+            padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none',
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
             color: t.neutrals.text, cursor: 'pointer', textDecoration: 'none',
-            display: 'flex', alignItems: 'center', gap: 4,
+            display: 'flex', alignItems: 'center', gap: t.density.gapXs,
           }}
         >
           <LIcon name="trending" size={10} stroke={2} />
@@ -808,7 +808,7 @@ function DetailSection({
       <div style={{
         fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
         fontFamily: t.font.mono, letterSpacing: 0.3,
-        textTransform: 'uppercase' as const, marginBottom: 6,
+        textTransform: 'uppercase' as const, marginBottom: t.density.gapSm,
       }}>
         {label}
       </div>

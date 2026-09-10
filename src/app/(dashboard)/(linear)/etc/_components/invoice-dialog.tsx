@@ -99,7 +99,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '6px 8px',
+    padding: `${t.density.gapSm}px ${t.density.panelPadY}px`,
     borderRadius: t.radius.sm,
     border: 'none',
     background: t.neutrals.inner,
@@ -115,7 +115,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
     fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
     color: t.neutrals.subtle,
     fontFamily: t.font.sans,
-    marginBottom: 4,
+    marginBottom: t.density.gapXs,
   }
 
   const selectStyle: React.CSSProperties = {
@@ -124,7 +124,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 8px center',
-    paddingRight: 24,
+    paddingRight: t.density.pagePadBottom,
   }
 
   // ---- Line item handlers ----
@@ -232,7 +232,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
           borderRadius: t.radius.lg,
           width: '100%',
           maxWidth: 520,
-          padding: 20,
+          padding: t.density.pagePadX,
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
@@ -241,7 +241,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingBottom: 14,
+          paddingBottom: t.density.controlPadXMd,
           borderBottom: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{
@@ -254,7 +254,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: 4, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
+              padding: t.density.gapXs, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
               borderRadius: t.radius.sm,
             }}
           >
@@ -265,7 +265,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
         {/* Scrollable body */}
         <div style={{
           flex: 1, overflowY: 'auto', maxHeight: '70vh',
-          paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12,
+          paddingTop: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
           {/* Invoice Date */}
           <div>
@@ -304,21 +304,21 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
           {/* Line Items */}
           <div>
             <label style={labelStyle}>항목 *</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
               {items.map((item, idx) => (
                 <div
                   key={idx}
                   style={{
                     background: t.neutrals.inner,
                     borderRadius: t.radius.sm,
-                    padding: '10px 10px 8px',
+                    padding: `${t.density.panelPadX}px ${t.density.panelPadX}px ${t.density.panelPadY}px`,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 6,
+                    gap: t.density.gapSm,
                   }}
                 >
                   {/* Row 1: type | month | year | amount | remove */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                     {/* Type select */}
                     <div style={{ flex: '0 0 110px' }}>
                       <select
@@ -381,7 +381,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
                       style={{
                         background: 'none', border: 'none',
                         cursor: items.length === 1 ? 'default' : 'pointer',
-                        padding: 4,
+                        padding: t.density.gapXs,
                         color: items.length === 1 ? t.neutrals.line : t.neutrals.subtle,
                         display: 'flex', alignItems: 'center',
                         flexShrink: 0,
@@ -405,7 +405,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
                         fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                         color: t.neutrals.muted,
                         fontFamily: t.font.sans,
-                        paddingLeft: 2,
+                        paddingLeft: t.density.tableRowGap,
                       }}>
                         {item.description}
                       </span>
@@ -420,7 +420,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.brand[500],
-                  padding: '4px 0', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4,
+                  padding: `${t.density.gapXs}px 0`, textAlign: 'left', display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                 }}
               >
                 <LIcon name="plus" size={12} color={t.brand[500]} />
@@ -433,7 +433,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
         {/* Total */}
         <div style={{
           display: 'flex', justifyContent: 'flex-end',
-          paddingTop: 12,
+          paddingTop: t.density.blockGap,
           fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
           fontFamily: t.font.mono,
           fontWeight: t.weight.semibold,
@@ -445,8 +445,8 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
         {/* Footer */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingTop: 14, borderTop: `1px solid ${t.neutrals.line}`,
-          marginTop: 10,
+          paddingTop: t.density.controlPadXMd, borderTop: `1px solid ${t.neutrals.line}`,
+          marginTop: t.density.gapMd,
         }}>
           {editInvoice ? (
             <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>
@@ -455,7 +455,7 @@ export function InvoiceDialog({ open, editInvoice, onClose, onSaved }: InvoiceDi
           ) : (
             <div />
           )}
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <LBtn variant="secondary" size="sm" onClick={onClose} disabled={saving}>
               취소
             </LBtn>

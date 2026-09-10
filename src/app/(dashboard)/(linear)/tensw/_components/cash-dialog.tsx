@@ -33,7 +33,7 @@ const TYPE_OPTIONS: { value: TenswCashFormData['type']; label: string }[] = [
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -109,10 +109,10 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               CASHFLOW
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
@@ -120,7 +120,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -130,13 +130,13 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
 
         {/* Body */}
         <div style={{
-          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: 16,
+          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
         }}>
           {/* Type chips */}
           <div>
             <Label>유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
               {TYPE_OPTIONS.map(o => (
                 <ChipBtn key={o.value} active={form.type === o.value} onClick={() => set('type', o.value)}>
                   {o.label}
@@ -167,7 +167,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
           </div>
 
           {/* Dates */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>발행일</Label>
               <input type="date" value={form.issue_date} onChange={e => set('issue_date', e.target.value)} style={inputBase} />
@@ -192,8 +192,8 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
-          display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', alignItems: 'center', gap: 8,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
+          display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', alignItems: 'center', gap: t.density.kpiGap,
         }}>
           {isEdit && (
             <LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={deleting}
@@ -202,7 +202,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
               {deleting ? '삭제 중...' : '삭제'}
             </LBtn>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
             <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
             <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.counterparty.trim() || !form.amount.trim()}>
               {saving ? '저장 중...' : '저장'}
@@ -220,9 +220,9 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }
@@ -231,7 +231,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? t.brand[100] : t.neutrals.inner,
       color: active ? t.brand[700] : t.neutrals.muted,

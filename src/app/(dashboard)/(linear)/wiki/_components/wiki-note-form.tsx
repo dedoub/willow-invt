@@ -82,7 +82,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
   const labelStyle: React.CSSProperties = {
     fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
     color: t.neutrals.subtle,
-    marginBottom: 6,
+    marginBottom: t.density.gapSm,
     fontFamily: t.font.mono,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -91,12 +91,12 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
   const panelStyle: React.CSSProperties = {
     background: t.neutrals.inner,
     borderRadius: t.radius.md,
-    padding: 12,
+    padding: t.density.blockGap,
   }
 
   const titleInputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px 14px',
+    padding: `${t.density.blockGap}px ${t.density.controlPadXMd}px`,
     // 모바일은 16px 미만이면 iOS가 포커스 시 자동 확대 → 16px로 고정
     fontSize: mobile ? '16px' : `calc(${t.type.sectionTitle}px * var(--fz, 1))`,
     fontFamily: t.font.sans,
@@ -122,7 +122,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
 
       <div style={{ ...panelStyle, flexShrink: 0 }}>
         <div style={labelStyle}>섹션</div>
-        <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
           {SECTIONS.map(s => (
             <button
               key={s.value}
@@ -130,9 +130,9 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               style={{
                 border: 'none',
                 cursor: 'pointer',
-                padding: '7px 12px',
+                padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
                 fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                borderRadius: 999,
+                borderRadius: t.radius.pill,
                 fontFamily: t.font.sans,
                 fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
                 background: section === s.value ? t.neutrals.card : 'transparent',
@@ -172,17 +172,17 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
 
       <div style={{ ...panelStyle, flexShrink: 0 }}>
         <div style={labelStyle}>첨부파일</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginBottom: t.density.kpiGap, flexWrap: 'wrap' }}>
           <button
             onClick={() => fileRef.current?.click()}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: t.density.gapXs,
               background: t.neutrals.card,
               border: 'none',
               borderRadius: t.radius.sm,
-                        padding: '7px 10px',
+                        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
               fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               color: t.neutrals.muted,
               cursor: 'pointer',
@@ -212,14 +212,14 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: t.density.gapXs,
               background: t.neutrals.card,
               borderRadius: t.radius.sm,
-              padding: '5px 9px',
+              padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
               color: t.neutrals.muted,
-                        marginRight: 4,
-              marginBottom: 4,
+                        marginRight: t.density.gapXs,
+              marginBottom: t.density.gapXs,
             }}
           >
             <LIcon name="file" size={11} />
@@ -246,14 +246,14 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: t.density.gapXs,
               background: tonePalettes.brand.bg,
               borderRadius: t.radius.sm,
-              padding: '5px 9px',
+              padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
               color: tonePalettes.brand.fg,
-              marginRight: 4,
-              marginBottom: 4,
+              marginRight: t.density.gapXs,
+              marginBottom: t.density.gapXs,
             }}
           >
             <LIcon name="file" size={11} />
@@ -279,13 +279,13 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
         display: 'flex',
         justifyContent: onDelete ? 'space-between' : 'flex-end',
         alignItems: 'center',
-        gap: 8,
-        paddingTop: 2,
+        gap: t.density.kpiGap,
+        paddingTop: t.density.tableRowGap,
       }}>
         {onDelete && (
           <LBtn variant="danger" size="sm" onClick={onDelete}>삭제</LBtn>
         )}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: t.density.gapSm }}>
           <LBtn variant="secondary" size="sm" onClick={onCancel}>취소</LBtn>
           <LBtn size="sm" onClick={handleSave} disabled={!canSave}>
             {saving ? '저장 중...' : '저장'}

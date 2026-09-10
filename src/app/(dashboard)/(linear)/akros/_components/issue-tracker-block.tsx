@@ -94,7 +94,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead
           eyebrow="ISSUE TRACKING"
           title="이메일 이슈 트래킹"
@@ -116,10 +116,10 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                 display: 'flex', flexDirection: mobile ? 'column' : 'row',
                 alignItems: mobile ? 'flex-start' : 'center', gap: mobile ? 2 : 6,
                 width: mobile ? '100%' : undefined,
-                background: t.neutrals.inner, borderRadius: t.radius.md, padding: '6px 9px',
+                background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
               }}>
                 {/* 날짜 (모바일: 내용 위) */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0 }}>
                   <LIcon name="calendar" size={11} color={overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.subtle} />
                   <span style={{
                     fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
@@ -138,13 +138,13 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       )}
 
       {/* 상태 필터 */}
-      <div style={{ display: 'flex', gap: 5, padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px`, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: t.density.gapSm, padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px`, flexWrap: 'wrap' }}>
         {FILTERS.map(f => {
           const active = filter === f.key
           return (
             <button key={f.key} onClick={() => { setFilter(f.key); setPage(0) }} style={{
               border: 'none', cursor: 'pointer', borderRadius: t.radius.pill,
-              padding: '3px 10px', fontFamily: t.font.sans,
+              padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontFamily: t.font.sans,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? t.brand[600] : t.neutrals.inner,
               color: active ? '#fff' : t.neutrals.muted,
@@ -156,15 +156,15 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       </div>
 
       {/* 이슈 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: t.density.gapSm }}>
         {loading ? (
           // 로딩 스켈레톤 — 앱 전체 shimmer(.l-skeleton)와 동일, 페이지당 개수만큼 행 표시
           Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10,
+              display: 'flex', alignItems: 'flex-start', gap: t.density.gapMd,
               padding: '11px 14px', borderTop: `1px solid ${t.neutrals.line}`,
             }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
                 <Bone w={`${58 + (i % 3) * 12}%`} h={12} />
                 <Bone w="42%" h={9} />
                 <Bone w="88%" h={9} />
@@ -183,13 +183,13 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           const codeChip = issue.issue_code ? (
             <span style={{
               fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-              color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0,
+              color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: `1px ${t.density.gapXs}px`, flexShrink: 0,
             }}>{issue.issue_code}</span>
           ) : null
 
           // 2열 요소: 마감 D-day + 상태 배지 + Gmail 링크
           const controls = (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexShrink: 0 }}>
               {n !== null && (
                 <span style={{
                   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
@@ -222,18 +222,18 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
           const body = (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap', fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 {issue.cluster && <span style={{ color: t.brand[600] }}>{issue.cluster}</span>}
                 {issue.counterparty && <span>· {issue.counterparty}</span>}
                 {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
               </div>
               {issue.detail && (
-                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, marginTop: t.density.gapSm, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
                   {issue.detail}
                 </div>
               )}
               {issue.next_action && issue.status !== 'resolved' && (
-                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
+                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: t.density.gapXs, fontWeight: t.weight.medium }}>
                   → {issue.next_action}
                 </div>
               )}
@@ -241,21 +241,21 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           )
 
           return (
-            <div key={issue.id} style={{ padding: '9px 14px', borderTop: `1px solid ${t.neutrals.line}` }}>
+            <div key={issue.id} style={{ padding: `${t.density.panelPadX}px ${t.density.controlPadXMd}px`, borderTop: `1px solid ${t.neutrals.line}` }}>
               {mobile ? (
                 <>
                   {/* 상단: 이슈번호(좌) + 2열 요소(우) */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap, marginBottom: t.density.gapXs }}>
                     {codeChip || <span />}
                     {controls}
                   </div>
-                  <div style={{ marginBottom: 3 }}>{titleEl}</div>
+                  <div style={{ marginBottom: t.density.gapXs }}>{titleEl}</div>
                   {body}
                 </>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.density.gapMd }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
                       {codeChip}
                       {titleEl}
                     </div>
@@ -272,29 +272,29 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       {/* 페이지네이션 (wiki-list 패턴 참조) — N개씩 선택 + 이전/다음 */}
       {!loading && rows.length > 0 && (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-          padding: '8px 14px', borderTop: `1px solid ${t.neutrals.line}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap,
+          padding: `${t.density.panelPadY}px ${t.density.controlPadXMd}px`, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
           {/* 페이지당 개수 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             <LPageSize value={pageSize} onChange={applyPageSize} />
           </div>
 
           {/* 범위 + 네비게이션 */}
           {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
                 {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
               </span>
               <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{
                 background: 'transparent', border: 'none', cursor: safePage === 0 ? 'default' : 'pointer',
-                padding: 4, borderRadius: 4, color: safePage === 0 ? t.neutrals.line : t.neutrals.muted, opacity: safePage === 0 ? 0.4 : 1,
+                padding: t.density.gapXs, borderRadius: t.radius.sm, color: safePage === 0 ? t.neutrals.line : t.neutrals.muted, opacity: safePage === 0 ? 0.4 : 1,
               }}>
                 <LIcon name="chevronLeft" size={13} stroke={2} />
               </button>
               <button disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)} style={{
                 background: 'transparent', border: 'none', cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
-                padding: 4, borderRadius: 4, color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: safePage >= totalPages - 1 ? 0.4 : 1,
+                padding: t.density.gapXs, borderRadius: t.radius.sm, color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: safePage >= totalPages - 1 ? 0.4 : 1,
               }}>
                 <LIcon name="chevronRight" size={13} stroke={2} />
               </button>

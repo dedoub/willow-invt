@@ -109,22 +109,22 @@ function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', r
         ))}
       </Pie>
       <Tooltip
-        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: '4px 8px' }}
+        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.gapXs}px ${t.density.panelPadY}px` }}
         formatter={(value: any, name: any) => [`${value}%`, name]}
       />
     </PieChart>
   )
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{title}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{title}</div>
       {fixedWidth ? (
         <div style={{ display: 'flex', justifyContent: 'center' }}>{chart}</div>
       ) : (
         <ResponsiveContainer width="100%" height={140}>{chart}</ResponsiveContainer>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 8px', marginTop: 2 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.tableRowGap }}>
         {data.map((d, i) => (
-          <span key={d.subject} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span key={d.subject} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             {/* 수익률 모드: 점 안쪽=수익률색, 테두리=카테고리색 (파이와 동일 인코딩) */}
             <span style={{
               width: isReturn ? 8 : 6, height: isReturn ? 8 : 6, borderRadius: '50%',
@@ -582,10 +582,10 @@ export function AnalysisBlock({
   if (loading) {
     return (
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
         </div>
-        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+        <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추이 데이터 로딩 중...
         </div>
       </LCard>
@@ -595,10 +595,10 @@ export function AnalysisBlock({
   if (trendData.length < 2) {
     return (
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
         </div>
-        <div style={{ padding: '24px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+        <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           분석에 필요한 데이터가 부족합니다
         </div>
       </LCard>
@@ -607,7 +607,7 @@ export function AnalysisBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" tools={
           <LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />
         } />
@@ -618,7 +618,7 @@ export function AnalysisBlock({
           display: chartColumns === 2 ? 'grid' : 'flex',
           gridTemplateColumns: chartColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
           flexDirection: chartColumns === 2 ? undefined : 'column',
-          gap: 12,
+          gap: t.density.blockGap,
         }}>
         {charts.map(chart => {
           const lines = getLines(chart.suffix)
@@ -627,8 +627,8 @@ export function AnalysisBlock({
           const last = trendData.length > 0 ? trendData[trendData.length - 1] : null
           return (
             <div key={chart.suffix}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8, flexWrap: 'wrap', minHeight: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapXs, gap: t.density.kpiGap, flexWrap: 'wrap', minHeight: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.kpiGap, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
                     {chart.label}
                   </div>
@@ -641,14 +641,14 @@ export function AnalysisBlock({
                         fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums',
                         color: line.color,
                       }}>
-                        {lines.length > 1 && <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>{line.name}</span>}
+                        {lines.length > 1 && <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: t.density.gapXs, fontWeight: t.weight.regular }}>{line.name}</span>}
                         {sign}{chart.fmt(v)}{chart.unit}
                         {(chart.suffix === 'value' || chart.suffix === 'pnl') && (() => {
                           const at = Number(last[`${line.key}AfterTax`])
                           if (!Number.isFinite(at)) return null
                           const atSign = chart.suffix === 'pnl' && at > 0 ? '+' : ''
                           return (
-                            <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginLeft: 4, fontWeight: t.weight.regular }}>
+                            <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginLeft: t.density.gapXs, fontWeight: t.weight.regular }}>
                               세후 {atSign}{chart.fmt(at)}{chart.unit}
                             </span>
                           )
@@ -664,7 +664,7 @@ export function AnalysisBlock({
                     const alphaColor = alpha > 0 ? t.accent.pos : alpha < 0 ? t.accent.neg : t.neutrals.subtle
                     return (
                       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: alphaColor }}>
-                        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: 3, fontWeight: t.weight.regular }}>vs QLD</span>
+                        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: t.density.gapXs, fontWeight: t.weight.regular }}>vs QLD</span>
                         {alpha > 0 ? '+' : ''}{alpha.toFixed(1)}%p
                       </span>
                     )
@@ -707,7 +707,7 @@ export function AnalysisBlock({
                   <Tooltip
                     contentStyle={{
                       background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-                      borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: '6px 10px',
+                      borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
                     }}
                     labelFormatter={(v) => String(v)}
                     formatter={(value, name) => [`${chart.fmt(Number(value))}${chart.unit}`, name]}
@@ -754,7 +754,7 @@ export function AnalysisBlock({
         {/* Donut charts: allocation breakdown */}
         {radarData.byTheme.length > 0 && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
               <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
                 포트폴리오 비중
               </div>
@@ -767,7 +767,7 @@ export function AnalysisBlock({
                 onChange={handleDonutColorChange}
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: t.density.kpiGap }}>
               <DonutChart title="테마별" data={radarData.byTheme}
                 colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
                 colorMode={donutColorMode} returns={radarData.byTheme.map(d => d.retPct)}
@@ -785,9 +785,9 @@ export function AnalysisBlock({
             </div>
             {/* 수익률 모드 범례 (차트 아래): 색=수익률(파랑 손실 ↔ 빨강 수익), 테두리=분류, 크기=비중 */}
             {donutColorMode === 'return' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginTop: t.density.kpiGap, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 <span>손실</span>
-                <span style={{ width: 96, height: 7, borderRadius: 4, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
+                <span style={{ width: 96, height: 7, borderRadius: t.radius.sm, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
                 <span>수익</span>
                 <span style={{ opacity: 0.7 }}>(색=수익률, 테두리=분류, 크기=비중)</span>
               </div>

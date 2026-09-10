@@ -92,18 +92,18 @@ export function ProductBlock({ products }: ProductBlockProps) {
   }
 
   const thStyle: React.CSSProperties = {
-    padding: '6px 10px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
+    padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
     fontWeight: 600, color: t.neutrals.subtle, textAlign: 'left',
     letterSpacing: 0.3, whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
-    padding: '7px 10px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
+    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
     color: t.neutrals.text, whiteSpace: 'nowrap',
   }
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {products.length}개
@@ -173,17 +173,17 @@ export function ProductBlock({ products }: ProductBlockProps) {
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px',
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`,
         borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -195,7 +195,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,

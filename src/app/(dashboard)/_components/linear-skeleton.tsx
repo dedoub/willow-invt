@@ -47,12 +47,12 @@ export function MgmtSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Schedule card */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={60} h={8} />
-          <Bone w={100} h={14} style={{ marginTop: 6 }} />
+          <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
-        <div style={{ padding: '0 16px 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: t.density.gapXs }}>
             {Array.from({ length: 7 }).map((_, i) => (
               <Bone key={`dh-${i}`} h={12} />
             ))}
@@ -67,33 +67,33 @@ export function MgmtSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         {/* Cash */}
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={80} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Bone key={i} h={46} r={t.radius.sm} />
             ))}
           </div>
-          <div style={{ padding: '12px 16px 16px' }}>
+          <div style={{ padding: `${t.density.blockGap}px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={16} style={{ marginTop: 8 }} />
+              <Bone key={i} h={16} style={{ marginTop: t.density.kpiGap }} />
             ))}
           </div>
         </CardSkel>
         {/* Email */}
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={50} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`, borderTop: `1px solid ${t.neutrals.line}` }}>
                 <div style={{ flex: 1 }}>
                   <Bone w="60%" h={10} />
-                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                  <Bone w="90%" h={12} style={{ marginTop: t.density.gapXs }} />
                 </div>
                 <Bone w={30} h={10} />
               </div>
@@ -111,34 +111,34 @@ export function InvestHoldingsSkeleton() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={80} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
-        <div style={{ padding: '0 16px 16px' }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Bone key={i} h={18} style={{ marginTop: 8 }} />
+            <Bone key={i} h={18} style={{ marginTop: t.density.kpiGap }} />
           ))}
         </div>
       </CardSkel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={80} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             <Bone h={120} r={t.radius.md} />
           </div>
         </CardSkel>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={60} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={16} style={{ marginTop: 8 }} />
+              <Bone key={i} h={16} style={{ marginTop: t.density.kpiGap }} />
             ))}
           </div>
         </CardSkel>
@@ -153,7 +153,7 @@ export function InvestSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Signal bar: 5 stat boxes (2-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Bone key={i} h={t.density.statH} r={t.radius.sm} />
         ))}
@@ -161,20 +161,20 @@ export function InvestSkeleton() {
 
       {/* Kanban: 3 columns (horizontally scrollable on mobile) */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={80} h={8} />
-          <Bone w={100} h={14} style={{ marginTop: 6 }} />
+          <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
         <div style={{
-          padding: '0 10px 14px',
+          padding: `0 ${t.density.panelPadX}px ${t.density.controlPadXMd}px`,
           display: 'grid',
           gridTemplateColumns: mobile ? 'repeat(3, minmax(220px, 1fr))' : '1fr 1fr 1fr',
-          gap: 10,
+          gap: t.density.gapMd,
           overflowX: mobile ? 'auto' : undefined,
         }}>
           {Array.from({ length: 3 }).map((_, col) => (
-            <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Bone h={14} w={80} style={{ marginBottom: 4 }} />
+            <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
+              <Bone h={14} w={80} style={{ marginBottom: t.density.gapXs }} />
               {Array.from({ length: col === 0 ? 5 : col === 1 ? 4 : 3 }).map((_, j) => (
                 <Bone key={j} h={64} r={t.radius.md} />
               ))}
@@ -186,34 +186,34 @@ export function InvestSkeleton() {
       {/* Holdings + Analysis/TradeLog (1-col on mobile) */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={80} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: 8 }} />
+              <Bone key={i} h={18} style={{ marginTop: t.density.kpiGap }} />
             ))}
           </div>
         </CardSkel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
               <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               <Bone h={120} r={t.radius.md} />
             </div>
           </CardSkel>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
               <Bone w={60} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={16} style={{ marginTop: 8 }} />
+                <Bone key={i} h={16} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
           </CardSkel>
@@ -222,23 +222,23 @@ export function InvestSkeleton() {
 
       {/* Real Estate Block */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={100} h={8} />
-          <Bone w={120} h={14} style={{ marginTop: 6 }} />
+          <Bone w={120} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
         {/* KPI row */}
-        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Bone key={i} h={t.density.statH} r={t.radius.sm} />
           ))}
         </div>
         {/* Chart + Table grid */}
-        <div style={{ padding: '12px 16px 16px', display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: `${t.density.blockGap}px ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
             <Bone h={160} r={t.radius.md} />
             <Bone h={160} r={t.radius.md} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
             <Bone h={160} r={t.radius.md} />
             <Bone h={160} r={t.radius.md} />
           </div>
@@ -256,12 +256,12 @@ export function RyuhaSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Calendar */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={70} h={8} />
-          <Bone w={60} h={14} style={{ marginTop: 6 }} />
+          <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
-        <div style={{ padding: '0 16px 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: t.density.gapXs }}>
             {Array.from({ length: 7 }).map((_, i) => (
               <Bone key={`h-${i}`} h={12} />
             ))}
@@ -279,17 +279,17 @@ export function RyuhaSkeleton() {
             width: mobile ? '100%' : '42%',
             minWidth: mobile ? undefined : 220,
             borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-            padding: 12,
+            padding: t.density.blockGap,
           }}>
             <Bone h={30} r={t.radius.sm} />
             {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={36} style={{ marginTop: 8 }} />
+              <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
             ))}
           </div>
-          <div style={{ flex: 1, padding: 16 }}>
+          <div style={{ flex: 1, padding: t.density.cardPad }}>
             <Bone w="50%" h={16} />
-            <Bone h={12} style={{ marginTop: 12 }} />
-            <Bone h={12} w="80%" style={{ marginTop: 6 }} />
+            <Bone h={12} style={{ marginTop: t.density.blockGap }} />
+            <Bone h={12} w="80%" style={{ marginTop: t.density.gapSm }} />
           </div>
         </div>
       </CardSkel>
@@ -298,16 +298,16 @@ export function RyuhaSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel>
           <Bone w={80} h={8} />
-          <Bone h={120} style={{ marginTop: 10 }} r={t.radius.sm} />
+          <Bone h={120} style={{ marginTop: t.density.gapMd }} r={t.radius.sm} />
         </CardSkel>
         <CardSkel pad={0}>
           <div style={{ padding: t.density.cardPad }}>
             <Bone w={80} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: 6 }} />
+              <Bone key={i} h={18} style={{ marginTop: t.density.gapSm }} />
             ))}
           </div>
         </CardSkel>
@@ -316,21 +316,21 @@ export function RyuhaSkeleton() {
       {/* Textbook + Progress (1-col on mobile) */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={80} h={8} />
-            <Bone w={100} h={14} style={{ marginTop: 6 }} />
+            <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={40} style={{ marginTop: 8 }} r={t.radius.sm} />
+              <Bone key={i} h={40} style={{ marginTop: t.density.kpiGap }} r={t.radius.sm} />
             ))}
           </div>
         </CardSkel>
         <CardSkel>
           <Bone w={80} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           {Array.from({ length: 4 }).map((_, i) => (
-            <Bone key={i} h={16} style={{ marginTop: 10 }} />
+            <Bone key={i} h={16} style={{ marginTop: t.density.gapMd }} />
           ))}
         </CardSkel>
       </div>
@@ -354,8 +354,8 @@ export function AkrosSkeleton() {
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
           <CardSkel>
             <Bone w={100} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
-            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
+            <div style={{ display: 'flex', gap: t.density.blockGap, marginTop: t.density.blockGap }}>
               <Bone w={120} h={46} r={6} />
               <Bone w={120} h={46} r={6} />
               <Bone w={120} h={46} r={6} />
@@ -364,26 +364,26 @@ export function AkrosSkeleton() {
         </div>
         <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
           <CardSkel pad={0} style={{ height: mobile ? undefined : '100%' }}>
-            <div style={{ padding: '16px 16px 10px' }}>
+            <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
               <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+                <Bone key={i} h={20} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
           </CardSkel>
         </div>
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
           <CardSkel pad={0}>
-            <div style={{ padding: '16px 16px 10px' }}>
+            <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
               <Bone w={60} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+                <Bone key={i} h={20} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
           </CardSkel>
@@ -398,31 +398,31 @@ export function AkrosSkeleton() {
               width: mobile ? '100%' : '42%',
               minWidth: mobile ? undefined : 180,
               borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-              padding: 12,
+              padding: t.density.blockGap,
             }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={36} style={{ marginTop: 8 }} />
+                <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
-            <div style={{ flex: 1, padding: 16 }}>
+            <div style={{ flex: 1, padding: t.density.cardPad }}>
               <Bone w="50%" h={16} />
-              <Bone h={12} style={{ marginTop: 12 }} />
-              <Bone h={12} w="80%" style={{ marginTop: 6 }} />
+              <Bone h={12} style={{ marginTop: t.density.blockGap }} />
+              <Bone h={12} w="80%" style={{ marginTop: t.density.gapSm }} />
             </div>
           </div>
         </CardSkel>
         <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
+          <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
             <Bone w={50} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0` }}>
                 <div style={{ flex: 1 }}>
                   <Bone w="60%" h={10} />
-                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                  <Bone w="90%" h={12} style={{ marginTop: t.density.gapXs }} />
                 </div>
                 <Bone w={30} h={10} />
               </div>
@@ -450,8 +450,8 @@ export function EtcSkeleton() {
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 1 }}>
           <CardSkel>
             <Bone w={100} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: 6 }} />
-            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
+            <div style={{ display: 'flex', gap: t.density.blockGap, marginTop: t.density.blockGap }}>
               <Bone w={120} h={46} r={6} />
               <Bone w={120} h={46} r={6} />
               <Bone w={120} h={46} r={6} />
@@ -460,26 +460,26 @@ export function EtcSkeleton() {
         </div>
         <div style={mobile ? {} : { gridColumn: 2, gridRow: '1 / -1' }}>
           <CardSkel pad={0} style={{ height: mobile ? undefined : '100%' }}>
-            <div style={{ padding: '16px 16px 10px' }}>
+            <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
               <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 6 }).map((_, i) => (
-                <Bone key={i} h={28} style={{ marginTop: 6 }} />
+                <Bone key={i} h={28} style={{ marginTop: t.density.gapSm }} />
               ))}
             </div>
           </CardSkel>
         </div>
         <div style={mobile ? {} : { gridColumn: 1, gridRow: 2 }}>
           <CardSkel pad={0}>
-            <div style={{ padding: '16px 16px 10px' }}>
+            <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
               <Bone w={60} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Bone key={i} h={20} style={{ marginTop: 8 }} />
+                <Bone key={i} h={20} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
           </CardSkel>
@@ -493,20 +493,20 @@ export function EtcSkeleton() {
               width: mobile ? '100%' : '42%',
               minWidth: mobile ? undefined : 180,
               borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-              padding: 12,
+              padding: t.density.blockGap,
             }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={36} style={{ marginTop: 8 }} />
+                <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
-            <div style={{ flex: 1, padding: 16 }}>
+            <div style={{ flex: 1, padding: t.density.cardPad }}>
               <Bone w="50%" h={18} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: t.density.kpiGap, marginTop: t.density.kpiGap }}>
                 <Bone w={56} h={16} r={3} />
                 <Bone w={50} h={12} />
               </div>
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ marginTop: t.density.blockGap, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
                 <Bone h={12} />
                 <Bone h={12} w="90%" />
                 <Bone h={12} w="75%" />
@@ -515,16 +515,16 @@ export function EtcSkeleton() {
           </div>
         </CardSkel>
         <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
+          <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
             <Bone w={50} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0` }}>
                 <div style={{ flex: 1 }}>
                   <Bone w="60%" h={10} />
-                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                  <Bone w="90%" h={12} style={{ marginTop: t.density.gapXs }} />
                 </div>
                 <Bone w={30} h={10} />
               </div>
@@ -544,24 +544,24 @@ export function TenswSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Projects */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={90} h={8} />
-          <Bone w={100} h={14} style={{ marginTop: 6 }} />
+          <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
-        <div style={{ padding: '0 16px 16px' }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Bone key={i} h={28} style={{ marginTop: 8 }} />
+            <Bone key={i} h={28} style={{ marginTop: t.density.kpiGap }} />
           ))}
         </div>
       </CardSkel>
       {/* Schedule */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
           <Bone w={100} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: 6 }} />
+          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
-        <div style={{ padding: '0 16px 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: t.density.gapXs }}>
             {Array.from({ length: 7 }).map((_, i) => (
               <Bone key={`h-${i}`} h={12} />
             ))}
@@ -575,41 +575,41 @@ export function TenswSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
               <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: t.density.kpiGap }}>
               {Array.from({ length: 6 }).map((_, i) => (
                 <Bone key={i} h={46} r={t.radius.sm} />
               ))}
             </div>
-            <div style={{ padding: '12px 16px 16px' }}>
+            <div style={{ padding: `${t.density.blockGap}px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 3 }).map((_, i) => (
-                <Bone key={i} h={16} style={{ marginTop: 8 }} />
+                <Bone key={i} h={16} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
           </CardSkel>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
               <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: 6 }} />
+              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
+            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
               {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={36} style={{ marginTop: 6 }} />
+                <Bone key={i} h={36} style={{ marginTop: t.density.gapSm }} />
               ))}
             </div>
           </CardSkel>
         </div>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
             <Bone w={70} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={36} style={{ marginTop: 6 }} />
+              <Bone key={i} h={36} style={{ marginTop: t.density.gapSm }} />
             ))}
           </div>
         </CardSkel>
@@ -622,20 +622,20 @@ export function TenswSkeleton() {
               width: mobile ? '100%' : '42%',
               minWidth: mobile ? undefined : 180,
               borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-              padding: 12,
+              padding: t.density.blockGap,
             }}>
               <Bone h={30} r={6} />
               {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={36} style={{ marginTop: 8 }} />
+                <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
               ))}
             </div>
-            <div style={{ flex: 1, padding: 16 }}>
+            <div style={{ flex: 1, padding: t.density.cardPad }}>
               <Bone w="50%" h={18} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: t.density.kpiGap, marginTop: t.density.kpiGap }}>
                 <Bone w={56} h={16} r={3} />
                 <Bone w={50} h={12} />
               </div>
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ marginTop: t.density.blockGap, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
                 <Bone h={12} />
                 <Bone h={12} w="90%" />
                 <Bone h={12} w="75%" />
@@ -644,16 +644,16 @@ export function TenswSkeleton() {
           </div>
         </CardSkel>
         <CardSkel pad={0}>
-          <div style={{ padding: '16px 16px 10px' }}>
+          <div style={{ padding: `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
             <Bone w={50} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: 6 }} />
+            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
-          <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0` }}>
                 <div style={{ flex: 1 }}>
                   <Bone w="60%" h={10} />
-                  <Bone w="90%" h={12} style={{ marginTop: 4 }} />
+                  <Bone w="90%" h={12} style={{ marginTop: t.density.gapXs }} />
                 </div>
                 <Bone w={30} h={10} />
               </div>
@@ -673,26 +673,26 @@ export function ValueChainSkeleton() {
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap, alignItems: 'start' }}>
       <CardSkel pad={0}>
         {/* 헤더 + 인사이트 */}
-        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: t.density.blockGap }}>
             <div>
               <Bone w={60} h={8} />
-              <Bone w={90} h={16} style={{ marginTop: 6 }} />
+              <Bone w={90} h={16} style={{ marginTop: t.density.gapSm }} />
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm }}>
               <Bone w={28} h={28} r={t.radius.sm} />
               <Bone w={28} h={28} r={t.radius.sm} />
             </div>
           </div>
           {/* 인사이트 라벨 */}
-          <Bone w={50} h={9} style={{ marginBottom: 10 }} />
+          <Bone w={50} h={9} style={{ marginBottom: t.density.gapMd }} />
           {/* 6 KPI (3-col) */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px' }}>
+              <div key={i} style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px` }}>
                 <Bone w={36} h={8} />
-                <Bone w={50} h={13} style={{ marginTop: 4 }} />
-                <Bone w={60} h={8} style={{ marginTop: 5 }} />
+                <Bone w={50} h={13} style={{ marginTop: t.density.gapXs }} />
+                <Bone w={60} h={8} style={{ marginTop: t.density.gapSm }} />
               </div>
             ))}
           </div>
@@ -700,9 +700,9 @@ export function ValueChainSkeleton() {
 
         {/* 업데이트 테이블 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <Bone w={50} h={9} style={{ marginBottom: 10 }} />
-          <Bone w="55%" h={8} style={{ marginBottom: 6 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Bone w={50} h={9} style={{ marginBottom: t.density.gapMd }} />
+          <Bone w="55%" h={8} style={{ marginBottom: t.density.gapSm }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <Bone key={i} h={26} r={t.radius.sm} />
             ))}
@@ -711,9 +711,9 @@ export function ValueChainSkeleton() {
 
         {/* AI 크롤 의존도 테이블 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <Bone w={80} h={9} style={{ marginBottom: 10 }} />
-          <Bone w="45%" h={8} style={{ marginBottom: 6 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Bone w={80} h={9} style={{ marginBottom: t.density.gapMd }} />
+          <Bone w="45%" h={8} style={{ marginBottom: t.density.gapSm }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Bone key={i} h={26} r={t.radius.sm} />
             ))}
@@ -737,24 +737,24 @@ export function WikiSkeleton() {
           minWidth: mobile ? undefined : 280,
           borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
         }}>
-          <div style={{ padding: '10px 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.blockGap}px ${t.density.panelPadY}px`, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm }}>
               <Bone h={30} style={{ flex: 1 }} r={t.radius.sm} />
               <Bone w={70} h={30} r={t.radius.sm} />
             </div>
-            <div style={{ display: 'flex', gap: 5 }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm }}>
               {Array.from({ length: 5 }).map((_, i) => (
                 <Bone key={i} w={i === 0 ? 40 : 60} h={22} r={t.radius.pill} />
               ))}
             </div>
           </div>
-          <div style={{ padding: '4px 12px' }}>
+          <div style={{ padding: `${t.density.gapXs}px ${t.density.blockGap}px` }}>
             {Array.from({ length: mobile ? 5 : 8 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px` }}>
                 <Bone w={14} h={14} r={3} />
                 <div style={{ flex: 1 }}>
                   <Bone w="70%" h={12} />
-                  <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
                     <Bone w={46} h={14} r={3} />
                     <Bone w={40} h={10} />
                   </div>
@@ -765,13 +765,13 @@ export function WikiSkeleton() {
         </div>
         {/* Right panel (hidden on mobile until note selected) */}
         {!mobile && (
-          <div style={{ flex: 1, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ flex: 1, padding: t.density.controlPadXLg, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
             <Bone w="50%" h={18} />
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: t.density.kpiGap }}>
               <Bone w={56} h={16} r={3} />
               <Bone w={50} h={12} />
             </div>
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginTop: t.density.kpiGap, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
               <Bone h={12} />
               <Bone h={12} w="90%" />
               <Bone h={12} w="75%" />
@@ -794,7 +794,7 @@ export function CorpSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <CardSkel>
         <Bone w={110} h={8} />
-        <Bone w={90} h={14} style={{ marginTop: 6 }} />
+        <Bone w={90} h={14} style={{ marginTop: t.density.gapSm }} />
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginTop: 14 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Bone key={i} h={t.density.statH} r={t.radius.md} />
@@ -806,12 +806,12 @@ export function CorpSkeleton() {
           <Bone w={60} h={14} />
           <Bone w={150} h={t.density.controlH} r={t.radius.sm} />
         </div>
-        <div style={{ display: 'flex', gap: 5, marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: t.density.gapSm, marginTop: t.density.blockGap }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Bone key={i} w={i === 0 ? 40 : 64} h={22} r={t.radius.pill} />
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm, marginTop: 14 }}>
           {Array.from({ length: 8 }).map((_, i) => (
             <Bone key={i} h={t.density.rowH - 8} r={3} />
           ))}
@@ -829,7 +829,7 @@ export function B2bSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <CardSkel>
         <Bone w={130} h={8} />
-        <Bone w={80} h={14} style={{ marginTop: 6 }} />
+        <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginTop: 14 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Bone key={i} h={t.density.statH} r={t.radius.md} />
@@ -841,7 +841,7 @@ export function B2bSkeleton() {
           <Bone w={60} h={14} />
           <Bone w={150} h={t.density.controlH} r={t.radius.sm} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm, marginTop: 14 }}>
           {Array.from({ length: 8 }).map((_, i) => (
             <Bone key={i} h={t.density.rowH - 8} r={3} />
           ))}

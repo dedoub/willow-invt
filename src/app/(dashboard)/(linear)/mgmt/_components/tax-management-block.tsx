@@ -110,7 +110,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
         <LSectionHead
           eyebrow="TAX & INSURANCE"
           title="세금관리"
@@ -125,11 +125,11 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         />
         {/* Year navigation */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
         }}>
           <button onClick={() => { setYear(current => current - 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -138,7 +138,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           </span>
           <button onClick={() => { setYear(current => current + 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
@@ -151,13 +151,13 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         </div>
 
         {/* Status filter — 현금관리·매출관리와 같은 자리에서 같은 모양으로 고른다. */}
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: t.density.gapXs, flexWrap: 'wrap', marginTop: t.density.blockGap }}>
           {STATUS_FILTERS.map(filter => {
             const active = status === filter.value
             return (
               <button key={filter.value} onClick={() => { setStatus(filter.value); setPage(0) }} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -168,7 +168,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginTop: 10 }}>
+        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
@@ -188,7 +188,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             <button onClick={() => { setSearch(''); setPage(0) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -196,7 +196,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 4px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapXs}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} />
         {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
@@ -228,19 +228,19 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={safePage === 0}
               onClick={() => setPage(safePage - 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: safePage === 0 ? 'default' : 'pointer',
                 color: safePage === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: safePage === 0 ? 0.4 : 1,
@@ -255,7 +255,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
               disabled={safePage >= totalPages - 1}
               onClick={() => setPage(safePage + 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: safePage >= totalPages - 1 ? 'default' : 'pointer',
                 color: safePage >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: safePage >= totalPages - 1 ? 0.4 : 1,

@@ -32,7 +32,7 @@ export interface ScheduleFormData {
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1']
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -130,10 +130,10 @@ export function ScheduleDialog({
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               SCHEDULE
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
@@ -141,7 +141,7 @@ export function ScheduleDialog({
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -151,8 +151,8 @@ export function ScheduleDialog({
 
         {/* Body */}
         <div style={{
-          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: 16,
+          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
         }}>
           {/* Title */}
           <div>
@@ -164,7 +164,7 @@ export function ScheduleDialog({
           {/* Type chips */}
           <div>
             <Label>유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
               {([
                 { key: 'school', label: '학교' },
                 { key: 'academy', label: '학원' },
@@ -180,7 +180,7 @@ export function ScheduleDialog({
           </div>
 
           {/* Dates */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label required>시작일</Label>
               <input type="date" value={form.schedule_date}
@@ -196,7 +196,7 @@ export function ScheduleDialog({
           </div>
 
           {/* Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>시작 시간</Label>
               <input type="time" value={form.start_time}
@@ -214,7 +214,7 @@ export function ScheduleDialog({
           {/* Color */}
           <div>
             <Label>색상</Label>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: t.density.gapSm }}>
               <button onClick={() => setForm({ ...form, color: '' })}
                 style={{
                   width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', padding: 0,
@@ -244,7 +244,7 @@ export function ScheduleDialog({
           </div>
 
           {/* Email reminder */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer', color: t.neutrals.text }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer', color: t.neutrals.text }}>
             <input type="checkbox" checked={form.email_reminder}
               onChange={e => setForm({ ...form, email_reminder: e.target.checked })} />
             이메일 리마인더
@@ -253,14 +253,14 @@ export function ScheduleDialog({
           {/* Homework items */}
           {form.type === 'homework' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
                 <Label>과제 항목</Label>
                 <button onClick={() => setForm({
                   ...form,
                   homework_items: [...form.homework_items, { content: '', deadline: form.schedule_date }],
                 })} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600], display: 'flex', alignItems: 'center', gap: 3,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600], display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                   fontFamily: t.font.sans,
                 }}>
                   <LIcon name="plus" size={11} stroke={2} /> 추가
@@ -268,7 +268,7 @@ export function ScheduleDialog({
               </div>
               {form.homework_items.map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center',
+                  display: 'flex', gap: t.density.kpiGap, marginBottom: t.density.kpiGap, alignItems: 'center',
                 }}>
                   <input value={item.content}
                     onChange={e => {
@@ -288,7 +288,7 @@ export function ScheduleDialog({
                     setForm({ ...form, homework_items: form.homework_items.filter((_, i) => i !== idx) })
                   }} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: t.accent.neg, padding: 2,
+                    color: t.accent.neg, padding: t.density.tableRowGap,
                   }}>
                     <LIcon name="x" size={13} stroke={2} />
                   </button>
@@ -300,13 +300,13 @@ export function ScheduleDialog({
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
-          display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', alignItems: 'center', gap: 8,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
+          display: 'flex', justifyContent: isEdit ? 'space-between' : 'flex-end', alignItems: 'center', gap: t.density.kpiGap,
         }}>
           {isEdit && onDelete && (
             <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
             {isEdit && (
               <LBtn variant="ghost" size="sm" onClick={handleCopy} disabled={saving}>복사</LBtn>
             )}
@@ -327,9 +327,9 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }
@@ -338,7 +338,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? t.brand[100] : t.neutrals.inner,
       color: active ? t.brand[700] : t.neutrals.muted,

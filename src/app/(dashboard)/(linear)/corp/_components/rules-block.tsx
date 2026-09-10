@@ -40,8 +40,8 @@ export function RulesBlock({ rules, onSelect }: Props) {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: 10, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: t.density.gapMd, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
           기준일
           <input
             type="date" value={at} onChange={e => setAt(e.target.value || todayYmd())}

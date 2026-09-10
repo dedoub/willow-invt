@@ -118,23 +118,23 @@ type SortDir = 'asc' | 'desc'
 
 const tooltipStyle: React.CSSProperties = {
   background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-  borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: '6px 10px',
+  borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
 }
 
 const innerCard: React.CSSProperties = {
-  background: t.neutrals.inner, borderRadius: t.radius.md, padding: 12,
+  background: t.neutrals.inner, borderRadius: t.radius.md, padding: t.density.blockGap,
   minWidth: 0, overflow: 'hidden',
 }
 
 const thStyle: React.CSSProperties = {
   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, cursor: 'pointer',
-  padding: '6px 4px', textAlign: 'right' as const, fontWeight: t.weight.medium,
+  padding: `${t.density.gapSm}px ${t.density.gapXs}px`, textAlign: 'right' as const, fontWeight: t.weight.medium,
   fontFamily: t.font.sans, whiteSpace: 'nowrap' as const,
   userSelect: 'none' as const,
 }
 
 const tdStyle: React.CSSProperties = {
-  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: '5px 4px', textAlign: 'right' as const,
+  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: `${t.density.gapSm}px ${t.density.gapXs}px`, textAlign: 'right' as const,
   fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' as const,
 }
 
@@ -165,12 +165,12 @@ function gapColor(gap: number | null): string {
 
 function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return null
-  return <span style={{ marginLeft: 2 }}>{dir === 'asc' ? '↑' : '↓'}</span>
+  return <span style={{ marginLeft: t.density.tableRowGap }}>{dir === 'asc' ? '↑' : '↓'}</span>
 }
 
 function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: number | null; titleHint?: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
       <span
         title={titleHint}
         style={{
@@ -181,7 +181,7 @@ function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: num
       {momPct !== undefined && momPct !== null && (
         <span style={{
           fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, borderRadius: t.radius.sm,
-          padding: '1px 5px',
+          padding: `1px ${t.density.gapSm}px`,
           background: momPct > 0 ? '#FEE2E2' : momPct < 0 ? '#DBEAFE' : t.neutrals.inner,
           color: momPct > 0 ? '#EF4444' : momPct < 0 ? '#3B82F6' : t.neutrals.muted,
         }}>
@@ -197,7 +197,7 @@ function PriceChart({ data, complexes, height = 200 }: {
   complexes: { name: string }[]
   height?: number
 }) {
-  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
@@ -252,7 +252,7 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
   complexes: string[]
   height?: number
 }) {
-  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
@@ -289,7 +289,7 @@ function ListingPriceChart({ data, complexes, height = 200 }: {
 // 합산 시가총액 추이 — 평형별 세대수 × 공급면적(평) × 평당가를 (단지×평형밴드)로 합산.
 // 실거래(1개월 창 평균)와 최저호가 두 라인을 절대금액(조원)으로 비교한다.
 function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; height?: number }) {
-  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
@@ -325,7 +325,7 @@ function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; heig
 }
 
 function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: number }) {
-  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (!data.length) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
@@ -374,7 +374,7 @@ function ListingTable({
   onPageChange: (p: number) => void
   tradeType: '매매' | '전세'
 }) {
-  if (rows.length === 0) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+  if (rows.length === 0) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
   const msParam = tradeType === '매매' ? 'a1' : 'b1'
   return (
     <div>
@@ -433,13 +433,13 @@ function ListingTable({
         </table>
       </div>
       {pageCount > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.kpiGap }}>
           <button
             onClick={() => onPageChange(Math.max(0, page - 1))}
             disabled={page === 0}
             style={{
               border: 'none', background: 'transparent', cursor: page === 0 ? 'default' : 'pointer',
-              opacity: page === 0 ? 0.3 : 1, padding: 2,
+              opacity: page === 0 ? 0.3 : 1, padding: t.density.tableRowGap,
             }}
           >
             <LIcon name="chevronLeft" size={14} color={t.neutrals.muted} />
@@ -452,7 +452,7 @@ function ListingTable({
             disabled={page >= pageCount - 1}
             style={{
               border: 'none', background: 'transparent', cursor: page >= pageCount - 1 ? 'default' : 'pointer',
-              opacity: page >= pageCount - 1 ? 0.3 : 1, padding: 2,
+              opacity: page >= pageCount - 1 ? 0.3 : 1, padding: t.density.tableRowGap,
             }}
           >
             <LIcon name="chevronRight" size={14} color={t.neutrals.muted} />
@@ -465,10 +465,10 @@ function ListingTable({
 
 function KpiSkeleton({ mobile }: { mobile: boolean }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} style={innerCard}>
-          <Bone w={60} h={8} style={{ marginBottom: 6 }} />
+          <Bone w={60} h={8} style={{ marginBottom: t.density.gapSm }} />
           <Bone w={80} h={14} />
         </div>
       ))}
@@ -479,8 +479,8 @@ function KpiSkeleton({ mobile }: { mobile: boolean }) {
 function ChartSkeleton() {
   return (
     <div style={innerCard}>
-      <Bone w={140} h={10} style={{ marginBottom: 8 }} />
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
+      <Bone w={140} h={10} style={{ marginBottom: t.density.kpiGap }} />
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.gapXs, height: 180 }}>
         {Array.from({ length: 12 }).map((_, i) => (
           <Bone key={i} h={40 + Math.random() * 120} style={{ flex: 1, borderRadius: 2 }} />
         ))}
@@ -492,9 +492,9 @@ function ChartSkeleton() {
 function TableSkeleton() {
   return (
     <div style={innerCard}>
-      <Bone w={160} h={10} style={{ marginBottom: 10 }} />
+      <Bone w={160} h={10} style={{ marginBottom: t.density.gapMd }} />
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div key={i} style={{ display: 'flex', gap: t.density.kpiGap, marginBottom: t.density.kpiGap }}>
           <Bone w={70} h={10} />
           <Bone w={40} h={10} />
           <Bone w={50} h={10} />
@@ -827,13 +827,13 @@ export function RealEstateBlock() {
   /* ── Inline styles ── */
   const chipActiveStyle: React.CSSProperties = {
     background: t.brand[100], color: t.brand[700],
-    padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
     fontWeight: t.weight.medium, transition: 'all .12s',
   }
   const chipInactiveStyle: React.CSSProperties = {
     background: t.neutrals.inner, color: t.neutrals.muted,
-    padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
     cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
     fontWeight: t.weight.regular, transition: 'all .12s',
   }
@@ -848,23 +848,23 @@ export function RealEstateBlock() {
   if (initialLoad) {
     return (
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
         </div>
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
           </div>
           <KpiSkeleton mobile={mobile} />
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
               <ChartSkeleton />
               <ChartSkeleton />
               <TableSkeleton />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
               <ChartSkeleton />
               <ChartSkeleton />
               <TableSkeleton />
@@ -879,7 +879,7 @@ export function RealEstateBlock() {
   if (!loadingSummary && (!reSummary || reSummary.trackedComplexes === 0)) {
     return (
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
         </div>
         <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
@@ -915,7 +915,7 @@ export function RealEstateBlock() {
   return (
     <LCard pad={0}>
       {/* Header */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow="REAL ESTATE"
           title="부동산 리서치"
@@ -934,7 +934,7 @@ export function RealEstateBlock() {
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         {/* Filter bar */}
         <div style={{
-          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.density.kpiGap,
         }}>
           {/* Complex selector */}
           <div style={{ position: 'relative' }}>
@@ -942,7 +942,7 @@ export function RealEstateBlock() {
               onClick={() => setComplexDropdownOpen(v => !v)}
               style={{
                 ...chipInactiveStyle,
-                display: 'inline-flex', alignItems: 'center', gap: 4,
+                display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
               }}
             >
               <LIcon name="building" size={12} color={t.neutrals.muted} />
@@ -951,13 +951,13 @@ export function RealEstateBlock() {
             </button>
             {complexDropdownOpen && (
               <div style={{
-                position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                position: 'absolute', top: '100%', left: 0, marginTop: t.density.gapXs,
                 background: t.neutrals.card, borderRadius: t.radius.md,
                 border: `1px solid ${t.neutrals.line}`, zIndex: 20,
-                minWidth: 180, maxHeight: 240, overflowY: 'auto', padding: 4,
+                minWidth: 180, maxHeight: 240, overflowY: 'auto', padding: t.density.gapXs,
               }}>
                 {reComplexes.length === 0 ? (
-                  <div style={{ padding: 8, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>단지 없음</div>
+                  <div style={{ padding: t.density.panelPadY, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>단지 없음</div>
                 ) : (
                   <>
                     {selectedComplexIds.length > 0 && (
@@ -965,7 +965,7 @@ export function RealEstateBlock() {
                         onClick={() => { setSelectedComplexIds([]); setComplexDropdownOpen(false) }}
                         style={{
                           border: 'none', background: 'transparent', width: '100%',
-                          textAlign: 'left', padding: '6px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                          textAlign: 'left', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                           color: t.brand[600], cursor: 'pointer', fontFamily: t.font.sans,
                         }}
                       >
@@ -978,14 +978,14 @@ export function RealEstateBlock() {
                         onClick={() => toggleComplex(c.id)}
                         style={{
                           border: 'none', width: '100%', textAlign: 'left',
-                          padding: '6px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer',
+                          padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer',
                           fontFamily: t.font.sans, borderRadius: t.radius.sm,
                           background: selectedComplexIds.includes(c.id) ? t.neutrals.inner : 'transparent',
                           color: selectedComplexIds.includes(c.id) ? t.neutrals.text : t.neutrals.muted,
                         }}
                       >
                         {c.name}
-                        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginLeft: 4 }}>{c.district_name}</span>
+                        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginLeft: t.density.gapXs }}>{c.district_name}</span>
                       </button>
                     ))}
                   </>
@@ -997,9 +997,9 @@ export function RealEstateBlock() {
           {/* Selected complex chips */}
           {selectedComplexIds.map(id => (
             <span key={id} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
+              display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
               background: t.brand[100], color: t.brand[700],
-              padding: '3px 8px', borderRadius: t.radius.pill, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
               fontFamily: t.font.sans, fontWeight: t.weight.medium,
             }}>
               {complexNameById.get(id) || id}
@@ -1034,21 +1034,21 @@ export function RealEstateBlock() {
 
         {/* KPI row */}
         {loadingSummary ? <KpiSkeleton mobile={mobile} /> : reSummary && (
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
           <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               추적 단지
             </div>
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
               {reSummary.trackedComplexes}개
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted, fontWeight: t.weight.regular, marginLeft: 4 }}>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted, fontWeight: t.weight.regular, marginLeft: t.density.gapXs }}>
                 ({reSummary.districtCount}개구)
               </span>
             </div>
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               매매가 (만/평)
             </div>
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
@@ -1057,7 +1057,7 @@ export function RealEstateBlock() {
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               매도 괴리율
             </div>
             <div style={{
@@ -1069,7 +1069,7 @@ export function RealEstateBlock() {
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               전세가 (만/평)
             </div>
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
@@ -1078,7 +1078,7 @@ export function RealEstateBlock() {
           </div>
 
           <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               전세 괴리율
             </div>
             <div style={{
@@ -1095,19 +1095,19 @@ export function RealEstateBlock() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
-          gap: 12,
+          gap: t.density.blockGap,
         }}>
           {/* ── Left: 매매 ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
             {/* 매매 실거래가 추이 */}
             {loadingTrades ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="매매 실거래가 추이" momPct={tradeMom} />
               <PriceChart data={tradeChartData} complexes={reTrades?.complexes || []} />
               {reTrades && reTrades.complexes.length > 1 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
                   {reTrades.complexes.map((c, i) => (
-                    <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {c.name}
                     </span>
@@ -1123,9 +1123,9 @@ export function RealEstateBlock() {
               <ChartHeader title="매도 호가 추이" />
               <ListingPriceChart data={reListingTrend?.complexTrend || []} complexes={reListingTrend?.complexes || []} />
               {(reListingTrend?.complexes?.length ?? 0) > 1 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
                   {reListingTrend?.complexes?.map((name, i) => (
-                    <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {name}
                     </span>
@@ -1146,7 +1146,7 @@ export function RealEstateBlock() {
             {/* 매도 호가 vs 실거래가 */}
             {loadingListingsTrade ? <TableSkeleton /> : (
             <div style={innerCard}>
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
+              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
                 매도 호가 vs 실거래가
               </div>
               <ListingTable
@@ -1168,12 +1168,12 @@ export function RealEstateBlock() {
               <ChartHeader title="합산 시가총액 추이" />
               <MarketCapChart data={reMarketCap?.trend || []} />
               {(reMarketCap?.trend?.length ?? 0) > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 8px', marginTop: 4 }}>
-                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
                     실거래 기준
                   </span>
-                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
                     최저호가 기준
                   </span>
@@ -1187,16 +1187,16 @@ export function RealEstateBlock() {
           </div>
 
           {/* ── Right: 전세 ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
             {/* 전세 실거래가 추이 */}
             {loadingRentals ? <ChartSkeleton /> : (
             <div style={innerCard}>
               <ChartHeader title="전세 실거래가 추이" momPct={rentalMom} />
               <PriceChart data={rentalChartData} complexes={reRentals?.complexes || []} />
               {reRentals && reRentals.complexes.length > 1 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
                   {reRentals.complexes.map((c, i) => (
-                    <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {c.name}
                     </span>
@@ -1212,9 +1212,9 @@ export function RealEstateBlock() {
               <ChartHeader title="전세 호가 추이" />
               <ListingPriceChart data={reListingTrendJeonse?.complexTrend || []} complexes={reListingTrendJeonse?.complexes || []} />
               {(reListingTrendJeonse?.complexes?.length ?? 0) > 1 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
                   {reListingTrendJeonse?.complexes?.map((name, i) => (
-                    <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
                       {name}
                     </span>
@@ -1235,7 +1235,7 @@ export function RealEstateBlock() {
             {/* 전세 호가 vs 실거래가 */}
             {loadingListingsJeonse ? <TableSkeleton /> : (
             <div style={innerCard}>
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: 4 }}>
+              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
                 전세 호가 vs 실거래가
               </div>
               <ListingTable
@@ -1313,7 +1313,7 @@ export function RealEstateBlock() {
                 </ResponsiveContainer>
                 )
               })() : (
-                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: 12 }}>데이터 없음</div>
+                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
               )}
             </div>
             )}

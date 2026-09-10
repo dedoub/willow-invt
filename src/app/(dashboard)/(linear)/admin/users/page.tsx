@@ -194,9 +194,9 @@ export default function UsersPage() {
   })
 
   return (
-    <div style={{ paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ paddingTop: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             eyebrow="ADMIN"
             title="사용자 관리"
@@ -206,7 +206,7 @@ export default function UsersPage() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-            gap: 8,
+            gap: t.density.kpiGap,
           }}>
             <LStat label="전체"   value={totalUsers.toLocaleString()} sub="사용자" />
             <LStat label="활성"   value={activeUsers.toLocaleString()} sub={totalUsers > 0 ? `${Math.round(activeUsers / totalUsers * 100)}%` : '0%'} tone="pos" />
@@ -219,29 +219,29 @@ export default function UsersPage() {
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
-            textTransform: 'uppercase', marginBottom: 10,
+            textTransform: 'uppercase', marginBottom: t.density.gapMd,
           }}>
             사용자
           </div>
 
           {loading ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>로딩 중…</div>
+            <div style={{ padding: t.density.pagePadBottom, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>로딩 중…</div>
           ) : users.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>사용자가 없습니다</div>
+            <div style={{ padding: t.density.pagePadBottom, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>사용자가 없습니다</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
               {users.map(u => {
                 const isMe = u.id === currentUser?.id
                 const role = ROLE_META[u.role] ?? { label: u.role, bg: '#94A3B822', fg: '#475569' }
                 return (
                   <div key={u.id} style={{
-                    padding: '8px 10px', borderRadius: t.radius.sm,
+                    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
                     background: t.neutrals.inner,
-                    display: 'flex', alignItems: 'center', gap: 10,
+                    display: 'flex', alignItems: 'center', gap: t.density.gapMd,
                     minWidth: 0,
                   }}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 28, flexShrink: 0,
+                      width: 28, height: t.density.controlHSm, borderRadius: 28, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600,
@@ -250,7 +250,7 @@ export default function UsersPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
-                        display: 'flex', alignItems: 'center', gap: 6,
+                        display: 'flex', alignItems: 'center', gap: t.density.gapSm,
                       }}>
                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{u.name}</span>
                         {isMe && <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>(나)</span>}
@@ -268,7 +268,7 @@ export default function UsersPage() {
                         onBlur={() => setEditingRole(null)}
                         autoFocus
                         style={{
-                          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '2px 4px', borderRadius: t.radius.sm,
+                          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapXs}px`, borderRadius: t.radius.sm,
                           background: t.neutrals.card, color: t.neutrals.text,
                           border: 'none', flexShrink: 0,
                         }}
@@ -283,7 +283,7 @@ export default function UsersPage() {
                         disabled={isMe}
                         style={{
                           fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
-                          padding: '2px 8px', borderRadius: 999,
+                          padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
                           background: role.bg, color: role.fg,
                           border: 'none', cursor: isMe ? 'default' : 'pointer',
                           flexShrink: 0,
@@ -296,7 +296,7 @@ export default function UsersPage() {
                       disabled={isMe}
                       style={{
                         fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
-                        padding: '2px 8px', borderRadius: 999, border: 'none',
+                        padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, border: 'none',
                         background: u.is_active ? '#10B98122' : '#EF444422',
                         color: u.is_active ? '#059669' : '#DC2626',
                         cursor: isMe ? 'default' : 'pointer',
@@ -312,7 +312,7 @@ export default function UsersPage() {
                       }}>{formatRelative(u.last_login_at)}</span>
                     )}
 
-                    <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: t.density.gapXs, flexShrink: 0 }}>
                       {u.role !== 'admin' && (
                         <button onClick={() => openPerms(u)} style={iconBtn()} title="권한 설정">
                           <LIcon name="settings" size={12} stroke={1.8} />
@@ -343,40 +343,40 @@ export default function UsersPage() {
             position: 'fixed', inset: 0, zIndex: 100,
             background: 'rgba(15, 23, 42, 0.45)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 16,
+            padding: t.density.cardPad,
           }}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
               background: t.neutrals.card, borderRadius: t.radius.md,
-              padding: 20, width: '100%', maxWidth: 420,
-              maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: 12,
+              padding: t.density.pagePadX, width: '100%', maxWidth: 420,
+              maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: t.density.kpiGap }}>
               <div>
                 <div style={{
                   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
                   fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
-                  marginBottom: 4,
+                  marginBottom: t.density.gapXs,
                 }}>PERMISSIONS</div>
                 <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text }}>{permUser.name}</div>
                 <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{permUser.email}</div>
               </div>
               <button
                 onClick={() => setPermUser(null)}
-                style={iconBtn({ width: 28, height: 28 })}
+                style={iconBtn({ width: 28, height: t.density.controlHSm })}
                 title="닫기"
               >
                 <LIcon name="x" size={13} stroke={1.8} />
               </button>
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1, paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: t.density.gapXs, display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
               <label style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 8px', borderRadius: t.radius.sm,
+                display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                 background: t.neutrals.inner, cursor: 'pointer',
                 fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
               }}>
@@ -393,13 +393,13 @@ export default function UsersPage() {
                   <div style={{
                     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
                     fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
-                    marginBottom: 4,
+                    marginBottom: t.density.gapXs,
                   }}>{SECTION_LABEL[section] ?? section}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap, paddingLeft: t.density.gapSm }}>
                     {pages.map(p => (
                       <label key={p.path} style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '4px 6px', borderRadius: t.radius.sm, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                        padding: `${t.density.gapXs}px ${t.density.gapSm}px`, borderRadius: t.radius.sm, cursor: 'pointer',
                         fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text,
                       }}>
                         <input
@@ -416,11 +416,11 @@ export default function UsersPage() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm }}>
               <button
                 onClick={() => setPermUser(null)}
                 style={{
-                  padding: '6px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
+                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
                   background: t.neutrals.inner, color: t.neutrals.muted,
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                 }}
@@ -429,7 +429,7 @@ export default function UsersPage() {
                 onClick={savePerms}
                 disabled={savingPerms}
                 style={{
-                  padding: '6px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
+                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
                   background: t.brand[600], color: '#fff',
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                   opacity: savingPerms ? 0.6 : 1,

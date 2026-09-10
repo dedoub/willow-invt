@@ -57,7 +57,7 @@ export function DailyMemo({ memos, selectedDate, onSave }: DailyMemoProps) {
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>저장중...</span>
         ) : content !== lastSaved.current ? (
           <button onClick={() => save(content)} style={{
-            padding: '3px 8px', borderRadius: t.radius.sm,
+            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
             background: t.brand[100], border: 'none', fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
             color: t.brand[700], cursor: 'pointer', fontFamily: t.font.mono,
           }}>저장</button>
@@ -70,7 +70,7 @@ export function DailyMemo({ memos, selectedDate, onSave }: DailyMemoProps) {
         placeholder="메모를 작성하세요..."
         rows={3}
         style={{
-          width: '100%', padding: '8px 10px', borderRadius: t.radius.sm,
+          width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
           border: 'none', background: t.neutrals.inner,
           fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text,
           resize: 'vertical', outline: 'none', lineHeight: 1.5,

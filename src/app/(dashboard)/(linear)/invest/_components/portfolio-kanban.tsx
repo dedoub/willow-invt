@@ -130,10 +130,10 @@ function renderGroupedCards(
     const pc = PARENT_COLORS[parent] || PARENT_COLORS['미분류']
     const total = subs.reduce((s, sg) => s + sg.cards.length, 0)
     return (
-      <div key={parent} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
+      <div key={parent} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, marginTop: t.density.gapSm }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, padding: `0 ${t.density.tableRowGap}px` }}>
           <span style={{
-            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: '1px 6px',
+            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`,
             borderRadius: t.radius.sm, background: pc.bg, color: pc.fg,
           }}>{parent}</span>
           <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
@@ -143,11 +143,11 @@ function renderGroupedCards(
         {subs.map(({ sub, cards: subCards }) => {
           const sc = sub ? (SUB_COLORS[sub] || SUB_COLORS['기타']) : null
           return (
-            <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
               {sub && sc && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 2px', marginTop: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, padding: `0 ${t.density.tableRowGap}px`, marginTop: t.density.tableRowGap }}>
                   <span style={{
-                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '0 5px',
+                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `0 ${t.density.gapSm}px`,
                     borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
                   }}>{sub}</span>
                   <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
@@ -159,7 +159,7 @@ function renderGroupedCards(
                 display: cardColumns === 2 ? 'grid' : 'flex',
                 gridTemplateColumns: cardColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
                 flexDirection: cardColumns === 2 ? undefined : 'column',
-                gap: 4,
+                gap: t.density.gapXs,
               }}>
                 {subCards.map(c => renderCard(c))}
               </div>
@@ -553,8 +553,8 @@ export function PortfolioKanban({
 
   /* ── Render ── */
   const colStyle = (group: string): React.CSSProperties => ({
-    flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6,
-    borderRadius: t.radius.md, padding: 4,
+    flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm,
+    borderRadius: t.radius.md, padding: t.density.gapXs,
     background: dragOverCol === group ? `${t.brand[600]}10` : 'transparent',
     transition: 'background .15s',
   })
@@ -567,13 +567,13 @@ export function PortfolioKanban({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
           <button
             onClick={() => setSortBy1m(v => { localStorage.setItem('kanban-sort-1m', v ? '0' : '1'); return !v })}
             style={{
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-              padding: '3px 8px', borderRadius: t.radius.sm, border: 'none',
+              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, border: 'none',
               background: sortBy1m ? t.brand[600] : t.neutrals.inner,
               color: sortBy1m ? '#fff' : t.neutrals.muted,
               cursor: 'pointer', transition: 'all .15s',
@@ -587,7 +587,7 @@ export function PortfolioKanban({
         gridTemplateColumns: mobile
           ? `repeat(${SHOW_PORTFOLIO_COLUMN ? 3 : 2}, minmax(220px, 1fr))`
           : SHOW_PORTFOLIO_COLUMN ? '1fr 1fr 1fr' : '1fr 1fr',
-        gap: 10, padding: '0 10px 14px',
+        gap: t.density.gapMd, padding: `0 ${t.density.panelPadX}px ${t.density.controlPadXMd}px`,
         overflowX: mobile ? 'auto' : undefined,
       }}>
         {/* Portfolio (임시 숨김 — SHOW_PORTFOLIO_COLUMN 로 토글) */}
@@ -595,7 +595,7 @@ export function PortfolioKanban({
         <div style={colStyle('portfolio')} {...dropHandlers('portfolio')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('포트폴리오', portfolioCards.length)}
           </div>
@@ -603,7 +603,7 @@ export function PortfolioKanban({
             <StockCard key={card.ticker} data={card} draggable bordered={printMode} />
           ), narrow ? 1 : 2)}
           {portfolioCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: t.density.cardPad, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
         )}
@@ -612,7 +612,7 @@ export function PortfolioKanban({
         <div style={colStyle('watchlist')} {...dropHandlers('watchlist')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('워치리스트', watchlistCards.length)}
           </div>
@@ -625,7 +625,7 @@ export function PortfolioKanban({
             />
           ), narrow ? 1 : 2)}
           {watchlistCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: t.density.cardPad, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
 
@@ -633,7 +633,7 @@ export function PortfolioKanban({
         <div style={colStyle('research')} {...dropHandlers('research')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: '6px 8px', background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
           }}>
             {headerCount('리서치', researchCards.length)}
           </div>
@@ -644,7 +644,7 @@ export function PortfolioKanban({
             />
           ), narrow ? 1 : 2)}
           {researchCards.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
+            <div style={{ padding: t.density.cardPad, textAlign: 'center', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>종목 없음</div>
           )}
         </div>
       </div>

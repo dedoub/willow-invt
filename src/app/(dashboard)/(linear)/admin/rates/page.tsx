@@ -169,7 +169,7 @@ export default function RatesPage() {
                     <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>
                       {row.label}
                       {!row.overridden && (
-                        <span style={{ marginLeft: 6, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                        <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                           코드 기본값
                         </span>
                       )}
@@ -185,7 +185,7 @@ export default function RatesPage() {
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                       style={{
                         width: 72, height: t.density.controlHSm, textAlign: 'right',
-                        padding: '0 8px', borderRadius: t.radius.sm,
+                        padding: `0 ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                         border: `1px solid ${dirty && !valid ? t.accent.neg : t.neutrals.line}`,
                         fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                         background: t.neutrals.card, color: t.neutrals.text,
@@ -204,7 +204,7 @@ export default function RatesPage() {
                         onClick={() => valid && save(app.key, row, parsed)}
                         disabled={!valid || saving === id}
                         style={{
-                          height: t.density.controlHSm, padding: '0 10px', border: 'none',
+                          height: t.density.controlHSm, padding: `0 ${t.density.panelPadX}px`, border: 'none',
                           borderRadius: t.radius.sm, background: t.brand[600], color: '#fff',
                           fontFamily: t.font.sans, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                           cursor: valid ? 'pointer' : 'default', opacity: valid ? 1 : 0.4,
@@ -218,7 +218,7 @@ export default function RatesPage() {
                         disabled={saving === id}
                         title={`코드 기본값(${row.fallback})으로 되돌린다`}
                         style={{
-                          height: t.density.controlHSm, padding: '0 10px', border: 'none',
+                          height: t.density.controlHSm, padding: `0 ${t.density.panelPadX}px`, border: 'none',
                           borderRadius: t.radius.sm, background: t.neutrals.inner, color: t.neutrals.muted,
                           fontFamily: t.font.sans, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer',
                         }}>
@@ -228,7 +228,7 @@ export default function RatesPage() {
                   </div>
 
                   <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, lineHeight: 1.5, minWidth: 0 }}>
-                    <span style={{ marginRight: 6 }}>{row.verdict.mark}</span>
+                    <span style={{ marginRight: t.density.gapSm }}>{row.verdict.mark}</span>
                     <span style={{ color: marginColor(row.verdict), fontFamily: t.font.mono }}>
                       {pct(row.verdict.margin)}
                     </span>
@@ -301,7 +301,7 @@ function RatesSkeleton() {
                 display: 'flex', alignItems: 'center', gap: t.density.gapMd,
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <Bone w={80} h={11} style={{ marginBottom: 5 }} />
+                  <Bone w={80} h={11} style={{ marginBottom: t.density.gapSm }} />
                   <Bone w={'70%'} h={9} />
                 </div>
                 <Bone w={72} h={t.density.controlHSm} r={t.radius.sm} />

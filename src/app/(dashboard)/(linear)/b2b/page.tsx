@@ -102,7 +102,7 @@ export default function B2bPage() {
           note="세금계산서 한 장마다 업무기록·산정·문서·입금을 묶어 대사합니다."
           tools={<LSegmented options={DIRECTION_OPTIONS} value={direction} onChange={changeDirection} />}
         />
-        {loadError && <div style={{ marginBottom: 10 }}><LNotice tone="danger" text={loadError} /></div>}
+        {loadError && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={loadError} /></div>}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap }}>
           <LStat label="열린 정산" value={String(stats.open)} unit="건" tone={stats.open ? 'info' : 'default'} />
           <LStat label="대사 불일치" value={String(stats.mismatched)} unit="건" tone={stats.mismatched ? 'neg' : 'default'} />

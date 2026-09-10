@@ -159,7 +159,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   return (
     <LCard pad={0} style={style}>
       {/* Header */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow="TAX INVOICES"
           title={mode === 'purchase' ? '매입관리' : '매출관리'}
@@ -177,11 +177,11 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 
         {/* Year navigation */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
         }}>
           <button onClick={() => { setYear(y => y - 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -190,7 +190,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
@@ -200,7 +200,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         <div style={{
           display: 'grid',
           gridTemplateColumns: mode === 'purchase' ? 'repeat(2, 1fr)' : (mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'),
-          gap: 8, marginBottom: 12,
+          gap: t.density.kpiGap, marginBottom: t.density.blockGap,
         }}>
           {mode === 'sales' ? (
             <>
@@ -218,13 +218,13 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         </div>
 
         {/* Status filter chips + sort toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
           {statusFilters.map(f => {
             const active = statusFilter === f.value
             return (
               <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -235,7 +235,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginTop: 10 }}>
+        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
@@ -255,7 +255,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             <button onClick={() => { setSearch(''); setPage(0) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -264,7 +264,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
       </div>
 
       {/* Invoice rows */}
-      <div style={{ padding: '0 16px 4px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapXs}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
@@ -294,10 +294,10 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 
               {/* Expanded detail */}
               {expanded && (
-                <div style={{ padding: '0 0 12px' }}>
+                <div style={{ padding: `0 0 ${t.density.blockGap}px` }}>
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
-                    padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                    padding: t.density.blockGap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap,
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="거래처" value={inv.counterparty} />
@@ -322,21 +322,21 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 
                   {/* Items */}
                   {inv.items && inv.items.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: t.density.kpiGap }}>
                       <div style={{
                         fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
-                        fontFamily: t.font.mono, marginBottom: 4, letterSpacing: 0.3,
+                        fontFamily: t.font.mono, marginBottom: t.density.gapXs, letterSpacing: 0.3,
                       }}>
                         품목
                       </div>
                       <div style={{
                         background: t.neutrals.inner, borderRadius: t.radius.md,
-                        padding: '8px 12px',
+                        padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
                       }}>
                         {inv.items.map((item, i) => (
                           <div key={i} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '3px 0',
+                            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: `${t.density.gapXs}px 0`,
                             borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : 'none',
                           }}>
                             <span style={{ color: t.neutrals.text }}>{item.description}</span>
@@ -355,7 +355,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   {/* Notes */}
                   {inv.notes && (
                     <div style={{
-                      marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
+                      marginTop: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
                       background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
@@ -364,15 +364,15 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   )}
 
                   {/* Edit button */}
-                  <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); onEdit(inv) }}
                       style={{
-                        padding: '4px 12px', borderRadius: t.radius.sm,
+                        padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
                         fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
+                        display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                       }}
                     >
                       <LIcon name="pencil" size={10} stroke={2} />
@@ -391,19 +391,19 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -418,7 +418,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
               disabled={page >= totalPages - 1}
               onClick={() => setPage(p => p + 1)}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
@@ -438,7 +438,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

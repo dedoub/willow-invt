@@ -292,7 +292,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
         <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
           <LSegmented
@@ -310,11 +310,11 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
 
         {/* Navigation — centered */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
         }}>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -323,14 +323,14 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
         </div>
 
         {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
           <LStat label="비용" value={`${expense.toLocaleString()}원`} tone="neg" />
           <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
@@ -349,15 +349,15 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           justifyContent: 'space-between',
           flexDirection: mobile ? 'column' : 'row',
           gap: mobile ? 8 : 0,
-          marginTop: 12,
+          marginTop: t.density.blockGap,
         }}>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' as const }}>
             {TYPE_FILTERS.map(f => {
               const active = typeFilter === f.value
               return (
                 <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
                   color: active ? t.brand[700] : t.neutrals.muted,
@@ -366,9 +366,9 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               )
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: mobile ? 'flex-end' : undefined }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, justifyContent: mobile ? 'flex-end' : undefined }}>
             <button onClick={onAddInvoice} style={{
-              width: 28, height: 28, borderRadius: t.radius.sm, border: 'none',
+              width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, border: 'none',
               background: t.neutrals.inner, color: t.neutrals.muted,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 0, flexShrink: 0,
@@ -378,7 +378,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           </div>
         </div>
         {/* Search */}
-        <div style={{ position: 'relative', marginTop: 10 }}>
+        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
@@ -398,7 +398,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             <button onClick={() => setSearchQuery('')} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -414,7 +414,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
       />
 
       {/* Transactions */}
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
@@ -447,20 +447,20 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -476,7 +476,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
               onClick={() => setPage(p => p + 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,

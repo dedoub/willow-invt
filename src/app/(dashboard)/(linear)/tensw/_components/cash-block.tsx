@@ -287,7 +287,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {/* Header: eyebrow+title left, period mode toggle right */}
         <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
           <LSegmented
@@ -303,11 +303,11 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
 
         {/* Navigation — centered */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
         }}>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -316,14 +316,14 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
         </div>
 
         {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
           <LStat label="매출" value={`${revenue.toLocaleString()}원`} tone="pos" />
           <LStat label="비용" value={`${expense.toLocaleString()}원`} tone="neg" />
           <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
@@ -340,14 +340,14 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         </div>
 
         {/* Type filter chips */}
-        <div style={{ marginTop: 12 }}>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
+        <div style={{ marginTop: t.density.blockGap }}>
+          <div style={{ display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' as const }}>
             {TYPE_FILTERS.map(f => {
               const active = typeFilter === f.value
               return (
                 <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
                   color: active ? t.brand[700] : t.neutrals.muted,
@@ -359,7 +359,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginTop: 10 }}>
+        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
@@ -379,7 +379,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
             <button onClick={() => setSearchQuery('')} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -388,7 +388,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
       </div>
 
       {/* Transactions */}
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
@@ -442,20 +442,20 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1,
@@ -471,7 +471,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
               onClick={() => setPage(p => p + 1)}
               style={{
                 background: 'transparent', border: 'none',
-                padding: 4, borderRadius: 4,
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
@@ -499,7 +499,7 @@ function BankBalanceModal({
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
         background: 'rgba(0,0,0,0.35)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.cardPad,
       }}
     >
       <div
@@ -507,14 +507,14 @@ function BankBalanceModal({
         style={{
           background: t.neutrals.card, borderRadius: t.radius.md,
           width: '100%', maxWidth: 420, maxHeight: '80vh', overflowY: 'auto',
-          padding: 16, boxSizing: 'border-box',
+          padding: t.density.cardPad, boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.blockGap }}>
           <div>
             <div style={{
               fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
-              textTransform: 'uppercase', color: t.neutrals.subtle, marginBottom: 2,
+              textTransform: 'uppercase', color: t.neutrals.subtle, marginBottom: t.density.tableRowGap,
             }}>
               BALANCE
             </div>
@@ -522,28 +522,28 @@ function BankBalanceModal({
           </div>
           <button onClick={onClose} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, color: t.neutrals.muted, display: 'flex',
+            padding: t.density.gapXs, color: t.neutrals.muted, display: 'flex',
           }}>
             <LIcon name="x" size={14} stroke={2} />
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
           {sorted.length === 0 && (
-            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+            <div style={{ padding: `${t.density.cardPad}px 0`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
               등록된 계좌가 없습니다
             </div>
           )}
           {sorted.map(b => (
             <div key={b.account_number ?? b.bank_name} style={{
               display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto',
-              gap: 8, alignItems: 'center',
-              padding: '7px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
+              gap: t.density.kpiGap, alignItems: 'center',
+              padding: `${t.density.panelPadY}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
             }}>
               <span style={{ minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {b.account_number ?? b.bank_name}
                 {b.balance_date && (
-                  <span style={{ marginLeft: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     {b.balance_date}
                   </span>
                 )}
@@ -560,7 +560,7 @@ function BankBalanceModal({
 
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.neutrals.line}`,
+          marginTop: t.density.blockGap, paddingTop: t.density.panelPadX, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>합계</span>
           <span style={{

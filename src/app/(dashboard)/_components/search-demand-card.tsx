@@ -110,16 +110,16 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
 
   return (
     <div style={{ ...panelStyle, minHeight: 132 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
         <div style={panelTitle}>일별 유입</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...mono(9), whiteSpace: 'nowrap' as const }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: SEARCH_COLOR }} />검색 {latest?.searchSessions ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: OTHER_COLOR }} />그 외 {Math.max(0, (latest?.sessions ?? 0) - (latest?.searchSessions ?? 0))}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: PV_COLOR }} />페이지뷰 {latest?.pageviews ?? 0}
           </span>
         </div>
@@ -128,7 +128,7 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
       {rows.length === 0 || maxSessions === 0 ? (
         <EmptyLine>아직 세션 데이터가 없습니다</EmptyLine>
       ) : (
-        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
             const searchH = barPct(r.searchSessions)
             const otherH = barPct(Math.max(0, r.sessions - r.searchSessions))
@@ -141,7 +141,7 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
                 {showLabels && r.sessions > 0 && (
                   <span style={{
                     fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
-                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: t.density.tableRowGap,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.sessions}</span>
                 )}
@@ -170,16 +170,16 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
                 bottom: `calc(${barPct(r.sessions).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: SEARCH_COLOR }} />검색 {r.searchSessions}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: OTHER_COLOR }} />그 외 {Math.max(0, r.sessions - r.searchSessions)}
                 </div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>세션 {r.sessions} · 페이지뷰 {r.pageviews}</div>
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>세션 {r.sessions} · 페이지뷰 {r.pageviews}</div>
               </div>
             )
           })()}
@@ -207,7 +207,7 @@ function ChannelMixCard({ data }: { data: SearchDemandStats }) {
     rows.push({
       key: c.channel,
       cells: [
-        <span key="c" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+        <span key="c" style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
           <span style={{ width: 6, height: 6, borderRadius: 1, background: CHANNEL_COLOR[c.channel], flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CHANNEL_LABEL[c.channel]}</span>
         </span>,
@@ -220,7 +220,7 @@ function ChannelMixCard({ data }: { data: SearchDemandStats }) {
       rows.push({
         key: `${c.channel}:${r.host}`,
         cells: [
-          <span key="h" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, paddingLeft: 10, color: t.neutrals.muted }}>
+          <span key="h" style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0, paddingLeft: t.density.panelPadX, color: t.neutrals.muted }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.host}</span>
           </span>,
           r.visits.toLocaleString(),
@@ -305,13 +305,13 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
 
   return (
     <div style={{ ...panelStyle, minHeight: 132 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
         <div style={panelTitle}>일별 노출 · 클릭</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...mono(9), whiteSpace: 'nowrap' as const }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: IMPRESSION_COLOR }} />노출 {latest?.impressions ?? 0}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: CLICK_COLOR }} />클릭 {latest?.clicks ?? 0}
           </span>
         </div>
@@ -320,7 +320,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
       {rows.length === 0 || maxImp === 0 ? (
         <EmptyLine>기간 내 검색 노출이 없습니다</EmptyLine>
       ) : (
-        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: 2, position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
             const dim = hoverIdx !== null && hoverIdx !== i
             return (
@@ -331,7 +331,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
                 {showLabels && r.impressions > 0 && (
                   <span style={{
                     fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
-                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: t.density.tableRowGap,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.impressions}</span>
                 )}
@@ -363,11 +363,11 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
                 bottom: `calc(${((r.impressions / maxImp) * (showLabels ? 90 : 100)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
-                borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
+                borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
                 <div>노출 {r.impressions.toLocaleString()} · 클릭 {r.clicks.toLocaleString()}</div>
-                <div style={{ opacity: 0.7, marginTop: 3 }}>CTR {r.ctr}% · 평균 {r.position}위</div>
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>CTR {r.ctr}% · 평균 {r.position}위</div>
               </div>
             )
           })()}
@@ -420,7 +420,7 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
       rows={entries.map(e => ({
         key: e.bucket,
         cells: [
-          <span key="s" style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span key="s" style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: BUCKET_COLOR[e.bucket], flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BUCKET_LABEL_UI[e.bucket]}</span>
           </span>,
@@ -482,7 +482,7 @@ function Delta({ now, prev }: { now: number; prev: number }) {
   const pct = Math.round((diff / prev) * 100)
   return (
     <span style={{
-      ...mono(9.5), marginLeft: 5, fontWeight: 600,
+      ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600,
       color: diff > 0 ? t.accent.pos : t.accent.neg,
     }}>
       {diff > 0 ? '+' : '−'}{Math.abs(pct)}%
@@ -494,12 +494,12 @@ function Delta({ now, prev }: { now: number; prev: number }) {
 
 function Skeleton({ mobile }: { mobile: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
         {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
       </div>
       <Bone h={132} />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
         {[0, 1, 2].map(i => <Bone key={i} h={168} />)}
       </div>
     </div>
@@ -662,7 +662,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
       {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             eyebrow="SEARCH CONSOLE"
             title="검색 노출 → 클릭"
@@ -679,7 +679,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
           {gscError && (
             <div style={{
-              padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
+              padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
               background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
               fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
             }}>
@@ -690,14 +690,14 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && gsc && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
               {/* 1열 모드: 좌 차트(전체 높이) · 우 지표 6장(3열). 그 외에는 지표 먼저, 차트는 아래 전폭. */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-                gap: 8, alignItems: 'stretch',
+                gap: t.density.kpiGap, alignItems: 'stretch',
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap, alignContent: 'start' }}>
                   <LStat
                     label="노출"
                     value={gsc.totals.impressions.toLocaleString()}
@@ -728,7 +728,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                     value={index && index.base.total > 0 ? `${index.indexedPct}%` : '—'}
                     valueExtra={index && index.changeFromPrev ? (
                       <span style={{
-                        ...mono(9.5), marginLeft: 5, fontWeight: 600,
+                        ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600,
                         color: index.changeFromPrev > 0 ? t.accent.pos : t.accent.neg,
                       }}>
                         {index.changeFromPrev > 0 ? '+' : '−'}{Math.abs(index.changeFromPrev)}쪽
@@ -765,7 +765,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
@@ -820,7 +820,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
       {/* ── 섹션 2: 진입 후 행동 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             eyebrow="UMAMI"
             title="진입 후 행동"
@@ -835,7 +835,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
           {error && (
             <div style={{
-              padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
+              padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
               background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.5,
             }}>
@@ -846,13 +846,13 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
-                gap: 8, alignItems: 'stretch',
+                gap: t.density.kpiGap, alignItems: 'stretch',
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8, alignContent: 'start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap, alignContent: 'start' }}>
                   <LStat
                     label="검색 유입"
                     value={data.search.visits.toLocaleString()}
@@ -911,7 +911,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
               {!splitLayout && <TrafficTrendCard daily={data.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: 8, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
                 <DataTable
                   title="검색 진입 페이지"
                   minWidth={300}

@@ -57,7 +57,7 @@ const PAYMENT_STATUS_OPTIONS_BY_TYPE = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+  width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -180,14 +180,14 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px 12px',
+          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <div style={{
               fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
-              textTransform: 'uppercase' as const, marginBottom: 2,
+              textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap,
             }}>
               TAX INVOICE
             </div>
@@ -196,7 +196,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -206,11 +206,11 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
 
         {/* Body */}
         <div style={{
-          padding: '0 20px 16px', overflowY: 'auto', flex: 1,
+          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
           display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
           {/* 거래처 + 발행일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label required>거래처</Label>
               <input
@@ -233,7 +233,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
           </div>
 
           {/* 사업자번호 + 대표자 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>사업자번호</Label>
               <input
@@ -255,7 +255,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
           </div>
 
           {/* 공급가액 + 세액 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label required>공급가액</Label>
               <input
@@ -279,7 +279,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
           </div>
 
           {/* 결제예정일 + 결제상태 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>{purchase ? '지급예정일' : '입금예정일'}</Label>
               <input
@@ -291,7 +291,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
             </div>
             <div>
               <Label>{purchase ? '지급상태' : '수금상태'}</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
                 {PAYMENT_STATUS_OPTIONS_BY_TYPE[kind].map(s => (
                   <ChipBtn
                     key={s.key}
@@ -307,24 +307,24 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
 
           {/* 품목 */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapSm }}>
               <Label>품목</Label>
               <button onClick={() => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))} style={{
-                border: 'none', cursor: 'pointer', padding: '2px 8px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                border: 'none', cursor: 'pointer', padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                 borderRadius: t.radius.pill, background: t.neutrals.inner, color: t.neutrals.muted,
                 fontFamily: t.font.sans, fontWeight: t.weight.medium,
               }}>+ 추가</button>
             </div>
             {form.items.length === 0 && (
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '8px 0' }}>
+              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.panelPadY}px 0` }}>
                 품목이 없습니다
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
               {form.items.map((item, idx) => (
                 <div key={idx} style={{
-                  display: 'flex', gap: 6, alignItems: 'center',
-                  background: t.neutrals.inner, borderRadius: t.radius.sm, padding: 8,
+                  display: 'flex', gap: t.density.gapSm, alignItems: 'center',
+                  background: t.neutrals.inner, borderRadius: t.radius.sm, padding: t.density.panelPadY,
                 }}>
                   <div style={{ flex: 1 }}>
                     <input
@@ -335,7 +335,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
                         setForm(prev => ({ ...prev, items }))
                       }}
                       placeholder="품목명"
-                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: '6px 8px' }}
+                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: `${t.density.gapSm}px ${t.density.panelPadY}px` }}
                     />
                   </div>
                   <div style={{ width: 120 }}>
@@ -349,7 +349,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
                         setForm(prev => ({ ...prev, items }))
                       }}
                       placeholder="금액"
-                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: '6px 8px', textAlign: 'right' }}
+                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, textAlign: 'right' }}
                       inputMode="numeric"
                     />
                   </div>
@@ -357,7 +357,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
                     setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
                   }} style={{
                     border: 'none', cursor: 'pointer', background: 'transparent',
-                    color: t.neutrals.subtle, padding: 4, flexShrink: 0,
+                    color: t.neutrals.subtle, padding: t.density.gapXs, flexShrink: 0,
                   }}>
                     <LIcon name="x" size={12} stroke={2} />
                   </button>
@@ -381,10 +381,10 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
 
         {/* Footer */}
         <div style={{
-          padding: '12px 20px', background: t.neutrals.inner,
+          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
           display: 'flex',
           justifyContent: isEdit ? 'space-between' : 'flex-end',
-          alignItems: 'center', gap: 8,
+          alignItems: 'center', gap: t.density.kpiGap,
         }}>
           {isEdit && (
             <LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={deleting}
@@ -393,7 +393,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
               {deleting ? '삭제 중...' : '삭제'}
             </LBtn>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
             <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
             <LBtn
               variant="brand"
@@ -416,9 +416,9 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <div style={{
       fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
-      fontFamily: t.font.sans, marginBottom: 5,
+      fontFamily: t.font.sans, marginBottom: t.density.gapSm,
     }}>
-      {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
   )
 }
@@ -429,7 +429,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
       onClick={onClick}
       style={{
         border: 'none', cursor: 'pointer',
-        padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+        padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
         fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
         background: active ? t.brand[100] : t.neutrals.inner,
         color: active ? t.brand[700] : t.neutrals.muted,

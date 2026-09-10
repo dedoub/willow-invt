@@ -107,7 +107,7 @@ export function DistributionPie({
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                    contentStyle={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, background: '#1E293B', border: 'none', borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px` }}
                     itemStyle={{ color: '#F8FAFC' }}
                     labelStyle={{ color: '#F8FAFC' }}
                     formatter={(value, name) => [`${value}${unit ?? ''}`, String(name)]}
@@ -116,7 +116,7 @@ export function DistributionPie({
               </ResponsiveContainer>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, flex: 1, minWidth: 0 }}>
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
               return (

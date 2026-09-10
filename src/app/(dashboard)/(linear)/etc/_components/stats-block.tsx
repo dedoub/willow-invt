@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/app/(dashboard)/_components/linear-tokens'
+
 import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -29,7 +31,7 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
   return (
     <LCard>
       <LSectionHead eyebrow="DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: t.density.gapMd }}>
         <LStat
           label="총 AUM"
           value={fmtUsd(totalAum)}

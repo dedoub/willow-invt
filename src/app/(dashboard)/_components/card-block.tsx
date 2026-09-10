@@ -247,7 +247,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
           eyebrow={eyebrow}
           title="카드승인내역"
@@ -265,10 +265,10 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
         />
 
         {/* Period navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
           <button onClick={() => navigate(-1)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
@@ -277,14 +277,14 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
           </span>
           <button onClick={() => navigate(1)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 4, color: t.neutrals.muted,
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
           }}>
             <LIcon name="chevronRight" size={14} stroke={2} />
           </button>
         </div>
 
         {/* KPI — 기간 합계 + 금액 큰 항목 3개 */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap }}>
           <LStat
             label={`${MODE_LABELS[periodMode]} 합계`}
             value={`${periodTotal.toLocaleString()}원`}
@@ -292,9 +292,9 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
             sub={basis === 'billing' ? '청구월 기준 결제액' : '사용월 기준 승인액'}
             // 기준을 바꾸면 이 타일의 숫자만 바뀐다. 라벨 옆에 붙여야 무엇을 바꾸는 스위치인지 보인다.
             labelExtra={
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 2 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, marginLeft: t.density.tableRowGap }}>
                 {([['billing', '명세서'], ['approval', '승인']] as const).map(([key, label], i) => (
-                  <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
                     {i > 0 && <span style={{ color: t.neutrals.line }}>·</span>}
                     <button
                       onClick={() => changeBasis(key)}
@@ -324,13 +324,13 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
         </div>
 
         {/* 항목 필터 */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
+        <div style={{ display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap', marginTop: t.density.gapMd }}>
           {[{ key: 'all', label: '전체' }, ...byCategory].map(c => {
             const active = category === c.key
             return (
               <button key={c.key} onClick={() => { setCategory(c.key); setPage(0) }} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -341,7 +341,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginTop: 10 }}>
+        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
           <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
@@ -361,7 +361,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
             <button onClick={() => { setSearch(''); setPage(0) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: 2, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
               <LIcon name="x" size={12} stroke={2} />
             </button>
@@ -370,7 +370,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
       </div>
 
       {/* 승인내역 */}
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 승인내역이 없습니다</LTableEmpty>}
@@ -395,7 +395,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
               }}>
                 {a.store_name || '미상'}
                 {(a.home_foreign_type === '2' || installment) && (
-                  <span style={{ marginLeft: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: 400 }}>
+                  <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: 400 }}>
                     {a.home_foreign_type === '2' ? '해외' : ''}
                     {a.home_foreign_type === '2' && installment ? ' · ' : ''}
                     {installment ? `${a.installment_month}개월` : ''}
@@ -413,17 +413,17 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
       {/* Pagination */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 16px', borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
       }}>
         <LPageSize value={pageSize} onChange={applyPageSize} />
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button
               disabled={page === 0}
               onClick={() => setPage(p => Math.max(0, p - 1))}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
                 color: page === 0 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page === 0 ? 0.4 : 1, display: 'flex',
@@ -438,7 +438,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
               disabled={page >= totalPages - 1}
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               style={{
-                background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
                 color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
                 opacity: page >= totalPages - 1 ? 0.4 : 1, display: 'flex',

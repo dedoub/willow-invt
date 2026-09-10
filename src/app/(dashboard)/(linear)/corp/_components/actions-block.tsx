@@ -40,7 +40,7 @@ export function ActionsBlock({ actions, documents, onSelectDocument }: Props) {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
         <LSegmented
           value={status} onChange={setStatus}
           options={[{ value: 'pending', label: '대기' }, { value: 'done', label: '완료' }, { value: 'all', label: '전체' }]}

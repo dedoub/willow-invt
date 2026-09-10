@@ -429,7 +429,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               {current.korean_chunks.map((chunk, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                  padding: '3px 0', fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
+                  padding: `${t.density.gapXs}px 0`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
                 }}>
                   <span style={{
                     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
@@ -601,7 +601,7 @@ function ResultLine({ label, text, highlight }: { label: string; text: string; h
       <div style={{
         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 0.8,
         textTransform: 'uppercase', color: t.neutrals.subtle, fontFamily: t.font.mono,
-        marginBottom: 2,
+        marginBottom: t.density.tableRowGap,
       }}>{label}</div>
       <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.55 }}>{text}</div>
     </div>
@@ -783,7 +783,7 @@ export const DrawPad = forwardRef<DrawPadHandle, {
         onPointerUp={() => { gripStart.current = null }}
         onPointerCancel={() => { gripStart.current = null }}
       >
-        <span style={{ width: 38, height: 4, borderRadius: 999, background: t.neutrals.line }} />
+        <span style={{ width: 38, height: 4, borderRadius: t.radius.pill, background: t.neutrals.line }} />
       </div>
     </div>
   )

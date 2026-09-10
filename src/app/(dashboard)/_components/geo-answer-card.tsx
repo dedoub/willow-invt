@@ -41,7 +41,7 @@ const STAGE_TONE: Record<GeoStage, { bg: string; fg: string }> = {
 function Pill({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
     <span style={{
-      ...mono(8.5), padding: '1px 5px', borderRadius: 3, whiteSpace: 'nowrap' as const,
+      ...mono(8.5), padding: `1px ${t.density.gapSm}px`, borderRadius: 3, whiteSpace: 'nowrap' as const,
       background: tone.bg, color: tone.fg,
     }}>{children}</span>
   )
@@ -73,7 +73,7 @@ function Delta({ now, base }: { now: number; base: number | null }) {
   const diff = Math.round((now - base) * 10) / 10
   if (diff === 0) return null
   return (
-    <span style={{ ...mono(9.5), marginLeft: 5, fontWeight: 600, color: diff > 0 ? t.accent.pos : t.accent.neg }}>
+    <span style={{ ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600, color: diff > 0 ? t.accent.pos : t.accent.neg }}>
       {diff > 0 ? '+' : '−'}{Math.abs(diff)}%p
     </span>
   )
@@ -110,7 +110,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 12 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           eyebrow="AI ANSWERS"
           title="AI 답변 점유"
@@ -122,7 +122,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
         {error && (
           <div style={{
-            padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
+            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
             background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
             fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
           }}>
@@ -145,8 +145,8 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
         )}
 
         {data && data.latest.runs > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap }}>
               <LStat
                 label="추천 Top3"
                 value={`${data.latest.top3}%`}
@@ -187,7 +187,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
               <DataTable
                 title="질문별 현황"
                 columns={[
@@ -202,7 +202,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                     // paddingRight: 표 공통 간격 6px만으로는 말줄임표가 배지에 거의 닿는다.
                     // 여기서만 더 띄운다 — 잘린 문장과 그 옆 배지는 붙어 있으면 한 덩어리로 읽힌다.
                     <span key="q" title={`${q.question}\n${q.competitors.length ? '경쟁: ' + q.competitors.join(', ') : ''}`}
-                      style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
+                      style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: t.density.panelPadY }}>
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
@@ -287,22 +287,22 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
 function GeoSkeleton({ statCols, panelCols }: { statCols: string; panelCols: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap }}>
         {[0, 1, 2, 3, 4].map(i => (
-          <div key={i} style={{ ...panelStyle, minHeight: 72, gap: 6 }}>
+          <div key={i} style={{ ...panelStyle, minHeight: 72, gap: t.density.gapSm }}>
             <Bone w={64} h={9} />
             <Bone w={52} h={16} />
             <Bone w={'85%'} h={9} />
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: 8, alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
         {[0, 1, 2].map(i => (
-          <div key={i} style={{ ...panelStyle, minHeight: 132, gap: 6 }}>
-            <Bone w={72} h={9} style={{ marginBottom: 2 }} />
+          <div key={i} style={{ ...panelStyle, minHeight: 132, gap: t.density.gapSm }}>
+            <Bone w={72} h={9} style={{ marginBottom: t.density.tableRowGap }} />
             {[0, 1, 2, 3].map(row => (
-              <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div key={row} style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                 <Bone w={'100%'} h={9} />
                 <Bone w={28} h={9} />
               </div>

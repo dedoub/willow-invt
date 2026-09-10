@@ -33,9 +33,9 @@ export function RuleDialog({ rule, onClose }: Props) {
         background: t.neutrals.card, borderRadius: t.radius.lg + 2,
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               {(CORP_RULE_TYPE_LABEL[rule.rule_type] ?? rule.rule_type).toUpperCase()} · v{rule.version_no}
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
@@ -43,7 +43,7 @@ export function RuleDialog({ rule, onClose }: Props) {
             </div>
           </div>
           <button onClick={onClose} aria-label="닫기" style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, flexShrink: 0,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -51,19 +51,19 @@ export function RuleDialog({ rule, onClose }: Props) {
           </button>
         </div>
 
-        <div style={{ padding: '0 20px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap', alignItems: 'center' }}>
           <LTableBadge tone={rule.effective_to === null ? tonePalettes.done : tonePalettes.neutral}>{rule.effective_to === null ? '현행' : '종료'}</LTableBadge>
           <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{period}</span>
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle }}>{rule.articles.length}개 조문</span>
         </div>
 
         {rule.note && (
-          <div style={{ margin: '0 20px 10px', padding: '8px 12px', borderRadius: t.radius.md, background: t.neutrals.inner, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, lineHeight: 1.5 }}>
+          <div style={{ margin: '0 20px 10px', padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, background: t.neutrals.inner, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, lineHeight: 1.5 }}>
             {rule.note}
           </div>
         )}
 
-        <div style={{ padding: '0 20px 16px', overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', minHeight: 0 }}>
           {rule.articles.map(a => {
             const key = `${a.no}|${a.title}`
             const expanded = open?.ruleId === rule.id && open.key === key
@@ -72,7 +72,7 @@ export function RuleDialog({ rule, onClose }: Props) {
                 <button
                   onClick={() => setOpen(expanded ? null : { ruleId: rule.id, key })}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0',
+                    width: '100%', display: 'flex', alignItems: 'center', gap: t.density.gapMd, padding: `${t.density.panelPadY}px 0`,
                     background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
                     fontFamily: t.font.sans, color: t.neutrals.text,
                   }}

@@ -206,7 +206,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             style={{
               fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
               textTransform: 'uppercase' as const, color: t.neutrals.subtle,
-              marginBottom: t.density.tableRowGap, display: 'flex', alignItems: 'center', gap: 3,
+              marginBottom: t.density.tableRowGap, display: 'flex', alignItems: 'center', gap: t.density.gapXs,
               whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
               cursor: title ? 'help' : undefined,
             }}>
@@ -221,7 +221,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             color,
           }}>
             {value}
-            {unit && <span style={{ fontSize: `calc(${t.type.badge}px * var(--fz, 1))`, marginLeft: 3, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
+            {unit && <span style={{ fontSize: `calc(${t.type.badge}px * var(--fz, 1))`, marginLeft: t.density.gapXs, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
             {valueExtra}
           </div>
           {sub && (

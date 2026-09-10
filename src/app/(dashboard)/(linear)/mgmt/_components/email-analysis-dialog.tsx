@@ -75,20 +75,20 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: t.density.tableRowGap }}>
               AI ANALYSIS
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               이메일 분석 결과
             </div>
-            <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: t.density.tableRowGap }}>
               {new Date(analysis.generatedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: t.radius.sm, flexShrink: 0,
+            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
             background: t.neutrals.inner, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
           }}>
@@ -98,7 +98,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
 
         {/* Overall summary */}
         <div style={{
-          margin: '0 20px 10px', padding: '10px 12px', borderRadius: t.radius.md,
+          margin: '0 20px 10px', padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
           background: t.brand[50], fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
           fontFamily: t.font.sans, color: t.neutrals.text,
         }}>
@@ -106,11 +106,11 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         </div>
 
         {/* Category tabs */}
-        <div style={{ padding: '0 20px 8px', display: 'flex', gap: 4, overflowX: 'auto' }}>
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.panelPadY}px`, display: 'flex', gap: t.density.gapXs, overflowX: 'auto' }}>
           {analysis.categories.map((c, i) => (
             <button key={i} onClick={() => setActiveCategory(i)} style={{
               border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              padding: '5px 10px', borderRadius: t.radius.pill, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+              padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
               fontFamily: t.font.sans, fontWeight: activeCategory === i ? t.weight.medium : t.weight.regular,
               background: activeCategory === i ? t.brand[100] : t.neutrals.inner,
               color: activeCategory === i ? t.brand[700] : t.neutrals.muted,
@@ -123,18 +123,18 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
 
         {/* Category content */}
         {cat && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px` }}>
             {/* Summary */}
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6, color: t.neutrals.text, marginBottom: 10, fontFamily: t.font.sans }}>
+            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6, color: t.neutrals.text, marginBottom: t.density.gapMd, fontFamily: t.font.sans }}>
               {cat.summary}
             </div>
 
             {/* Topics */}
             {cat.recentTopics.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs, marginBottom: t.density.blockGap }}>
                 {cat.recentTopics.map((topic, i) => (
                   <span key={i} style={{
-                    padding: '2px 8px', borderRadius: t.radius.pill, fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
+                    padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
                     background: t.neutrals.inner, color: t.neutrals.muted, fontFamily: t.font.sans,
                   }}>
                     {topic}
@@ -150,12 +150,12 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                   const pt = PRIORITY_TONES[issue.priority]
                   return (
                     <div key={i} style={{
-                      padding: '8px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                      marginBottom: 4,
+                      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+                      marginBottom: t.density.gapXs,
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
                         <span style={{
-                          padding: '1px 5px', borderRadius: 3, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+                          padding: `1px ${t.density.gapSm}px`, borderRadius: 3, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                           background: pt.bg, color: pt.fg,
                         }}>
                           {issue.priority}
@@ -178,14 +178,14 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                   const pt = PRIORITY_TONES[todo.priority]
                   return (
                     <div key={i} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 8,
-                      padding: '7px 10px', borderRadius: t.radius.sm, background: t.neutrals.inner,
-                      marginBottom: 3, opacity: done ? 0.5 : 1,
+                      display: 'flex', alignItems: 'flex-start', gap: t.density.kpiGap,
+                      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
+                      marginBottom: t.density.gapXs, opacity: done ? 0.5 : 1,
                     }}>
                       <button
                         onClick={() => saved && onToggleTodo(saved.id, !done)}
                         style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                          width: 16, height: 16, borderRadius: t.radius.sm, flexShrink: 0, marginTop: 1,
                           background: done ? t.accent.pos : t.neutrals.line,
                           cursor: saved ? 'pointer' : 'default',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
@@ -204,7 +204,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                         }}>
                           {todo.task}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap }}>
                           <span style={{
                             padding: '0px 4px', borderRadius: 2, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                             background: pt.bg, color: pt.fg,
@@ -227,7 +227,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         )}
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px', background: t.neutrals.inner, display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner, display: 'flex', justifyContent: 'flex-end' }}>
           <LBtn variant="ghost" size="sm" onClick={onClose}>닫기</LBtn>
         </div>
       </div>
@@ -237,8 +237,8 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: 6 }}>
+    <div style={{ marginBottom: t.density.blockGap }}>
+      <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: t.density.gapSm }}>
         {title}
       </div>
       {children}

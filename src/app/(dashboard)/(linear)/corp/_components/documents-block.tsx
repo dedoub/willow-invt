@@ -49,7 +49,7 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapMd, marginBottom: t.density.gapMd, flexWrap: 'wrap' }}>
         <LFilterChip options={DOC_GROUP_OPTIONS} value={group} onChange={g => { setGroup(g); setPage(0) }} />
       </div>
 
@@ -77,7 +77,7 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
                 {!mobile && (doc.issued_at ? <LTableDate value={doc.issued_at} format="ymd" /> : <span style={{ color: t.neutrals.subtle }}>-</span>)}
                 {!mobile && (
                   end ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                       <LTableDate value={end} format="ymd" tone={expiry === 'expired' ? 'neg' : undefined} />
                       {expiry && (
                         <LTableBadge tone={expiry === 'expired' ? tonePalettes.danger : tonePalettes.warn}>
@@ -116,11 +116,11 @@ export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSi
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '6px 0 0', marginTop: 6, borderTop: `1px solid ${t.neutrals.line}`,
+      padding: `${t.density.gapSm}px 0 0`, marginTop: t.density.gapSm, borderTop: `1px solid ${t.neutrals.line}`,
     }}>
       <LPageSize value={pageSize} onChange={onPageSize} />
       {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
           <button disabled={atStart} onClick={() => onPage(p => Math.max(0, p - 1))} style={pagerBtn(atStart)}>
             <LIcon name="chevronLeft" size={13} stroke={2} />
           </button>
@@ -138,7 +138,7 @@ export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSi
 
 function pagerBtn(disabled: boolean): React.CSSProperties {
   return {
-    background: 'transparent', border: 'none', padding: 4, borderRadius: 4,
+    background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
     cursor: disabled ? 'default' : 'pointer',
     color: disabled ? t.neutrals.line : t.neutrals.muted, opacity: disabled ? 0.4 : 1,
   }

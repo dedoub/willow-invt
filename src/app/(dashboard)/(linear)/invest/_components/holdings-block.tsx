@@ -372,7 +372,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
         <div style={{ padding: t.density.cardPad }}>
           <LSectionHead eyebrow="HOLDINGS" title="보유 현황" />
         </div>
-        <div style={{ padding: '20px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+        <div style={{ padding: `${t.density.pagePadX}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           보유 종목이 없습니다
         </div>
       </LCard>
@@ -381,7 +381,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 8 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {(() => {
           const marketSeg = (
             <LSegmented
@@ -418,14 +418,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
           // 모바일: 시장/통화 필터는 제목 우측(다른 섹션과 동일), 정렬 필터는 아래 줄 오른쪽 끝.
           if (mobile) {
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
                 <LSectionHead
                   eyebrow="HOLDINGS"
                   title="보유 현황"
                   mb={0}
                   action={marketSeg}
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, justifyContent: 'flex-end', alignItems: 'center' }}>
                   {currencySeg}
                   {sortSeg}
                 </div>
@@ -438,7 +438,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
               eyebrow="HOLDINGS"
               title="보유 현황"
               action={
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, justifyContent: 'flex-end' }}>
                   {marketSeg}
                   {currencySeg}
                   {sortSeg}
@@ -453,8 +453,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       {hasQuotes && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
           {/* KR */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>국내 {summary.krH.length}종목</div>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>국내 {summary.krH.length}종목</div>
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.krVal, 'KRW')}</div>
             <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(summary.krVal - summary.krInv), fontVariantNumeric: 'tabular-nums' }}>
               {(summary.krVal - summary.krInv) > 0 ? '+' : ''}{fmtAmount(summary.krVal - summary.krInv, 'KRW')}
@@ -470,8 +470,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             const displayPnl = displayVal - displayInv
             const displayCur: 'KRW' | 'USD' = isKrw ? 'KRW' : 'USD'
             return (
-              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-                <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>해외 {summary.usH.length}종목</div>
+              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+                <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>해외 {summary.usH.length}종목</div>
                 <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(displayVal, displayCur)}</div>
                 <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(displayPnl), fontVariantNumeric: 'tabular-nums' }}>
                   {displayPnl > 0 ? '+' : ''}{fmtAmount(displayPnl, displayCur)}
@@ -481,8 +481,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             )
           })()}
           {/* Total */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px', border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>전체 {summary.count}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</div>
+          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>전체 {summary.count}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</div>
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.totalVal, 'KRW')}</div>
             <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(summary.totalPnl), fontVariantNumeric: 'tabular-nums' }}>
               {summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')} ({summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%)
@@ -495,13 +495,13 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       {hasQuotes && realized.sellCount > 0 && (
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
           <div style={{
-            background: t.neutrals.inner, borderRadius: t.radius.md, padding: '8px 10px',
+            background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
             display: 'flex', flexDirection: mobile ? 'column' : 'row',
             gap: mobile ? 4 : 12, alignItems: mobile ? 'stretch' : 'baseline',
             fontVariantNumeric: 'tabular-nums',
             border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
           }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>실현손익</span>
               <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: pnlColor(totals.rPnl) }}>
                 {totals.rPnl > 0 ? '+' : ''}{fmtAmount(totals.rPnl, 'KRW')}
@@ -512,7 +512,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginLeft: mobile ? 0 : 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap', marginLeft: mobile ? 0 : 'auto' }}>
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>총손익 (미실현+실현)</span>
               <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: pnlColor(totals.combinedPnl) }}>
                 {totals.combinedPnl > 0 ? '+' : ''}{fmtAmount(totals.combinedPnl, 'KRW')} ({totals.combinedPnl > 0 ? '+' : ''}{totals.combinedPct.toFixed(1)}%)
@@ -533,12 +533,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             <table style={{ width: '100%', minWidth: mobile ? 0 : 360, borderCollapse: 'collapse', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: t.neutrals.card }}>
-                  <th style={{ textAlign: 'left',  padding: '6px 10px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
-                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>종목</th>
-                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>평가액</th>
-                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>비중</th>
-                  <th style={{ textAlign: 'right', padding: '6px 6px',  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>손익</th>
-                  <th style={{ textAlign: 'right', padding: '6px 10px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>수익률</th>
+                  <th style={{ textAlign: 'left',  padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
+                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>종목</th>
+                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>평가액</th>
+                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>비중</th>
+                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>손익</th>
+                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>수익률</th>
                 </tr>
               </thead>
               <tbody>
@@ -550,14 +550,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   return (
                     <Fragment key={p.parent}>
                       <tr style={{ borderTop: pi > 0 ? `1px solid ${t.neutrals.line}` : undefined, fontWeight: t.weight.medium }}>
-                        <td style={{ padding: '6px 10px', maxWidth: mobile ? 80 : undefined }}>
-                          <span style={{ display: 'inline-block', maxWidth: mobile ? 70 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: '1px 6px', borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }} title={p.parent}>{p.parent}</span>
+                        <td style={{ padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, maxWidth: mobile ? 80 : undefined }}>
+                          <span style={{ display: 'inline-block', maxWidth: mobile ? 70 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }} title={p.parent}>{p.parent}</span>
                         </td>
-                        <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{p.count}</td>
-                        <td style={{ textAlign: 'right', padding: '6px 6px' }}>{fmtAmount(p.valKrw, 'KRW')}</td>
-                        <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{p.pctOfTotal.toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', padding: '6px 6px', color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{fmtAmount(pnl, 'KRW')}</td>
-                        <td style={{ textAlign: 'right', padding: '6px 10px', color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{pct.toFixed(1)}%</td>
+                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{p.count}</td>
+                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px` }}>{fmtAmount(p.valKrw, 'KRW')}</td>
+                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{p.pctOfTotal.toFixed(1)}%</td>
+                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{fmtAmount(pnl, 'KRW')}</td>
+                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{pct.toFixed(1)}%</td>
                       </tr>
                       {subs.map(s => {
                         const sc = SUB_GROUP_COLORS[s.sub] || SUB_GROUP_COLORS['기타']
@@ -566,13 +566,13 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                         return (
                           <tr key={s.sub} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))` }}>
                             <td style={{ padding: '4px 10px 4px 22px', maxWidth: mobile ? 80 : undefined }}>
-                              <span style={{ display: 'inline-block', maxWidth: mobile ? 58 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }} title={s.sub}>{s.sub}</span>
+                              <span style={{ display: 'inline-block', maxWidth: mobile ? 58 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }} title={s.sub}>{s.sub}</span>
                             </td>
-                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.muted }}>{s.count}</td>
-                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.text }}>{fmtAmount(s.valKrw, 'KRW')}</td>
-                            <td style={{ textAlign: 'right', padding: '4px 6px', color: t.neutrals.muted }}>{s.pctOfTotal.toFixed(1)}%</td>
-                            <td style={{ textAlign: 'right', padding: '4px 6px', color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')}</td>
-                            <td style={{ textAlign: 'right', padding: '4px 10px', color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}%</td>
+                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{s.count}</td>
+                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.text }}>{fmtAmount(s.valKrw, 'KRW')}</td>
+                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{s.pctOfTotal.toFixed(1)}%</td>
+                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')}</td>
+                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}%</td>
                           </tr>
                         )
                       })}
@@ -581,12 +581,12 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                 })}
                 {/* Total row */}
                 <tr style={{ borderTop: `1px solid ${t.neutrals.line}`, background: t.neutrals.card, fontWeight: t.weight.semibold }}>
-                  <td style={{ padding: '6px 10px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3 }}>합계</td>
-                  <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>{summary.count}</td>
-                  <td style={{ textAlign: 'right', padding: '6px 6px' }}>{fmtAmount(summary.totalVal, 'KRW')}</td>
-                  <td style={{ textAlign: 'right', padding: '6px 6px', color: t.neutrals.muted }}>100.0%</td>
-                  <td style={{ textAlign: 'right', padding: '6px 6px', color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')}</td>
-                  <td style={{ textAlign: 'right', padding: '6px 10px', color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%</td>
+                  <td style={{ padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3 }}>합계</td>
+                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{summary.count}</td>
+                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px` }}>{fmtAmount(summary.totalVal, 'KRW')}</td>
+                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>100.0%</td>
+                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')}</td>
+                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%</td>
                 </tr>
               </tbody>
             </table>
@@ -607,9 +607,9 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
           return (
             <div key={theme}>
               {/* Theme header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapSm }}>
                 <span style={{
-                  fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: '2px 8px',
+                  fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`,
                   borderRadius: t.radius.sm, background: tc.bg, color: tc.fg,
                 }}>{theme}</span>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
@@ -626,18 +626,18 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
               </div>
 
               {/* Holdings */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
                 {(SUB_GROUP_ORDER[theme] ? buildSubGroups(items, SUB_GROUP_ORDER[theme], usdKrwRate) : [{ sub: null as string | null, items, valKrw: 0 }]).map(({ sub, items: subItems, valKrw: subValKrw }) => {
                   const sc = sub ? (SUB_GROUP_COLORS[sub] || SUB_GROUP_COLORS['기타']) : null
                   const subInvKrw = sub ? subItems.reduce((s, h) => s + h.krwInvested, 0) : 0
                   const subPnl = subValKrw - subInvKrw
                   const subPct = subInvKrw > 0 ? (subPnl / subInvKrw) * 100 : 0
                   return (
-                    <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: 4 }} data-sub-group="1">
+                    <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }} data-sub-group="1">
                       {sub && sc && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap }}>
                           <span style={{
-                            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 6px',
+                            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
                             borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
                           }}>{sub}</span>
                           <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
@@ -657,7 +657,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                         display: cardColumns === 2 ? 'grid' : 'flex',
                         gridTemplateColumns: cardColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
                         flexDirection: cardColumns === 2 ? undefined : 'column',
-                        gap: 4,
+                        gap: t.density.gapXs,
                       }}>
                 {subItems.map(h => {
                   // Pyramiding
@@ -696,11 +696,11 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                     <div key={h.ticker} style={{
                       // 매수 후보(추매구간/돌파)는 옅은 녹색 배경, 강한 매수는 진한 녹색 배경 — 선 대신 색 계층으로 구분 (FULL 제외)
                       background: isStrongBuy ? '#BCE6C9' : isBuyCandidate ? tonePalettes.done.bg : t.neutrals.inner,
-                      borderRadius: t.radius.md, padding: '8px 10px',
+                      borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
                           <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>{h.company_name}</span>
                           <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>{h.ticker}</span>
                           {/* sub-group 헤더와의 중복을 피하기 위해 카드에는 DB의 세부 sector만 표시 (예: 'AI 메모리', '광 인터커넥트'). */}
@@ -708,7 +708,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             const detail = tickerSectors[h.ticker] || tickerSectors[h.ticker.replace('.KS', '')]
                             if (!detail) return null
                             return (
-                              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: '1px 4px', borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
+                              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
                             )
                           })()}
                           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
@@ -717,7 +717,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             if (!bo?.breakout) return null
                             return (
                               <span style={{
-                                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+                                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                                 flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
                               }}>돌파 +{bo.gapPct.toFixed(1)}%</span>
                             )
@@ -725,14 +725,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
                             <span style={{
-                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px', borderRadius: t.radius.sm,
+                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                               flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
                             }}>QLD 전환 후보</span>
                           )}
                         </div>
                         {h.dailyChangePercent !== 0 && (
                           <span style={{
-                            fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: '1px 5px',
+                            fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
                             borderRadius: t.radius.sm, flexShrink: 0,
                             background: h.dailyChangePercent > 0 ? tonePalettes.pos.bg : tonePalettes.neg.bg,
                             color: h.dailyChangePercent > 0 ? tonePalettes.pos.fg : tonePalettes.neg.fg,
@@ -743,7 +743,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                       </div>
 
                       {/* Row 2: 2-col grid — buy/invest/hold vs current/value/pnl */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 16px', marginTop: 4, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${t.density.tableRowGap}px ${t.density.gapLg}px`, marginTop: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                         <span style={{ color: t.neutrals.muted }}>
                           <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>매수 </span>
                           {fmtPrice(h.avgBuyPrice, h.currency)} × {h.netQty.toLocaleString()}주
@@ -766,14 +766,14 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             {/* 포트 전체 대비 비중 */}
                             {summary.totalVal > 0 && (() => {
                               const valKrw = h.currency === 'USD' ? h.currentValue * usdKrwRate : h.currentValue
-                              return <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.regular, marginLeft: 3 }}>({(valKrw / summary.totalVal * 100).toFixed(1)}%)</span>
+                              return <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.regular, marginLeft: t.density.gapXs }}>({(valKrw / summary.totalVal * 100).toFixed(1)}%)</span>
                             })()}
                           </span>
                         ) : <span style={{ color: t.neutrals.subtle }}>-</span>}
 
                         {h.currentPrice > 0 && (
                           <>
-                            <span style={{ color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
                               <span><span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>보유 </span>{h.holdingDays.toLocaleString()}일</span>
                               {h.irr != null && h.irr !== 0 && (
                                 <span>· <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>IRR </span>{h.irr > 0 ? '+' : ''}{(h.irr * 100).toFixed(1)}%</span>
@@ -789,10 +789,10 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
 
                       {/* Row 3: Pyramiding */}
                       {pyramiding && ps && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, paddingTop: 4 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs, paddingTop: t.density.gapXs }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                             <span style={{
-                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: '1px 4px', borderRadius: t.radius.sm,
+                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm,
                               background: pyramiding.tranche >= 8 ? tonePalettes.done.bg : pyramiding.tranche >= 5 ? tonePalettes.info.bg : tonePalettes.neutral.bg,
                               color: pyramiding.tranche >= 8 ? tonePalettes.done.fg : pyramiding.tranche >= 5 ? tonePalettes.info.fg : tonePalettes.neutral.fg,
                             }}>T{pyramiding.tranche}</span>
@@ -803,7 +803,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                                 → +{pyramiding.nextPct.toFixed(0)}%
                                 {pyramiding.nextPrice != null && (
-                                  <span style={{ marginLeft: 2, opacity: 0.6 }}>
+                                  <span style={{ marginLeft: t.density.tableRowGap, opacity: 0.6 }}>
                                     {h.currency === 'KRW' ? `${Math.round(pyramiding.nextPrice / 10000).toLocaleString()}만` : `$${pyramiding.nextPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                                   </span>
                                 )}
@@ -811,7 +811,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             )}
                           </div>
                           <span style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: '1px 6px',
+                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapSm}px`,
                             borderRadius: t.radius.pill, background: ps.bg, color: ps.fg,
                           }}>{ps.label}</span>
                         </div>

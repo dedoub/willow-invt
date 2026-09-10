@@ -72,8 +72,8 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
   const rowStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '7px 10px',
+    gap: t.density.kpiGap,
+    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
     borderBottom: `1px solid ${t.neutrals.line}`,
   }
 
@@ -94,10 +94,10 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
           borderRadius: t.radius.lg,
           width: '100%',
           maxWidth: 440,
-          padding: 20,
+          padding: t.density.pagePadX,
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
+          gap: t.density.gapLg,
           maxHeight: '80vh',
         }}
       >
@@ -113,7 +113,7 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
           </span>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.neutrals.subtle }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}
           >
             <LIcon name="x" size={16} />
           </button>
@@ -130,14 +130,14 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
         }}>
           {loading ? (
             <div style={{
-              padding: 24, textAlign: 'center',
+              padding: t.density.pagePadBottom, textAlign: 'center',
               fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.sans,
             }}>
               문서 로딩중...
             </div>
           ) : docs.length === 0 ? (
             <div style={{
-              padding: 24, textAlign: 'center',
+              padding: t.density.pagePadBottom, textAlign: 'center',
               fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.sans,
             }}>
               등록된 문서가 없습니다
@@ -168,14 +168,14 @@ export function DocumentPanel({ etf, onClose }: DocumentPanelProps) {
                 <button
                   onClick={() => handleDownload(doc.name)}
                   title="다운로드"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.neutrals.subtle }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}
                 >
                   <LIcon name="arrow" size={13} />
                 </button>
                 <button
                   onClick={() => handleDelete(doc.name)}
                   title="삭제"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.neutrals.subtle }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}
                 >
                   <LIcon name="trash" size={13} />
                 </button>

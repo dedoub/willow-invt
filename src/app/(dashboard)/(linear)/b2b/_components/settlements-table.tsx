@@ -80,7 +80,7 @@ export function SettlementsTable({ settlements, status, onSelect }: Props) {
                 </span>
                 <LTableNumber value={Number(row.supply_amount)} />
                 {!mobile && (
-                  <span style={{ display: 'flex', gap: 4 }}>
+                  <span style={{ display: 'flex', gap: t.density.gapXs }}>
                     <LTableBadge tone={row.tax_invoice_willow_id ? tonePalettes.done : tonePalettes.neutral}>윌{row.tax_invoice_willow_id ? '✓' : '✗'}</LTableBadge>
                     <LTableBadge tone={row.tax_invoice_tensw_id ? tonePalettes.done : tonePalettes.neutral}>텐{row.tax_invoice_tensw_id ? '✓' : '✗'}</LTableBadge>
                   </span>
