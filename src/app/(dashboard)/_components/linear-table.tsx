@@ -116,7 +116,7 @@ export function LTableHead<T>({
 }) {
   const cols = visibleColumns(columns as LColumn<never>[], mobile)
   return (
-    <div style={{
+    <div data-table-head="" style={{
       display: 'grid',
       gridTemplateColumns: templateOf(columns as LColumn<never>[], mobile),
       gap: GAP,
@@ -165,6 +165,7 @@ export function LTableRow<T>({
 }) {
   return (
     <div
+      data-table-row=""
       onClick={onClick}
       style={{
         display: 'grid',

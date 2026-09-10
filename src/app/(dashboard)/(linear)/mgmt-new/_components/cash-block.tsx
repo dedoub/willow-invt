@@ -6,11 +6,11 @@
  *   1) 헤더는 제목과 기간 모드 토글만 — 그 오른쪽 아이콘 버튼은 없앴다(CEO 2026-09-10). 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
  *      월/분기/연 토글은 헤더 오른쪽(원래 자리), 기간 이동 화살표와 라벨은 점선 아래 본문 가운데.
  *   2) 지표는 원래 3×3 배열 그대로, 배경 박스만 벗고 행 구분선으로 나눈다. 스파크라인은 숫자 아래.
- *   3) 필터 칩·검색·추가를 한 줄로 합친다.
+ *   3) 필터 칩과 검색만 한 줄에 둔다 — 업로드·추가 아이콘 버튼은 뺐다(CEO 2026-09-10).
  * 지표 9개·표 열·행 높이는 그대로라 밀도는 변하지 않는다.
  */
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
@@ -135,9 +135,10 @@ function getStoredCashPageSize(): number {
   return n >= 1 && n <= 100 ? n : DEFAULT_CASH_PAGE_SIZE
 }
 
-export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUpload, parsing, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
+// onAddInvoice·onFileUpload·parsing 은 /mgmt 와 시그니처를 맞추려고 받아 두고 쓰지 않는다 —
+// 새 디자인에서는 업로드·추가 버튼을 카드에서 뺐다(CEO 2026-09-10).
+export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<Invoice>('willow-cash', COLUMNS)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
@@ -395,25 +396,9 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
               </button>
             )}
           </div>
-          <button
-            onClick={() => !parsing && fileInputRef.current?.click()}
-            title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영"
-            style={iconBtn}
-          >
-            <LIcon name={parsing ? 'loader' : 'file'} size={13} stroke={2} className={parsing ? 'spin' : undefined} />
-          </button>
-          <button onClick={onAddInvoice} title="거래 추가" style={iconBtn}>
-            <LIcon name="plus" size={13} stroke={2.5} />
-          </button>
         </div>
       </div>
 
-      {/* 파일 업로드 — 드롭존은 제거(2026-08-21 CEO), 헤더의 업로드 버튼이 이 hidden input을 연다 */}
-      <input
-        ref={fileInputRef} type="file" accept=".xlsx,.csv,.xls"
-        style={{ display: 'none' }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); e.target.value = '' }}
-      />
 
       {/* Transactions */}
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
@@ -491,13 +476,6 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
       </div>
     </LCard>
   )
-}
-
-const iconBtn: React.CSSProperties = {
-  width: t.density.controlHSm, height: t.density.controlHSm, borderRadius: t.radius.sm, border: 'none',
-  background: t.neutrals.inner, color: t.neutrals.muted,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: 0, flexShrink: 0,
 }
 
 const navBtn: React.CSSProperties = {

@@ -709,3 +709,22 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .theme-outline [data-eyebrow] {
   display: none;
 }
+
+/* 표 — 레퍼런스(coderthemes Simple) 방식: 행 배경 대신 아래 실선 한 줄, 헤더는 밑줄만.
+   행 높이·열·패딩은 그대로라 밀도는 변하지 않는다. */
+.theme-outline [data-table-head] {
+  border-bottom: 1px solid #E5E7EB;
+  padding-bottom: 8px !important;
+  margin-bottom: 2px;
+}
+.theme-outline [data-table-row] {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid #F1F2F4;
+}
+.theme-outline [data-table-row]:last-child {
+  border-bottom: none;
+}
+.theme-outline [data-table-row]:hover {
+  background: #FAFAFB !important;
+}
