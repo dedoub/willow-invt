@@ -277,7 +277,6 @@ export default function TenswPage() {
       title: data.title,
       schedule_date: data.schedule_date,
       type: data.type,
-      category: data.category,
       client_id: data.client_id || null,
     }
     if (isEdit) body.id = data.id
@@ -486,6 +485,7 @@ export default function TenswPage() {
           {/* Schedule (full width) */}
           <ScheduleBlock
             schedules={schedules}
+            clients={clients}
             onAddSchedule={handleAddSchedule}
             onToggleComplete={handleToggleComplete}
             onSelectSchedule={setSelectedSchedule}
