@@ -17,7 +17,8 @@ import { SalesBlockNew } from './_components/sales-block'
 import { CardBlockNew } from './_components/card-block'
 import type { ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
 import { AddScheduleDialogNew } from './_components/add-schedule-dialog'
-import { AddInvoiceDialog, InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
+import type { InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
+import { AddInvoiceDialogNew } from './_components/add-invoice-dialog'
 import { InvoiceDetailDialogNew } from './_components/invoice-detail-dialog'
 import { ParsePreviewDialog, ParsedTransaction } from '@/app/(dashboard)/(linear)/mgmt/_components/parse-preview-dialog'
 import { ScheduleDetailDialogNew } from './_components/schedule-detail-dialog'
@@ -494,7 +495,7 @@ export default function MgmtNewPage() {
         onDelete={handleDeleteInvoice}
         onEdit={handleEditInvoice}
       />
-      <AddInvoiceDialog
+      <AddInvoiceDialogNew
         open={invoiceDialogOpen}
         editingInvoice={editingInvoice}
         onClose={() => { setInvoiceDialogOpen(false); setEditingInvoice(null) }}
