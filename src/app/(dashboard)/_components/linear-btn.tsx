@@ -19,8 +19,9 @@ interface LBtnProps {
 const sizes = {
   xs: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: t.type.control },
   sm: { h: t.density.controlHSm, px: t.density.controlPadXSm, fs: t.type.control },
-  md: { h: t.density.controlHMd, px: t.density.controlPadXMd, fs: t.type.body },
-  lg: { h: t.density.controlHLg, px: t.density.controlPadXLg, fs: 14 },
+  // 라벨 크기는 높이와 무관하게 t.type.control 하나 — 세그먼트·필터칩과 같은 계약(2026-09-10 감사 반영).
+  md: { h: t.density.controlHMd, px: t.density.controlPadXMd, fs: t.type.control },
+  lg: { h: t.density.controlHLg, px: t.density.controlPadXLg, fs: t.type.control },
 }
 
 const variants = {

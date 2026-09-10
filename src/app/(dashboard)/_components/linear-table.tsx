@@ -134,7 +134,7 @@ export function LTableHead<T>({
               fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
               letterSpacing: 0.3, textTransform: 'uppercase',
               color: active ? t.neutrals.text : t.neutrals.subtle,
-              display: 'flex', alignItems: 'center', gap: 2,
+              display: 'flex', alignItems: 'center', gap: t.density.tableRowGap,
               justifyContent: c.align === 'right' ? 'flex-end' : c.align === 'center' ? 'center' : 'flex-start',
               whiteSpace: 'nowrap', overflow: 'hidden',
               cursor: sortable ? 'pointer' : undefined,
@@ -244,8 +244,8 @@ export function LTableEmpty({ children }: { children: React.ReactNode }) {
 export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
     <span style={{
-      display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
+      display: 'inline-block', padding: `${t.badge.padY}px ${t.badge.padX}px`, borderRadius: t.badge.radius,
+      fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight, textAlign: 'center',
       background: tone.bg, color: tone.fg,
       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     }}>
@@ -313,7 +313,7 @@ export function LTableAmount({
 }: { value: number; positive?: boolean; muted?: boolean; strike?: boolean }) {
   return (
     <span style={{
-      textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+      textAlign: 'right', fontWeight: t.weight.medium, fontVariantNumeric: 'tabular-nums',
       fontFamily: t.font.mono, fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`,
       color: muted ? t.neutrals.subtle : positive ? t.accent.pos : t.accent.neg,
       textDecoration: strike ? 'line-through' : undefined,
@@ -368,10 +368,10 @@ export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_
           onKeyDown={e => { if (e.key === 'Enter') commit(draft) }}
           aria-label="한 페이지에 보일 행 수"
           style={{
-            width: 42, paddingLeft: 4, paddingRight: 14, textAlign: 'center',
+            width: 42, paddingLeft: t.density.gapXs, paddingRight: t.density.controlPadXMd, textAlign: 'center',
             border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm,
             fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono,
-            color: t.neutrals.muted, paddingTop: 2, paddingBottom: 2, outline: 'none',
+            color: t.neutrals.muted, paddingTop: t.density.tableRowGap, paddingBottom: t.density.tableRowGap, outline: 'none',
           }}
         />
         <span style={{

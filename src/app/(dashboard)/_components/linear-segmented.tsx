@@ -30,7 +30,7 @@ interface Props<V extends string> {
 export function LSegmented<V extends string>({ options, value, onChange, size = 'sm', compact }: Props<V>) {
   const height = size === 'sm' ? t.density.controlHSm : t.density.controlHMd
   const padX = compact ? t.density.kpiGap : t.density.controlPadXSm
-  const fontSize = size === 'sm' ? t.type.control : t.type.tableBody
+  const fontSize = t.type.control // 컨트롤 라벨은 크기와 무관하게 단일 기준
   const minWidth = size === 'sm' ? t.density.segmentedMinWSm : t.density.segmentedMinWMd
 
   return (
@@ -40,7 +40,7 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
     }}>
       {options.map((opt, idx) => {
         if ('divider' in opt && opt.divider) {
-          return <span key={`div-${idx}`} style={{ width: 1, margin: '3px 1px', background: t.neutrals.line }} />
+          return <span key={`div-${idx}`} style={{ width: 1, margin: `${t.density.gapXs}px 1px`, background: t.neutrals.line }} />
         }
         const active = value === opt.value
         return (
