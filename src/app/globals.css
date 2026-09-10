@@ -799,6 +799,18 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 6px !important;
 }
 
+/* 폼의 주 동작(저장)만 활성 칩과 같은 강조색을 쓴다 — 나머지 버튼은 선 한 겹 그대로 */
+.theme-outline [data-primary-action] button {
+  background: #0A2E40 !important;
+  color: #FFFFFF !important;
+  border-color: #0A2E40 !important;
+}
+.theme-outline [data-primary-action] button:disabled {
+  background: #E7E9EB !important;
+  color: #9AA0A6 !important;
+  border-color: #E7E9EB !important;
+}
+
 /* 상세 모달은 별도 문법을 두지 않는다 — 섹션 카드를 그대로 띄우므로
    [data-lcard]·[data-card-foot] 규칙이 그대로 적용된다(CEO 2026-09-10: 기존 모달 스타일 버리고 카드에 맞춤). */
 

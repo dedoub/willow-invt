@@ -15,7 +15,8 @@ import { CashBlockNew as CashBlock } from './_components/cash-block'
 import { TaxManagementBlockNew } from './_components/tax-management-block'
 import { SalesBlockNew } from './_components/sales-block'
 import { CardBlockNew } from './_components/card-block'
-import { AddScheduleDialog, ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
+import type { ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
+import { AddScheduleDialogNew } from './_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
 import { InvoiceDetailDialogNew } from './_components/invoice-detail-dialog'
 import { ParsePreviewDialog, ParsedTransaction } from '@/app/(dashboard)/(linear)/mgmt/_components/parse-preview-dialog'
@@ -478,7 +479,7 @@ export default function MgmtNewPage() {
         onDelete={handleDeleteSchedule}
         onEdit={handleEditSchedule}
       />
-      <AddScheduleDialog
+      <AddScheduleDialogNew
         open={scheduleDialogOpen}
         defaultDate={scheduleDialogDate}
         editingSchedule={editingSchedule}

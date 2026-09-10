@@ -149,7 +149,8 @@ function DayCell({
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
-  const [pop, setPop] = useState<{ left: number; top: number } | null>(null)
+  // 셀 안에서 그대로 펼친다 — 뜬 창을 띄우면 달력 위에 겹쳐 읽기가 끊긴다(CEO 2026-09-10)
+  const [expanded, setExpanded] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -210,20 +211,18 @@ function DayCell({
           </div>
         ) : compact ? (
           <>
-            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {schedules.slice(0, expanded ? schedules.length : 2).map(s => (
+              <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />
+            ))}
             {schedules.length > 2 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                  setPop({ left: Math.min(r.left, window.innerWidth - 252), top: r.bottom + 4 })
-                }}
+                onClick={(e) => { e.stopPropagation(); setExpanded(v => !v) }}
                 style={{
                   alignSelf: 'flex-start', border: 'none', background: 'transparent', padding: 0,
                   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono, cursor: 'pointer',
                 }}
               >
-                +{schedules.length - 2}
+                {expanded ? '접기' : `+${schedules.length - 2}`}
               </button>
             )}
           </>
@@ -231,27 +230,6 @@ function DayCell({
           schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)
         )}
       </div>
-      {pop && (
-        <>
-          <div onClick={(e) => { e.stopPropagation(); setPop(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.04)' }} />
-          <div onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
-              width: 240, maxHeight: 340, overflowY: 'auto',
-              background: t.neutrals.card, borderRadius: t.radius.md,
-              border: `1px solid ${t.neutrals.line}`, padding: t.density.panelPadY,
-              display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
-            }}>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
-              {dateStr.slice(5).replace('-', '월 ')}일
-              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: t.weight.regular, color: t.neutrals.subtle }}>({schedules.length})</span>
-            </div>
-            {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
-            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
-          </div>
-        </>
-      )}
     </div>
   )
 }
