@@ -244,8 +244,8 @@ export function LTableEmpty({ children }: { children: React.ReactNode }) {
 export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
     <span style={{
-      display: 'inline-block', padding: `${t.badge.padY}px ${t.badge.padX}px`, borderRadius: t.badge.radius,
-      fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight, textAlign: 'center',
+      display: 'inline-block', padding: `${t.tableBadge.padY}px ${t.tableBadge.padX}px`, borderRadius: t.tableBadge.radius,
+      fontSize: `calc(${t.tableBadge.size}px * var(--fz, 1))`, fontWeight: t.tableBadge.weight, textAlign: 'center',
       background: tone.bg, color: tone.fg,
       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     }}>

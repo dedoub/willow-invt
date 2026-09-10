@@ -167,7 +167,7 @@ export default function RatesPage() {
                   padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
                 }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>
+                    <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>
                       {row.label}
                       {!row.overridden && (
                         <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>

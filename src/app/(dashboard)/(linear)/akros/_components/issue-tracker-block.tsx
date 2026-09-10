@@ -206,7 +206,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
           const titleEl = (
             <span style={{
-              fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
+              fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, lineHeight: 1.35,
             }}>{issue.title}</span>
           )
 

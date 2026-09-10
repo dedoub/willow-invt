@@ -73,7 +73,7 @@ export default function ValueChainPage() {
   if (error || !stats) {
     return (
       <LCard>
-        <div style={{ color: t.accent.neg, fontSize: `calc(${t.type.body}px * var(--fz, 1))` }}>통계를 불러오지 못했습니다: {error}</div>
+        <div style={{ color: t.accent.neg, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>통계를 불러오지 못했습니다: {error}</div>
         <LBtn size="sm" variant="secondary" onClick={() => load(true)} style={{ marginTop: t.density.kpiGap }}>다시 시도</LBtn>
       </LCard>
     )
@@ -338,7 +338,7 @@ export default function ValueChainPage() {
                 style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: t.density.kpiGap, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
-                <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
+                <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
                 <span style={{ whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier}</span>
                   <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: t.density.gapXs, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
@@ -386,7 +386,7 @@ export default function ValueChainPage() {
                 style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: t.density.kpiGap, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
-                <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
+                <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
                 {FUNNEL_HEADS.map(h => { const v = h.get(a.funnel); return <span key={h.key} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>

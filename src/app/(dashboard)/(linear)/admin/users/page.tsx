@@ -251,7 +251,7 @@ export default function UsersPage() {
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
+                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
                         display: 'flex', alignItems: 'center', gap: t.density.gapSm,
                       }}>
                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{u.name}</span>

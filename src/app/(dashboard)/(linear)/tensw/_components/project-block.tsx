@@ -328,7 +328,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Name + description */}
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div style={{
-                    fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
+                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {project.name}

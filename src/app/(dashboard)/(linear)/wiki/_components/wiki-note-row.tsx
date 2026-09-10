@@ -116,7 +116,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         </span>
 
         <span style={{
-          flex: 1, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+          flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           color: t.neutrals.text,
         }}>

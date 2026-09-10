@@ -40,6 +40,33 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 | title | 15 | sectionTitle(섹션·다이얼로그 제목) |
 | display | 20 | display(히어로 숫자) |
 
+### 카드 내 위계 (2026-09-10 CEO 원칙: 역할을 먼저 고정하고 크기는 나중에 조정)
+
+모든 LCard는 아래 역할표로 글자를 배정한다. 새 카드를 만들 때 크기를 고르지 말고 역할을 고른다.
+
+| 카드 내 역할 | 토큰 | 굵기·서체 |
+|---|---|---|
+| 눈썹(예: SCHEDULE · 주간) | `panelTitle` | mono, 대문자, subtle |
+| 카드 제목 | `sectionTitle` | semibold |
+| 카드 메타·설명 | `helper` | regular, subtle |
+| 컨트롤(세그먼트·칩·버튼·셀렉트) | `control` | regular/medium(활성) |
+| KPI 라벨 / 값 / 보조 | `label` / `body` / `helper` | muted / semibold tabular / subtle |
+| 목록·표 헤더 | `tableHead` | mono, 대문자 |
+| 목록·표 1차 텍스트(제목·거래처·닉네임) | `tableBody` | medium |
+| 목록·표 2차 텍스트(적요·설명) | `tableBody` | regular |
+| 목록·표 메타(날짜·계좌·첨부 수) | `tableCell` | mono, subtle |
+| 행 안 숫자 | `tableBody` | mono, tabular |
+| 행 안 배지 | `LTableBadge` (`t.tableBadge`) | |
+| 카드 밖 독립 배지(다이얼로그 헤더) | `LBadge` (`t.badge`) | |
+| 본문 산문(위키 내용·노트·메시지) | `body` | regular, 행간 1.6~1.7 |
+| 다이얼로그 제목 / 히어로 숫자 | `sectionTitle` / `display` | semibold / bold |
+
+요약: **목록·표는 control 단계(11) + 메타 9, 산문과 KPI 값만 body(13), 제목만 15.** 목록 행 제목에 body를 쓰지 않는다.
+
+### 렌더 배율
+
+인라인 크기는 `calc(Npx * var(--fz))`로 쓰고, `globals.css`가 데스크톱 `--fz: 1.1`, 모바일 `1.3`을 준다. 토큰 값은 배율 전 기준값이다(body 13 → 데스크톱 14.3px). 표 셀 배지(`LTableBadge`)는 `t.tableBadge`(9px·1×5) 조밀 규격을 따른다.
+
 ### 서체
 
 - 본문·UI: **Pretendard Variable** (한글·라틴·숫자 한 폰트, 가변 굵기 420/520/620/720, tabular-nums). `public/fonts/pretendard`에 동적 서브셋을 정적 서빙한다 — 파일은 `scripts/copy-pretendard.mjs`가 빌드·dev 전에 node_modules에서 복사하고 git에는 넣지 않는다.

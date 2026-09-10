@@ -198,7 +198,7 @@ export function InquiryInbox() {
 
         {!loading && !loadError && threads.length === 0 && broken.length === 0 && (
           <div style={{
-            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
             padding: `${t.density.gapLg}px 0`, textAlign: 'center',
           }}>
             네 앱 모두 조회에 성공했고, 문의는 아직 없다
@@ -265,7 +265,7 @@ export function InquiryInbox() {
       <LCard>
         {!selectedThread ? (
           <div style={{
-            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
             padding: `${t.density.gapLg}px 0`, textAlign: 'center',
           }}>
             왼쪽에서 문의를 고른다

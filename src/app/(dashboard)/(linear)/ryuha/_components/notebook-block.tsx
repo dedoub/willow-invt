@@ -97,7 +97,7 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontFamily: t.font.sans,
+    width: '100%', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
     background: t.neutrals.inner, borderRadius: t.radius.sm, border: 'none',
     color: t.neutrals.text, outline: 'none',
   }
@@ -355,7 +355,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.regular,
+                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         color: t.neutrals.text,
                       }}>

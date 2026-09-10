@@ -12,7 +12,7 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote, WikiMemo } from './wiki-note-row'
 import { WikiNoteForm } from './wiki-note-form'
 import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -375,7 +375,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.regular,
+                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         color: t.neutrals.text,
                       }}>
@@ -384,7 +384,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap,
                       }}>
-                        <LBadge palette={{ bg: badge.bg, fg: badge.fg }}>{badge.label}</LBadge>
+                        <LTableBadge tone={{ bg: badge.bg, fg: badge.fg }}>{badge.label}</LTableBadge>
                         <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                           {fmtDate(note.updated_at)}
                         </span>

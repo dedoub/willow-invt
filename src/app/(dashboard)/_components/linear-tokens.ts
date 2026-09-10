@@ -87,6 +87,7 @@ export const t = {
     // 크기 단계는 4단 + 히어로. 0.5px 차이는 위계로 읽히지 않아 없앴다 (CEO 2026-09-10).
     //   caption 9 → control 11 → body 13 → title 15 → display 20 (차트 라벨 8은 위계 밖 예외) — 2026-09-10 한 단계 축소
     // 이름은 역할이다. 같은 단계의 이름들은 값이 같아야 한다 — 한 단계만 바꾸려면 새 단계를 만들지 말고 역할 이름을 옮겨라.
+    // 카드 내 배정: 목록·표 1차/2차 텍스트·행 숫자=tableBody, 행 메타=tableCell, KPI 값·산문=body, 제목=sectionTitle (docs/design-system/typography.md '카드 내 위계').
     // caption
     tableHead: 9,
     panelTitle: 9,
@@ -108,6 +109,9 @@ export const t = {
   },
 
   badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 11 },
+  // 표 셀 안 배지(LTableBadge)는 셀 숫자(tableCell 9)와 같은 크기의 조밀 규격. 일반 배지를 셀에 넣으면
+  // 행 높이 34 안에서 글자보다 배지가 먼저 읽힌다(2026-09-10 사용자표 실측).
+  tableBadge: { radius: 4, weight: 520, padX: 5, padY: 1, size: 9 },
 } as const
 
 export type LinearTokens = typeof t
