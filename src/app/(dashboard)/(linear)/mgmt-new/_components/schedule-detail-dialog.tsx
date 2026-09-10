@@ -157,7 +157,7 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
         <div data-card-foot="" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
           margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY,
-          paddingBottom: t.density.cardPad, borderTop: `1px solid ${t.neutrals.line}`,
+          paddingBottom: t.density.cardPad,
         }}>
           <LBtn variant="ghost" size="sm" onClick={() => { onDelete(schedule.id); onClose() }}>삭제</LBtn>
           <div style={{ display: 'flex', gap: t.density.gapSm }}>
