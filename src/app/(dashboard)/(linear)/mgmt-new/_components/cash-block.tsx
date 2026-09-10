@@ -405,7 +405,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
         {/* 3) 필터 · 검색 · 추가를 한 줄로 */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: t.density.gapSm,
-          marginTop: t.density.gapLg, flexWrap: mobile ? 'wrap' : 'nowrap',
+          marginTop: t.density.pagePadBottom, flexWrap: mobile ? 'wrap' : 'nowrap',
         }}>
           {/* 검색에 들어가면 칩은 접혀 자리를 내준다 — 폭·투명도만 바뀌므로 레이아웃이 튀지 않는다 */}
           <div style={{
