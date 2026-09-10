@@ -53,6 +53,9 @@ export const t = {
     accent: '#75B9DB',
   },
   accent: { pos: '#107A52', neg: '#C23A3A', warn: '#B8781F' },
+  // 차트 색 — 시리즈가 하나인 차트는 색 대신 회색 단색(mono)으로 그린다. 두 시리즈 이상만 dataviz 팔레트.
+  // 색은 상태·부호·강조에만 남겨 화면의 색 총량을 줄인다 (2026-09-10, 레퍼런스: coderthemes Simple).
+  chart: { mono: '#3B4048', monoSoft: '#D9DCE1', monoFill: 'rgba(59,64,72,0.10)', grid: 'rgba(15,15,20,0.09)' },
   radius: { sm: 4, md: 6, lg: 8, pill: 999 },
   density: {
     rowH: 34,

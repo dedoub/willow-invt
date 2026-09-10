@@ -240,3 +240,10 @@ Do not align table cells with independent flex widths. Define columns once and s
 3. height, padding, gap, radius, font-size는 숫자를 직접 만들기 전에 `t.density`, `t.radius`, `t.type`에서 고른다.
 4. 반복되는 inline style이 3곳 이상 생기면 `linear-*` 컴포넌트로 승격한다.
 5. 레거시 shadcn 화면을 수정할 때도 색, 반경, 밀도는 가능한 한 `linear-tokens`와 맞춘다.
+
+
+## 카드 문법 보강 (2026-09-10)
+
+- **카드 하단 메타 바 `LCardFoot`**: 기준 시각·집계 범위·건수·출처·마지막 업데이트는 카드 맨 아래 한 줄(좌: 설명, 우: 숫자)로 내린다. 헤더 `meta`에는 제목을 읽는 데 필요한 짧은 단서만 둔다. 표 페이지네이션 줄이 있는 카드는 그 줄이 하단 바를 겸한다.
+- **색 절제**: 표 본문의 절대 금액·잔고·합계·건수는 기본 글자색(`LTableNumber`/`LTableMono`). 색은 (1) 부호가 있는 변동(±, 증감률 → `LTableAmount`), (2) 상태·분류 배지, (3) 기한 경고에만 쓴다. 헤더 KPI 값도 같은 규칙: 변동·상태가 아니면 기본색.
+- **차트 단색**: 시리즈가 하나인 막대·선·영역 차트는 `t.chart.mono`/`monoFill`로 그린다. 두 시리즈 이상만 dataviz 팔레트를 쓴다. 스파크라인도 단색.
