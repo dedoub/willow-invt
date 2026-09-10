@@ -378,7 +378,12 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           return (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
               {figures.map((f, i) => (
-                <Figure key={f.label} label={f.label} value={f.value} tone={f.tone} sub={f.sub} divider={i >= cols} />
+                <Figure
+                  key={f.label} label={f.label} value={f.value} tone={f.tone} sub={f.sub}
+                  divider={i >= cols}
+                  // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
+                  span={i === figures.length - 1 ? cols - (figures.length % cols || cols) + 1 : 1}
+                />
               ))}
             </div>
           )
@@ -530,7 +535,7 @@ const navBtn: React.CSSProperties = {
  * 라벨 · 값 · (스파크라인) 순서로 쌓아 숫자 오른쪽에 그래프가 붙지 않게 한다(CEO 2026-09-10).
  * 색은 부호가 뜻을 갖는 값(영업이익·현금흐름)에만 쓴다.
  */
-function Figure({ label, value, tone, spark, divider, sub }: {
+function Figure({ label, value, tone, spark, divider, sub, span = 1 }: {
   label: string
   value: string
   tone?: 'pos' | 'neg'
@@ -539,17 +544,20 @@ function Figure({ label, value, tone, spark, divider, sub }: {
   divider?: boolean
   /** 값 아래 한 줄 — 기준 시각처럼 그 숫자에 붙는 단서 */
   sub?: string
+  /** 그리드에서 차지할 칸 수 */
+  span?: number
 }) {
   const color = tone === 'pos' ? t.accent.pos : tone === 'neg' ? t.accent.neg : t.neutrals.text
   const points = (spark ?? []).map(p => (typeof p === 'number' ? p : p.value))
   const max = points.length ? Math.max(...points) : 0
   const min = points.length ? Math.min(...points) : 0
-  const span = max - min || 1
+  const range = max - min || 1
   return (
     <div style={{
       padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
       borderTop: divider ? `1px solid ${t.neutrals.line}` : undefined,
+      gridColumn: span > 1 ? `span ${span}` : undefined,
     }}>
       <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
         {label}
@@ -569,7 +577,7 @@ function Figure({ label, value, tone, spark, divider, sub }: {
       {points.length > 1 && (
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: 22, marginTop: t.density.tableRowGap }}>
           <polyline
-            points={points.map((v, i) => `${(i / (points.length - 1)) * 100},${100 - ((v - min) / span) * 100}`).join(' ')}
+            points={points.map((v, i) => `${(i / (points.length - 1)) * 100},${100 - ((v - min) / range) * 100}`).join(' ')}
             fill="none" stroke={t.chart.mono} strokeWidth={1.5} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round" strokeLinecap="round"
           />
