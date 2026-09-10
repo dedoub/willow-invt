@@ -22,11 +22,11 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 | KPI label | 9.5px mono uppercase |
 | KPI value | 13px, semibold, tabular nums |
 | 표 헤더 | 9px mono uppercase |
-| 표 셀 | 10px `t.type.tableCell` (조밀) · 12px `t.type.tableBody` |
-| 배지 | 12px `t.badge.size` (표 셀 배지 포함) |
-| 컨트롤(버튼·세그먼트·필터칩·셀렉트·검색) | 12px `t.type.control` — 크기(sm/md/lg)와 무관하게 단일 |
-| 차트 축·데이터 라벨 | 9px `t.type.chartLabel` (차트 전용, 위계 밖) |
-| 히어로 숫자 | 22px `t.type.display` (다이얼로그 금액·점수 한 칸) |
+| 표 셀 | 9px `t.type.tableCell` (조밀) · 11px `t.type.tableBody` |
+| 배지 | 11px `t.badge.size` (표 셀 배지 포함) |
+| 컨트롤(버튼·세그먼트·필터칩·셀렉트·검색) | 11px `t.type.control` — 크기(sm/md/lg)와 무관하게 단일 |
+| 차트 축·데이터 라벨 | 8px `t.type.chartLabel` (차트 전용, 위계 밖) |
+| 히어로 숫자 | 20px `t.type.display` (다이얼로그 금액·점수 한 칸) |
 
 ### 크기 단계 (2026-09-10)
 
@@ -34,11 +34,11 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 
 | 단계 | px | 토큰(역할) |
 |---|---:|---|
-| caption | 10 | tableHead · panelTitle · helper · label · tableCell |
-| control | 12 | control · badge · tableBody |
-| body | 14 | body(본문·KPI 값) |
-| title | 16 | sectionTitle(섹션·다이얼로그 제목) |
-| display | 22 | display(히어로 숫자) |
+| caption | 9 | tableHead · panelTitle · helper · label · tableCell |
+| control | 11 | control · badge · tableBody |
+| body | 13 | body(본문·KPI 값) |
+| title | 15 | sectionTitle(섹션·다이얼로그 제목) |
+| display | 20 | display(히어로 숫자) |
 
 ### 서체
 

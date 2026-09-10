@@ -85,29 +85,29 @@ export const t = {
   },
   type: {
     // 크기 단계는 4단 + 히어로. 0.5px 차이는 위계로 읽히지 않아 없앴다 (CEO 2026-09-10).
-    //   caption 10 → control 12 → body 14 → title 16 → display 22 (차트 라벨 9는 위계 밖 예외)
+    //   caption 9 → control 11 → body 13 → title 15 → display 20 (차트 라벨 8은 위계 밖 예외) — 2026-09-10 한 단계 축소
     // 이름은 역할이다. 같은 단계의 이름들은 값이 같아야 한다 — 한 단계만 바꾸려면 새 단계를 만들지 말고 역할 이름을 옮겨라.
     // caption
-    tableHead: 10,
-    panelTitle: 10,
-    helper: 10,
-    label: 10,
-    tableCell: 10,
+    tableHead: 9,
+    panelTitle: 9,
+    helper: 9,
+    label: 9,
+    tableCell: 9,
     // control
-    badge: 12,
-    control: 12,
-    tableBody: 12,
+    badge: 11,
+    control: 11,
+    tableBody: 11,
     // body
-    body: 14,
+    body: 13,
     // title
-    sectionTitle: 16,
+    sectionTitle: 15,
     // 히어로 숫자(다이얼로그 금액·점수) 전용. 남용 금지.
-    display: 22,
+    display: 20,
     // 차트 축·막대 위 데이터 라벨 전용. 표·배지·본문에는 쓰지 않는다.
-    chartLabel: 9,
+    chartLabel: 8,
   },
 
-  badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 12 },
+  badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 11 },
 } as const
 
 export type LinearTokens = typeof t
