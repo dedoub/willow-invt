@@ -826,6 +826,31 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-size: calc(9px * var(--fz, 1));
 }
 
+/* 카드 안 작은 표(검색·GEO 패널) — 회색 판을 벗고 카드의 표와 같은 문법으로 읽는다.
+   제목은 지표 라벨 급 평서, 행은 배경 대신 아래 선 하나(2026-09-11). */
+.theme-outline [data-panel] {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.theme-outline [data-panel-title] {
+  font-family: inherit !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 420 !important;
+  font-size: calc(9px * var(--fz, 1)) !important;
+}
+.theme-outline [data-panel-head] {
+  border-bottom: 1px solid #E5E7EB;
+  margin-bottom: 2px;
+}
+.theme-outline [data-panel-row] {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid #F1F2F4;
+}
+.theme-outline [data-panel-row]:last-child { border-bottom: none; }
+.theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }
+
 /* 삭제만 붉은 선과 붉은 글자를 쓴다 — 되돌릴 수 없는 동작은 눌리기 전에 보여야 한다 */
 .theme-outline [data-danger-action] button {
   color: #C23A3A !important;

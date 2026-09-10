@@ -11,7 +11,7 @@ import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
-import { GeoAnswerCard } from '@/app/(dashboard)/_components/geo-answer-card'
+import { GeoAnswerCard } from './_components/geo-answer-card'
 import { kstToday } from '@/lib/kst'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

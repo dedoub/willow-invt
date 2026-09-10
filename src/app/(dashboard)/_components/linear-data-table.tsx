@@ -156,12 +156,13 @@ export function DataTable({
   const safePage = Math.min(page, totalPages)
   const pageRows = sortedRows.slice((safePage - 1) * perPage, safePage * perPage)
   return (
-    <div style={panelStyle}>
+    // data-panel/-title/-row: 화면별 테마 실험이 판과 행만 CSS로 덮을 수 있게 하는 표식이다.
+    <div data-panel="" style={panelStyle}>
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
         gap: t.density.gapSm, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const,
       }}>
-        <div style={panelTitle}>{title}</div>
+        <div data-panel-title="" style={panelTitle}>{title}</div>
         {meta && (
           <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>{meta}</div>
         )}
@@ -169,7 +170,7 @@ export function DataTable({
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: tableMin, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
-            <div style={{ display: 'grid', gridTemplateColumns: template, gap: COL_GAP, alignItems: 'center', padding: `0 ${t.density.tableRowPadX}px 5px` }}>
+            <div data-panel-head="" style={{ display: 'grid', gridTemplateColumns: template, gap: COL_GAP, alignItems: 'center', padding: `0 ${t.density.tableRowPadX}px 5px` }}>
               {columns.map((c, i) => {
                 const active = sortIdx === i
                 return (
@@ -202,9 +203,9 @@ export function DataTable({
                 textDecoration: 'none', color: 'inherit',
               }
               return r.href ? (
-                <a key={r.key} href={r.href} target="_blank" rel="noopener noreferrer" style={rowStyle}>{inner}</a>
+                <a key={r.key} data-panel-row="" href={r.href} target="_blank" rel="noopener noreferrer" style={rowStyle}>{inner}</a>
               ) : (
-                <div key={r.key} style={rowStyle}>{inner}</div>
+                <div key={r.key} data-panel-row="" style={rowStyle}>{inner}</div>
               )
             })}
           </div>

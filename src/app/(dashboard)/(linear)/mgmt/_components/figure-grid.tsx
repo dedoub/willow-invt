@@ -30,6 +30,8 @@ export type FigureItem = {
   labelExtra?: ReactNode
   /** 칸을 누르면 상세를 여는 지표(은행 잔고 등) */
   onClick?: () => void
+  /** 값 옆 작은 꼬리표 — 증감처럼 그 숫자에 붙는 값 */
+  valueExtra?: ReactNode
 }
 
 export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number }) {
@@ -62,6 +64,7 @@ export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number 
             textOverflow: f.prose || f.wrap ? undefined : 'ellipsis',
           }}>
             {f.value}
+            {f.valueExtra}
           </span>
           {f.sub && (
             <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
