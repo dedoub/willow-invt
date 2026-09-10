@@ -242,7 +242,8 @@ function DayCell({
               {dateStr.slice(5).replace('-', '월 ')}일
               <span style={{ marginLeft: 4, fontFamily: t.font.mono, fontWeight: 400, color: t.neutrals.subtle }}>({schedules.length})</span>
             </div>
-            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)}
+            {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
+            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
           </div>
         </>
       )}
