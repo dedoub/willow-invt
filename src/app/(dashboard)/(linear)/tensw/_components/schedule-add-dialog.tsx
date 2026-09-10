@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule, TenswMgmtClient } from '@/types/tensw-mgmt'
-import { getScheduleCategory, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
+import { getScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_LABEL, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
 
 interface ScheduleAddDialogProps {
   open: boolean
@@ -190,10 +191,11 @@ export function ScheduleAddDialog({
           {/* Category chips */}
           <div>
             <Label>일정 분류</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-              <ChipBtn active={form.category === 'finance'} onClick={() => set('category', 'finance')}>재무</ChipBtn>
-              <ChipBtn active={form.category === 'other'} onClick={() => set('category', 'other')}>기타</ChipBtn>
-            </div>
+            <LFilterChip
+              options={SCHEDULE_CATEGORIES.map(c => ({ value: c, label: SCHEDULE_CATEGORY_LABEL[c] }))}
+              value={form.category}
+              onChange={c => set('category', c)}
+            />
           </div>
 
           {/* Client chips */}

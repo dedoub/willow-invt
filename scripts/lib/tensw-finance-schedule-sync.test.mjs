@@ -38,8 +38,8 @@ test('세금계산서 매출·매입은 승인번호 기준으로 중복 제거�
 
   assert.equal(rows.length, 2)
   assert.deepEqual(rows.map(row => [row.source_key, row.category, row.is_completed]), [
-    ['tensw-finance:tax-invoice:sales-approval:issued', 'finance', true],
-    ['tensw-finance:tax-invoice:purchase-approval:issued', 'finance', true],
+    ['tensw-finance:tax-invoice:sales-approval:issued', 'revenue', true],
+    ['tensw-finance:tax-invoice:purchase-approval:issued', 'expense', true],
   ])
   assert.match(rows[0].title, /매출 세금계산서.*서울특별시체육회.*₩1,920,000/)
   assert.match(rows[1].title, /매입 세금계산서.*세무법인 형운.*₩165,000/)
@@ -105,5 +105,5 @@ test('기존 수기 재무 일정은 승계하고 source_key 일정은 멱등 �
   assert.deepEqual(plan.insert, [])
   assert.equal(plan.update.length, 1)
   assert.equal(plan.update[0].id, 'legacy-tax')
-  assert.equal(plan.update[0].values.category, 'finance')
+  assert.equal(plan.update[0].values.category, 'revenue') // 매출 세금계산서 발행 = 돈 들어오는 일
 })

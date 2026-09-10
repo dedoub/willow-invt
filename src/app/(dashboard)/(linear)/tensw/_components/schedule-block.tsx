@@ -6,8 +6,9 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { TenswMgmtSchedule } from '@/types/tensw-mgmt'
-import { getScheduleCategory, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
+import { getScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_LABEL, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
 
 interface ScheduleBlockProps {
   schedules: TenswMgmtSchedule[]
@@ -50,8 +51,16 @@ function getMonthGrid(year: number, month: number): Date[][] {
   return weeks
 }
 
+// 매출=녹색(done), 비용=주황(pending), 기타거래는 유형(기한·미팅)으로 — 필터 칩 색과 같다.
+const CATEGORY_TONE: Record<ScheduleCategory, { bg: string; fg: string }> = {
+  revenue: tonePalettes.done,
+  expense: tonePalettes.pending,
+  other: tonePalettes.neutral,
+}
+
 function getScheduleTone(s: TenswMgmtSchedule): { bg: string; fg: string } {
-  if (getScheduleCategory(s) === 'finance') return tonePalettes.info
+  const c = getScheduleCategory(s)
+  if (c !== 'other') return CATEGORY_TONE[c]
   if (s.type === 'deadline') return tonePalettes.warn
   if (s.type === 'meeting') return tonePalettes.info
   return tonePalettes.neutral
@@ -319,34 +328,16 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         </button>
       </div>
 
-      {/* Category filter chips */}
-      <div style={{
-        display: 'flex', gap: t.density.gapXs, marginBottom: t.density.gapMd, flexWrap: 'wrap',
-      }}>
-        {([
-          { value: 'all', label: '전체' },
-          { value: 'finance', label: '재무' },
-          { value: 'other', label: '기타' },
-        ] as const).map(option => {
-          const active = categoryFilter === option.value
-          return (
-            <button
-              key={option.value}
-              onClick={() => setCategoryFilter(option.value)}
-              style={{
-                border: 'none', cursor: 'pointer',
-                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-                fontFamily: t.font.sans,
-                fontWeight: active ? t.weight.medium : t.weight.regular,
-                background: active ? t.brand[100] : t.neutrals.inner,
-                color: active ? t.brand[700] : t.neutrals.muted,
-                transition: 'all .12s',
-              }}
-            >
-              {option.label}
-            </button>
-          )
-        })}
+      {/* Category filter chips — 전체 / 매출 / 비용 / 기타거래 */}
+      <div style={{ marginBottom: t.density.gapMd }}>
+        <LFilterChip
+          options={[
+            { value: 'all', label: '전체' },
+            ...SCHEDULE_CATEGORIES.map(c => ({ value: c, label: SCHEDULE_CATEGORY_LABEL[c], tone: c === 'other' ? undefined : CATEGORY_TONE[c] })),
+          ]}
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+        />
       </div>
 
       {/* Day headers */}

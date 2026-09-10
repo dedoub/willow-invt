@@ -122,7 +122,7 @@ function obligationRows(rows) {
         ]),
         schedule_date: date,
         type: 'deadline',
-        category: 'finance',
+        category: 'expense', // 세금·고지 납부 = 돈 나가는 일
         is_completed: isPaid(row),
       })
       continue
@@ -141,7 +141,7 @@ function obligationRows(rows) {
       description: group.map(row => `${obligationTitle(row)} ${formatMoney(row.amount)}`).join('\n'),
       schedule_date: date,
       type: 'deadline',
-      category: 'finance',
+      category: 'expense',
       is_completed: group.every(isPaid),
     })
   }
@@ -167,7 +167,7 @@ export function buildTenswFinanceScheduleRows({ taxInvoices, cashRows, taxObliga
       ]),
       schedule_date: scheduleDate,
       type: 'task',
-      category: 'finance',
+      category: direction === 'sales' ? 'revenue' : 'expense',
       is_completed: true,
     }]
   })
@@ -187,7 +187,7 @@ export function buildTenswFinanceScheduleRows({ taxInvoices, cashRows, taxObliga
       ]),
       schedule_date: scheduleDate,
       type: 'task',
-      category: 'finance',
+      category: kind === 'sales_payment' ? 'revenue' : 'expense',
       is_completed: isPaid(cash),
     })
   }
