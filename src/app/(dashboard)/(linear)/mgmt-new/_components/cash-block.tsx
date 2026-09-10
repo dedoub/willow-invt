@@ -293,7 +293,22 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
       if (series.length && series[series.length - 1].date === snapDate) series[series.length - 1] = point
       else series.push(point)
     }
-    return series
+    if (!series.length) return series
+
+    // 잔고가 움직인 날에만 점이 있어 기간이 짧으면 선이 두 점짜리 직선이 된다.
+    // 기간의 모든 날짜를 축으로 깔고 값은 직전 잔고를 이어받는다(계단식). 미래는 그리지 않는다.
+    const byDay = new Map(series.map(p => [p.date, p.value]))
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+    const lastDateToDraw = rangeEnd < today ? rangeEnd : today
+    const filled: Array<{ date: string; value: number }> = []
+    let carry = series[0].value
+    for (const d = new Date(series[0].date); ; d.setDate(d.getDate() + 1)) {
+      const key = d.toLocaleDateString('en-CA')
+      if (key > lastDateToDraw) break
+      if (byDay.has(key)) carry = byDay.get(key)!
+      filled.push({ date: key, value: carry })
+    }
+    return filled.length > 1 ? filled : series
   }, [balanceHistory, bankBalances, usdRate, rangeStart, rangeEnd])
 
   const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
@@ -354,12 +369,15 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           <Figure label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} divider />
           <Figure label="원화 잔고" value={`${periodEndBalance.krw.toLocaleString()}원`} divider />
           <Figure label="외화 잔고" value={`$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} divider />
-          <Figure label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`} divider />
+          <Figure
+            label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`}
+            sub={asOf ? `${asOf} 기준` : undefined} divider
+          />
         </div>
 
         {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}
         {totalBalanceSpark.length > 1 && (
-          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, padding: `${t.density.panelPadX}px ${t.density.panelPadX}px 0` }}>
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.panelPadX}px 0` }}>
             <div style={{
               display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
               gap: t.density.gapSm, marginBottom: t.density.gapSm,
@@ -378,7 +396,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
         {/* 3) 필터 · 검색 · 추가를 한 줄로 */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: t.density.gapSm,
-          marginTop: t.density.gapMd, flexWrap: mobile ? 'wrap' : 'nowrap',
+          marginTop: t.density.gapLg, flexWrap: mobile ? 'wrap' : 'nowrap',
         }}>
           <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapXs} />
           <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140 }}>
@@ -412,7 +430,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
 
 
       {/* Transactions */}
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
@@ -437,19 +455,12 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
         </LTableScroll>
       </div>
 
-      {/* Pagination */}
+      {/* 표 바로 아래 붙는 줄 — 페이지 크기와 페이지 이동만 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: `${t.density.gapSm}px ${t.density.cardPad}px`, borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
-          <LPageSize value={pageSize} onChange={applyPageSize} />
-          {asOf && (
-            <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
-              잔고 {asOf} 기준
-            </span>
-          )}
-        </div>
+        <LPageSize value={pageSize} onChange={applyPageSize} />
 
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
@@ -500,13 +511,15 @@ const navBtn: React.CSSProperties = {
  * 라벨 · 값 · (스파크라인) 순서로 쌓아 숫자 오른쪽에 그래프가 붙지 않게 한다(CEO 2026-09-10).
  * 색은 부호가 뜻을 갖는 값(영업이익·현금흐름)에만 쓴다.
  */
-function Figure({ label, value, tone, spark, divider }: {
+function Figure({ label, value, tone, spark, divider, sub }: {
   label: string
   value: string
   tone?: 'pos' | 'neg'
   spark?: Array<{ date: string; value: number }> | number[]
   /** 두 번째 줄부터는 위쪽에 구분선을 둔다 */
   divider?: boolean
+  /** 값 아래 한 줄 — 기준 시각처럼 그 숫자에 붙는 단서 */
+  sub?: string
 }) {
   const color = tone === 'pos' ? t.accent.pos : tone === 'neg' ? t.accent.neg : t.neutrals.text
   const points = (spark ?? []).map(p => (typeof p === 'number' ? p : p.value))
@@ -529,6 +542,11 @@ function Figure({ label, value, tone, spark, divider }: {
       }}>
         {value}
       </span>
+      {sub && (
+        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
+          {sub}
+        </span>
+      )}
       {points.length > 1 && (
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: 22, marginTop: t.density.tableRowGap }}>
           <polyline
