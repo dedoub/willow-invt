@@ -5,6 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber,
@@ -54,7 +55,15 @@ const COLUMNS: LColumn<SalesRow>[] = [
   { key: 'chevron', label: '', width: '14px' },
 ]
 
-const SOURCE_LABEL: Record<Source, string> = { tax: '계산서', etc: '인보이스' }
+// 행의 구분은 문서 종류가 아니라 국내·해외로 읽는다 — 통화와 수집 경로가 그 축으로 갈린다(CEO 2026-09-11)
+const SOURCE_LABEL: Record<Source, string> = { tax: '국내', etc: '해외' }
+
+// 국내는 홈택스 전자세금계산서, 해외는 ETC 인보이스다. 통화도 원화와 달러로 갈린다.
+const REGION_FILTERS: { value: 'all' | Source; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'tax', label: '국내' },
+  { value: 'etc', label: '해외' },
+]
 
 // 구분 칩은 색조 대신 회색 명도로만 나눈다 — 국내 계산서가 대다수라 옅게 깔고,
 // 해외 인보이스를 한 단계 진하게 둬서 눈에 먼저 걸리게 한다(2026-09-10 카드 문법).
@@ -85,6 +94,8 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
   const [mode, setMode] = useState<Mode>('sales')
   const [year, setYear] = useState(new Date().getFullYear())
   const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [region, setRegion] = useState<'all' | Source>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [selected, setSelected] = useState<SalesRow | null>(null)
@@ -219,11 +230,14 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
   }, [invoices, etcInvoices, mode, year, usdRate])
 
   const filtered = useMemo(() => {
+    let rows = region === 'all' ? yearFiltered : yearFiltered.filter(row => row.source === region)
     const q = search.trim().toLowerCase()
-    if (!q) return yearFiltered
-    return yearFiltered.filter(row =>
-      `${row.counterparty} ${row.detail} ${row.regNumber ?? ''}`.toLowerCase().includes(q))
-  }, [yearFiltered, search])
+    if (q) {
+      rows = rows.filter(row =>
+        `${row.counterparty} ${row.detail} ${row.regNumber ?? ''}`.toLowerCase().includes(q))
+    }
+    return rows
+  }, [yearFiltered, search, region])
 
   const sorted = useMemo(() => {
     const base = [...filtered].sort((a, b) => b.date.localeCompare(a.date))
@@ -247,6 +261,7 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
   const handleModeChange = (next: Mode) => {
     setMode(next)
     setPage(0)
+    setRegion('all')
     setSelected(null)
   }
 
@@ -301,8 +316,8 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
           const figureCols = mode === 'sales' ? (mobile ? 2 : 3) : 1
           const figures: FigureItem[] = mode === 'sales'
             ? [
-              { label: '세금계산서', value: `${Math.round(taxInvoiceTotal).toLocaleString()}원`, mono: true, title: '홈택스에서 수집한 국내 전자세금계산서' },
-              { label: 'ETC 인보이스', value: `$${etcTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, mono: true, title: 'Exchange Traded Concepts 에 발행한 해외 인보이스' },
+              { label: '국내', value: `${Math.round(taxInvoiceTotal).toLocaleString()}원`, mono: true, title: '홈택스에서 수집한 국내 전자세금계산서' },
+              { label: '해외', value: `$${etcTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, mono: true, title: 'Exchange Traded Concepts 에 발행한 해외 인보이스' },
               {
                 label: '합계', value: `${Math.round(grandTotal).toLocaleString()}원`, mono: true,
                 title: usdRate > 0 ? `해외분은 ${usdRate.toLocaleString()}원/USD 로 환산` : '환율을 불러오지 못해 USD 를 그대로 더했어요',
@@ -312,32 +327,56 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
           return <FigureGrid items={figures} cols={figureCols} />
         })()}
 
-        {/* 검색 — 표 바로 위 한 줄 */}
-        <div style={{ position: 'relative', marginTop: t.density.blockGap }}>
-          <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
-          </div>
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0) }}
-            placeholder="거래처 · 품목 · 사업자번호 검색"
-            style={{
-              width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
-              padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-              borderRadius: t.radius.sm, outline: 'none',
-            }}
-          />
-          {search && (
-            <button onClick={() => { setSearch(''); setPage(0) }} style={{
-              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+        {/* 국내·해외 칩 · 검색 한 줄 — 검색에 들어가면 칩은 접혀 자리를 내준다.
+             매입은 홈택스 계산서뿐이라 칩을 두지 않는다. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+          marginTop: t.density.blockGap, flexWrap: mobile ? 'wrap' : 'nowrap',
+        }}>
+          {mode === 'sales' && (
+            <div style={{
+              maxWidth: searchOpen ? 0 : 520,
+              opacity: searchOpen ? 0 : 1,
+              overflow: 'hidden',
+              transition: 'max-width .26s ease, opacity .16s ease',
             }}>
-              <LIcon name="x" size={12} stroke={2} />
-            </button>
+              <LFilterChip
+                options={REGION_FILTERS}
+                value={region}
+                onChange={v => { setRegion(v); setPage(0) }}
+                gap={t.density.gapXs}
+              />
+            </div>
           )}
+
+          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>
+            <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+              <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+            </div>
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0) }}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => { if (!search) setSearchOpen(false) }}
+              placeholder="거래처 · 품목 · 사업자번호 검색"
+              style={{
+                width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
+                padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                fontFamily: t.font.sans, color: t.neutrals.text,
+                background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                borderRadius: t.radius.sm, outline: 'none',
+              }}
+            />
+            {search && (
+              <button onClick={() => { setSearch(''); setPage(0); setSearchOpen(false) }} style={{
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={12} stroke={2} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -436,7 +475,7 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh
       />
       <RecordEditDialog
         open={!!editing}
-        title={editing?.source === 'etc' ? '인보이스 수정' : '계산서 수정'}
+        title={editing?.source === 'etc' ? '해외 매출 수정' : mode === 'purchase' ? '매입 계산서 수정' : '국내 매출 수정'}
         fields={editing?.source === 'etc' ? ETC_FIELDS : TAX_FIELDS}
         initial={editing ? editInitial(editing) : {}}
         note={editing?.source === 'etc'
