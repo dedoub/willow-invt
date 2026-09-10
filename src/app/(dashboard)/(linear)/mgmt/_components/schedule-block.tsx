@@ -87,7 +87,7 @@ function EventChip({ s, compact, onToggle, onSelect }: {
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
-      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
+      fontSize: `calc(${compact ? t.type.tableCell : t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
       display: 'flex', alignItems: 'flex-start', gap: t.density.gapXs,
     }}>
@@ -168,7 +168,7 @@ function DayCell({
         marginBottom: compact ? 3 : 6,
       }}>
         <span style={{
-          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
           color: isToday ? t.brand[700] : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>

@@ -57,11 +57,16 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 | 목록·표 메타(날짜·계좌·첨부 수) | `tableCell` | mono, subtle |
 | 행 안 숫자 | `tableBody` | mono, tabular |
 | 행 안 배지 | `LTableBadge` (`t.tableBadge`) | |
+| 기간 이동 라벨(2026년 9월) | `tableBody` | semibold, 쉐브론 사이 가운데 |
+| 캘린더 날짜 숫자 | `tableCell` | mono, medium |
+| 캘린더 일정 칩 | `tableCell`(월간) · `tableBody`(주간) | medium |
 | 카드 밖 독립 배지(다이얼로그 헤더) | `LBadge` (`t.badge`) | |
 | 본문 산문(위키 내용·노트·메시지) | `body` | regular, 행간 1.6~1.7 |
 | 다이얼로그 제목 / 히어로 숫자 | `sectionTitle` / `display` | semibold / bold |
 
 요약: **목록·표는 control 단계(11) + 메타 9, 산문과 KPI 값만 body(13), 제목만 15.** 목록 행 제목에 body를 쓰지 않는다.
+
+인라인에 생 px를 쓰지 않는다. 2026-09-10 기준 캘린더 칩·날짜에 남아 있던 10·10.5px와 페이지 크기 입력의 9px를 위 역할로 되돌려, 사업관리 화면에 남은 크기는 9·11·13·15와 차트 축 8뿐이다.
 
 ### 렌더 배율
 

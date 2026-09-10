@@ -375,7 +375,7 @@ export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_
           style={{
             width: 52, paddingLeft: t.density.gapXs, paddingRight: t.density.controlPadXLg, textAlign: 'center',
             border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm,
-            fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono,
             color: t.neutrals.muted, paddingTop: t.density.tableRowGap, paddingBottom: t.density.tableRowGap, outline: 'none',
           }}
         />

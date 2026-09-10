@@ -352,7 +352,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
           <span style={{
-            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
             fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
           }}>
             {periodLabel}
@@ -401,7 +401,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
               <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 총 잔고 추이
               </span>
-              <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                 {totalBalanceSpark[0].date} ~ {totalBalanceSpark[totalBalanceSpark.length - 1].date}
               </span>
             </div>
@@ -503,7 +503,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedList.length)} / {sortedList.length}
             </span>
             <button

@@ -36,7 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.sans }}>
       <LIcon name={icon} size={14} stroke={1.8} color={t.neutrals.subtle} />
       <span>{children}</span>
     </div>
@@ -63,7 +63,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         {/* Header */}
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div data-eyebrow="" style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div data-eyebrow="" style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               CASHFLOW
             </div>
             <div style={{
