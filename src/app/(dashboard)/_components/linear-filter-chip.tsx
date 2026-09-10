@@ -40,6 +40,8 @@ export function LFilterChip<V extends string>(props: Props<V>) {
         return (
           <button
             key={opt.value}
+            data-filter-chip=""
+            data-active={active ? '' : undefined}
             onClick={() => onChange(opt.value)}
             style={{
               border: 'none', cursor: 'pointer',

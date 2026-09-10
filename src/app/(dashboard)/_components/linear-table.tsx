@@ -244,7 +244,7 @@ export function LTableEmpty({ children }: { children: React.ReactNode }) {
 /** 상태·구분 배지. 현금관리 타입 배지 스타일을 공용으로 뺐다. */
 export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
-    <span style={{
+    <span data-table-badge="" style={{
       display: 'inline-block', padding: `${t.tableBadge.padY}px ${t.tableBadge.padX}px`, borderRadius: t.tableBadge.radius,
       fontSize: `calc(${t.tableBadge.size}px * var(--fz, 1))`, fontWeight: t.tableBadge.weight, textAlign: 'center',
       background: tone.bg, color: tone.fg,

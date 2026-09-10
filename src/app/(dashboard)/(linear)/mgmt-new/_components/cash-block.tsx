@@ -234,8 +234,8 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
     return { krw, fx, totalKrw, asOfDate, hasData: Object.keys(lastByAccount).length > 0 }
   }, [balanceHistory, bankBalances, rangeStart, rangeEnd, usdRate])
 
-  // Build daily total-balance series (KRW-equivalent) with forward-fill,
-  // window: 1 year ending at the selected period's end date
+  // 일자별 총 잔고(원화 환산) — forward-fill.
+  // 창은 선택한 기간 그대로다: 9월이면 9월 한 달, 분기면 그 분기, 연간이면 그 해(CEO 2026-09-10).
   const totalBalanceSpark = useMemo(() => {
     if (!balanceHistory.length) return [] as Array<{ date: string; value: number }>
     const accountSet = new Set<string>()
@@ -249,10 +249,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
     const dates = Array.from(byDate.keys()).sort()
     if (dates.length === 0) return []
 
-    // Window: 1 year ending at rangeEnd (period's last day)
-    const start = new Date(rangeEnd)
-    start.setFullYear(start.getFullYear() - 1)
-    const sparkStart = start.toISOString().slice(0, 10)
+    const sparkStart = rangeStart
 
     const fxTotal = (vals: Record<string, number>) => {
       let total = 0
@@ -297,7 +294,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
       else series.push(point)
     }
     return series
-  }, [balanceHistory, bankBalances, usdRate, rangeEnd])
+  }, [balanceHistory, bankBalances, usdRate, rangeStart, rangeEnd])
 
   const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
 
@@ -329,7 +326,6 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: t.density.gapMd, flexWrap: 'wrap' as const,
           padding: `${t.density.panelPadX}px 0`,
-          borderBottom: `1px dashed ${t.neutrals.line}`,
         }}>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={navBtn} title="이전">
             <LIcon name="chevronLeft" size={14} stroke={2} />
@@ -358,11 +354,26 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           <Figure label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} divider />
           <Figure label="원화 잔고" value={`${periodEndBalance.krw.toLocaleString()}원`} divider />
           <Figure label="외화 잔고" value={`$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} divider />
-          <Figure
-            label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`}
-            spark={mobile ? undefined : totalBalanceSpark} divider
-          />
+          <Figure label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`} divider />
         </div>
+
+        {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}
+        {totalBalanceSpark.length > 1 && (
+          <div style={{ borderTop: `1px solid ${t.neutrals.line}`, padding: `${t.density.panelPadX}px ${t.density.panelPadX}px 0` }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              gap: t.density.gapSm, marginBottom: t.density.gapSm,
+            }}>
+              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                총 잔고 추이
+              </span>
+              <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                {totalBalanceSpark[0].date} ~ {totalBalanceSpark[totalBalanceSpark.length - 1].date}
+              </span>
+            </div>
+            <BalanceTrend points={totalBalanceSpark} />
+          </div>
+        )}
 
         {/* 3) 필터 · 검색 · 추가를 한 줄로 */}
         <div style={{
@@ -382,8 +393,8 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
                 width: '100%', boxSizing: 'border-box', height: t.density.controlHSm,
                 padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                 fontFamily: t.font.sans, color: t.neutrals.text,
-                background: t.neutrals.inner, border: 'none',
-                borderRadius: t.radius.sm, outline: 'none',
+                background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                borderRadius: t.radius.md, outline: 'none',
               }}
             />
             {searchQuery && (
@@ -526,6 +537,54 @@ function Figure({ label, value, tone, spark, divider }: {
             strokeLinejoin="round" strokeLinecap="round"
           />
         </svg>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 총 잔고 추이 — 선택 기간의 일자별 잔고 한 줄. 시리즈가 하나라 회색 단색이고 값은 호버로 읽는다.
+ */
+function BalanceTrend({ points }: { points: Array<{ date: string; value: number }> }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const values = points.map(p => p.value)
+  const max = Math.max(...values)
+  const min = Math.min(...values)
+  const span = max - min || 1
+  const x = (i: number) => (i / (points.length - 1)) * 100
+  const y = (v: number) => 100 - ((v - min) / span) * 100
+  const line = points.map((p, i) => `${x(i).toFixed(2)},${y(p.value).toFixed(2)}`).join(' ')
+
+  return (
+    <div
+      style={{ position: 'relative', height: 92 }}
+      onMouseLeave={() => setHover(null)}
+      onMouseMove={e => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+        setHover(Math.round(ratio * (points.length - 1)))
+      }}
+    >
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+        {[0, 100].map(p => (
+          <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.chart.grid} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        ))}
+        <polygon points={`0,100 ${line} 100,100`} fill={t.chart.monoFill} />
+        <polyline points={line} fill="none" stroke={t.chart.mono} strokeWidth={1.6} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+        {hover !== null && (
+          <line x1={x(hover)} x2={x(hover)} y1="0" y2="100" stroke={t.neutrals.muted} strokeWidth={1} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />
+        )}
+      </svg>
+      {hover !== null && (
+        <div style={{
+          position: 'absolute', left: `${Math.min(80, Math.max(20, x(hover)))}%`, transform: 'translateX(-50%)', top: -4,
+          background: '#1E293B', color: '#F8FAFC', pointerEvents: 'none', zIndex: 1,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.sans,
+          borderRadius: t.radius.md, padding: `${t.density.gapXs}px ${t.density.gapSm}px`, whiteSpace: 'nowrap', lineHeight: 1.4,
+        }}>
+          <span style={{ opacity: 0.7 }}>{points[hover].date}</span>{' '}
+          <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>{points[hover].value.toLocaleString()}원</span>
+        </div>
       )}
     </div>
   )

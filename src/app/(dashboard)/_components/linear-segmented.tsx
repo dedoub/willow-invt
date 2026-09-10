@@ -45,6 +45,8 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
         const active = value === opt.value
         return (
           <button
+            data-segment=""
+            data-active={active ? '' : undefined}
             key={opt.value}
             onClick={() => onChange(opt.value)}
             style={{
