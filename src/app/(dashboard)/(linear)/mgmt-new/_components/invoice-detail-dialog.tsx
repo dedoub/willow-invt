@@ -2,7 +2,6 @@
 
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
@@ -72,20 +71,18 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
 
       <LCard pad={0} style={{ position: 'relative', width: 420, maxWidth: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead
-            title={invoice.counterparty}
-            action={
-              <button onClick={onClose} title="닫기" style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
-                display: 'flex', alignItems: 'center',
-              }}>
-                <LIcon name="x" size={14} stroke={2} />
-              </button>
-            }
-            mb={0}
-          />
+        {/* 제목 없이 닫기만 — 거래처가 아래 항목에 있어 제목이 같은 말을 반복했다(CEO 2026-09-10) */}
+        <div style={{
+          padding: `${t.density.gapSm}px ${t.density.gapSm}px 0`,
+          display: 'flex', justifyContent: 'flex-end',
+        }}>
+          <button onClick={onClose} title="닫기" style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+            display: 'flex', alignItems: 'center',
+          }}>
+            <LIcon name="x" size={14} stroke={2} />
+          </button>
         </div>
 
         <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
