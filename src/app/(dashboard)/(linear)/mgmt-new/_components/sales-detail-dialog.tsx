@@ -53,8 +53,6 @@ export function SalesDetailDialog({ row, usdRate, onClose }: Props) {
   extras.push({ label: '발행일', value: row.issuedAt ?? '-', mono: true })
   if (foreign && usdRate > 0) extras.push({ label: '원화 환산', value: `${Math.round(row.krw).toLocaleString()}원`, mono: true })
   for (const item of row.extra) extras.push({ label: item.label, value: item.value, mono: item.mono })
-  // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
-  if (extras.length % cols !== 0) extras[extras.length - 1].span = cols
 
   return (
     <div style={{

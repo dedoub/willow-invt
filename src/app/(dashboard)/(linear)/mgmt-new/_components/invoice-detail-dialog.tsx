@@ -51,8 +51,6 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
       mono: true,
     },
   ]
-  // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
-  if (facts.length % cols !== 0) facts[facts.length - 1].span = cols
   if (invoice.description) facts.push({ label: '적요', value: invoice.description, prose: true, span: cols })
 
   return (

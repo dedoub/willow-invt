@@ -16,7 +16,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { FigureGrid, fillLastRow, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from './figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 
@@ -378,7 +378,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
             { label: '외화 잔고', value: `$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, mono: true },
             { label: '총 잔고', value: `${periodEndBalance.totalKrw.toLocaleString()}원`, mono: true, sub: asOf ? `${asOf} 기준` : undefined },
           ]
-          return <FigureGrid items={fillLastRow(figures, cols)} cols={cols} />
+          return <FigureGrid items={figures} cols={cols} />
         })()}
 
         {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}

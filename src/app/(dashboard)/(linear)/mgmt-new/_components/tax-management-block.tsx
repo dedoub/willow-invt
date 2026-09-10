@@ -9,7 +9,8 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
-import { FigureGrid, fillLastRow, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from './figure-grid'
+import { TaxDetailDialog } from './tax-detail-dialog'
 
 type SourceFilter = 'all' | TaxObligationSource
 
@@ -78,6 +79,7 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [selected, setSelected] = useState<FinanceTaxObligation | null>(null)
 
   const yearScoped = useMemo(
     () => obligations.filter(item => obligationYear(item) === String(year)),
@@ -171,7 +173,7 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
             { label: '납부완료', value: `${paid.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`, mono: true, sub: `${paid.length.toLocaleString()}건` },
             { label: '연체', value: `${overdue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원`, mono: true, tone: overdue.length ? 'neg' : undefined, sub: `${overdue.length.toLocaleString()}건` },
           ]
-          return <FigureGrid items={fillLastRow(figures, cols)} cols={cols} />
+          return <FigureGrid items={figures} cols={cols} />
         })()}
 
         {/* 상태 칩 · 검색 한 줄 — 검색에 들어가면 칩은 접혀 자리를 내준다 */}
@@ -226,7 +228,7 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
         <LTableBody columns={COLUMNS} mobile={mobile}>
           {paged.map(item => {
             return (
-              <LTableRow key={item.id} columns={COLUMNS} mobile={mobile}>
+              <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(item)}>
                 <LTableBadge tone={STATUS_TONES[item.status]}>{STATUS_LABELS[item.status]}</LTableBadge>
                 <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SOURCES[item.source]}</span>
                 <LTableDate value={item.due_date} />
@@ -283,6 +285,8 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
           </div>
         )}
       </div>
+
+      <TaxDetailDialog obligation={selected} onClose={() => setSelected(null)} />
     </LCard>
   )
 }

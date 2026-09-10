@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 
 /**
@@ -25,21 +26,25 @@ export type FigureItem = {
   /** 2 이상이면 그 줄 전체를 쓴다 */
   span?: number
   title?: string
+  /** 라벨 옆 작은 스위치 — 그 값이 무엇을 뜻하는지 바꾸는 컨트롤만 여기에 둔다 */
+  labelExtra?: ReactNode
 }
 
 export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number }) {
+  const laid = layout(items, cols)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
-      {items.map((f, i) => (
-        <div key={f.label} title={f.title} style={{
+      {laid.map((f, i) => (
+        <div key={`${i}-${f.label}`} title={f.title} style={{
           padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
           minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
           // 구분선은 열 수를 보고 첫 줄만 건너뛴다 — 모바일 2열에서 3열 기준으로 그으면 지그재그가 된다
-          borderTop: i >= cols ? `1px solid ${t.neutrals.line}` : undefined,
-          gridColumn: f.span && f.span > 1 ? `span ${f.span}` : undefined,
+          borderTop: i >= f.firstRowCount ? `1px solid ${t.neutrals.line}` : undefined,
+          gridColumn: f.span > 1 ? `span ${f.span}` : undefined,
         }}>
           <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
             {f.label}
+            {f.labelExtra}
           </span>
           <span style={{
             fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
@@ -66,9 +71,27 @@ export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number 
   )
 }
 
-/** 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다 */
-export function fillLastRow(items: FigureItem[], cols: number) {
-  const rest = items.length % cols
-  if (rest !== 0) items[items.length - 1].span = cols - rest + 1
-  return items
+/**
+ * 칸을 줄에 앉히면서 빈칸을 없앤다.
+ * 줄 끝에 한 칸이 비면 그 위 구분선이 반만 그어지므로, 앞 칸을 남은 폭만큼 늘려 줄을 채운다.
+ * 마지막 줄도 같은 규칙으로 채운다.
+ */
+function layout(items: FigureItem[], cols: number): Array<FigureItem & { span: number; firstRowCount: number }> {
+  const laid = items.map(f => ({ ...f, span: Math.min(Math.max(f.span ?? 1, 1), cols), firstRowCount: 0 }))
+  let col = 0
+  let firstRowCount = laid.length
+  for (let i = 0; i < laid.length; i++) {
+    if (col + laid[i].span > cols) {
+      if (i > 0) laid[i - 1].span += cols - col
+      col = 0
+    }
+    col += laid[i].span
+    if (col >= cols) {
+      if (firstRowCount === laid.length) firstRowCount = i + 1
+      col = 0
+    }
+  }
+  if (col > 0 && laid.length > 0) laid[laid.length - 1].span += cols - col
+  for (const f of laid) f.firstRowCount = firstRowCount
+  return laid
 }

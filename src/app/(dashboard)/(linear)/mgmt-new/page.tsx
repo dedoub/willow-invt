@@ -14,7 +14,7 @@ import { ScheduleBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/sched
 import { CashBlockNew as CashBlock } from './_components/cash-block'
 import { TaxManagementBlockNew } from './_components/tax-management-block'
 import { SalesBlockNew } from './_components/sales-block'
-import { CardBlock } from '@/app/(dashboard)/_components/card-block'
+import { CardBlockNew } from './_components/card-block'
 import { AddScheduleDialog, ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
 import { InvoiceDetailDialogNew } from './_components/invoice-detail-dialog'
@@ -457,7 +457,7 @@ export default function MgmtNewPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
             <TaxManagementBlockNew obligations={taxObligations} />
-            <CardBlock
+            <CardBlockNew
               approvals={cardApprovals}
               billing={cardBilling}
               year={cardYear}

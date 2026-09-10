@@ -49,7 +49,6 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
     { label: '일자', value: dateDisplay, mono: true },
   ]
   if (timeDisplay) facts.push({ label: '시간', value: timeDisplay, mono: true })
-  if (facts.length % cols !== 0) facts[facts.length - 1].span = cols
   if (schedule.milestones && schedule.milestones.length > 0) {
     facts.push({ label: '마일스톤', value: schedule.milestones.map(ms => ms.name).join(', '), prose: true, span: cols })
   }

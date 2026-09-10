@@ -10,7 +10,7 @@ import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber,
   LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import type { WillowInvoice, WillowTaxInvoice } from '@/types/willow-mgmt'
-import { FigureGrid, fillLastRow, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from './figure-grid'
 import { SalesDetailDialog } from './sales-detail-dialog'
 
 // 윌로우 매출은 두 갈래다.
@@ -229,7 +229,7 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
               },
             ]
             : [{ label: '매입 합계', value: `${Math.round(grandTotal).toLocaleString()}원`, mono: true, title: '홈택스에서 수집한 매입 전자세금계산서' }]
-          return <FigureGrid items={fillLastRow(figures, figureCols)} cols={figureCols} />
+          return <FigureGrid items={figures} cols={figureCols} />
         })()}
 
         {/* 검색 — 표 바로 위 한 줄 */}
