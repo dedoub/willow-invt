@@ -43,7 +43,7 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
   const facts: FigureItem[] = [
     { label: '구분', value: TYPE_LABELS[invoice.type] ?? invoice.type },
     { label: '날짜', value: invoice.payment_date || invoice.issue_date || '-', mono: true },
-    { label: '거래처', value: invoice.counterparty },
+    { label: '거래처', value: invoice.counterparty, wrap: true },
     {
       label: '금액',
       value: `${isIncome ? '+' : '-'}${Math.abs(invoice.amount).toLocaleString()}원`,

@@ -20,6 +20,8 @@ export type FigureItem = {
   mono?: boolean
   /** 산문(적요·설명) — 굵기를 빼고 줄바꿈을 허용한다 */
   prose?: boolean
+  /** 값이 길면 줄바꿈한다 — 잘라내면 곤란한 이름(거래처 등) */
+  wrap?: boolean
   /** 2 이상이면 그 줄 전체를 쓴다 */
   span?: number
   title?: string
@@ -46,8 +48,10 @@ export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number 
             fontVariantNumeric: f.mono ? 'tabular-nums' : undefined,
             color: f.tone === 'pos' ? t.accent.pos : f.tone === 'neg' ? t.accent.neg : t.neutrals.text,
             lineHeight: f.prose ? 1.6 : 1.3,
-            whiteSpace: f.prose ? 'pre-wrap' : 'nowrap',
-            overflow: f.prose ? undefined : 'hidden', textOverflow: f.prose ? undefined : 'ellipsis',
+            whiteSpace: f.prose ? 'pre-wrap' : f.wrap ? 'normal' : 'nowrap',
+            wordBreak: f.wrap ? 'break-word' : undefined,
+            overflow: f.prose || f.wrap ? undefined : 'hidden',
+            textOverflow: f.prose || f.wrap ? undefined : 'ellipsis',
           }}>
             {f.value}
           </span>

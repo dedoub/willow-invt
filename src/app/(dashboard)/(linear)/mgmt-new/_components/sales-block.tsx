@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -11,6 +11,7 @@ import {
   LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import type { WillowInvoice, WillowTaxInvoice } from '@/types/willow-mgmt'
 import { FigureGrid, fillLastRow, type FigureItem } from './figure-grid'
+import { SalesDetailDialog } from './sales-detail-dialog'
 
 // 윌로우 매출은 두 갈래다.
 //   세금계산서 — 홈택스에서 수집한 국내 전자세금계산서(원화)
@@ -54,6 +55,13 @@ const COLUMNS: LColumn<SalesRow>[] = [
 
 const SOURCE_LABEL: Record<Source, string> = { tax: '계산서', etc: '인보이스' }
 
+// 구분 칩은 색조 대신 회색 명도로만 나눈다 — 국내 계산서가 대다수라 옅게 깔고,
+// 해외 인보이스를 한 단계 진하게 둬서 눈에 먼저 걸리게 한다(2026-09-10 카드 문법).
+const SOURCE_TONES: Record<Source, { bg: string; fg: string }> = {
+  tax: { bg: '#EDEFF2', fg: '#3A4048' },
+  etc: { bg: '#D3D7DD', fg: '#1F242B' },
+}
+
 function getStoredPageSize(): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
   const n = Number(localStorage.getItem(PAGE_SIZE_KEY))
@@ -76,7 +84,7 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<SalesRow | null>(null)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<SalesRow>('willow-sales', COLUMNS)
 
   const yearFiltered = useMemo<SalesRow[]>(() => {
@@ -159,7 +167,7 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
   const handleModeChange = (next: Mode) => {
     setMode(next)
     setPage(0)
-    setExpandedId(null)
+    setSelected(null)
   }
 
   return (
@@ -259,12 +267,11 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
         {paged.length === 0 && <LTableEmpty>해당 연도 세금계산서가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map(row => {
-          const expanded = expandedId === row.id
           const foreign = row.currency !== 'KRW'
           return (
             <div key={row.id}>
-              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : row.id)}>
-                <LTableBadge tone={row.source === 'etc' ? tonePalettes.info : tonePalettes.neutral}>
+              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setSelected(row)}>
+                <LTableBadge tone={SOURCE_TONES[row.source]}>
                   {SOURCE_LABEL[row.source]}
                 </LTableBadge>
                 <LTableDate value={row.date} format="ymd" />
@@ -288,27 +295,10 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
                   <LTableNumber value={row.amount} />
                 )}
                 <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
-                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
+                  <LIcon name="chevronRight" size={12} stroke={2} />
                 </span>
               </LTableRow>
 
-              {expanded && (() => {
-                // 펼친 상세도 카드 지표와 같은 문법 — 회색 판 대신 행 구분선만
-                const detailCols = mobile ? 2 : 4
-                const details: FigureItem[] = []
-                if (row.regNumber) details.push({ label: '사업자번호', value: row.regNumber, mono: true })
-                details.push({ label: '발행일', value: row.issuedAt ?? '-', mono: true })
-                if (foreign && usdRate > 0) details.push({ label: '원화 환산', value: `${Math.round(row.krw).toLocaleString()}원`, mono: true })
-                for (const item of row.extra) details.push({ label: item.label, value: item.value, mono: item.mono })
-                return (
-                  <div style={{
-                    padding: `${t.density.gapXs}px 0 ${t.density.gapSm}px`,
-                    borderTop: `1px solid ${t.neutrals.line}`,
-                  }}>
-                    <FigureGrid items={fillLastRow(details, detailCols)} cols={detailCols} />
-                  </div>
-                )
-              })()}
             </div>
           )
         })}
@@ -357,6 +347,12 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
           </div>
         )}
       </div>
+
+      <SalesDetailDialog
+        row={selected ? { ...selected, sourceLabel: SOURCE_LABEL[selected.source] } : null}
+        usdRate={usdRate}
+        onClose={() => setSelected(null)}
+      />
     </LCard>
   )
 }
