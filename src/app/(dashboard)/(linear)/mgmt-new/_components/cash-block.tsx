@@ -3,7 +3,8 @@
 /**
  * 현금관리 카드 — 새 디자인(사업관리 NEW 전용).
  * 데이터·계산·동작은 /mgmt 의 CashBlock 과 같다. 바꾼 것은 카드 안 배치뿐이다:
- *   1) 헤더 한 줄 — 눈썹·제목·기간을 왼쪽에 모으고 기간 이동·모드·업로드를 오른쪽 끝에 붙인다(중앙 기간 줄 삭제).
+ *   1) 헤더는 제목과 업로드만. 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
+ *      기간(화살표·라벨·월/분기/연)은 카드 전체에 걸리는 조건이라 가운데 한 줄로 세우고 아래와 점선으로 나눈다.
  *   2) 지표는 박스를 벗고 한 줄로 선다 — 핵심 4개는 크게, 나머지 5개는 작게. 칸은 선 하나로만 나눈다.
  *   3) 필터 칩·검색·추가를 한 줄로 합친다.
  * 지표 9개·표 열·행 높이는 그대로라 밀도는 변하지 않는다.
@@ -296,8 +297,6 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
     }
     return series
   }, [balanceHistory, bankBalances, usdRate, rangeEnd])
-  const eyebrowLabel = periodMode === 'month' ? 'CASHFLOW · 월간'
-    : periodMode === 'quarter' ? 'CASHFLOW · 분기' : 'CASHFLOW · 연간'
 
   const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
 
@@ -305,38 +304,52 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {/* 1) 헤더 한 줄 — 기간 이동까지 여기서 끝낸다 */}
-        <LSectionHead
-          eyebrow={eyebrowLabel}
-          title="현금관리"
-          meta={periodLabel}
-          tools={
-            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-              <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={navBtn}>
-                <LIcon name="chevronLeft" size={13} stroke={2} />
-              </button>
-              <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={navBtn}>
-                <LIcon name="chevronRight" size={13} stroke={2} />
-              </button>
-              <LSegmented
-                value={periodMode}
-                onChange={setPeriodMode}
-                options={[
-                  { value: 'month', label: MODE_LABELS.month },
-                  { value: 'quarter', label: MODE_LABELS.quarter },
-                  { value: 'year', label: MODE_LABELS.year },
-                ]}
-              />
-            </div>
-          }
-          action={
-            <LHeadBtn icon="file" title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영" onClick={() => !parsing && fileInputRef.current?.click()} busy={parsing} />
-          }
-        />
+        {/* 헤더 영역 — 제목과 카드 액션만. 아래 영역과는 점선으로 나눈다 */}
+        <div style={{ paddingBottom: t.density.panelPadY, borderBottom: `1px dashed ${t.neutrals.line}` }}>
+          <LSectionHead
+            title="현금관리"
+            action={
+              <LHeadBtn icon="file" title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영" onClick={() => !parsing && fileInputRef.current?.click()} busy={parsing} />
+            }
+            mb={0}
+          />
+        </div>
+
+        {/* 1-2) 기간 — 카드 전체에 걸리는 조건이라 가운데에 크게 두고, 아래 지표와는 점선으로 나눈다 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: t.density.gapMd, flexWrap: 'wrap' as const,
+          padding: `${t.density.panelPadX}px 0`,
+          borderBottom: `1px dashed ${t.neutrals.line}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+            <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={navBtn} title="이전">
+              <LIcon name="chevronLeft" size={14} stroke={2} />
+            </button>
+            <span style={{
+              fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+              fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+            }}>
+              {periodLabel}
+            </span>
+            <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={navBtn} title="다음">
+              <LIcon name="chevronRight" size={14} stroke={2} />
+            </button>
+          </div>
+          <LSegmented
+            value={periodMode}
+            onChange={setPeriodMode}
+            options={[
+              { value: 'month', label: MODE_LABELS.month },
+              { value: 'quarter', label: MODE_LABELS.quarter },
+              { value: 'year', label: MODE_LABELS.year },
+            ]}
+          />
+        </div>
 
         {/* 2) 지표 — 박스 없이 선으로만 나눈다. 위 4개가 핵심, 아래 5개가 보조 */}
         <div style={{
           display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
-          borderTop: `1px solid ${t.neutrals.line}`,
         }}>
           <Figure label="매출" value={`${revenue.toLocaleString()}원`} />
           <Figure label="비용" value={`${expense.toLocaleString()}원`} />

@@ -702,10 +702,6 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border: none;
   border-radius: 8px;
 }
-.theme-outline [data-section-head] {
-  border-bottom: 1px dashed #E5E7EB;
-  padding-bottom: 12px;
-}
 .theme-outline [data-card-foot] {
   border-top-color: #E5E7EB;
 }
