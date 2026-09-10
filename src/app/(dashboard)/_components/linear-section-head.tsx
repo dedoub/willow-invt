@@ -46,9 +46,11 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
       {/* 1행: 제목 + 기본 컨트롤(action) — 어떤 화면에서도 이 줄은 깨지지 않는다.
           제목은 넘치면 줄임표, action은 flexShrink 0.
           tools는 데스크톱에서 이 줄에 합류하고, toolsInline이면 모바일에서도 남는다. */}
+      {/* 제목 줄은 컨트롤 한 칸 높이를 최소로 잡는다 — 탭이 있는 카드와 제목만 있는 카드의
+          머리 높이가 달라 나란히 놓으면 아래 줄이 어긋났다(CEO 2026-09-11). */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: t.density.kpiGap,
-        flexWrap: 'nowrap',
+        flexWrap: 'nowrap', minHeight: t.density.controlHSm,
       }}>
         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           {eyebrow && (

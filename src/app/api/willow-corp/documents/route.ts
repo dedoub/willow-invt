@@ -15,6 +15,8 @@ export async function GET(request: Request) {
       .from('willow_corp_documents')
       .select('*, versions:willow_corp_document_versions!willow_corp_document_versions_document_id_fkey(id, version_no, kind, mime, size_bytes, sha256, note, generated_by, created_at)')
       .eq('company', companyParam(request))
+      // 원장은 append-only라 지울 수 없다. 화면에서 뺄 기록은 hidden_at 으로 가린다(2026-09-11).
+      .is('hidden_at', null)
       .order('created_at', { ascending: false })
     if (error) throw error
     const documents = (data ?? []).map(d => ({
