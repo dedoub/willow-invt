@@ -799,6 +799,32 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 6px !important;
 }
 
+/* 위키 본문 — 노트가 자기 크기(16·14·13·12px)를 들고 있어 카드 위계와 어긋난다.
+   실험 테마에서는 본문 단계와 제목 단계만 쓰고, 배율(--fz)도 같이 받게 한다(2026-09-11). */
+.theme-outline .wiki-content {
+  font-size: calc(13px * var(--fz, 1));
+  line-height: 1.7;
+}
+.theme-outline .wiki-content h1 {
+  font-size: calc(15px * var(--fz, 1));
+  font-weight: 620;
+  margin: 1.1em 0 0.4em;
+}
+.theme-outline .wiki-content h2,
+.theme-outline .wiki-content h3,
+.theme-outline .wiki-content h4,
+.theme-outline .wiki-content h5,
+.theme-outline .wiki-content h6 {
+  font-size: calc(13px * var(--fz, 1));
+  font-weight: 620;
+  margin: 1em 0 0.3em;
+}
+.theme-outline .wiki-content table,
+.theme-outline .wiki-content code,
+.theme-outline .wiki-content pre {
+  font-size: calc(11px * var(--fz, 1));
+}
+
 /* 삭제만 붉은 선과 붉은 글자를 쓴다 — 되돌릴 수 없는 동작은 눌리기 전에 보여야 한다 */
 .theme-outline [data-danger-action] button {
   color: #C23A3A !important;

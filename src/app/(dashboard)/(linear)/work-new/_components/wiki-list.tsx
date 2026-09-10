@@ -387,7 +387,11 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                           minWidth: 0, fontWeight: t.weight.medium, color: t.neutrals.text,
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         }} title={note.title || '(제목 없음)'}>
-                          {note.is_pinned && <span style={{ marginRight: t.density.gapXs }}>📌</span>}
+                          {note.is_pinned && (
+                            <span style={{ marginRight: t.density.gapXs, color: t.chart.mono, display: 'inline-flex', verticalAlign: '-1px' }}>
+                              <LIcon name="pin" size={10} stroke={2} />
+                            </span>
+                          )}
                           {note.title || '(제목 없음)'}
                         </span>
                         <span style={{
@@ -500,7 +504,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               {/* Detail header */}
               <div style={{
                 // 모달에선 우상단 닫기(X) 자리를 비워 둔다 — 편집 버튼과 겹치지 않게.
-                padding: modal ? '14px 48px 12px 18px' : '14px 18px 12px',
+                padding: modal ? `${t.density.cardPad}px 48px ${t.density.panelPadX}px ${t.density.cardPad}px` : `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px`,
                 borderBottom: `1px solid ${t.neutrals.line}`,
                 // 본문이 길어 스크롤해도 제목·배지·편집은 위에 남는다(CEO 2026-09-10).
                 position: 'sticky', top: 0, zIndex: 1, background: t.neutrals.card,
@@ -513,11 +517,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
-                    <button onClick={handlePin} style={{
+                    {/* 아이콘만 든 버튼이라 테마가 칩 테두리를 씌우지 않는다. 고정은 강조색으로만 표시한다 */}
+                    <button onClick={handlePin} title={selectedNote.is_pinned ? '고정 해제' : '고정'} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-                      borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
-                      color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
-                    }}>📌</button>
+                      borderRadius: t.radius.sm, flexShrink: 0, display: 'flex', alignItems: 'center',
+                      color: selectedNote.is_pinned ? t.chart.mono : t.neutrals.subtle,
+                    }}>
+                      <LIcon name="pin" size={14} stroke={2} />
+                    </button>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
@@ -534,7 +541,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               </div>
 
               {/* Detail body */}
-              <div style={{ padding: `${t.density.controlPadXMd}px ${t.density.controlPadXLg}px`, flex: 1 }}>
+              <div style={{ padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, flex: 1 }}>
                 {hasSelectedContent ? (
                   <div
                     style={{
@@ -557,8 +564,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     {selectedNote.attachments.map((f, i) => (
                       <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
                         display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
-                        background: t.neutrals.inner, borderRadius: t.radius.sm,
-                        padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],
+                        background: 'transparent', border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm,
+                        padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                         textDecoration: 'none',
                       }}>
                         <LIcon name="paperclip" size={11} />
@@ -569,16 +576,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 )}
 
                 {/* 노트 메모 — 윌리가 점검해 후속조치 (📝 미확인 / ✅ 확인됨) */}
-                <div style={{ marginTop: 18, paddingTop: t.density.blockGap, borderTop: `1px solid ${t.neutrals.line}` }}>
-                  <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: t.density.kpiGap }}>
-                    메모{(selectedNote.memos?.length || 0) > 0 ? ` (${selectedNote.memos!.length})` : ''}
+                <div style={{ marginTop: t.density.pagePadBottom, paddingTop: t.density.blockGap, borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapSm }}>
+                    메모{(selectedNote.memos?.length || 0) > 0 ? ` ${selectedNote.memos!.length}` : ''}
                   </div>
 
                   {(selectedNote.memos || []).map(m => (
                     <div key={m.id} style={{
                       display: 'flex', alignItems: 'flex-start', gap: t.density.gapSm,
-                      background: t.neutrals.inner, borderRadius: t.radius.sm,
-                      padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, marginBottom: t.density.gapXs,
+                      padding: `${t.density.gapSm}px 0`,
+                      borderTop: `1px solid ${t.neutrals.line}`,
                     }}>
                       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
                         {m.reviewed_at ? '✅' : '📝'}
@@ -598,20 +605,23 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                     </div>
                   ))}
 
-                  <div style={{ display: 'flex', gap: t.density.gapSm, marginTop: t.density.gapSm }}>
+                  {/* 입력칸과 버튼은 같은 높이(controlHSm)로 맞춘다 — 카드의 검색창과 같은 규격 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.gapSm }}>
                     <input
                       value={newMemo}
                       onChange={e => setNewMemo(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
-                      placeholder="이 노트에 메모 추가… (엔터)"
+                      placeholder="이 노트에 메모 추가 (엔터)"
                       style={{
-                        flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                        background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-                        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
+                        flex: 1, minWidth: 0, boxSizing: 'border-box',
+                        height: t.density.controlHSm,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                        background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm,
+                        padding: `0 ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
                       }}
                     />
                     <LBtn size="sm" variant="secondary" onClick={handleAddMemo} disabled={savingMemo || !newMemo.trim()}
-                      style={{ flexShrink: 0, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle }}>
+                      style={{ flexShrink: 0 }}>
                       추가
                     </LBtn>
                   </div>
@@ -621,7 +631,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
               {/* 상세 끝단 — 사업관리 상세 모달과 같이 삭제·수정 두 버튼 */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
-                margin: `${t.density.gapMd}px ${t.density.controlPadXLg}px 0`, paddingBottom: t.density.cardPad,
+                margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
               }}>
                 <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={handleDelete}>삭제</LBtn></span>
                 <LBtn variant="secondary" size="sm" onClick={() => setEditing(true)}>수정</LBtn>
