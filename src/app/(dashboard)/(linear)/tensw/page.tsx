@@ -277,6 +277,7 @@ export default function TenswPage() {
       title: data.title,
       schedule_date: data.schedule_date,
       type: data.type,
+      category: data.category,
       client_id: data.client_id || null,
     }
     if (isEdit) body.id = data.id
@@ -485,7 +486,6 @@ export default function TenswPage() {
           {/* Schedule (full width) */}
           <ScheduleBlock
             schedules={schedules}
-            clients={clients}
             onAddSchedule={handleAddSchedule}
             onToggleComplete={handleToggleComplete}
             onSelectSchedule={setSelectedSchedule}
@@ -531,10 +531,10 @@ export default function TenswPage() {
             </div>
           </div>
 
-          {/* Wiki (2fr) + Email (1fr) — 1열 토글 시에도 세로 스택 */}
+          {/* Wiki (1/2) + Email (1/2) — 위키는 목록만, 상세는 모달 (CEO 2026-09-10). 1열 토글 시엔 세로 스택 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'),
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
             gap: t.density.blockGap,
           }}>
             <TenswWikiBlock

@@ -65,6 +65,42 @@ interface WikiListProps {
    * 그리드 행 높이와 무관해서, 옆 이메일 블록이 길어져도 위키만 안 따라간다.
    */
   fillHeight?: boolean
+  /**
+   * 상세를 어디에 그리나. 기본 'pane'은 목록 옆 2단. 'modal'은 목록만 카드에 남기고
+   * 상세·추가·편집을 모달로 띄운다(텐소 — 이메일과 1/2씩 나눠 쓰는 자리라 2단이 들어가지 않음, 2026-09-10).
+   */
+  detailMode?: 'pane' | 'modal'
+}
+
+/** 모달 셸 — corp/document-dialog 와 같은 문법(백드롭 + 카드). 상세 패널을 그대로 안에 넣는다. */
+function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
+      <div style={{
+        position: 'relative', width: 'min(720px, calc(100vw - 24px))', height: 'min(85vh, 760px)',
+        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <button onClick={onClose} aria-label="닫기" style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 1,
+          background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm, padding: 6,
+          cursor: 'pointer', color: t.neutrals.muted, display: 'flex',
+        }}>
+          <LIcon name="x" size={14} stroke={2} />
+        </button>
+        {children}
+      </div>
+    </div>
+  )
+}
+function PassThrough({ children }: { children: React.ReactNode; onClose: () => void }) {
+  return <>{children}</>
 }
 
 function fmtDate(dateStr: string): string {
@@ -84,10 +120,14 @@ function getSearchableWikiText(content: string): string {
   return htmlToPlainText(renderWikiHtml(content))
 }
 
-export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter, embedded, fillHeight }: WikiListProps) {
+export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFilter, embedded, fillHeight, detailMode = 'pane' }: WikiListProps) {
   const mobile = useIsMobile()
   // 임베드 모드에선 실제 모바일이 아니어도 모바일식(리스트 → 클릭 시 상세, 리스트 감춤) 레이아웃 사용
-  const compact = mobile || !!embedded
+  const modal = detailMode === 'modal'
+  // modal 도 compact 로 친다 — 목록이 전체 폭을 쓰고 2단 구분선이 없다는 점이 같다.
+  const compact = mobile || !!embedded || modal
+  const DetailShell = modal ? ModalShell : PassThrough
+  const closeDetail = () => { setSelectedId(null); setAdding(false); setEditing(false) }
   // 부모 높이 채우기. embedded는 이걸 항상 포함하고, fillHeight는 이것만 켠다.
   const fill = !!embedded || !!fillHeight
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
@@ -147,14 +187,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   // useIsMobile 훅은 첫 렌더 시 항상 false를 반환하므로 window 너비를 직접 체크해야 한다.
   useEffect(() => {
     if (selectedId || notes.length === 0) return
-    if (embedded) return // 임베드: 리스트 우선, 클릭해야 상세 진입
+    if (embedded || modal) return // 임베드·모달: 리스트 우선, 클릭해야 상세 진입
     if (typeof window !== 'undefined' && window.innerWidth < 768) return
     const latest = notes.reduce((acc, n) => {
       if (!acc) return n
       return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
     }, notes[0])
     if (latest) setSelectedId(latest.id)
-  }, [selectedId, notes, embedded])
+  }, [selectedId, notes, embedded, modal])
 
   const handleFilterChange = (f: SectionFilter) => {
     setSectionFilter(f)
@@ -245,7 +285,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           : { height: compact ? 'auto' : availH }),
       }}>
         {/* ===== LEFT PANEL: list ===== */}
-        {(!compact || (!selectedId && !adding)) && (
+        {(modal || !compact || (!selectedId && !adding)) && (
         <div style={{
           width: compact ? '100%' : '42%',
           minWidth: compact ? undefined : 280,
@@ -413,9 +453,10 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
         {/* ===== RIGHT PANEL: detail ===== */}
         {(!compact || selectedId || adding) && (
+        <DetailShell onClose={closeDetail}>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
-          overflow: (mobile && !embedded) ? 'visible' : 'hidden', minHeight: 0,
+          overflow: (mobile && !embedded && !modal) ? 'visible' : 'hidden', minHeight: 0,
           // fillHeight에선 섹션 높이를 왼쪽 목록(기본 10행)이 정해야 한다. 이 상세 패널은
           // flex 교차축에서 자기 내용 높이를 컨테이너로 올려보내서, 긴 노트를 열면 섹션이
           // 그만큼 길어졌다. overflow:hidden으로는 안 막힌다 — 내재 크기 계산엔 그대로 들어간다.
@@ -423,9 +464,9 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           ...(fillHeight && !compact ? { contain: 'size' as const, alignSelf: 'stretch' as const } : {}),
         }}>
           {/* 목록으로 back button (compact) */}
-          {compact && (
+          {compact && !modal && (
             <button
-              onClick={() => { setSelectedId(null); setAdding(false); setEditing(false) }}
+              onClick={closeDetail}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -439,12 +480,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           )}
           {adding ? (
             /* New note form — 뷰포트 높이 안에서 폼 내부 스크롤 */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded) ? 'visible' : 'auto', minHeight: 0 }}>
+            <div style={{ padding: modal ? '14px 14px 14px' : 14, paddingTop: modal ? 40 : 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded && !modal) ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm onSave={handleCreate} onCancel={() => setAdding(false)} />
             </div>
           ) : selectedNote && editing ? (
             /* Edit mode — 뷰포트 높이 안에서 폼 내부 스크롤 */
-            <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded) ? 'visible' : 'auto', minHeight: 0 }}>
+            <div style={{ padding: modal ? '14px 14px 14px' : 14, paddingTop: modal ? 40 : 14, flex: 1, display: 'flex', flexDirection: 'column', overflowY: (mobile && !embedded && !modal) ? 'visible' : 'auto', minHeight: 0 }}>
               <WikiNoteForm
                 initial={{
                   section: selectedNote.section as WikiSection,
@@ -462,7 +503,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {/* Detail header */}
               <div style={{
-                padding: '14px 18px 12px',
+                // 모달에선 우상단 닫기(X) 자리를 비워 둔다 — 편집 버튼과 겹치지 않게.
+                padding: modal ? '14px 48px 12px 18px' : '14px 18px 12px',
                 borderBottom: `1px solid ${t.neutrals.line}`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -611,6 +653,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             </div>
           )}
         </div>
+        </DetailShell>
         )}
       </div>
     </LCard>

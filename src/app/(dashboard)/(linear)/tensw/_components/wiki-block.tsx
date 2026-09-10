@@ -32,6 +32,8 @@ export function TenswWikiBlock({ notes, loading, onCreate, onUpdate, onDelete, f
       onDelete={onDelete}
       hideFilter
       fillHeight={fillHeight}
+      // 이메일과 1/2씩 나누는 자리라 2단(목록+상세)이 들어가지 않는다. 목록만 두고 상세는 모달(CEO 2026-09-10).
+      detailMode="modal"
     />
   )
 }
