@@ -62,7 +62,7 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
             const end = doc.valid_to ?? doc.contract_end
             return (
               <LTableRow key={doc.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(doc)}>
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
                   {doc.doc_no}
                 </span>
                 <LTableBadge tone={docStatusTone(doc.status)}>
@@ -87,7 +87,7 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
                     </span>
                   ) : <span style={{ color: t.neutrals.subtle }}>-</span>
                 )}
-                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: doc.versions.length ? t.neutrals.text : t.neutrals.subtle }}>
+                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: doc.versions.length ? t.neutrals.text : t.neutrals.subtle }}>
                   {doc.versions.length ? `v${doc.versions.length}` : '없음'}
                 </span>
                 <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
@@ -124,7 +124,7 @@ export function Pagination({ page, totalPages, pageSize, total, onPage, onPageSi
           <button disabled={atStart} onClick={() => onPage(p => Math.max(0, p - 1))} style={pagerBtn(atStart)}>
             <LIcon name="chevronLeft" size={13} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+          <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
             {page * pageSize + 1}-{Math.min((page + 1) * pageSize, total)} / {total}
           </span>
           <button disabled={atEnd} onClick={() => onPage(p => p + 1)} style={pagerBtn(atEnd)}>

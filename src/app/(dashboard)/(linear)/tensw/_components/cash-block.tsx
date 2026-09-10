@@ -311,7 +311,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
@@ -347,7 +347,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
               return (
                 <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                  padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active ? t.brand[100] : t.neutrals.inner,
                   color: active ? t.brand[700] : t.neutrals.muted,
@@ -369,7 +369,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
             placeholder="거래처 · 적요 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -410,7 +410,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
                   title={item.account_number ?? ''}
                   style={{
                     minWidth: 0, color: t.neutrals.subtle, fontFamily: t.font.mono,
-                    fontSize: 'calc(10px * var(--fz, 1))', whiteSpace: 'nowrap',
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, whiteSpace: 'nowrap',
                     overflow: 'hidden', textOverflow: 'ellipsis',
                   }}
                 >
@@ -463,7 +463,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sortedList.length)} / {sortedList.length}
             </span>
             <button
@@ -513,12 +513,12 @@ function BankBalanceModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
             <div style={{
-              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+              fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
               textTransform: 'uppercase', color: t.neutrals.subtle, marginBottom: 2,
             }}>
               BALANCE
             </div>
-            <div style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: 600 }}>{bank}은행 계좌별 잔고</div>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600 }}>{bank}은행 계좌별 잔고</div>
           </div>
           <button onClick={onClose} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -530,7 +530,7 @@ function BankBalanceModal({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {sorted.length === 0 && (
-            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
+            <div style={{ padding: '16px 0', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
               등록된 계좌가 없습니다
             </div>
           )}
@@ -540,16 +540,16 @@ function BankBalanceModal({
               gap: 8, alignItems: 'center',
               padding: '7px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner,
             }}>
-              <span style={{ minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {b.account_number ?? b.bank_name}
                 {b.balance_date && (
-                  <span style={{ marginLeft: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  <span style={{ marginLeft: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     {b.balance_date}
                   </span>
                 )}
               </span>
               <span style={{
-                fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 500,
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
                 fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
               }}>
                 {Number(b.balance).toLocaleString()}원
@@ -562,9 +562,9 @@ function BankBalanceModal({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.neutrals.line}`,
         }}>
-          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>합계</span>
+          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>합계</span>
           <span style={{
-            fontSize: 'calc(13px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
             fontVariantNumeric: 'tabular-nums',
           }}>
             {total.toLocaleString()}원

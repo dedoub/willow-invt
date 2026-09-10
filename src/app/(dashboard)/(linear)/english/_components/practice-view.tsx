@@ -327,7 +327,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
 
           {/* 안내문 — 탭(모드) 줄과 분리해 헤더 아래 한 줄로 (3개 프로필 공통 위치) */}
           <div style={{
-            fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
             lineHeight: 1.5, marginBottom: t.density.gapMd,
           }}>{note}</div>
 
@@ -374,23 +374,23 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
 
       {error && (
         <LCard>
-          <span style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.accent.neg }}>{error}</span>
+          <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.accent.neg }}>{error}</span>
         </LCard>
       )}
 
       {loading ? (
         <LCard>
-          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: 'calc(13px * var(--fz, 1))' }}>
+          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: `calc(${t.type.body}px * var(--fz, 1))` }}>
             문제 불러오는 중…
           </div>
         </LCard>
       ) : !current ? (
         <LCard>
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, marginBottom: t.density.gapSm }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, marginBottom: t.density.gapSm }}>
               {queue.length > 0 ? '이번 큐 완료 🎉' : '풀 문제가 없습니다'}
             </div>
-            <div style={{ fontSize: 'calc(13px * var(--fz, 1))', color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
+            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
               {queue.length > 0
                 ? `${queue.length}문장 학습했습니다. 새 큐를 받아 계속하세요.`
                 : generating
@@ -416,7 +416,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                 </LBadge>
                 {current.topic && <LBadge tone="neutral">{current.topic}</LBadge>}
               </div>
-              <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+              <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                 {idx + 1} / {queue.length}
               </span>
             </div>
@@ -429,17 +429,17 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               {current.korean_chunks.map((chunk, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                  padding: '3px 0', fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5,
+                  padding: '3px 0', fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
                 }}>
                   <span style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
                     minWidth: 14, textAlign: 'right',
                   }}>{i + 1}</span>
                   <span>{chunk}</span>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: t.density.gapMd }}>
+            <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapMd }}>
               전체 문장: {current.korean_full}
             </div>
 
@@ -510,7 +510,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                   border: 'none', borderRadius: t.radius.md,
                   padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
                   // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
-                  fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
+                  fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
                 }}
               />
             )}
@@ -520,7 +520,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
             {inputMode === 'type' && dictation.listening && dictation.interim && (
               <div style={{
                 marginTop: t.density.gapSm,
-                fontSize: 'calc(12px * var(--fz, 1))',
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                 lineHeight: 1.5,
                 color: t.neutrals.subtle,
                 fontStyle: 'italic',
@@ -556,7 +556,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               {/* 좁은 화면에서 배지+버튼이 넘치면 버튼이 다음 줄로 내려간다 */}
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
                 <span style={{
-                  fontSize: 'calc(22px * var(--fz, 1))', fontWeight: t.weight.bold, fontFamily: t.font.mono,
+                  fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono,
                   color: result.passed ? t.accent.pos : t.accent.neg,
                 }}>{result.score}</span>
                 <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
@@ -573,7 +573,7 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                 {result.points.map((p, i) => (
                   <div key={i} style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'baseline' }}>
                     <LBadge tone={POINT_TONE[p.type] ?? 'neutral'}>{POINT_LABEL[p.type] ?? p.type}</LBadge>
-                    <span style={{ fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.5 }}>{p.note}</span>
+                    <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5 }}>{p.note}</span>
                   </div>
                 ))}
               </div>
@@ -599,11 +599,11 @@ function ResultLine({ label, text, highlight }: { label: string; text: string; h
       borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapLg}px`,
     }}>
       <div style={{
-        fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 0.8,
+        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 0.8,
         textTransform: 'uppercase', color: t.neutrals.subtle, fontFamily: t.font.mono,
         marginBottom: 2,
       }}>{label}</div>
-      <div style={{ fontSize: 'calc(13px * var(--fz, 1))', lineHeight: 1.55 }}>{text}</div>
+      <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.55 }}>{text}</div>
     </div>
   )
 }

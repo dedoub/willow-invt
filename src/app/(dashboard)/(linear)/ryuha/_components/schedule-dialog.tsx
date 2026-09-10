@@ -32,7 +32,7 @@ export interface ScheduleFormData {
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1']
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
+  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -133,10 +133,10 @@ export function ScheduleDialog({
           padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               SCHEDULE
             </div>
-            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {headerLabel}
             </div>
           </div>
@@ -219,7 +219,7 @@ export function ScheduleDialog({
                 style={{
                   width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', padding: 0,
                   background: !form.color ? t.neutrals.line : t.neutrals.inner,
-                  color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                  color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
                 }}>{!form.color ? '✓' : ''}</button>
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm({ ...form, color: c })}
@@ -227,7 +227,7 @@ export function ScheduleDialog({
                     width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', padding: 0,
                     background: c,
                     // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
-                    color: readableOn(c), fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                    color: readableOn(c), fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
                     transform: form.color === c ? 'scale(1.15)' : undefined,
                   }}>{form.color === c ? '✓' : ''}</button>
               ))}
@@ -244,7 +244,7 @@ export function ScheduleDialog({
           </div>
 
           {/* Email reminder */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer', color: t.neutrals.text }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer', color: t.neutrals.text }}>
             <input type="checkbox" checked={form.email_reminder}
               onChange={e => setForm({ ...form, email_reminder: e.target.checked })} />
             이메일 리마인더
@@ -260,7 +260,7 @@ export function ScheduleDialog({
                   homework_items: [...form.homework_items, { content: '', deadline: form.schedule_date }],
                 })} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 'calc(12px * var(--fz, 1))', color: t.brand[600], display: 'flex', alignItems: 'center', gap: 3,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600], display: 'flex', alignItems: 'center', gap: 3,
                   fontFamily: t.font.sans,
                 }}>
                   <LIcon name="plus" size={11} stroke={2} /> 추가
@@ -326,7 +326,7 @@ export function ScheduleDialog({
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{
-      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
@@ -338,7 +338,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: 'calc(12px * var(--fz, 1))', borderRadius: t.radius.pill,
+      padding: '5px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? t.brand[100] : t.neutrals.inner,
       color: active ? t.brand[700] : t.neutrals.muted,

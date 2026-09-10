@@ -185,7 +185,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -224,7 +224,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             return (
               <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -245,7 +245,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             placeholder="거래처 · 품목 · 메모 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -298,7 +298,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
+                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="거래처" value={inv.counterparty} />
                     <DetailRow label="발행일" value={inv.issue_date} mono />
@@ -324,7 +324,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   {inv.items && inv.items.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <div style={{
-                        fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
                         fontFamily: t.font.mono, marginBottom: 4, letterSpacing: 0.3,
                       }}>
                         품목
@@ -336,7 +336,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                         {inv.items.map((item, i) => (
                           <div key={i} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            fontSize: 'calc(11px * var(--fz, 1))', padding: '3px 0',
+                            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '3px 0',
                             borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : 'none',
                           }}>
                             <span style={{ color: t.neutrals.text }}>{item.description}</span>
@@ -356,7 +356,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   {inv.notes && (
                     <div style={{
                       marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
+                      background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
                       {inv.notes}
@@ -370,7 +370,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                       style={{
                         padding: '4px 12px', borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}
@@ -411,7 +411,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} / {sorted.length}
             </span>
             <button
@@ -438,7 +438,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

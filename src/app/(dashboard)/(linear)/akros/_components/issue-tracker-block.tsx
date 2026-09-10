@@ -122,13 +122,13 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                   <LIcon name="calendar" size={11} color={overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.subtle} />
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                     color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
                   }}>
                     {d.due_label || fmtDate(d.due_date)}
                   </span>
                 </span>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text }}>
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text }}>
                   {d.event}
                 </span>
               </div>
@@ -145,7 +145,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             <button key={f.key} onClick={() => { setFilter(f.key); setPage(0) }} style={{
               border: 'none', cursor: 'pointer', borderRadius: t.radius.pill,
               padding: '3px 10px', fontFamily: t.font.sans,
-              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: active ? t.weight.medium : t.weight.regular,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: active ? t.weight.medium : t.weight.regular,
               background: active ? t.brand[600] : t.neutrals.inner,
               color: active ? '#fff' : t.neutrals.muted,
             }}>
@@ -173,7 +173,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             </div>
           ))
         ) : rows.length === 0 ? (
-          <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>해당 상태의 이슈가 없습니다</div>
+          <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>해당 상태의 이슈가 없습니다</div>
         ) : paged.map(issue => {
           const sm = STATUS_META[issue.status] || { label: issue.status, ...tonePalettes.neutral, rank: 9 }
           const n = issue.status === 'resolved' ? null : dday(issue.deadline)
@@ -182,7 +182,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
           const codeChip = issue.issue_code ? (
             <span style={{
-              fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
               color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: '1px 4px', flexShrink: 0,
             }}>{issue.issue_code}</span>
           ) : null
@@ -192,7 +192,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               {n !== null && (
                 <span style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: t.weight.medium,
+                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                   color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
                 }}>
                   {overdue ? `초과 ${Math.abs(n)}일` : n === 0 ? '오늘' : `D-${n}`}
@@ -216,24 +216,24 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
           const titleEl = (
             <span style={{
-              fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
+              fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, lineHeight: 1.35,
             }}>{issue.title}</span>
           )
 
           const body = (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 {issue.cluster && <span style={{ color: t.brand[600] }}>{issue.cluster}</span>}
                 {issue.counterparty && <span>· {issue.counterparty}</span>}
                 {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
               </div>
               {issue.detail && (
-                <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, marginTop: 5, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
                   {issue.detail}
                 </div>
               )}
               {issue.next_action && issue.status !== 'resolved' && (
-                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
+                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: 4, fontWeight: t.weight.medium }}>
                   → {issue.next_action}
                 </div>
               )}
@@ -283,7 +283,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           {/* 범위 + 네비게이션 */}
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
                 {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
               </span>
               <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{

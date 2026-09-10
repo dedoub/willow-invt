@@ -72,7 +72,7 @@ export function DailyMemo({ memos, selectedDate, onSave }: DailyMemoProps) {
         style={{
           width: '100%', padding: '8px 10px', borderRadius: t.radius.sm,
           border: 'none', background: t.neutrals.inner,
-          fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text,
+          fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text,
           resize: 'vertical', outline: 'none', lineHeight: 1.5,
         }}
       />

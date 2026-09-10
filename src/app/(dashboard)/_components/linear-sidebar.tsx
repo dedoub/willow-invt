@@ -25,7 +25,7 @@ function orderItems(items: NavItem[], order: string[]): NavItem[] {
 }
 
 const GROUP_LABEL_STYLE: CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, letterSpacing: 0.8,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, letterSpacing: 0.8,
   textTransform: 'uppercase' as const, color: t.sidebar.subtle,
   padding: '12px 8px 4px',
 }
@@ -87,7 +87,7 @@ function RailTip({ label, sub, enabled, children }: {
           display: 'flex', alignItems: 'center', gap: 6,
           background: t.brand[800], color: '#fff',
           padding: '5px 9px', borderRadius: 7,
-          fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: t.weight.medium,
+          fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', zIndex: 200, pointerEvents: 'none',
           fontFamily: t.font.sans, letterSpacing: -0.1,
         }}>
@@ -99,7 +99,7 @@ function RailTip({ label, sub, enabled, children }: {
           <span>{label}</span>
           {sub && (
             <span style={{
-              fontFamily: t.font.mono, fontSize: 'calc(9.5px * var(--fz, 1))',
+              fontFamily: t.font.mono, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`,
               color: t.brand[200], fontWeight: t.weight.regular,
             }}>{sub}</span>
           )}
@@ -181,7 +181,7 @@ function NavRow({ href, icon, label, dot, mark, tag, isActive, rail, onClose }: 
           justifyContent: rail ? 'center' : undefined, gap: 10,
           padding: rail ? '8px 0' : '7px 10px',
           background: bg, color, fontWeight: isActive ? t.weight.medium : t.weight.regular,
-          fontSize: 'calc(13px * var(--fz, 1))', borderRadius: 6, textDecoration: 'none',
+          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, borderRadius: 6, textDecoration: 'none',
           marginBottom: 1, letterSpacing: -0.1, cursor: href ? 'pointer' : 'default',
           transition: 'background .12s ease, color .12s ease',
         }}
@@ -196,7 +196,7 @@ function NavRow({ href, icon, label, dot, mark, tag, isActive, rail, onClose }: 
         ) : null}
         {!rail && <span style={{ flex: tag ? 1 : undefined }}>{label}</span>}
         {!rail && tag && (
-          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: isActive ? t.sidebar.accent : t.sidebar.subtle }}>{tag}</span>
+          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: isActive ? t.sidebar.accent : t.sidebar.subtle }}>{tag}</span>
         )}
       </Wrapper>
     </RailTip>
@@ -435,15 +435,15 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 28, height: 28, borderRadius: 28, flexShrink: 0,
               background: t.brand[200], color: t.brand[800],
-              fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.semibold,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
             }}>{user.name.slice(0, 2).toUpperCase()}</span>
           </RailTip>
           {!rail && (
             <>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.sidebar.text }}>{user.name}</div>
+                <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.sidebar.text }}>{user.name}</div>
                 <div style={{
-                  fontSize: 'calc(10.5px * var(--fz, 1))', color: t.sidebar.subtle,
+                  fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.sidebar.subtle,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{user.email}</div>
               </div>

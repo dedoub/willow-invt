@@ -36,7 +36,7 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
       flexShrink: 0, fontFamily: t.font.sans,
     }}>
       {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: 'calc(12px * var(--fz, 1))', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, minWidth: 0 }}>
         {mobile && onMenuToggle && (
           <button onClick={onMenuToggle} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
@@ -68,8 +68,8 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
         <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
         {subtitle && (
           <>
-            <span style={{ margin: `0 ${t.density.gapSm}px`, color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>-</span>
-            <span style={{ color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 400 }}>{subtitle}</span>
+            <span style={{ margin: `0 ${t.density.gapSm}px`, color: t.neutrals.subtle, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>-</span>
+            <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 400 }}>{subtitle}</span>
           </>
         )}
       </div>
@@ -105,11 +105,11 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
             height: t.density.controlH, padding: `0 ${t.density.controlPadXSm}px`, borderRadius: t.radius.md,
             background: agentOpen ? t.brand[800] : t.neutrals.inner,
             color: agentOpen ? '#fff' : t.neutrals.text,
-            border: 'none', cursor: 'pointer', fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
+            border: 'none', cursor: 'pointer', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.regular,
             display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs + 1,
             fontFamily: t.font.sans,
           }}>
-            <span style={{ fontSize: 'calc(12px * var(--fz, 1))' }}>✦</span>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>✦</span>
             <span>Agent</span>
           </button>
         )}

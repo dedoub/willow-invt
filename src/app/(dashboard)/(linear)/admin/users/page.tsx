@@ -217,7 +217,7 @@ export default function UsersPage() {
 
         <div style={{ padding: `12px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           <div style={{
-            fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
             textTransform: 'uppercase', marginBottom: 10,
           }}>
@@ -225,9 +225,9 @@ export default function UsersPage() {
           </div>
 
           {loading ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.muted }}>로딩 중…</div>
+            <div style={{ padding: 24, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>로딩 중…</div>
           ) : users.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.muted }}>사용자가 없습니다</div>
+            <div style={{ padding: 24, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>사용자가 없습니다</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {users.map(u => {
@@ -244,19 +244,19 @@ export default function UsersPage() {
                       width: 28, height: 28, borderRadius: 28, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600,
                     }}>{(u.name?.[0] || '?').toUpperCase()}</div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text,
+                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
                         display: 'flex', alignItems: 'center', gap: 6,
                       }}>
                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{u.name}</span>
-                        {isMe && <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>(나)</span>}
+                        {isMe && <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>(나)</span>}
                       </div>
                       <div style={{
-                        fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted,
+                        fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{u.email}</div>
                     </div>
@@ -268,7 +268,7 @@ export default function UsersPage() {
                         onBlur={() => setEditingRole(null)}
                         autoFocus
                         style={{
-                          fontSize: 'calc(11px * var(--fz, 1))', padding: '2px 4px', borderRadius: t.radius.sm,
+                          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '2px 4px', borderRadius: t.radius.sm,
                           background: t.neutrals.card, color: t.neutrals.text,
                           border: 'none', flexShrink: 0,
                         }}
@@ -282,7 +282,7 @@ export default function UsersPage() {
                         onClick={() => !isMe && setEditingRole(u.id)}
                         disabled={isMe}
                         style={{
-                          fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
+                          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
                           padding: '2px 8px', borderRadius: 999,
                           background: role.bg, color: role.fg,
                           border: 'none', cursor: isMe ? 'default' : 'pointer',
@@ -295,7 +295,7 @@ export default function UsersPage() {
                       onClick={() => !isMe && handleToggleActive(u.id, u.is_active)}
                       disabled={isMe}
                       style={{
-                        fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
+                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
                         padding: '2px 8px', borderRadius: 999, border: 'none',
                         background: u.is_active ? '#10B98122' : '#EF444422',
                         color: u.is_active ? '#059669' : '#DC2626',
@@ -307,7 +307,7 @@ export default function UsersPage() {
 
                     {!mobile && (
                       <span style={{
-                        fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono,
+                        fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono,
                         flexShrink: 0, minWidth: 56, textAlign: 'right',
                       }}>{formatRelative(u.last_login_at)}</span>
                     )}
@@ -357,12 +357,12 @@ export default function UsersPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
               <div>
                 <div style={{
-                  fontSize: 'calc(10px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
                   fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
                   marginBottom: 4,
                 }}>PERMISSIONS</div>
-                <div style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text }}>{permUser.name}</div>
-                <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>{permUser.email}</div>
+                <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text }}>{permUser.name}</div>
+                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{permUser.email}</div>
               </div>
               <button
                 onClick={() => setPermUser(null)}
@@ -378,7 +378,7 @@ export default function UsersPage() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '6px 8px', borderRadius: t.radius.sm,
                 background: t.neutrals.inner, cursor: 'pointer',
-                fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text,
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
               }}>
                 <input
                   type="checkbox"
@@ -391,7 +391,7 @@ export default function UsersPage() {
               {Object.entries(pagesBySection).map(([section, pages]) => (
                 <div key={section}>
                   <div style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
                     fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
                     marginBottom: 4,
                   }}>{SECTION_LABEL[section] ?? section}</div>
@@ -400,7 +400,7 @@ export default function UsersPage() {
                       <label key={p.path} style={{
                         display: 'flex', alignItems: 'center', gap: 6,
                         padding: '4px 6px', borderRadius: t.radius.sm, cursor: 'pointer',
-                        fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text,
+                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text,
                       }}>
                         <input
                           type="checkbox"
@@ -408,7 +408,7 @@ export default function UsersPage() {
                           onChange={() => togglePerm(p.path)}
                         />
                         <span style={{ flex: 1 }}>{p.name}</span>
-                        <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>{p.path}</span>
+                        <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>{p.path}</span>
                       </label>
                     ))}
                   </div>
@@ -420,7 +420,7 @@ export default function UsersPage() {
               <button
                 onClick={() => setPermUser(null)}
                 style={{
-                  padding: '6px 12px', fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500,
+                  padding: '6px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
                   background: t.neutrals.inner, color: t.neutrals.muted,
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                 }}
@@ -429,7 +429,7 @@ export default function UsersPage() {
                 onClick={savePerms}
                 disabled={savingPerms}
                 style={{
-                  padding: '6px 12px', fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500,
+                  padding: '6px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
                   background: t.brand[600], color: '#fff',
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                   opacity: savingPerms ? 0.6 : 1,

@@ -120,7 +120,7 @@ export function InvoiceBlock({
     cursor: 'pointer',
     padding: '2px 5px',
     borderRadius: t.radius.sm,
-    fontSize: 'calc(9px * var(--fz, 1))',
+    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
     fontFamily: t.font.mono,
     fontWeight: 500,
     color: active ? activeFg : t.neutrals.line,
@@ -170,7 +170,7 @@ export function InvoiceBlock({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
                   <span style={{
-                    fontSize: 'calc(9px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
                     padding: '2px 6px',
                     borderRadius: t.radius.sm,
@@ -182,7 +182,7 @@ export function InvoiceBlock({
                     {sty.label}
                   </span>
                   <span style={{
-                    fontSize: 'calc(11px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
                     color: t.neutrals.text,
                     fontWeight: 500,
@@ -195,7 +195,7 @@ export function InvoiceBlock({
                   </span>
                   {/* 좁은 화면에선 날짜가 먼저 줄어들어 액션 버튼과 겹치지 않게 */}
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
                     color: t.neutrals.subtle,
                     flexShrink: 1,
@@ -221,7 +221,7 @@ export function InvoiceBlock({
                       cursor: 'pointer',
                       padding: '2px 5px',
                       borderRadius: t.radius.sm,
-                      fontSize: 'calc(9px * var(--fz, 1))',
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
                       fontFamily: t.font.mono,
                       fontWeight: 500,
                       color: t.neutrals.muted,
@@ -294,7 +294,7 @@ export function InvoiceBlock({
                 minWidth: 0,
               }}>
                 <span style={{
-                  fontSize: 'calc(12px * var(--fz, 1))',
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   fontFamily: t.font.mono,
                   fontWeight: 500,
                   color: t.neutrals.text,
@@ -306,7 +306,7 @@ export function InvoiceBlock({
                 {firstDesc && (
                   <span style={{
                     flex: 1,
-                    fontSize: 'calc(10px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                     color: t.neutrals.subtle,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -322,7 +322,7 @@ export function InvoiceBlock({
         })}
 
         {paged.length === 0 && (
-          <div style={{ padding: 30, textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
+          <div style={{ padding: 30, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
             인보이스가 없습니다
           </div>
         )}
@@ -352,7 +352,7 @@ export function InvoiceBlock({
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, invoices.length)} / {invoices.length}
             </span>
             <button

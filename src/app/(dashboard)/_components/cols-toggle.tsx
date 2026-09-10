@@ -18,7 +18,7 @@ function ColsButton({ cols, onToggle }: { cols: 1 | 2; onToggle: () => void }) {
         height: t.density.controlH, padding: `0 ${t.density.controlPadXSm}px`, borderRadius: t.radius.md,
         background: t.neutrals.inner, color: t.neutrals.text,
         border: 'none', cursor: 'pointer',
-        fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.regular,
+        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.regular,
         display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm,
         fontFamily: t.font.sans,
       }}

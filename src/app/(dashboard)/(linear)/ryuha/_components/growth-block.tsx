@@ -20,7 +20,7 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
     return (
       <div style={{
         height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))',
+        color: t.neutrals.subtle, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
       }}>데이터가 부족합니다 (2개 이상 필요)</div>
     )
   }
@@ -144,12 +144,12 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 4, display: 'block',
+    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 4, display: 'block',
   }
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px 8px', borderRadius: t.radius.sm,
     border: 'none', background: t.neutrals.inner,
-    fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
+    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text, outline: 'none',
   }
 
   return (
@@ -183,7 +183,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
               }}>
                 <div style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+                  fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
                   textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
                 }}>
                   성장 추이
@@ -192,7 +192,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
-                  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
                     <span style={{ width: 10, height: 2, borderRadius: 1, background: '#6366F1' }} />
@@ -218,12 +218,12 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 gap: 4, marginBottom: 6, padding: '0 10px',
               }}>
                 <div style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+                  fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
                   textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
                 }}>
                   측정 기록
                 </div>
-                <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
                   {records.length}건
                 </span>
               </div>
@@ -232,7 +232,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               <LTableScroll minWidth={360}>
                 <div style={{
                   display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
-                  gap: 8, padding: '0 10px 5px', fontSize: 'calc(9px * var(--fz, 1))', fontWeight: t.weight.semibold,
+                  gap: 8, padding: '0 10px 5px', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                   color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
                 }}>
                   <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
@@ -243,9 +243,9 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                       display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
                       gap: 8, padding: '6px 10px', alignItems: 'center',
                       borderTop: `1px solid ${t.neutrals.line}`,
-                      fontSize: 'calc(11.5px * var(--fz, 1))', cursor: 'pointer',
+                      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer',
                     }}>
-                      <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted }}>
+                      <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                         {r.record_date.slice(5)}
                       </span>
                       <span style={{ fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
@@ -281,7 +281,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               padding: '14px 16px', display: 'flex', justifyContent: 'space-between',
               alignItems: 'center', borderBottom: `1px solid ${t.neutrals.line}`,
             }}>
-              <span style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold }}>
+              <span style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>
                 {editRecord ? '기록 수정' : '새 기록'}
               </span>
               <button onClick={() => setDialogOpen(false)} style={{
@@ -322,19 +322,19 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               {editRecord ? (
                 <button onClick={handleDelete} disabled={saving} style={{
                   padding: '6px 12px', borderRadius: t.radius.sm,
-                  background: '#FEE2E2', border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
+                  background: '#FEE2E2', border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
                 }}>삭제</button>
               ) : <div />}
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => setDialogOpen(false)} style={{
                   padding: '6px 14px', borderRadius: t.radius.sm,
-                  background: t.neutrals.inner, border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
+                  background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: t.neutrals.muted, cursor: 'pointer',
                 }}>취소</button>
                 <button onClick={handleSave} disabled={saving} style={{
                   padding: '6px 14px', borderRadius: t.radius.sm,
-                  background: t.brand[600], border: 'none', fontSize: 'calc(12px * var(--fz, 1))',
+                  background: t.brand[600], border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
                   opacity: saving ? 0.5 : 1,
                 }}>{saving ? '저장중...' : '저장'}</button>

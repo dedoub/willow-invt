@@ -80,7 +80,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 'calc(10.5px * var(--fz, 1))',
+    fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
     color: t.neutrals.subtle,
     marginBottom: 6,
     fontFamily: t.font.mono,
@@ -98,7 +98,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
     width: '100%',
     padding: '12px 14px',
     // 모바일은 16px 미만이면 iOS가 포커스 시 자동 확대 → 16px로 고정
-    fontSize: mobile ? '16px' : 'calc(15px * var(--fz, 1))',
+    fontSize: mobile ? '16px' : `calc(${t.type.sectionTitle}px * var(--fz, 1))`,
     fontFamily: t.font.sans,
     background: t.neutrals.card,
     borderRadius: t.radius.md,
@@ -131,7 +131,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
                 border: 'none',
                 cursor: 'pointer',
                 padding: '7px 12px',
-                fontSize: 'calc(12px * var(--fz, 1))',
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                 borderRadius: 999,
                 fontFamily: t.font.sans,
                 fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
@@ -164,7 +164,8 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
             placeholder="내용 입력"
             minHeight={mobile ? '200px' : '280px'}
             className="h-full"
-            editorClassName={mobile ? 'text-[16px] leading-7' : 'text-[14px] leading-7'}
+            // 모바일 16px은 iOS 포커스 자동확대 방지용 예외. 데스크톱은 본문 토큰(13px)과 맞춘다.
+            editorClassName={mobile ? 'text-[16px] leading-7' : `text-[${t.type.body}px] leading-7`}
           />
         </div>
       </div>
@@ -182,7 +183,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               border: 'none',
               borderRadius: t.radius.sm,
                         padding: '7px 10px',
-              fontSize: 'calc(12px * var(--fz, 1))',
+              fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               color: t.neutrals.muted,
               cursor: 'pointer',
               fontFamily: t.font.sans,
@@ -215,7 +216,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               background: t.neutrals.card,
               borderRadius: t.radius.sm,
               padding: '5px 9px',
-              fontSize: 'calc(11px * var(--fz, 1))',
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
               color: t.neutrals.muted,
                         marginRight: 4,
               marginBottom: 4,
@@ -231,7 +232,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
                 cursor: 'pointer',
                 padding: 0,
                 color: t.neutrals.subtle,
-                fontSize: 'calc(10px * var(--fz, 1))',
+                fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
               }}
             >
               <LIcon name="x" size={10} />
@@ -249,7 +250,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               background: tonePalettes.brand.bg,
               borderRadius: t.radius.sm,
               padding: '5px 9px',
-              fontSize: 'calc(11px * var(--fz, 1))',
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
               color: tonePalettes.brand.fg,
               marginRight: 4,
               marginBottom: 4,
@@ -265,7 +266,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
                 cursor: 'pointer',
                 padding: 0,
                 color: tonePalettes.brand.fg,
-                fontSize: 'calc(10px * var(--fz, 1))',
+                fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
               }}
             >
               <LIcon name="x" size={10} />

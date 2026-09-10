@@ -78,10 +78,10 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
       }}>
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
               {doc.doc_no}
             </div>
-            <div style={{ fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
               {doc.title}
             </div>
           </div>
@@ -113,15 +113,15 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
 
           <Section title={`버전 ${doc.versions.length}개`}>
             {doc.versions.length === 0 && (
-              <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0' }}>
+              <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>
                 파일이 아직 없습니다. 원본을 받으면 첫 버전으로 등록됩니다.
               </div>
             )}
             {doc.versions.map(v => (
               <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', width: 26, color: t.neutrals.muted }}>v{v.version_no}</span>
+                <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, width: 26, color: t.neutrals.muted }}>v{v.version_no}</span>
                 <LTableBadge tone={versionTone(v.kind)}>{CORP_VERSION_KIND_LABEL[v.kind]}</LTableBadge>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={v.note ?? undefined}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={v.note ?? undefined}>
                   {v.note ?? mimeLabel(v.mime)} · {formatBytes(v.size_bytes)}
                 </span>
                 <LBtn variant="secondary" size="xs" onClick={() => openVersion(v.version_no)} disabled={opening !== null}>
@@ -129,14 +129,14 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
                 </LBtn>
               </div>
             ))}
-            {error && <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.accent.neg, paddingTop: 6 }}>{error}</div>}
+            {error && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.accent.neg, paddingTop: 6 }}>{error}</div>}
           </Section>
 
           <Section title="기록">
-            {events === null && <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle }}>불러오는 중</div>}
-            {events && events.length === 0 && <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle }}>기록이 없습니다</div>}
+            {events === null && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>불러오는 중</div>}
+            {events && events.length === 0 && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>기록이 없습니다</div>}
             {events?.map(ev => (
-              <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${t.neutrals.line}`, fontSize: 'calc(11.5px * var(--fz, 1))' }}>
+              <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${t.neutrals.line}`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
                 <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{formatDateTime(ev.at)}</span>
                 <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{EVENT_LABEL[ev.event] ?? ev.event}</span>
                 <span style={{ color: t.neutrals.muted, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -155,7 +155,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text, fontFamily: /^\d{4}-/.test(value) ? t.font.mono : t.font.sans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, fontFamily: /^\d{4}-/.test(value) ? t.font.mono : t.font.sans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </div>
   )
 }

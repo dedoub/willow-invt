@@ -272,7 +272,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => navigate(1)} style={{
@@ -330,7 +330,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
             return (
               <button key={c.key} onClick={() => { setCategory(c.key); setPage(0) }} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -351,7 +351,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
             placeholder="가맹점 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -382,10 +382,10 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
           return (
             <LTableRow key={a.id} columns={COLUMNS} mobile={mobile}>
               <LTableBadge tone={CATEGORY_TONES[cat.key]}>{cat.label}</LTableBadge>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))' }}>
+              <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                 {a.used_date.slice(5)}
               </span>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>
+              <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                 {cardTail(a.card_no) || '—'}
               </span>
               <span style={{
@@ -395,7 +395,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
               }}>
                 {a.store_name || '미상'}
                 {(a.home_foreign_type === '2' || installment) && (
-                  <span style={{ marginLeft: 6, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontWeight: 400 }}>
+                  <span style={{ marginLeft: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: 400 }}>
                     {a.home_foreign_type === '2' ? '해외' : ''}
                     {a.home_foreign_type === '2' && installment ? ' · ' : ''}
                     {installment ? `${a.installment_month}개월` : ''}
@@ -431,7 +431,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>
             <button

@@ -97,7 +97,7 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '6px 8px', fontSize: 'calc(13px * var(--fz, 1))', fontFamily: t.font.sans,
+    width: '100%', padding: '6px 8px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontFamily: t.font.sans,
     background: t.neutrals.inner, borderRadius: t.radius.sm, border: 'none',
     color: t.neutrals.text, outline: 'none',
   }
@@ -127,7 +127,7 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
           <button onClick={() => fileRef.current?.click()} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-            padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
+            padding: '4px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
             cursor: 'pointer', fontFamily: t.font.sans,
           }}>
             <LIcon name="paperclip" size={12} />
@@ -140,14 +140,14 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
           <div key={`ex-${i}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: t.neutrals.inner, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
+            padding: '3px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
             marginRight: 4, marginBottom: 4,
           }}>
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
             <button onClick={() => setExistingFiles(prev => prev.filter((_, j) => j !== i))} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))',
+              color: t.neutrals.subtle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
             }}>
               <LIcon name="x" size={10} />
             </button>
@@ -157,14 +157,14 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
           <div key={`new-${i}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             background: tonePalettes.brand.bg, borderRadius: t.radius.sm,
-            padding: '3px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: tonePalettes.brand.fg,
+            padding: '3px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: tonePalettes.brand.fg,
             marginRight: 4, marginBottom: 4,
           }}>
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
             <button onClick={() => setNewFiles(prev => prev.filter((_, j) => j !== i))} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: tonePalettes.brand.fg, fontSize: 'calc(10px * var(--fz, 1))',
+              color: tonePalettes.brand.fg, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
             }}>
               <LIcon name="x" size={10} />
             </button>
@@ -283,7 +283,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow="NOTEBOOK" title="류하 수첩" action={
-          <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
+          <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
             {notes.length}건
           </span>
         } />
@@ -315,7 +315,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                 placeholder="검색..."
                 style={{
                   border: 'none', background: 'transparent', outline: 'none',
-                  fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text, fontFamily: t.font.sans,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, fontFamily: t.font.sans,
                   width: '100%',
                 }}
               />
@@ -336,7 +336,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
           {/* Note rows */}
           <div style={{ flex: 1, overflow: 'hidden', padding: '0 4px 4px' }}>
             {paged.length === 0 ? (
-              <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
+              <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 {search ? '검색 결과가 없습니다' : '노트가 없습니다'}
               </div>
             ) : (
@@ -354,14 +354,14 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     }}
                   >
                     <span style={{
-                      fontSize: 'calc(10px * var(--fz, 1))', width: 14, textAlign: 'center', flexShrink: 0,
+                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, width: 14, textAlign: 'center', flexShrink: 0,
                       color: note.is_pinned ? '#D97706' : 'transparent',
                     }}>
                       {note.is_pinned ? '📌' : ''}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: 'calc(12.5px * var(--fz, 1))', fontWeight: t.weight.regular,
+                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.regular,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         color: t.neutrals.text,
                       }}>
@@ -370,11 +370,11 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 6, marginTop: 2,
                       }}>
-                        <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                        <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                           {fmtDate(note.updated_at)}
                         </span>
                         {note.attachments && note.attachments.length > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                             <LIcon name="paperclip" size={9} />
                             {note.attachments.length}
                           </span>
@@ -408,7 +408,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                   }}>
                   <LIcon name="chevronLeft" size={13} stroke={2} />
                 </button>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
                   {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
                 </span>
                 <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
@@ -437,7 +437,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 background: 'none', border: 'none', cursor: 'pointer',
-                padding: '10px 14px', fontSize: 'calc(12px * var(--fz, 1))', color: t.brand[600],
+                padding: '10px 14px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600],
                 fontFamily: t.font.sans,
               }}
             >
@@ -475,7 +475,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <h2 style={{
-                    margin: 0, fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold,
+                    margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     color: t.neutrals.text, fontFamily: t.font.sans,
                   }}>
                     {selectedNote.title || '(제목 없음)'}
@@ -483,12 +483,12 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                     <button onClick={handlePin} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      borderRadius: t.radius.sm, fontSize: 'calc(13px * var(--fz, 1))', flexShrink: 0,
+                      borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
                     <button onClick={() => setEditing(true)} style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.regular, color: t.neutrals.muted,
+                      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.muted,
                       fontFamily: t.font.sans, padding: '4px 8px', borderRadius: t.radius.sm,
                       whiteSpace: 'nowrap' as const, flexShrink: 0,
                     }}>
@@ -496,7 +496,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     </button>
                   </div>
                 </div>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   {fmtDate(selectedNote.updated_at)}
                 </span>
               </div>
@@ -505,15 +505,15 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
               <div style={{ padding: '14px 18px', flex: 1 }}>
                 {selectedNote.content ? (
                   <div style={{
-                    fontSize: 'calc(12.5px * var(--fz, 1))', lineHeight: 1.7, color: t.neutrals.text,
+                    fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.7, color: t.neutrals.text,
                     fontFamily: t.font.sans,
                   }}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({ children }) => <h1 style={{ fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '14px 0 6px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h1>,
-                        h2: ({ children }) => <h2 style={{ fontSize: 'calc(14px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '12px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h2>,
-                        h3: ({ children }) => <h3 style={{ fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.semibold, margin: '10px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h3>,
+                        h1: ({ children }) => <h1 style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, margin: '14px 0 6px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h1>,
+                        h2: ({ children }) => <h2 style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, margin: '12px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h2>,
+                        h3: ({ children }) => <h3 style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, margin: '10px 0 4px', color: t.neutrals.text, fontFamily: t.font.sans }}>{children}</h3>,
                         p: ({ children }) => <p style={{ margin: '0 0 8px' }}>{children}</p>,
                         ul: ({ children }) => <ul style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ul>,
                         ol: ({ children }) => <ol style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ol>,
@@ -524,13 +524,13 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                           if (isBlock) {
                             return <code style={{
                               display: 'block', background: t.neutrals.inner, borderRadius: t.radius.sm,
-                              padding: '10px 12px', fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.mono,
+                              padding: '10px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono,
                               overflowX: 'auto', margin: '8px 0', lineHeight: 1.5,
                             }}>{children}</code>
                           }
                           return <code style={{
                             background: t.neutrals.inner, borderRadius: 3,
-                            padding: '1px 4px', fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.mono,
+                            padding: '1px 4px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono,
                           }}>{children}</code>
                         },
                         pre: ({ children }) => <pre style={{ margin: 0 }}>{children}</pre>,
@@ -540,8 +540,8 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                           color: t.neutrals.muted,
                         }}>{children}</blockquote>,
                         a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: t.brand[600], textDecoration: 'none' }}>{children}</a>,
-                        table: ({ children }) => <table style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 'calc(11.5px * var(--fz, 1))' }}>{children}</table>,
-                        th: ({ children }) => <th style={{ textAlign: 'left', padding: '5px 10px', background: t.neutrals.inner, fontWeight: t.weight.semibold, fontSize: 'calc(11px * var(--fz, 1))' }}>{children}</th>,
+                        table: ({ children }) => <table style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>{children}</table>,
+                        th: ({ children }) => <th style={{ textAlign: 'left', padding: '5px 10px', background: t.neutrals.inner, fontWeight: t.weight.semibold, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>{children}</th>,
                         td: ({ children }) => <td style={{ padding: '4px 10px', borderTop: `1px solid ${t.neutrals.line}` }}>{children}</td>,
                         hr: () => <hr style={{ border: 'none', borderTop: `1px solid ${t.neutrals.line}`, margin: '12px 0' }} />,
                       }}
@@ -550,7 +550,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     </ReactMarkdown>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle }}>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                     내용 없음
                   </div>
                 )}
@@ -561,7 +561,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         background: t.neutrals.inner, borderRadius: t.radius.sm,
-                        padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[600],
+                        padding: '4px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],
                         textDecoration: 'none',
                       }}>
                         <LIcon name="paperclip" size={11} />
@@ -573,7 +573,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
 
                 {/* 노트 메모 */}
                 <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.neutrals.line}` }}>
-                  <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 8 }}>
+                  <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 8 }}>
                     메모{(selectedNote.memos?.length || 0) > 0 ? ` (${selectedNote.memos!.length})` : ''}
                   </div>
 
@@ -583,13 +583,13 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       background: t.neutrals.inner, borderRadius: t.radius.sm,
                       padding: '6px 8px', marginBottom: 4,
                     }}>
-                      <span style={{ fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '확인됨' : '미확인'}>
+                      <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '확인됨' : '미확인'}>
                         {m.reviewed_at ? '✅' : '📝'}
                       </span>
-                      <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
+                      <span style={{ flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
                         {m.text}
                       </span>
-                      <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: 2 }}>
+                      <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0, marginTop: 2 }}>
                         {fmtDate(m.created_at)}
                       </span>
                       <button onClick={() => handleDeleteMemo(m.id)} style={{
@@ -608,7 +608,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
                       placeholder="이 노트에 메모 추가… (엔터)"
                       style={{
-                        flex: 1, fontSize: 'calc(12px * var(--fz, 1))',
+                        flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                         background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
                         padding: '7px 9px', color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
                       }}
@@ -619,7 +619,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       style={{
                         background: t.neutrals.inner, border: 'none',
                         borderRadius: t.radius.sm, padding: '7px 12px',
-                        fontSize: 'calc(12px * var(--fz, 1))', color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
+                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
                         cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
                       }}
                     >
@@ -633,7 +633,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
             /* Empty state */
             <div style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: t.neutrals.subtle, fontSize: 'calc(12px * var(--fz, 1))', fontFamily: t.font.sans,
+              color: t.neutrals.subtle, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
             }}>
               노트를 선택하세요
             </div>

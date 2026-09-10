@@ -128,19 +128,19 @@ const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px
 // 컬럼 폭 합(768) + gap 6px×13(78) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
 const USER_TABLE_MIN_WIDTH = 862
 const userHeadCell: React.CSSProperties = {
-  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
 }
 const userTextCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted,
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
 }
 const userNumCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
 }
 const userDateCell: React.CSSProperties = {
-  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
 }
 
@@ -154,7 +154,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
     }}>
       <span>{total.toLocaleString()}</span>
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{Math.abs(d).toLocaleString()}
         </span>
       )}
@@ -166,7 +166,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -206,12 +206,12 @@ function RnDauTrendCard({ daily, days = 42 }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
         <div style={{
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 활동자
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />회원 {latest?.member ?? 0}
           </span>
@@ -227,7 +227,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
         </div>
       </div>
       {rows.length === 0 || max === 0 ? (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           데이터 없음
         </div>
       ) : (
@@ -265,7 +265,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${barPct(totalOf(r)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{rnWithWeekday(r.date)}</div>
@@ -401,7 +401,7 @@ export function ReviewnotesBlock({
           <div style={{
             padding: '8px 12px', borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: 'calc(11px * var(--fz, 1))', marginBottom: 10,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: 10,
           }}>
             {error}
           </div>
@@ -543,7 +543,7 @@ export function ReviewnotesBlock({
               value={trafficStats.totals.views.toLocaleString()}
               valueExtra={trafficStats.totals.visitors > 0 ? (
                 <span style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                   fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {(trafficStats.totals.views / trafficStats.totals.visitors).toFixed(1)}x
@@ -578,7 +578,7 @@ export function ReviewnotesBlock({
               value={sales ? sales.creditsSold.toLocaleString() : '—'}
               valueExtra={sales ? (
                 <span style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                   color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatCurrency(sales.revenueUsd)}
@@ -590,7 +590,7 @@ export function ReviewnotesBlock({
               // 아직 아무도 안 샀으면 "구매자 0명 · 0건"은 머리값의 0을 세 번째로 되풀이할 뿐이다.
               // 셀 게 생겼을 때만 줄을 낸다.
               subExtra={sales && (sales.buyers > 0 || sales.paidOrders > 0 || sales.refundedOrders > 0) ? (
-                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   구매자 {sales.buyers.toLocaleString()}명
                   {sales.buyers > 0 ? ` (전환 ${rate(sales.buyers, activatedTotal)}%)` : ''}
                   {` · ${sales.paidOrders.toLocaleString()}건`}
@@ -873,14 +873,14 @@ export function ReviewnotesBlock({
                     {/* 가입 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
                     <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
                       <span>{formatDateShort(user.createdAt)}</span>
-                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
                     </div>
                     {/* 활동 — EventLog 마지막 활동 (트래킹 이전 활동은 — 표시) */}
                     <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
                       {user.lastActiveAt ? (
                         <>
                           <span>{formatDateShort(user.lastActiveAt)}</span>
-                          <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
+                          <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
                         </>
                       ) : (
                         <span style={{ color: t.neutrals.subtle }}>—</span>
@@ -892,7 +892,7 @@ export function ReviewnotesBlock({
                         width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                         background: t.brand[200], color: t.brand[800],
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600, overflow: 'hidden',
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, overflow: 'hidden',
                       }}>
                         {user.image
                           ? <img src={user.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -900,7 +900,7 @@ export function ReviewnotesBlock({
                         }
                       </div>
                       <span style={{
-                        fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
                         color: user.name ? t.neutrals.text : t.neutrals.muted,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
                       }}>
@@ -915,14 +915,14 @@ export function ReviewnotesBlock({
                         const c = formatCountryBadge(user.country)
                         return c ? (
                           <span title={c.name} style={{
-                            fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                             color: '#1E40AF', background: '#DBEAFE',
                             padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                           }}>
                             {c.flag} {c.code}
                           </span>
                         ) : (
-                          <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                          <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                         )
                       })()}
                     </div>
@@ -946,7 +946,7 @@ export function ReviewnotesBlock({
                         <span
                           title={isAdmin ? '관리자 — 통계 제외' : '스토어 심사용 계정 — 통계 제외'}
                           style={{
-                            fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                             padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                             background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
                           }}
@@ -954,7 +954,7 @@ export function ReviewnotesBlock({
                           {isAdmin ? 'Admin' : '제외'}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                       )}
                     </div>
                     {/* AI — 이번 달 호출 수 / 누적, 툴팁에 기능별 내역 (AiUsage 원장) */}
@@ -967,7 +967,7 @@ export function ReviewnotesBlock({
                     >
                       <span style={{ color: aiMonth > 0 ? t.neutrals.text : t.neutrals.subtle }}>{aiMonth.toLocaleString()}</span>
                       {aiTotal > aiMonth && (
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>누적 {aiTotal.toLocaleString()}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>누적 {aiTotal.toLocaleString()}</span>
                       )}
                     </div>
                     {/* 용량 */}
@@ -1004,7 +1004,7 @@ export function ReviewnotesBlock({
                       <LIcon name="chevronLeft" size={13} stroke={2} />
                     </button>
                     <span style={{
-                      fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
                     }}>
                       {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, totalUsers)} / {totalUsers}
                     </span>

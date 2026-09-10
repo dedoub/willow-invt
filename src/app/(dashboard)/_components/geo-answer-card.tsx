@@ -124,7 +124,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
           <div style={{
             padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
             background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-            fontSize: 'calc(10.5px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.6,
+            fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
           }}>
             AI 답변 측정 조회 실패 — {error}
           </div>

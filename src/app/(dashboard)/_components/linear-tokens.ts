@@ -95,6 +95,10 @@ export const t = {
     tableBody: 12,
     body: 13,
     sectionTitle: 15,
+    // 히어로 숫자(다이얼로그 금액·점수) 전용. 본문 위계가 아니라 강조 표시 한 칸 — 남용 금지 (2026-09-10 감사).
+    display: 22,
+    // 차트 축·막대 위 데이터 라벨 전용. 표·배지·본문에는 쓰지 않는다 (2026-09-10 감사).
+    chartLabel: 8,
   },
   badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 11 },
 } as const

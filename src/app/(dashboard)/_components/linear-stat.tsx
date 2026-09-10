@@ -137,7 +137,7 @@ function Sparkline({
           whiteSpace: 'nowrap', pointerEvents: 'none',
           zIndex: 10, lineHeight: 1.3,
         }}>
-          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: 'calc(8.5px * var(--fz, 1))' }}>{withWeekday(data[hover].date)}</div>
+          <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }}>{withWeekday(data[hover].date)}</div>
           <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             {data2 && data2[hover] != null && <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color, flexShrink: 0 }} />}
             {fmt(data[hover].value)}

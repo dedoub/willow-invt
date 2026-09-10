@@ -107,7 +107,7 @@ export function DistributionPie({
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ fontSize: 'calc(11px * var(--fz, 1))', background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
+                    contentStyle={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, background: '#1E293B', border: 'none', borderRadius: 6, padding: '6px 10px' }}
                     itemStyle={{ color: '#F8FAFC' }}
                     labelStyle={{ color: '#F8FAFC' }}
                     formatter={(value, name) => [`${value}${unit ?? ''}`, String(name)]}

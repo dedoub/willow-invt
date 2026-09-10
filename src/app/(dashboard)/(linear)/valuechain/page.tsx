@@ -72,7 +72,7 @@ export default function ValueChainPage() {
   if (error || !stats) {
     return (
       <LCard>
-        <div style={{ color: t.accent.neg, fontSize: 'calc(13px * var(--fz, 1))' }}>통계를 불러오지 못했습니다: {error}</div>
+        <div style={{ color: t.accent.neg, fontSize: `calc(${t.type.body}px * var(--fz, 1))` }}>통계를 불러오지 못했습니다: {error}</div>
         <button onClick={() => load(true)} style={refreshBtnStyle()}>다시 시도</button>
       </LCard>
     )
@@ -81,7 +81,7 @@ export default function ValueChainPage() {
   const { summary, maturity, updates, crawl, trends, articleUpdates } = stats
 
   const sectionLabel: React.CSSProperties = {
-    fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.subtle,
+    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
     fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 10,
     whiteSpace: 'nowrap',
   }
@@ -90,12 +90,12 @@ export default function ValueChainPage() {
   const UPDATE_COLS = '44px 44px minmax(76px,1fr) 60px 96px 52px 34px 34px 34px 40px 34px 34px 52px 40px 40px 40px 40px'
   const UPDATE_MIN_WIDTH = 930
   const headCell: React.CSSProperties = {
-    fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
   // 질문 역설계 블록 공통 스타일
-  const qHead: React.CSSProperties = { fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 6, display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }
-  const qHeadSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: 'calc(10px * var(--fz, 1))', overflow: 'hidden', textOverflow: 'ellipsis' }
+  const qHead: React.CSSProperties = { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: 6, display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }
+  const qHeadSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, overflow: 'hidden', textOverflow: 'ellipsis' }
   const ellip: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
   // ── 클릭 정렬 헤더 ──
@@ -240,14 +240,14 @@ export default function ValueChainPage() {
             </div>
             {([['①', '학습 수집', crawl.funnel.train], ['②', '답변 인덱싱', crawl.funnel.index], ['③', '사용자 질문 인용', crawl.funnel.cite], ['④', '사용자 방문', crawl.funnel.visit]] as const).map(([num, label, tier]) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '120px 44px 44px 48px 66px minmax(0,1fr)', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner }}>
-                <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
+                <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginRight: 3 }}>{num}</span>{label}
                 </span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.last7d.toLocaleString()}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.total.toLocaleString()}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.last7d.toLocaleString()}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tier.total.toLocaleString()}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{tier.last ? tier.last.slice(5, 10) : '—'}</span>
                 <span style={{ display: 'flex', alignItems: 'center' }} title="최근 7일 일별 추이"><MiniBars data={tier.series7d} /></span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {tier.bots.length ? tier.bots.slice(0, 3).map(b => `${b.bot} ${b.count.toLocaleString()}×`).join(' · ') : '아직 없음'}
                 </span>
               </div>
@@ -282,7 +282,7 @@ export default function ValueChainPage() {
             <LStat label="비용쪽 · 공급" value={crawl.panelSignal.cost.toLocaleString()} sub="어디에 의존하나" tone={crawl.panelSignal.cost > 0 ? 'pos' : 'default'} title="방문자가 노드 페이지에서 지급처 패널을 펼친 횟수. 공급(의존) 방향 관심." />
           </div>
           {crawl.panelSignal.recent.length > 0 && (
-            <div style={{ marginTop: 6, fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
+            <div style={{ marginTop: 6, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, ...ellip }}>
               최근 {crawl.panelSignal.recent.slice(0, 3).map(x => `${x.from} →${x.side === 'in' ? '매출' : '비용'}→ ${x.to}`).join(' · ')}
             </div>
           )}
@@ -295,11 +295,11 @@ export default function ValueChainPage() {
             </span>
           </div>
           {crawl.cofetch.multi === 0 ? (
-            <div style={{ fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, lineHeight: 1.5 }}>아직 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
+            <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5 }}>아직 없음 — 한 질문이 여러 기업을 비교·연결하면 그 묶음이 여기에 보인다</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {crawl.cofetch.recent.map((x, i) => (
-                <div key={i} title={`${x.bot} 세션 — 관계형은 밸류체인으로 연결된 기업끼리, 테마형은 연결 없는 비교`} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: 'calc(10.5px * var(--fz, 1))', fontFamily: t.font.mono }}>
+                <div key={i} title={`${x.bot} 세션 — 관계형은 밸류체인으로 연결된 기업끼리, 테마형은 연결 없는 비교`} style={{ display: 'grid', gridTemplateColumns: '80px 34px minmax(0,1fr)', gap: 8, alignItems: 'baseline', padding: '5px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
                   <span style={{ color: t.neutrals.subtle, whiteSpace: 'nowrap', ...ellip }}>{x.start.slice(5, 16).replace('T', ' ')}</span>
                   <span style={{ color: x.cls === 'relation' ? t.brand[500] : t.neutrals.subtle, whiteSpace: 'nowrap' }}>{x.cls === 'relation' ? '관계' : '테마'}</span>
                   <span style={{ color: t.neutrals.text, ...ellip }}>{x.seq.join(' + ')}</span>
@@ -335,21 +335,21 @@ export default function ValueChainPage() {
             {updateRows.map(n => (
               <a key={n.slug} href={`${SITE_URL}/${n.slug}`} target="_blank" rel="noreferrer"
                 style={{ display: 'grid', gridTemplateColumns: UPDATE_COLS, gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
-                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.created_at ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(n.updated_at ?? '').slice(5, 10)}</span>
+                <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{n.name}</span>
                 <span style={{ whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier}</span>
-                  <span style={{ fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: 4, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
+                  <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: TIER_TONE[n.tier].fg, fontWeight: t.weight.semibold }}>{n.tier}</span>
+                  <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginLeft: 4, fontVariantNumeric: 'tabular-nums' }}>{n.pass}/{maturity.checks}</span>
                 </span>
                 <AxisMini proof={n.proof} prop={n.prop} />
                 {([n.seg, n.rev, n.cost, n.inv, n.research, n.linked, n.src, n.verified] as const).map((v, i) => (
-                  <span key={i} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: v > 0 ? t.neutrals.muted : t.neutrals.line }}>{v || '·'}</span>
+                  <span key={i} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: v > 0 ? t.neutrals.muted : t.neutrals.line }}>{v || '·'}</span>
                 ))}
-                {FUNNEL_HEADS.map(h => { const v = h.get(n.funnel); return <span key={h.key} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
+                {FUNNEL_HEADS.map(h => { const v = h.get(n.funnel); return <span key={h.key} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
-            {updates.recent.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
+            {updates.recent.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: 7 }}>업데이트 내역 없음</span>}
           </div>
           </div>
           {/* 페이저 — N개씩 보기(좌) + 페이지 이동(우), 다른 테이블과 동일 */}
@@ -360,7 +360,7 @@ export default function ValueChainPage() {
             {updatePages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button disabled={updSafe === 1} onClick={() => setUpdatePage(p => Math.max(1, p - 1))} style={chevBtn(updSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(updSafe - 1) * updatePerPage + 1}-{Math.min(updSafe * updatePerPage, updateSorted.length)} / {updateSorted.length}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(updSafe - 1) * updatePerPage + 1}-{Math.min(updSafe * updatePerPage, updateSorted.length)} / {updateSorted.length}</span>
                 <button disabled={updSafe >= updatePages} onClick={() => setUpdatePage(p => Math.min(updatePages, p + 1))} style={chevBtn(updSafe >= updatePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
               </div>
             )}
@@ -383,14 +383,14 @@ export default function ValueChainPage() {
             {articleRows.map(a => (
               <a key={a.slug} href={`${SITE_URL}/analysis/${a.slug}`} target="_blank" rel="noreferrer"
                 style={{ display: 'grid', gridTemplateColumns: '52px 52px minmax(0,1fr) 40px 40px 40px 40px 40px', gap: 8, alignItems: 'center', padding: '6px 8px', borderRadius: t.radius.sm, background: t.neutrals.inner, textDecoration: 'none' }}>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
-                <span style={{ fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
-                <span style={{ fontSize: 'calc(12.5px * var(--fz, 1))', color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
-                {FUNNEL_HEADS.map(h => { const v = h.get(a.funnel); return <span key={h.key} style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.publishedAt ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{(a.updatedAt ?? '').slice(5, 10) || '—'}</span>
+                <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{a.title}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: a.changelogCount ? t.neutrals.muted : t.neutrals.line, textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{a.changelogCount || '—'}</span>
+                {FUNNEL_HEADS.map(h => { const v = h.get(a.funnel); return <span key={h.key} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap', color: v > 0 ? h.color : t.neutrals.line }}>{v || '—'}</span> })}
               </a>
             ))}
-            {articleUpdates.length === 0 && <span style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
+            {articleUpdates.length === 0 && <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, paddingTop: 7 }}>아티클 없음</span>}
           </div>
           </div>
           {/* 페이저 — N개씩(좌) + 이동(우), 업데이트 테이블과 동일 */}
@@ -401,7 +401,7 @@ export default function ValueChainPage() {
             {articlePages > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button disabled={artSafe === 1} onClick={() => setArticlePage(p => Math.max(1, p - 1))} style={chevBtn(artSafe === 1)}><LIcon name="chevronLeft" size={13} stroke={2} /></button>
-                <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(artSafe - 1) * articlePerPage + 1}-{Math.min(artSafe * articlePerPage, articleUpdates.length)} / {articleUpdates.length}</span>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>{(artSafe - 1) * articlePerPage + 1}-{Math.min(artSafe * articlePerPage, articleUpdates.length)} / {articleUpdates.length}</span>
                 <button disabled={artSafe >= articlePages} onClick={() => setArticlePage(p => Math.min(articlePages, p + 1))} style={chevBtn(artSafe >= articlePages)}><LIcon name="chevronRight" size={13} stroke={2} /></button>
               </div>
             )}
@@ -423,11 +423,11 @@ function AxisMini({ proof, prop }: { proof: number; prop: number }) {
     <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={`증명 ${proof}/6 · 파급 ${prop}/6`}>
       {rows.map(([lbl, v, color]) => (
         <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{lbl}</span>
+          <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{lbl}</span>
           <span style={{ flex: 1, height: 3, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
             <span style={{ display: 'block', width: `${(v / 6) * 100}%`, height: '100%', borderRadius: 2, background: color }} />
           </span>
-          <span style={{ fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+          <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
         </span>
       ))}
     </span>
@@ -454,7 +454,7 @@ function refreshBtnStyle(active = false): React.CSSProperties {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     background: t.neutrals.inner, color: t.neutrals.muted,
     border: 'none', borderRadius: t.radius.md, padding: '5px 10px',
-    fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.medium,
+    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
     cursor: active ? 'default' : 'pointer', fontFamily: t.font.sans,
     opacity: active ? 0.6 : 1, marginTop: 8,
   }

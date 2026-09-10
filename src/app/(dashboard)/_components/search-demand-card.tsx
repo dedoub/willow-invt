@@ -140,7 +140,7 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
                 {showLabels && r.sessions > 0 && (
                   <span style={{
-                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
                     fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.sessions}</span>
@@ -169,7 +169,7 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${barPct(r.sessions).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
@@ -330,7 +330,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
                 style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
                 {showLabels && r.impressions > 0 && (
                   <span style={{
-                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
                     fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.impressions}</span>
@@ -362,7 +362,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${((r.impressions / maxImp) * (showLabels ? 90 : 100)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
@@ -681,7 +681,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             <div style={{
               padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
               background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-              fontSize: 'calc(10.5px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.6,
+              fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
             }}>
               Search Console 조회 실패 — {gscError}
             </div>
@@ -837,7 +837,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             <div style={{
               padding: '8px 12px', borderRadius: t.radius.md, marginBottom: 10,
               background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-              fontSize: 'calc(11px * var(--fz, 1))', wordBreak: 'keep-all' as const, lineHeight: 1.5,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.5,
             }}>
               {error}
             </div>
@@ -950,7 +950,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
               </div>
 
               <div style={{
-                fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle,
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
                 lineHeight: 1.6, wordBreak: 'keep-all' as const,
               }}>
                 {data.notes.map((n, i) => <div key={i}>· {n}</div>)}

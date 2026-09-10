@@ -35,7 +35,7 @@ const TYPE_OPTIONS: { key: 'task' | 'meeting' | 'deadline'; label: string }[] = 
 ]
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
+  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -137,10 +137,10 @@ export function ScheduleAddDialog({
           padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 2 }}>
               SCHEDULE
             </div>
-            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {isEdit ? '일정 수정' : '일정 추가'}
             </div>
           </div>
@@ -246,7 +246,7 @@ export function ScheduleAddDialog({
                         width: 20, height: 20, borderRadius: 999,
                         background: c, border: 'none', cursor: 'pointer', padding: 0,
                         // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
-                        color: readableOn(c), fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                        color: readableOn(c), fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
                         transform: newClientColor === c ? 'scale(1.15)' : undefined,
                       }}
                     >{newClientColor === c ? '✓' : ''}</button>
@@ -256,7 +256,7 @@ export function ScheduleAddDialog({
                   <button
                     onClick={() => { setAddingClient(false); setNewClientName('') }}
                     style={{
-                      padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.sm,
+                      padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
                       background: 'transparent', border: 'none', cursor: 'pointer',
                       color: t.neutrals.muted, fontFamily: t.font.sans,
                     }}
@@ -265,7 +265,7 @@ export function ScheduleAddDialog({
                     onClick={handleAddClient}
                     disabled={savingClient || !newClientName.trim()}
                     style={{
-                      padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.sm,
+                      padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
                       background: t.brand[600], border: 'none', cursor: 'pointer',
                       color: '#fff', fontFamily: t.font.sans, fontWeight: t.weight.regular,
                       opacity: !newClientName.trim() ? 0.5 : 1,
@@ -332,7 +332,7 @@ export function ScheduleAddDialog({
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{
-      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
@@ -351,7 +351,7 @@ function ChipBtn({
   return (
     <button onClick={onClick} style={{
       border: 'none', cursor: 'pointer',
-      padding: '5px 12px', fontSize: 'calc(12px * var(--fz, 1))', borderRadius: t.radius.pill,
+      padding: '5px 12px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
       fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
       background: active ? (activeStyle?.background ?? t.brand[100]) : t.neutrals.inner,
       color: active ? (activeStyle?.color ?? t.brand[700]) : t.neutrals.muted,

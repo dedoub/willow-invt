@@ -40,7 +40,7 @@ function formatDateShort(dateString?: string | null): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -81,12 +81,12 @@ function PortleAiTrendCard({ daily, days = 42 }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
         <div style={{
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 AI 호출
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: OK }} />성공 {latest?.success ?? 0}
           </span>
@@ -102,7 +102,7 @@ function PortleAiTrendCard({ daily, days = 42 }: {
         </div>
       </div>
       {rows.length === 0 || max === 0 ? (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           데이터 없음
         </div>
       ) : (
@@ -140,7 +140,7 @@ function PortleAiTrendCard({ daily, days = 42 }: {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${barPct(totalOf(r)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
@@ -193,19 +193,19 @@ const USER_TABLE_COLS = '64px 64px minmax(120px,1.4fr) 44px 52px 44px 44px 44px 
 // 컬럼 폭 합(672) + gap 6px×11(66) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
 const USER_TABLE_MIN_WIDTH = 754
 const userHeadCell: React.CSSProperties = {
-  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
 }
 const userTextCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted,
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
 }
 const userNumCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 const userDateCell: React.CSSProperties = {
-  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
 }
 
@@ -299,7 +299,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           <div style={{
             padding: '8px 12px', borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: 'calc(11px * var(--fz, 1))', marginBottom: 10,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: 10,
           }}>
             {error}
           </div>
@@ -404,7 +404,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                 valueExtra={svLast ? (
                   <span style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     {svLast.date.slice(5)} 기준
@@ -562,7 +562,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   <div style={{ ...userNumCell, display: 'flex', flexDirection: 'column', lineHeight: 1.15, alignItems: 'center' }}>
                     <span>{k.calls.toLocaleString()}</span>
                     {k.callsToday > 0 && (
-                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: '#059669' }}>
+                      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: '#059669' }}>
                         +{k.callsToday.toLocaleString()}
                       </span>
                     )}
@@ -687,16 +687,16 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 첫 사용 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.firstAt)}</span>
-                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({kstWeekday(user.firstAt)}) {kstTime(user.firstAt)}</span>
+                    <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.firstAt)}) {kstTime(user.firstAt)}</span>
                   </div>
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.lastAt)}</span>
-                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({kstWeekday(user.lastAt)}) {kstTime(user.lastAt)}</span>
+                    <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.lastAt)}) {kstTime(user.lastAt)}</span>
                   </div>
                   {/* 사용자 — 유형 배지 + 축약 ID (전체 ID는 title로) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }} title={user.subject}>
                     <span style={{
-                      fontSize: 'calc(8.5px * var(--fz, 1))', fontWeight: 600, padding: '1px 5px',
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, padding: '1px 5px',
                       borderRadius: 999, background: typeTone.bg, color: typeTone.fg, whiteSpace: 'nowrap' as const,
                     }}>
                       {typeTone.label}
@@ -712,7 +712,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   <div style={userNumCell}>{user.activeDays}</div>
                   <div style={userNumCell}>{user.sharedSheets || '—'}</div>
                   {/* 구독 — 활성이면 스토어 표시, 만료는 흐리게 */}
-                  <div style={{ ...userNumCell, fontSize: 'calc(9px * var(--fz, 1))' }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
+                  <div style={{ ...userNumCell, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
                     {ent ? (
                       <span style={{
                         padding: '1px 6px', borderRadius: 999, fontWeight: 600,
@@ -727,7 +727,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               )
             })}
             {sortedUsers.length === 0 && (
-              <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+              <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                 아직 AI를 호출한 사용자가 없습니다
               </div>
             )}

@@ -99,10 +99,10 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
       }}>
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: 4 }}>
               {refNo}
             </div>
-            <div style={{ fontSize: 'calc(16px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
               {s?.period_label ?? refNo}
             </div>
           </div>
@@ -126,7 +126,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
 
         <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', minHeight: 0 }}>
           {!detail && !loadError && (
-            <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, padding: '16px 0' }}>불러오는 중</div>
+            <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '16px 0' }}>불러오는 중</div>
           )}
           {loadError && <LNotice tone="danger" text={loadError} />}
 
@@ -140,7 +140,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
 
               <Section title="기본계약·약정">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {detail.agreement.title}
                   </span>
                   <LTableBadge tone={detail.agreement.status === 'active' ? tonePalettes.done : tonePalettes.pending}>
@@ -155,8 +155,8 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
                 {detail.engagement ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>{detail.engagement.ref_no}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted }}>
+                      <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{detail.engagement.ref_no}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                         {FEE_BASIS_LABEL[detail.engagement.fee_basis] ?? detail.engagement.fee_basis}
                         {detail.engagement.fee_amount != null && ` · ₩${Math.round(detail.engagement.fee_amount).toLocaleString()} 상한`}
                       </span>
@@ -167,11 +167,11 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
                       )}
                     </div>
                     {detail.engagement.basis_text && (
-                      <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle, lineHeight: 1.5 }}>{detail.engagement.basis_text}</div>
+                      <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5 }}>{detail.engagement.basis_text}</div>
                     )}
                   </div>
                 ) : (
-                  <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
                     프로젝트 무관 업무 (개별 약정 없음)
                   </div>
                 )}
@@ -179,7 +179,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
 
               <Section title={`업무기록 ${detail.works.length}건`}>
                 {detail.works.length === 0 && (
-                  <div style={{ fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0' }}>아직 업무기록이 없습니다.</div>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>아직 업무기록이 없습니다.</div>
                 )}
                 {detail.works.map(w => <WorkRow key={w.id} work={w} expanded={expanded.has(w.id)} onToggle={() => toggleWork(w.id)} />)}
               </Section>
@@ -202,7 +202,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
               <Section title="대사 결과">
                 <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>현재 대사</div>
                 {s.reconciliation == null && (
-                  <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle, padding: '6px 0' }}>대사 결과가 없습니다.</div>
+                  <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '6px 0' }}>대사 결과가 없습니다.</div>
                 )}
                 {s.reconciliation && s.reconciliation.ok && (
                   <div style={{ padding: '6px 0' }}><LTableBadge tone={tonePalettes.done}>일치</LTableBadge></div>
@@ -254,11 +254,11 @@ function WorkRow({ work, expanded, onToggle }: { work: B2bWorkRecordDetail; expa
   return (
     <div style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
       <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer' }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {work.title}
         </span>
-        <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{period}</span>
-        <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+        <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{period}</span>
+        <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
           {work.pricing ? `₩${Math.round(work.pricing.agreed_amount).toLocaleString()}` : '-'}
         </span>
         <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
@@ -269,10 +269,10 @@ function WorkRow({ work, expanded, onToggle }: { work: B2bWorkRecordDetail; expa
           {work.pricing?.basis_text && <Field label="산정 근거" value={work.pricing.basis_text} block />}
           {work.evidence.length > 0 && (
             <div>
-              <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 3 }}>증거 링크</div>
+              <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 3 }}>증거 링크</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {work.evidence.map(ev => (
-                  <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11px * var(--fz, 1))' }}>
+                  <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                     <LTableBadge tone={tonePalettes.neutral}>{EVIDENCE_KIND_LABEL[ev.kind] ?? ev.kind}</LTableBadge>
                     {ev.url ? (
                       <a href={ev.url} target="_blank" rel="noopener noreferrer" style={{ color: t.brand[600], minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -300,7 +300,7 @@ function DocRow({ label, doc, onOpen, opening }: {
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text }}>{label}</span>
       {doc ? (
         <>
           <LTableBadge tone={doc.status === 'final' ? tonePalettes.done : tonePalettes.pending}>{doc.status === 'final' ? '확정' : '초안'}</LTableBadge>
@@ -309,7 +309,7 @@ function DocRow({ label, doc, onOpen, opening }: {
           </LBtn>
         </>
       ) : (
-        <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle }}>미등록</span>
+        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>미등록</span>
       )}
     </div>
   )
@@ -321,19 +321,19 @@ function InvoiceRow({ label, invoice }: {
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-      <span style={{ width: 48, flexShrink: 0, fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted }}>{label}</span>
+      <span style={{ width: 48, flexShrink: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted }}>{label}</span>
       {invoice ? (
         <>
-          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.subtle }}>{invoice.issue_date ?? '-'}</span>
-          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>{invoice.issue_date ?? '-'}</span>
+          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {invoice.approval_no ?? '-'}
           </span>
-          <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.text }}>
+          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text }}>
             ₩{Math.round(invoice.total_amount).toLocaleString()}
           </span>
         </>
       ) : (
-        <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle }}>미확인</span>
+        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>미확인</span>
       )}
     </div>
   )
@@ -342,10 +342,10 @@ function InvoiceRow({ label, invoice }: {
 function CashRows({ label, rows }: { label: string; rows: { id: string; payment_date: string; amount: number; counterparty: string | null }[] }) {
   return (
     <div style={{ padding: '6px 0', borderTop: `1px solid ${t.neutrals.line}` }}>
-      <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.muted, marginBottom: rows.length ? 3 : 0 }}>{label}</div>
-      {rows.length === 0 && <div style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.subtle }}>미확인</div>}
+      <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, marginBottom: rows.length ? 3 : 0 }}>{label}</div>
+      {rows.length === 0 && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>미확인</div>}
       {rows.map(r => (
-        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(11px * var(--fz, 1))', padding: '2px 0' }}>
+        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: '2px 0' }}>
           <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle }}>{r.payment_date}</span>
           <span style={{ flex: 1, minWidth: 0, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.counterparty ?? '-'}</span>
           <span style={{ fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text }}>₩{Math.round(Math.abs(r.amount)).toLocaleString()}</span>
@@ -360,8 +360,8 @@ function Field({ label, value, block }: { label: string; value: string; block?: 
     <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={block
-        ? { fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, lineHeight: 1.5, wordBreak: 'break-word' as const, whiteSpace: 'pre-wrap' as const }
-        : { fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
+        ? { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, lineHeight: 1.5, wordBreak: 'break-word' as const, whiteSpace: 'pre-wrap' as const }
+        : { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
       }>{value}</div>
     </div>
   )

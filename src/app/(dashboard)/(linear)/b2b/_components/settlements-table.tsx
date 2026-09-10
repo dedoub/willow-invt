@@ -69,13 +69,13 @@ export function SettlementsTable({ settlements, status, onSelect }: Props) {
             const reconLabel = recon == null ? '-' : recon.ok ? '통과' : '불일치'
             return (
               <LTableRow key={row.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(row)}>
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
                   {row.ref_no}
                 </span>
-                <span style={{ fontSize: 'calc(11.5px * var(--fz, 1))', color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.period_label ?? '-'}
                 </span>
-                <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: row.engagement_ref ? t.neutrals.muted : t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: row.engagement_ref ? t.neutrals.muted : t.neutrals.subtle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.engagement_ref ?? '-'}
                 </span>
                 <LTableNumber value={Number(row.supply_amount)} />

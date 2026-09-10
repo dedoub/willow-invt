@@ -188,7 +188,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -231,7 +231,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
             placeholder="거래처 · 품목 · 사업자번호 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -275,7 +275,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
                 {/* 해외분은 원화로 눌러 담지 않고 발행 통화 그대로 보여준다. */}
                 {foreign ? (
                   <span style={{
-                    textAlign: 'right', fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))',
+                    textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     fontWeight: 500, color: t.neutrals.text, fontVariantNumeric: 'tabular-nums',
                   }}>
                     ${row.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -293,7 +293,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
                   <div style={{
                     display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
                     gap: 10, padding: '10px 12px', borderRadius: t.radius.md,
-                    background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))',
+                    background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                   }}>
                     {row.regNumber && <DetailRow label="사업자번호" value={row.regNumber} mono />}
                     <DetailRow label="발행일" value={row.issuedAt ?? '-'} mono />
@@ -336,7 +336,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, sorted.length)} / {sorted.length}
             </span>
             <button
@@ -361,7 +361,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>{value}</div>
     </div>
   )

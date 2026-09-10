@@ -82,13 +82,13 @@ export function RulesBlock({ rules, onSelect }: Props) {
                 <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {rule.title}
                 </span>
-                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))' }}>v{rule.version_no}</span>
+                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>v{rule.version_no}</span>
                 <LTableDate value={rule.effective_from} format="ymd" />
                 {!mobile && (current
                   ? <LTableBadge tone={tonePalettes.done}>현행</LTableBadge>
                   : <LTableDate value={rule.effective_to as string} format="ymd" tone="muted" />)}
                 {!mobile && (
-                  <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
+                  <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                     {rule.articles.length}
                   </span>
                 )}

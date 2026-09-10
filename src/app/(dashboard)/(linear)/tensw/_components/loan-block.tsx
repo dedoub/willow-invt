@@ -150,7 +150,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                 onClick={() => handleFilterChange(f.value)}
                 style={{
                   border: 'none', cursor: 'pointer',
-                  padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                  padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                   fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                   background: active && tone ? tone.bg : active ? t.brand[100] : t.neutrals.inner,
                   color: active && tone ? tone.fg : active ? t.brand[700] : t.neutrals.muted,
@@ -184,7 +184,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   {loan.bank}
                   {maturityWarning && (
                     <span style={{
-                      marginLeft: 6, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      marginLeft: 6, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                       padding: '1px 5px', borderRadius: t.radius.sm,
                       background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
                       whiteSpace: 'nowrap',
@@ -213,7 +213,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   <div style={{
                     background: t.neutrals.inner, borderRadius: t.radius.md,
                     padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                    fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
+                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                   }}>
                     <DetailRow label="대출유형" value={loan.loan_type} />
                     <DetailRow label="계좌번호" value={loan.account_number} mono />
@@ -235,7 +235,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                   {loan.memo && (
                     <div style={{
                       marginTop: 8, padding: '8px 12px', borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted,
+                      background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
                       lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     }}>
                       {loan.memo}
@@ -254,7 +254,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 6,
                             padding: '4px 8px', borderRadius: t.radius.sm,
-                            background: t.neutrals.inner, fontSize: 'calc(11px * var(--fz, 1))',
+                            background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                             color: t.brand[700], textDecoration: 'none',
                           }}
                         >
@@ -272,7 +272,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                       style={{
                         padding: '4px 12px', borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}
@@ -314,7 +314,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>
             <button
@@ -340,7 +340,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: 2 }}>{label}</div>
       <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
         {value}
       </div>

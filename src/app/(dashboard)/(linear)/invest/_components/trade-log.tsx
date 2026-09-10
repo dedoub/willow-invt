@@ -218,11 +218,11 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               )}
             </div>
             {view === 'closed' && closed.rows.length > 0 && (
-              <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: toneColor(closed.total) }}>
+              <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: toneColor(closed.total) }}>
                 {fmtKrwSigned(closed.total)}
               </span>
             )}
-            <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
+            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
               {search && filteredCount !== totalCount ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
             </span>
           </div>
@@ -235,7 +235,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
           <>
             <div style={{
               display: 'grid', gridTemplateColumns: closedCols,
-              gap: 8, padding: '6px 14px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
+              gap: 8, padding: '6px 14px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
               color: t.neutrals.subtle, fontFamily: t.font.mono,
               textTransform: 'uppercase' as const, letterSpacing: 0.5,
               minWidth: closedMinW, whiteSpace: 'nowrap' as const,
@@ -254,21 +254,21 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                     display: 'grid', gridTemplateColumns: closedCols, gap: 8,
                     padding: '8px 14px', alignItems: 'center',
                     borderTop: `1px solid ${t.neutrals.line}`,
-                    fontSize: 'calc(12px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                     minWidth: closedMinW, whiteSpace: 'nowrap' as const,
                   }}>
                     <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <span style={{ fontWeight: t.weight.medium }}>{r.ticker}</span>
-                      <span style={{ color: t.neutrals.muted, marginLeft: 4, fontSize: 'calc(11px * var(--fz, 1))' }}>{r.name}</span>
+                      <span style={{ color: t.neutrals.muted, marginLeft: 4, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>{r.name}</span>
                     </div>
                     <span style={{
                       display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
+                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
                       background: t.neutrals.inner, color: t.neutrals.muted,
                     }}>{r.fullyClosed ? '전량' : '일부'}</span>
                     <span style={{
                       textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))',
+                      color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     }}>{fmtKrwPlain(r.costKrw)}</span>
                     <span style={{
                       textAlign: 'right', fontWeight: t.weight.medium,
@@ -276,7 +276,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                     }}>{fmtKrwSigned(r.realizedKrw)}</span>
                     <span style={{
                       textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      fontSize: 'calc(11px * var(--fz, 1))', color: toneColor(r.realizedKrw),
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: toneColor(r.realizedKrw),
                     }}>{retPct >= 0 ? '+' : ''}{retPct.toFixed(1)}%</span>
                   </div>
                 )
@@ -284,7 +284,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               {filteredClosed.length === 0 && (
                 <div style={{
                   padding: '20px 14px', textAlign: 'center',
-                  fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
                 }}>{search ? '검색 결과가 없습니다' : '청산된 종목이 없습니다'}</div>
               )}
             </div>
@@ -294,7 +294,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
           <>
             <div style={{
               display: 'grid', gridTemplateColumns: tradeCols,
-              gap: 8, padding: '6px 14px', fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.semibold,
+              gap: 8, padding: '6px 14px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
               color: t.neutrals.subtle, fontFamily: t.font.mono,
               textTransform: 'uppercase' as const, letterSpacing: 0.5,
               minWidth: tradeMinW, whiteSpace: 'nowrap' as const,
@@ -316,15 +316,15 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                     display: 'grid', gridTemplateColumns: tradeCols,
                     gap: 8, padding: '8px 14px', alignItems: 'center',
                     borderTop: `1px solid ${t.neutrals.line}`,
-                    fontSize: 'calc(12px * var(--fz, 1))',
+                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                     minWidth: tradeMinW, whiteSpace: 'nowrap' as const,
                   }}>
-                    <span style={{ fontFamily: t.font.mono, fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted }}>
+                    <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                       {(tr.trade_date || '').slice(5)}
                     </span>
                     <span style={{
                       display: 'inline-block', padding: '2px 6px', borderRadius: t.radius.sm,
-                      fontSize: 'calc(10px * var(--fz, 1))', fontWeight: t.weight.medium, textAlign: 'center',
+                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
                       background: t.neutrals.inner, color: t.neutrals.muted,
                     }}>
                       {isBuy ? '매수' : '매도'}
@@ -333,7 +333,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                       <span style={{ fontWeight: t.weight.medium }}>
                         {tr.ticker.replace('.KS', '')}
                       </span>
-                      <span style={{ color: t.neutrals.muted, marginLeft: 4, fontSize: 'calc(11px * var(--fz, 1))' }}>
+                      <span style={{ color: t.neutrals.muted, marginLeft: 4, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                         {tr.company_name}
                       </span>
                     </div>
@@ -344,7 +344,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                     </span>
                     <span style={{
                       textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))',
+                      color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     }}>
                       {isKRW ? `${tr.price.toLocaleString()}` : `$${tr.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     </span>
@@ -361,7 +361,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               {filteredTrades.length === 0 && (
                 <div style={{
                   padding: '20px 14px', textAlign: 'center',
-                  fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
                 }}>{search ? '검색 결과가 없습니다' : '매매 기록이 없습니다'}</div>
               )}
             </div>
@@ -392,7 +392,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
             <span style={{
-              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
             }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredCount)} / {filteredCount}
             </span>

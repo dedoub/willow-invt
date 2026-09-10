@@ -133,7 +133,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: 'calc(12px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(current => current + 1); setPage(0) }} style={{
@@ -157,7 +157,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             return (
               <button key={filter.value} onClick={() => { setStatus(filter.value); setPage(0) }} style={{
                 border: 'none', cursor: 'pointer',
-                padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+                padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
                 fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
                 background: active ? t.brand[100] : t.neutrals.inner,
                 color: active ? t.brand[700] : t.neutrals.muted,
@@ -178,7 +178,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             placeholder="세목 · 기관 · 전자납부번호 검색"
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: 'calc(12px * var(--fz, 1))',
+              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               fontFamily: t.font.sans, color: t.neutrals.text,
               background: t.neutrals.inner, border: 'none',
               borderRadius: t.radius.sm, outline: 'none',
@@ -248,7 +248,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
             >
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
             </span>
             <button

@@ -58,12 +58,12 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
   }
 
   const thStyle: React.CSSProperties = {
-    padding: '6px 10px', fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono,
+    padding: '6px 10px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
     fontWeight: 600, color: t.neutrals.subtle, textAlign: 'left',
     letterSpacing: 0.3, whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
-    padding: '7px 10px', fontSize: 'calc(11.5px * var(--fz, 1))', fontFamily: t.font.sans,
+    padding: '7px 10px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
     color: t.neutrals.text, whiteSpace: 'nowrap',
   }
 
@@ -72,7 +72,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
       <div style={{ padding: t.density.cardPad, paddingBottom: 10 }}>
         <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.muted, fontFamily: t.font.mono }}>
+            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono }}>
               {etfs.length}개
             </span>
             <LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />
@@ -117,7 +117,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
                 <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {etf.fundName}
                 </td>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted }}>
+                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                   {etf.listingDate || '-'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
@@ -180,7 +180,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
               }}>
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, etfs.length)} / {etfs.length}
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}

@@ -65,7 +65,7 @@ export function ActionsBlock({ actions, documents, onSelectDocument }: Props) {
                   {action.description}
                 </span>
                 {!mobile && (
-                  <span style={{ fontFamily: t.font.mono, fontSize: 'calc(10.5px * var(--fz, 1))', color: doc ? t.neutrals.muted : t.neutrals.subtle, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: doc ? t.neutrals.muted : t.neutrals.subtle, whiteSpace: 'nowrap' }}>
                     {doc ? doc.doc_no : '-'}
                   </span>
                 )}

@@ -109,14 +109,14 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         }}
       >
         <span style={{
-          fontSize: 'calc(11px * var(--fz, 1))', width: 16, textAlign: 'center', flexShrink: 0,
+          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, width: 16, textAlign: 'center', flexShrink: 0,
           color: note.is_pinned ? '#D97706' : 'transparent',
         }}>
           {note.is_pinned ? '📌' : ''}
         </span>
 
         <span style={{
-          flex: 1, fontSize: 'calc(13px * var(--fz, 1))', fontWeight: t.weight.medium,
+          flex: 1, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           color: t.neutrals.text,
         }}>
@@ -126,7 +126,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         {note.attachments && note.attachments.length > 0 && (
           <span style={{
             display: 'flex', alignItems: 'center', gap: 2,
-            fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, flexShrink: 0,
+            fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, flexShrink: 0,
           }}>
             <LIcon name="paperclip" size={10} />
             {note.attachments.length}
@@ -144,7 +144,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         </span>
 
         <span title={fmtUpdatedTitle(note.updated_at)} style={{
-          fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono,
+          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
           flexShrink: 0, minWidth: 52,
         }}>
           {fmtDate(note.updated_at)}
@@ -183,7 +183,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
         marginBottom: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, color: t.neutrals.text }}>
+          <span style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
             {note.title || '(제목 없음)'}
           </span>
           <span style={{
@@ -196,12 +196,12 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
+          <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, marginRight: 8 }}>
             마지막 업데이트 {fmtDate(note.updated_at)}
           </span>
           <button onClick={handlePin} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-            borderRadius: t.radius.sm, fontSize: 'calc(12px * var(--fz, 1))',
+            borderRadius: t.radius.sm, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
             color: note.is_pinned ? '#D97706' : t.neutrals.subtle,
           }}>📌</button>
           <LBtn variant="ghost" size="sm" icon={<LIcon name="file" size={13} />} onClick={() => setEditing(true)}>
@@ -219,7 +219,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
       {hasRenderedContent && (
         <div
           style={{
-            fontSize: 'calc(13px * var(--fz, 1))',
+            fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
             lineHeight: 1.7,
             color: t.neutrals.text,
             marginBottom: note.attachments?.length ? 12 : 0,
@@ -235,7 +235,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
             <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               background: t.neutrals.card, borderRadius: t.radius.sm,
-              padding: '4px 8px', fontSize: 'calc(11px * var(--fz, 1))', color: t.brand[600],
+              padding: '4px 8px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],
               textDecoration: 'none',
             }}>
               <LIcon name="paperclip" size={11} />
@@ -247,7 +247,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
 
       {/* 노트별 메모 — 윌리가 점검해 후속조치 (reviewed_at 표시) */}
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.neutrals.line}` }}>
-        <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 6 }}>
+        <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, marginBottom: 6 }}>
           메모 {memos.length > 0 && `(${memos.length})`}
         </div>
 
@@ -257,13 +257,13 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
             background: t.neutrals.card, borderRadius: t.radius.sm,
             padding: '6px 8px', marginBottom: 4,
           }}>
-            <span style={{ fontSize: 'calc(11px * var(--fz, 1))', flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
+            <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, flexShrink: 0, marginTop: 1 }} title={m.reviewed_at ? '윌리 확인됨' : '미확인'}>
               {m.reviewed_at ? '✅' : '📝'}
             </span>
-            <span style={{ flex: 1, fontSize: 'calc(12px * var(--fz, 1))', lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
+            <span style={{ flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, lineHeight: 1.5, color: t.neutrals.text, whiteSpace: 'pre-wrap' }}>
               {m.text}
             </span>
-            <span style={{ fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0 }}>
+            <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0 }}>
               {fmtDate(m.created_at)}
             </span>
             <button onClick={() => handleDeleteMemo(m.id)} style={{
@@ -282,7 +282,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
             onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddMemo() }}
             placeholder="이 노트에 메모 추가… (엔터)"
             style={{
-              flex: 1, fontSize: 'calc(12px * var(--fz, 1))',
+              flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
               background: t.neutrals.card, border: 'none', borderRadius: t.radius.sm,
               padding: '6px 8px', color: t.neutrals.text, outline: 'none',
             }}

@@ -243,11 +243,11 @@ const USER_TABLE_MIN_WIDTH = (() => {
   return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
 const userHeadCell: React.CSSProperties = {
-  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
 }
 const userNumCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 
@@ -258,10 +258,10 @@ function NumDeltaCell({ total, delta, dim, note }: { total: number; delta: numbe
     <div style={{ ...userNumCell, color: dim ? t.neutrals.muted : userNumCell.color, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
       <span>{formatNumber(total)}</span>
       {note && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 500, color: t.neutrals.subtle }}>{note}</span>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.subtle }}>{note}</span>
       )}
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{formatNumber(Math.abs(d))}
         </span>
       )}
@@ -269,7 +269,7 @@ function NumDeltaCell({ total, delta, dim, note }: { total: number; delta: numbe
   )
 }
 const userDateCell: React.CSSProperties = {
-  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
 
@@ -298,23 +298,23 @@ function offerStageScore(stage: string | null): number {
 function IntentCell({ u }: { u: UserStats['users'][number] }) {
   // 점수는 숨기고 핫리드(🔥)·업그레이드 클릭(💳)만 노출. 정렬은 여전히 purchaseScore 기준.
   if (!u.hotLead && !u.intentBanner) {
-    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>—</div>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
           <span title="핫리드: 최근 7일 활성 미구매자 중 구매 가능성 상위 10%" style={{
-            fontSize: 'calc(9px * var(--fz, 1))', background: '#FEE2E2', color: '#B91C1C',
+            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, background: '#FEE2E2', color: '#B91C1C',
             borderRadius: 3, padding: '0 3px', fontWeight: t.weight.medium,
           }}>🔥</span>
         )}
         {u.intentBanner && (
-          <span title="업그레이드 모달/배너 클릭" style={{ fontSize: 'calc(11px * var(--fz, 1))' }}>💳</span>
+          <span title="업그레이드 모달/배너 클릭" style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>💳</span>
         )}
       </div>
       {u.lastIntentAt && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
           {formatDateShort(u.lastIntentAt)}
         </span>
       )}
@@ -347,7 +347,7 @@ function GuaranteeCell({ until, daysLeft = 0 }: { until?: string | null; daysLef
       <span style={{ color: active ? '#166534' : t.neutrals.subtle, fontWeight: active ? 600 : 400 }}>
         {formatDateShort(until)}
       </span>
-      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>
+      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
         {active ? `${daysLeft}일 남음` : '만료'}
       </span>
     </div>
@@ -356,19 +356,19 @@ function GuaranteeCell({ until, daysLeft = 0 }: { until?: string | null; daysLef
 
 function OfferStageCell({ stage, at }: { stage: string | null; at: string | null }) {
   if (!stage || !OFFER_STAGE_STYLE[stage]) {
-    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: 'calc(11px * var(--fz, 1))' }}>—</div>
+    return <div style={{ textAlign: 'center', color: t.neutrals.subtle, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>—</div>
   }
   const s = OFFER_STAGE_STYLE[stage]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <span title={s.title} style={{
-        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
         color: s.fg, background: s.bg, padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
       }}>
         {stage === 'redeemed' ? '💰' + s.label : s.label}
       </span>
       {at && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
           {formatDateShort(at)}
         </span>
       )}
@@ -795,7 +795,7 @@ export function VoicecardsBlock({
           <div style={{
             padding: '18px 12px', borderRadius: t.radius.sm, background: t.neutrals.inner,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))',
+            color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
           }}>
             <span>인사이트 데이터를 불러오지 못했어요</span>
             <button
@@ -805,7 +805,7 @@ export function VoicecardsBlock({
                 padding: '4px 12px', borderRadius: t.radius.sm, border: 'none',
                 cursor: refreshingFunnel ? 'default' : 'pointer', opacity: refreshingFunnel ? 0.5 : 1,
                 background: t.brand[500], color: '#fff',
-                fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500, fontFamily: t.font.sans,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
               }}
             >
               다시 시도
@@ -1067,7 +1067,7 @@ export function VoicecardsBlock({
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                   valueExtra={svLast ? (
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                       fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       {svLast.date.slice(5)} 기준
@@ -1083,7 +1083,7 @@ export function VoicecardsBlock({
                   value={devices.toLocaleString()}
                   valueExtra={svTotal > 0 ? (
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {installRate}%</span>
@@ -1103,7 +1103,7 @@ export function VoicecardsBlock({
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {loginRate}%</span>
@@ -1125,7 +1125,7 @@ export function VoicecardsBlock({
                   value={linkedUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {linkedRate}%</span>
@@ -1155,7 +1155,7 @@ export function VoicecardsBlock({
                   // 헤드라인에는 기기 계정이 섞여 있어서 이게 없으면 앞 칸과 어떻게 이어지는지 알 수 없다.
                   valueExtra={(deviceAccountActivated + anonDeviceActivated) > 0 ? (
                     <span style={{
-                      fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                       color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       구글 {googleActivated.toLocaleString()}
@@ -1179,7 +1179,7 @@ export function VoicecardsBlock({
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
-                        fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                        fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
                         CPMAU {fmtPerMau(creditsPerMau)}
@@ -1404,7 +1404,7 @@ export function VoicecardsBlock({
             // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
             const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
               <span style={{
-                fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                 fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
               }}>
                 {(n / userStats.totalCards).toFixed(1)}x
@@ -1675,7 +1675,7 @@ export function VoicecardsBlock({
                     {user.installedAt ? (
                       <>
                         <span>{formatDateShort(user.installedAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.installedAt)}) {formatTimeShort(user.installedAt)}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.installedAt)}) {formatTimeShort(user.installedAt)}</span>
                       </>
                     ) : '—'}
                   </div>
@@ -1684,7 +1684,7 @@ export function VoicecardsBlock({
                     {user.createdAt ? (
                       <>
                         <span>{formatDateShort(user.createdAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
                       </>
                     ) : '—'}
                   </div>
@@ -1692,7 +1692,7 @@ export function VoicecardsBlock({
                     {user.lastActiveAt ? (
                       <>
                         <span>{formatDateShort(user.lastActiveAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActiveAt)}) {formatTimeShort(user.lastActiveAt)}</span>
                       </>
                     ) : '—'}
                   </div>
@@ -1702,12 +1702,12 @@ export function VoicecardsBlock({
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600,
                     }}>
                       {initial}
                     </div>
                     <span title={titleParts || undefined} style={{
-                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
                       color: user.nickname ? t.neutrals.text : t.neutrals.muted,
                       fontFamily: user.nickname ? t.font.sans : t.font.mono,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
@@ -1719,7 +1719,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.platform ? (
                       <span style={{
-                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
                         background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
                         padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
@@ -1727,14 +1727,14 @@ export function VoicecardsBlock({
                         {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                      <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
                   </div>
                   {/* 앱버전 */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.appVersion ? (
                       <span style={{
-                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: t.neutrals.muted, background: t.neutrals.card,
                         padding: '1px 4px', borderRadius: 3, lineHeight: 1.4,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
@@ -1742,21 +1742,21 @@ export function VoicecardsBlock({
                         v{user.appVersion}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                      <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
                   </div>
                   {/* 언어 (locale) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.locale ? (
                       <span style={{
-                        fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         color: '#6B21A8', background: '#F3E8FF',
                         padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
                         {user.locale}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                      <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
                   </div>
                   {/* 국가 (locale 지역) */}
@@ -1765,21 +1765,21 @@ export function VoicecardsBlock({
                       const c = formatCountry(user.country, user.locale)
                       return c ? (
                         <span title={c.name} style={{
-                          fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                           color: '#1E40AF', background: '#DBEAFE',
                           padding: '1px 4px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                         }}>
                           {c.flag} {c.code}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
+                        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                       )
                     })()}
                   </div>
                   {/* 구글연동 = Drive 폴더 생성 완료(users.folder_id). deferred-Drive라
                       시트 0이어도 연동은 끝났을 수 있다(AI draft만 두고 이탈 등). */}
                   <div style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
                     color: user.hasFolder ? t.neutrals.muted : '#B45309',
                   }}>
@@ -1788,7 +1788,7 @@ export function VoicecardsBlock({
                   {/* 활성화 = 첫 시트 저장(또는 카드 보유). 미활성 && 구글연동 완료 = "연동후대기" —
                       draft만 두고 이탈한 복귀 유도 타깃이라 대기로 구분 표기. */}
                   <div style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.sans, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
                     whiteSpace: 'nowrap', textAlign: 'center',
                     color: isVoicecardsLearningActivated(user) ? t.neutrals.muted : '#B45309',
                   }}>
@@ -1807,7 +1807,7 @@ export function VoicecardsBlock({
                   <OfferStageCell stage={user.offerStage} at={user.offerStageAt} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
-                      fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                       color: user.hasPurchased ? '#166534' : t.neutrals.muted,
                       background: user.hasPurchased ? '#DCFCE7' : t.neutrals.card,
                       padding: '1px 5px', borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
@@ -1824,7 +1824,7 @@ export function VoicecardsBlock({
                     {user.lastPurchaseAt ? (
                       <>
                         <span>{formatDateShort(user.lastPurchaseAt)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastPurchaseAt)}) {formatTimeShort(user.lastPurchaseAt)}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastPurchaseAt)}) {formatTimeShort(user.lastPurchaseAt)}</span>
                       </>
                     ) : (
                       <span style={{ color: t.neutrals.subtle, textAlign: 'center' as const }}>—</span>
@@ -1872,7 +1872,7 @@ export function VoicecardsBlock({
                     <LIcon name="chevronLeft" size={13} stroke={2} />
                   </button>
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
                   }}>
                     {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, sortedUsers.length)} / {sortedUsers.length}
                   </span>
@@ -1971,7 +1971,7 @@ function DauTrendCard({ daily, days = 42 }: {
         gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3,
       }}>
         <div style={{
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 활동자
@@ -1982,7 +1982,7 @@ function DauTrendCard({ daily, days = 42 }: {
           // 컨테이너 nowrap을 풀어 자연스럽게 접히게 하고, 줄바꿈은 칩 경계에서만
           // 일어나도록 nowrap을 칩 각각으로 내렸다. flex-end라 접혀도 우측 정렬 유지.
           flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0,
-          fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
         }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />로그인·기존 {latest ? memberOf(latest) : 0}
@@ -2009,7 +2009,7 @@ function DauTrendCard({ daily, days = 42 }: {
       {rows.length === 0 || max === 0 ? (
         <div style={{
           flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
         }}>
           데이터 없음
         </div>
@@ -2031,7 +2031,7 @@ function DauTrendCard({ daily, days = 42 }: {
                 {/* 바 위 총합 — 2열 모드에서도 표시(CEO). 바가 좁아지는 만큼 글자를 줄여 옆 바와 안 부딪히게 */}
                 {r.devices > 0 && (
                   <span style={{
-                    fontSize: 'calc(7.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
                     fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: 2,
                     whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
                   }}>{r.devices}</span>
@@ -2072,7 +2072,7 @@ function DauTrendCard({ daily, days = 42 }: {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${barPct(r.devices).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(r.date)}</div>
@@ -2156,7 +2156,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
     </span>
   )
   const axisLabel: React.CSSProperties = {
-    position: 'absolute', fontSize: 'calc(8px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+    position: 'absolute', fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
   }
 
   return (
@@ -2167,11 +2167,11 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6, flexWrap: 'wrap' as const, rowGap: 3 }}>
         <div
           title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 판매/사용 = 판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율. 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다."
-          style={{ fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
+          style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
         >
           누적 크레딧 사용 vs 판매
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: 3, minWidth: 0, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono }}>
           {chip(USED, '사용', formatNumber(latestUsed))}
           {soldLoading ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}>
@@ -2192,7 +2192,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
           <Bone h={2} /><Bone h={2} w="80%" /><Bone h={2} w="60%" />
         </div>
       ) : dates.length < 2 || max === 0 ? (
-        <div style={{ flex: 1, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        <div style={{ flex: 1, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           데이터 없음
         </div>
       ) : (
@@ -2229,7 +2229,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
             return (
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)', top: 4, pointerEvents: 'none', zIndex: 10,
-                background: '#1E293B', color: '#F8FAFC', fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                background: '#1E293B', color: '#F8FAFC', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{withWeekday(dates[hoverIdx])}</div>

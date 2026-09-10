@@ -112,7 +112,7 @@ export function EmailBlock({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {eyebrow}
             <span style={{
-              fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono,
+              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
               color: connected ? t.accent.pos : t.accent.neg,
               display: 'inline-flex', alignItems: 'center', gap: 3,
               fontWeight: t.weight.medium,
@@ -146,7 +146,7 @@ export function EmailBlock({
                     style={{
                       padding: '4px 10px', borderRadius: t.radius.pill,
                       border: 'none', cursor: 'pointer',
-                      fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
                       fontWeight: active ? t.weight.medium : t.weight.regular,
                       background: active ? t.brand[100] : t.neutrals.inner,
                       color: active ? t.brand[700] : t.neutrals.muted,
@@ -174,7 +174,7 @@ export function EmailBlock({
                 display: 'grid', gridTemplateColumns: '1fr 50px',
                 gap: 8, padding: '9px 16px', alignItems: 'center',
                 borderTop: `1px solid ${t.neutrals.line}`,
-                fontSize: 'calc(12px * var(--fz, 1))', cursor: 'pointer',
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer',
                 background: m.unread ? 'transparent' : t.neutrals.inner + '40',
               }}
             >
@@ -183,14 +183,14 @@ export function EmailBlock({
                   {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
                   {m.direction === 'outbound' && (
                     <span style={{
-                      fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                       padding: '0 4px', borderRadius: 2,
                       background: '#DAEEDD', color: '#1F5F3D',
                     }}>발신</span>
                   )}
                   {m.sourceLabel && sourceFilter === 'all' && activeFilters.length > 0 && (
                     <span style={{
-                      fontSize: 'calc(8px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                       padding: '0 4px', borderRadius: 2,
                       background: srcTone?.bg || t.neutrals.inner,
                       color: srcTone?.fg || t.neutrals.subtle,
@@ -200,14 +200,14 @@ export function EmailBlock({
                     </span>
                   )}
                   <span style={{
-                    fontSize: 'calc(10.5px * var(--fz, 1))', color: t.neutrals.muted,
+                    fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted,
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {m.fromName || m.from.replace(/<.*>/, '').trim() || m.from}
                   </span>
                   {m.category && (
                     <span style={{
-                      fontSize: 'calc(8.5px * var(--fz, 1))', fontFamily: t.font.mono,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
                       padding: '0 4px', borderRadius: 2,
                       background: t.neutrals.inner, color: t.neutrals.subtle,
                       flexShrink: 0,
@@ -220,7 +220,7 @@ export function EmailBlock({
                 }}>{m.subject || '(제목 없음)'}</div>
               </div>
               <span style={{
-                fontFamily: t.font.mono, fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle,
+                fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
                 textAlign: 'right',
               }}>{timeAgo(m.date)} 전</span>
             </div>
@@ -229,14 +229,14 @@ export function EmailBlock({
         {filtered.length === 0 && connected && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
-            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>이메일이 없습니다</div>
         )}
         {!connected && (
           <div style={{
             padding: '20px 16px', textAlign: 'center',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-            fontSize: 'calc(12px * var(--fz, 1))', color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>
             <div>Gmail 연결이 필요합니다</div>
             {onConnect && (
@@ -244,7 +244,7 @@ export function EmailBlock({
                 onClick={onConnect}
                 style={{
                   padding: '6px 14px', borderRadius: t.radius.pill, border: 'none',
-                  cursor: 'pointer', fontSize: 'calc(12px * var(--fz, 1))',
+                  cursor: 'pointer', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   fontFamily: t.font.sans, fontWeight: t.weight.medium,
                   background: t.brand[100], color: t.brand[700],
                 }}
@@ -279,7 +279,7 @@ export function EmailBlock({
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
             <span style={{
-              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
             }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
             </span>

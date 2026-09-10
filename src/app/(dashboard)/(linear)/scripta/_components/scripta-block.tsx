@@ -62,7 +62,7 @@ function fmtArpu(cents: number): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -144,12 +144,12 @@ function ScDauTrendCard({ daily, days = 42 }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 6 }}>
         <div style={{
-          fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, letterSpacing: 0.8,
+          fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
           일별 활동자
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: MEMBER }} />회원 {latest?.member ?? 0}
           </span>
@@ -162,7 +162,7 @@ function ScDauTrendCard({ daily, days = 42 }: {
         </div>
       </div>
       {rows.length === 0 || max === 0 ? (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.subtle }}>
+        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           데이터 없음
         </div>
       ) : (
@@ -198,7 +198,7 @@ function ScDauTrendCard({ daily, days = 42 }: {
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
                 bottom: `calc(${barPct(r.active).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
-                fontSize: 'calc(11px * var(--fz, 1))', fontFamily: t.font.sans, lineHeight: 1.4,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: 3 }}>{scWithWeekday(r.date)}</div>
@@ -251,19 +251,19 @@ const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 48px 44px
 // 컬럼 폭 합(668) + gap 6px×11(66) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
 const USER_TABLE_MIN_WIDTH = 750
 const userHeadCell: React.CSSProperties = {
-  fontSize: 'calc(9px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.subtle,
+  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
 }
 const userTextCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', color: t.neutrals.muted,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted,
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
 }
 const userNumCell: React.CSSProperties = {
-  fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.text,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
 }
 const userDateCell: React.CSSProperties = {
-  fontSize: 'calc(9.5px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
 }
 
@@ -277,7 +277,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
     }}>
       <span>{total.toLocaleString()}</span>
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{Math.abs(d).toLocaleString()}
         </span>
       )}
@@ -401,7 +401,7 @@ export function ScriptaBlock({
           <div style={{
             padding: '8px 12px', borderRadius: t.radius.md,
             background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: 'calc(11px * var(--fz, 1))', marginBottom: 10,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: 10,
           }}>
             {error}
           </div>
@@ -517,7 +517,7 @@ export function ScriptaBlock({
               valueExtra={attemptsTotal > 0 ? rateExtra('통과', passRate) : undefined}
               sub={subOf(stats.attempts, '회')}
               subExtra={attemptsTotal > 0 ? (
-                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   평균 {stats.practice.avgScore}점
                 </span>
               ) : undefined}
@@ -533,7 +533,7 @@ export function ScriptaBlock({
               value={sales ? sales.creditsSold.toLocaleString() : '—'}
               valueExtra={sales ? (
                 <span style={{
-                  fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                   color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatUsd(sales.revenueUsd)}
@@ -545,7 +545,7 @@ export function ScriptaBlock({
               // 아직 아무도 안 샀으면 "구매자 0명 · 원장 유입 0"은 머리값의 0을 되풀이할 뿐이다.
               // 원장 유입은 판매 수량과 대조하려고 두는 값이라 팔린 게 있을 때만 뜻이 있다.
               subExtra={sales && (sales.buyers > 0 || sales.paidOrders > 0) ? (
-                <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                   구매자 {sales.buyers.toLocaleString()}명
                   {sales.paidOrders > 0 ? ` · ${sales.paidOrders.toLocaleString()}건` : ''}
                   {` · 원장 유입 ${stats.credits.purchased.toLocaleString()}`}
@@ -667,7 +667,7 @@ export function ScriptaBlock({
                 value={stats.credits.spent.toLocaleString()}
                 valueExtra={stats.credits.refunded > 0 ? (
                   <span style={{
-                    fontSize: 'calc(9.5px * var(--fz, 1))', marginLeft: 5, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: 5, fontWeight: 500,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     환불 {stats.credits.refunded.toLocaleString()}
@@ -675,7 +675,7 @@ export function ScriptaBlock({
                 ) : undefined}
                 sub={`오늘 ${countOn(spent, todayKey).toLocaleString()} · 7일 ${countSince(spent, sevenAgoKey).toLocaleString()}`}
                 subExtra={
-                  <span style={{ fontSize: 'calc(9.5px * var(--fz, 1))', color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     잔액 {stats.credits.balance.toLocaleString()}
                   </span>
                 }
@@ -769,7 +769,7 @@ export function ScriptaBlock({
             {paginatedUsers.length === 0 && (
               <div style={{
                 padding: '18px 8px', textAlign: 'center',
-                fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle,
               }}>
                 가입자 없음
               </div>
@@ -785,14 +785,14 @@ export function ScriptaBlock({
                   {/* 가입 — 두 줄: 날짜 / (요일) 시각 */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
                     <span>{formatDateShort(user.createdAt)}</span>
-                    <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
+                    <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.createdAt)}) {formatTimeShort(user.createdAt)}</span>
                   </div>
                   {/* 활동 — 로그인·글 등록·연습·크레딧 사용 중 가장 최근 */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' as const }}>
                     {user.lastActivity ? (
                       <>
                         <span>{formatDateShort(user.lastActivity)}</span>
-                        <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActivity)}) {formatTimeShort(user.lastActivity)}</span>
+                        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({formatWeekdayShort(user.lastActivity)}) {formatTimeShort(user.lastActivity)}</span>
                       </>
                     ) : (
                       <span style={{ color: t.neutrals.subtle }}>—</span>
@@ -804,7 +804,7 @@ export function ScriptaBlock({
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 600, overflow: 'hidden',
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, overflow: 'hidden',
                     }}>
                       {user.avatarUrl
                         ? <img src={user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -812,7 +812,7 @@ export function ScriptaBlock({
                       }
                     </div>
                     <span style={{
-                      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 500,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
                       color: user.name ? t.neutrals.text : t.neutrals.muted,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
                     }}>
@@ -821,7 +821,7 @@ export function ScriptaBlock({
                     {/* 통계에서 빠진 운영 계정 — 테이블에는 남기되 숫자와 섞이지 않음을 표시 */}
                     {isExcludedScriptaUser(user) && (
                       <span title="통계 제외 계정" style={{
-                        fontSize: 'calc(8px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
                         padding: '1px 3px', borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
                         background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
                       }}>
@@ -849,7 +849,7 @@ export function ScriptaBlock({
                       {user.attempts > 0 ? user.avgScore : '—'}
                     </span>
                     {user.attempts > 0 && (
-                      <span style={{ fontSize: 'calc(8px * var(--fz, 1))', color: t.neutrals.subtle }}>
+                      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                         통과 {user.passed.toLocaleString()}
                       </span>
                     )}
@@ -894,7 +894,7 @@ export function ScriptaBlock({
                     <LIcon name="chevronLeft" size={13} stroke={2} />
                   </button>
                   <span style={{
-                    fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, color: t.neutrals.muted,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
                   }}>
                     {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, totalUsers)} / {totalUsers}
                   </span>

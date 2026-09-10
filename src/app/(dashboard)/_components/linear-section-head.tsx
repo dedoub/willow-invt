@@ -53,7 +53,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           {eyebrow && (
             <div style={{
-              fontSize: 'calc(10.5px * var(--fz, 1))', fontWeight: t.weight.semibold, letterSpacing: 1.2,
+              fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 1.2,
               textTransform: 'uppercase' as const, color: t.neutrals.subtle,
               marginBottom: t.density.gapXs, fontFamily: t.font.mono,
             }}>{eyebrow}</div>
@@ -79,7 +79,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
           }}>
             {showNote && (
               <span style={{
-                fontSize: 'calc(9px * var(--fz, 1))', fontWeight: 500, whiteSpace: 'nowrap' as const,
+                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 500, whiteSpace: 'nowrap' as const,
                 padding: '2px 6px', borderRadius: t.radius.sm,
                 background: t.neutrals.inner, color: t.neutrals.muted,
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',

@@ -57,7 +57,7 @@ const PAYMENT_STATUS_OPTIONS_BY_TYPE = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 'calc(13px * var(--fz, 1))',
+  width: '100%', padding: '8px 10px', fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
   fontFamily: t.font.sans, fontWeight: t.weight.regular,
   background: t.neutrals.inner, color: t.neutrals.text,
   border: 'none', borderRadius: t.radius.sm, outline: 'none',
@@ -185,13 +185,13 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
         }}>
           <div>
             <div style={{
-              fontSize: 'calc(10px * var(--fz, 1))', fontFamily: t.font.mono, fontWeight: 600,
+              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
               color: t.neutrals.subtle, letterSpacing: 0.6,
               textTransform: 'uppercase' as const, marginBottom: 2,
             }}>
               TAX INVOICE
             </div>
-            <div style={{ fontSize: 'calc(15px * var(--fz, 1))', fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
               {`${purchase ? '매입' : '매출'}계산서 ${isEdit ? '수정' : '추가'}`}
             </div>
           </div>
@@ -310,13 +310,13 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
               <Label>품목</Label>
               <button onClick={() => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))} style={{
-                border: 'none', cursor: 'pointer', padding: '2px 8px', fontSize: 'calc(10px * var(--fz, 1))',
+                border: 'none', cursor: 'pointer', padding: '2px 8px', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                 borderRadius: t.radius.pill, background: t.neutrals.inner, color: t.neutrals.muted,
                 fontFamily: t.font.sans, fontWeight: t.weight.medium,
               }}>+ 추가</button>
             </div>
             {form.items.length === 0 && (
-              <div style={{ fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.subtle, padding: '8px 0' }}>
+              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: '8px 0' }}>
                 품목이 없습니다
               </div>
             )}
@@ -335,7 +335,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
                         setForm(prev => ({ ...prev, items }))
                       }}
                       placeholder="품목명"
-                      style={{ ...inputBase, fontSize: 'calc(12px * var(--fz, 1))', padding: '6px 8px' }}
+                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: '6px 8px' }}
                     />
                   </div>
                   <div style={{ width: 120 }}>
@@ -349,7 +349,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
                         setForm(prev => ({ ...prev, items }))
                       }}
                       placeholder="금액"
-                      style={{ ...inputBase, fontSize: 'calc(12px * var(--fz, 1))', padding: '6px 8px', textAlign: 'right' }}
+                      style={{ ...inputBase, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: '6px 8px', textAlign: 'right' }}
                       inputMode="numeric"
                     />
                   </div>
@@ -415,7 +415,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{
-      fontSize: 'calc(11px * var(--fz, 1))', fontWeight: t.weight.medium, color: t.neutrals.subtle,
+      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle,
       fontFamily: t.font.sans, marginBottom: 5,
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: 2 }}>*</span>}
@@ -429,7 +429,7 @@ function ChipBtn({ children, active, onClick }: { children: React.ReactNode; act
       onClick={onClick}
       style={{
         border: 'none', cursor: 'pointer',
-        padding: '4px 10px', fontSize: 'calc(11px * var(--fz, 1))', borderRadius: t.radius.pill,
+        padding: '4px 10px', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
         fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
         background: active ? t.brand[100] : t.neutrals.inner,
         color: active ? t.brand[700] : t.neutrals.muted,
