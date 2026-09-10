@@ -41,6 +41,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '윌로우인베스트먼트',
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '사업관리',  icon: 'briefcase' },
+      // 새 디자인을 한 페이지씩 잡아 보는 자리 — 확정되면 /mgmt를 대체한다(2026-09-10).
+      { id: 'mgmt-new',   href: '/mgmt-new',   label: '사업관리 NEW', icon: 'briefcase' },
       // 업무 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10).
       { id: 'work',       href: '/work',       label: '업무',      icon: 'book' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
