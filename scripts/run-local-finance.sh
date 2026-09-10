@@ -52,6 +52,7 @@ for script in \
   import-finance-tax-obligations.mjs \
   match-finance-tax-obligations.mjs \
   sync-akros-invoices.mjs \
+  sync-tensw-finance-schedules.mjs \
   notify-local-finance.mjs \
   close-cert-dialogs.mjs \
   login-native-cert.mjs \
@@ -69,7 +70,7 @@ for lib in \
   tax-invoice-promotion.mjs \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
-  finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs \
+  finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs commercial-schedule-sync.mjs tensw-finance-schedule-sync.mjs \
   cert-dialog.mjs cert-sites.mjs cert-attempt-lock.mjs desktop.mjs \
   shinhan-bank.mjs wetax.mjs nhis.mjs secure-keypad.mjs \
   hometax-session.mjs hometax-national-tax.mjs cert-cleanup.mjs
@@ -296,6 +297,8 @@ run_tensw() {
   group match "세금 지급 매칭" run_step "세금 지급 매칭" \
     $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
   group classify "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw
+  group schedules "재무 일정 동기화" run_step "재무 일정 동기화" \
+    $NODE "$RUNTIME/scripts/sync-tensw-finance-schedules.mjs"
 }
 
 willow_tax_invoices() {
@@ -351,6 +354,12 @@ run_only() {
         $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs" ;;
       classify) group classify "자동 분류" run_step "자동 분류" \
         npx tsx "$ROOT/scripts/local-finance-classify.ts" --company "$COMPANY" ;;
+      schedules)
+        if [ "$COMPANY" = tensw ]; then group schedules "재무 일정 동기화" run_step "재무 일정 동기화" \
+          $NODE "$RUNTIME/scripts/sync-tensw-finance-schedules.mjs"
+        else
+          FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }윌로우에는 텐소 재무 일정 동기화를 실행할 수 없음"
+        fi ;;
       reconcile) group reconcile "수금 대사" run_step "수금 대사" \
         npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts" ;;
       akros) group akros "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
@@ -444,7 +453,16 @@ if [ "${2:-}" = "--sync-only" ]; then
       "$RUNTIME/scripts/lib/kb-card-local.mjs" \
       "$RUNTIME/scripts/lib/kb-card-statement.mjs" \
       "$RUNTIME/scripts/sync-akros-invoices.mjs" \
-      "$RUNTIME/scripts/lib/akros-invoice-sync.mjs"
+      "$RUNTIME/scripts/lib/akros-invoice-sync.mjs" \
+      "$RUNTIME/scripts/lib/commercial-schedule-sync.mjs"
+    do
+      [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
+    done
+  fi
+  if [ "$COMPANY" = "tensw" ]; then
+    for required in \
+      "$RUNTIME/scripts/sync-tensw-finance-schedules.mjs" \
+      "$RUNTIME/scripts/lib/tensw-finance-schedule-sync.mjs"
     do
       [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
     done
@@ -495,6 +513,16 @@ if [ -n "$FAILED_STEPS" ]; then :
 elif [ -n "$ONLY" ]; then run_only "$ONLY"
 elif [ "$COMPANY" = "tensw" ]; then run_tensw
 else run_willow; fi
+
+# 07시 홈택스처럼 일부 묶음만 돌린 턴도 마지막에 최신 계산서·고지·입출금을 일정에
+# 반영한다. schedules 자체를 지정한 실행에서는 중복 호출하지 않는다.
+if [ -n "$ONLY" ] && [ "$COMPANY" = "tensw" ]; then
+  case ",$ONLY," in
+    *,schedules,*) ;;
+    *) group schedules "재무 일정 동기화" run_step "재무 일정 동기화" \
+      $NODE "$RUNTIME/scripts/sync-tensw-finance-schedules.mjs" ;;
+  esac
+fi
 
 if [ -z "$FAILED_STEPS" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $COMPANY local finance success${ONLY:+ (only: $ONLY)}" >> "$LOG_FILE"

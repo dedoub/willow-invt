@@ -18,7 +18,7 @@
     <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-local-finance.sh</string>
     <string>tensw</string>
     <string>--only</string>
-    <string>tax-invoices,national-tax,match,classify,reconcile</string>
+    <string>tax-invoices,national-tax,match,classify,reconcile,schedules</string>
     <string>--notify</string>
   </array>
   <key>WorkingDirectory</key>

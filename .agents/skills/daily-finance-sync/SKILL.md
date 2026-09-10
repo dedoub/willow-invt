@@ -45,7 +45,8 @@ description: 윌로우·텐소프트웍스 은행·카드·세금·사회보험�
 3. 은행·카드는 회사별 staging/cash 테이블에 UPSERT한다.
 4. 세금·보험 고지는 `scripts/import-finance-tax-obligations.mjs`로 적재한다.
 5. 현금 분류 후 `scripts/match-finance-tax-obligations.mjs`를 실행한다.
-6. 소스별 수집 건수, 신규 건수, 분류 보류, 지급 매칭, 실패를 로그로 남긴다.
+6. 텐소프트웍스는 `scripts/sync-tensw-finance-schedules.mjs`로 세금계산서·관련 입출금·급여·법인카드·이자·세금을 일정에 반영한다.
+7. 소스별 수집 건수, 신규 건수, 분류 보류, 지급 매칭, 실패를 로그로 남긴다.
 
 묶음 하나만 다시 돌릴 때는 `--only` 를 쓴다. 새벽에 막힌 소스를 그날 안에 복구할 때도 같다.
 
@@ -79,7 +80,7 @@ scripts/run-local-finance.sh tensw --retry
 
 > 락 파일을 손으로 지우지 말 것. 돌고 있는 실행의 락을 지우면 두 실행이 화면을 나눠 쓰게 되어 락이 없느니만 못하다(08-29 실제 사고). 멈춘 실행은 프로세스를 먼저 죽이면 락은 알아서 풀린다.
 
-묶음 이름: `tax-invoices` `bank` `woori-bank`(텐소) `card` `wetax` `nhis` `national-tax` `match` `classify` `reconcile`(텐소 수금 대사) `akros`(윌로우 아크로스 반영)
+묶음 이름: `tax-invoices` `bank` `woori-bank`(텐소) `card` `wetax` `nhis` `national-tax` `match` `classify` `reconcile`(텐소 수금 대사) `schedules`(텐소 재무 일정) `akros`(윌로우 아크로스 반영)
 
 ## 검증
 
