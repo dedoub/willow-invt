@@ -705,3 +705,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .theme-outline [data-card-foot] {
   border-top-color: #E5E7EB;
 }
+/* 카드 제목 위 영어 눈썹은 쓰지 않는다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10) */
+.theme-outline [data-eyebrow] {
+  display: none;
+}

@@ -3,7 +3,7 @@
 /**
  * 현금관리 카드 — 새 디자인(사업관리 NEW 전용).
  * 데이터·계산·동작은 /mgmt 의 CashBlock 과 같다. 바꾼 것은 카드 안 배치뿐이다:
- *   1) 헤더는 제목과 업로드만. 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
+ *   1) 헤더는 제목만. 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
  *      기간(화살표·라벨·월/분기/연)은 카드 전체에 걸리는 조건이라 가운데 한 줄로 세우고 아래와 점선으로 나눈다.
  *   2) 지표는 박스를 벗고 한 줄로 선다 — 핵심 4개는 크게, 나머지 5개는 작게. 칸은 선 하나로만 나눈다.
  *   3) 필터 칩·검색·추가를 한 줄로 합친다.
@@ -14,7 +14,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
@@ -304,15 +304,9 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {/* 1) 헤더 한 줄 — 기간 이동까지 여기서 끝낸다 */}
-        {/* 헤더 영역 — 제목과 카드 액션만. 아래 영역과는 점선으로 나눈다 */}
+        {/* 헤더 영역 — 제목만. 액션(업로드·추가)은 표 바로 위 컨트롤 줄로 내렸다(CEO 2026-09-10) */}
         <div style={{ paddingBottom: t.density.panelPadY, borderBottom: `1px dashed ${t.neutrals.line}` }}>
-          <LSectionHead
-            title="현금관리"
-            action={
-              <LHeadBtn icon="file" title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영" onClick={() => !parsing && fileInputRef.current?.click()} busy={parsing} />
-            }
-            mb={0}
-          />
+          <LSectionHead title="현금관리" mb={0} />
         </div>
 
         {/* 1-2) 기간 — 카드 전체에 걸리는 조건이라 가운데에 크게 두고, 아래 지표와는 점선으로 나눈다 */}
@@ -403,12 +397,14 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
               </button>
             )}
           </div>
-          <button onClick={onAddInvoice} title="거래 추가" style={{
-            width: t.density.controlHSm, height: t.density.controlHSm, borderRadius: t.radius.sm, border: 'none',
-            background: t.neutrals.inner, color: t.neutrals.muted,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 0, flexShrink: 0,
-          }}>
+          <button
+            onClick={() => !parsing && fileInputRef.current?.click()}
+            title="은행 엑셀 업로드 (.xlsx .csv) — AI가 파싱해 반영"
+            style={iconBtn}
+          >
+            <LIcon name={parsing ? 'loader' : 'file'} size={13} stroke={2} className={parsing ? 'spin' : undefined} />
+          </button>
+          <button onClick={onAddInvoice} title="거래 추가" style={iconBtn}>
             <LIcon name="plus" size={13} stroke={2.5} />
           </button>
         </div>
@@ -497,6 +493,13 @@ export function CashBlockNew({ invoices, onAddInvoice, onSelectInvoice, onFileUp
       </div>
     </LCard>
   )
+}
+
+const iconBtn: React.CSSProperties = {
+  width: t.density.controlHSm, height: t.density.controlHSm, borderRadius: t.radius.sm, border: 'none',
+  background: t.neutrals.inner, color: t.neutrals.muted,
+  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  padding: 0, flexShrink: 0,
 }
 
 const navBtn: React.CSSProperties = {

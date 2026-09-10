@@ -52,7 +52,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
       }}>
         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           {eyebrow && (
-            <div style={{
+            <div data-eyebrow="" style={{
               fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 1.2,
               textTransform: 'uppercase' as const, color: t.neutrals.subtle,
               marginBottom: t.density.gapXs, fontFamily: t.font.mono,
