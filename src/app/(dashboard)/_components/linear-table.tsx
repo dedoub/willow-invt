@@ -373,25 +373,26 @@ export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_
           onKeyDown={e => { if (e.key === 'Enter') commit(draft) }}
           aria-label="한 페이지에 보일 행 수"
           style={{
-            width: 42, paddingLeft: t.density.gapXs, paddingRight: t.density.controlPadXMd, textAlign: 'center',
+            width: 52, paddingLeft: t.density.gapXs, paddingRight: t.density.controlPadXLg, textAlign: 'center',
             border: 'none', background: t.neutrals.inner, borderRadius: t.radius.sm,
             fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono,
             color: t.neutrals.muted, paddingTop: t.density.tableRowGap, paddingBottom: t.density.tableRowGap, outline: 'none',
           }}
         />
         <span style={{
-          position: 'absolute', right: 3, top: '50%', transform: 'translateY(-50%)',
+          position: 'absolute', right: t.density.gapSm, top: '50%', transform: 'translateY(-50%)',
           display: 'inline-flex', color: t.neutrals.subtle, pointerEvents: 'none',
         }}>
-          <LIcon name="chevronDown" size={10} stroke={2} />
+          <LIcon name="chevronDown" size={11} stroke={2} />
         </span>
-        {/* 쉐브론 자리에만 겹치는 투명 select — 왼쪽은 입력칸으로 남는다 */}
+        {/* 쉐브론 쪽에 겹치는 투명 select. 폭이 16px일 땐 조준이 어려워 잘 안 눌렸다 —
+            컨트롤 높이(28)만큼 잡아 손가락·마우스 모두 편하게 한다(CEO 2026-09-10). */}
         <select
           value={value}
           onChange={e => commit(e.target.value)}
           aria-label="행 수 고르기"
           style={{
-            position: 'absolute', right: 0, top: 0, height: '100%', width: 16,
+            position: 'absolute', right: 0, top: 0, height: '100%', minHeight: t.density.controlHSm, width: 26,
             opacity: 0, cursor: 'pointer', border: 'none', padding: 0, margin: 0,
           }}
         >

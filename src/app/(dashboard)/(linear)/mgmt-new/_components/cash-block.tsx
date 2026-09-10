@@ -6,7 +6,7 @@
  *   1) 헤더는 제목과 기간 모드 토글만 — 그 오른쪽 아이콘 버튼은 없앴다(CEO 2026-09-10). 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
  *      월/분기/연 토글은 헤더 오른쪽(원래 자리), 기간 이동 화살표와 라벨은 그 아래 본문 가운데. 구분선은 두지 않는다.
  *   2) 지표는 원래 3×3 배열 그대로, 배경 박스만 벗고 행 구분선으로 나눈다. 스파크라인은 숫자 아래.
- *   3) 필터 칩과 검색만 한 줄에 둔다 — 업로드·추가 아이콘 버튼은 뺐다(CEO 2026-09-10).
+ *   3) 필터 칩과 검색만 한 줄에 둔다. 검색에 들어가면 칩이 접히고 검색창이 그 폭을 가져간다.
  * 지표 9개·표 열·행 높이는 그대로라 밀도는 변하지 않는다.
  */
 
@@ -144,6 +144,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
 
@@ -312,6 +313,8 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
   }, [balanceHistory, bankBalances, usdRate, rangeStart, rangeEnd])
 
   const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
+  // 검색 중이거나 검색어가 남아 있으면 칩을 접어 둔다
+  const searchOpen = searchFocused || searchQuery.length > 0
 
   return (
     <LCard pad={0}>
@@ -398,14 +401,24 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           display: 'flex', alignItems: 'center', gap: t.density.gapSm,
           marginTop: t.density.gapLg, flexWrap: mobile ? 'wrap' : 'nowrap',
         }}>
-          <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapXs} />
-          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140 }}>
+          {/* 검색에 들어가면 칩은 접혀 자리를 내준다 — 폭·투명도만 바뀌므로 레이아웃이 튀지 않는다 */}
+          <div style={{
+            maxWidth: searchOpen ? 0 : 520,
+            opacity: searchOpen ? 0 : 1,
+            overflow: 'hidden', flexShrink: 0,
+            transition: 'max-width .26s ease, opacity .16s ease',
+          }}>
+            <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapXs} />
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140, transition: 'flex-basis .26s ease' }}>
             <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
               <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
             </div>
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               placeholder="거래처 · 적요 검색"
               style={{
                 width: '100%', boxSizing: 'border-box', height: t.density.controlHSm,

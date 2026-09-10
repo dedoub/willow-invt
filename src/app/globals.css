@@ -769,9 +769,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 6px !important;
 }
 
-/* 배지 — 색은 하나로. 종류는 글자로 읽고, 배경은 옅은 회색으로 통일한다 */
+/* 배지 — 색조는 버리고 회색 한 계열로 두되, 원래 색의 밝기 차이는 남긴다.
+   탈색만 하므로 매출·비용·자산·부채·대체가 서로 다른 명도의 회색이 되어 구분은 되고 화면은 조용하다
+   (CEO 2026-09-10: 단색은 유지하되 분간은 되게). */
 .theme-outline [data-table-badge] {
-  background: #F3F4F6 !important;
-  color: #374151 !important;
+  filter: grayscale(1) contrast(0.92);
   border-radius: 6px !important;
 }
