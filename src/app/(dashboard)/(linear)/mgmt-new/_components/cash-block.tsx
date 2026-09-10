@@ -16,6 +16,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { FigureGrid, fillLastRow, type FigureItem } from './figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 
@@ -366,29 +367,18 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
              구분선은 열 수를 보고 첫 줄만 건너뛴다 — 모바일 2열에서 3열 기준으로 그으면 지그재그가 된다. */}
         {(() => {
           const cols = mobile ? 2 : 3
-          const figures = [
-            { label: '매출', value: `${revenue.toLocaleString()}원` },
-            { label: '비용', value: `${expense.toLocaleString()}원` },
-            { label: '영업이익', value: `${operatingIncome.toLocaleString()}원`, tone: operatingIncome >= 0 ? 'pos' as const : 'neg' as const },
-            { label: '부채', value: `${liability.toLocaleString()}원` },
-            { label: '대체', value: `${transfer.toLocaleString()}원` },
-            { label: '현금흐름', value: `${cashFlow.toLocaleString()}원`, tone: cashFlow >= 0 ? 'pos' as const : 'neg' as const },
-            { label: '원화 잔고', value: `${periodEndBalance.krw.toLocaleString()}원` },
-            { label: '외화 잔고', value: `$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
-            { label: '총 잔고', value: `${periodEndBalance.totalKrw.toLocaleString()}원`, sub: asOf ? `${asOf} 기준` : undefined },
+          const figures: FigureItem[] = [
+            { label: '매출', value: `${revenue.toLocaleString()}원`, mono: true },
+            { label: '비용', value: `${expense.toLocaleString()}원`, mono: true },
+            { label: '영업이익', value: `${operatingIncome.toLocaleString()}원`, mono: true, tone: operatingIncome >= 0 ? 'pos' : 'neg' },
+            { label: '부채', value: `${liability.toLocaleString()}원`, mono: true },
+            { label: '대체', value: `${transfer.toLocaleString()}원`, mono: true },
+            { label: '현금흐름', value: `${cashFlow.toLocaleString()}원`, mono: true, tone: cashFlow >= 0 ? 'pos' : 'neg' },
+            { label: '원화 잔고', value: `${periodEndBalance.krw.toLocaleString()}원`, mono: true },
+            { label: '외화 잔고', value: `$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, mono: true },
+            { label: '총 잔고', value: `${periodEndBalance.totalKrw.toLocaleString()}원`, mono: true, sub: asOf ? `${asOf} 기준` : undefined },
           ]
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
-              {figures.map((f, i) => (
-                <Figure
-                  key={f.label} label={f.label} value={f.value} tone={f.tone} sub={f.sub}
-                  divider={i >= cols}
-                  // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
-                  span={i === figures.length - 1 ? cols - (figures.length % cols || cols) + 1 : 1}
-                />
-              ))}
-            </div>
-          )
+          return <FigureGrid items={fillLastRow(figures, cols)} cols={cols} />
         })()}
 
         {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}
@@ -530,63 +520,6 @@ const navBtn: React.CSSProperties = {
   background: 'transparent', border: 'none', cursor: 'pointer',
   padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
   display: 'flex', alignItems: 'center',
-}
-
-/**
- * 지표 한 칸 — 배경 박스 대신 행 구분선으로만 나눈다.
- * 라벨 · 값 · (스파크라인) 순서로 쌓아 숫자 오른쪽에 그래프가 붙지 않게 한다(CEO 2026-09-10).
- * 색은 부호가 뜻을 갖는 값(영업이익·현금흐름)에만 쓴다.
- */
-function Figure({ label, value, tone, spark, divider, sub, span = 1 }: {
-  label: string
-  value: string
-  tone?: 'pos' | 'neg'
-  spark?: Array<{ date: string; value: number }> | number[]
-  /** 두 번째 줄부터는 위쪽에 구분선을 둔다 */
-  divider?: boolean
-  /** 값 아래 한 줄 — 기준 시각처럼 그 숫자에 붙는 단서 */
-  sub?: string
-  /** 그리드에서 차지할 칸 수 */
-  span?: number
-}) {
-  const color = tone === 'pos' ? t.accent.pos : tone === 'neg' ? t.accent.neg : t.neutrals.text
-  const points = (spark ?? []).map(p => (typeof p === 'number' ? p : p.value))
-  const max = points.length ? Math.max(...points) : 0
-  const min = points.length ? Math.min(...points) : 0
-  const range = max - min || 1
-  return (
-    <div style={{
-      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-      minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
-      borderTop: divider ? `1px solid ${t.neutrals.line}` : undefined,
-      gridColumn: span > 1 ? `span ${span}` : undefined,
-    }}>
-      <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-      <span style={{
-        fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
-        fontWeight: t.weight.semibold, fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-        color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {value}
-      </span>
-      {sub && (
-        <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
-          {sub}
-        </span>
-      )}
-      {points.length > 1 && (
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: 22, marginTop: t.density.tableRowGap }}>
-          <polyline
-            points={points.map((v, i) => `${(i / (points.length - 1)) * 100},${100 - ((v - min) / range) * 100}`).join(' ')}
-            fill="none" stroke={t.chart.mono} strokeWidth={1.5} vectorEffect="non-scaling-stroke"
-            strokeLinejoin="round" strokeLinecap="round"
-          />
-        </svg>
-      )}
-    </div>
-  )
 }
 
 /**

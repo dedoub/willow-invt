@@ -4,6 +4,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { FigureGrid, type FigureItem } from './figure-grid'
 
 interface Invoice {
   id: string
@@ -27,15 +28,6 @@ const TYPE_LABELS: Record<string, string> = {
   revenue: '매출', expense: '비용', asset: '자산', liability: '부채', transfer: '대체', exchange: '환전',
 }
 
-type Field = {
-  label: string
-  value: string
-  tone?: 'pos' | 'neg'
-  mono?: boolean
-  prose?: boolean
-  span?: number
-}
-
 /**
  * 거래 상세 — 별도 모달 문법을 두지 않고 섹션 카드를 그대로 띄운다.
  * 껍데기는 LCard, 제목줄은 LSectionHead, 본문은 카드 지표와 같은 라벨/값 격자,
@@ -48,16 +40,16 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
   const cols = 2
 
   // 표의 열 순서를 그대로 따른다 — 행에서 본 것을 같은 순서로 다시 읽게(CEO 2026-09-10)
-  const facts: Field[] = [
+  const facts: FigureItem[] = [
     { label: '구분', value: TYPE_LABELS[invoice.type] ?? invoice.type },
+    { label: '날짜', value: invoice.payment_date || invoice.issue_date || '-', mono: true },
+    { label: '거래처', value: invoice.counterparty },
     {
       label: '금액',
       value: `${isIncome ? '+' : '-'}${Math.abs(invoice.amount).toLocaleString()}원`,
       tone: isIncome ? 'pos' : 'neg',
       mono: true,
     },
-    { label: '날짜', value: invoice.payment_date || invoice.issue_date || '-', mono: true },
-    { label: '거래처', value: invoice.counterparty },
   ]
   // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
   if (facts.length % cols !== 0) facts[facts.length - 1].span = cols
@@ -85,31 +77,8 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
           </button>
         </div>
 
-        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
-          {facts.map((f, i) => (
-            <div key={f.label} style={{
-              padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-              minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
-              borderTop: i >= cols ? `1px solid ${t.neutrals.line}` : undefined,
-              gridColumn: f.span && f.span > 1 ? '1 / -1' : undefined,
-            }}>
-              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
-                {f.label}
-              </span>
-              <span style={{
-                fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
-                fontWeight: f.prose ? t.weight.regular : t.weight.semibold,
-                fontFamily: f.mono ? t.font.mono : t.font.sans,
-                fontVariantNumeric: f.mono ? 'tabular-nums' : undefined,
-                color: f.tone === 'pos' ? t.accent.pos : f.tone === 'neg' ? t.accent.neg : t.neutrals.text,
-                lineHeight: f.prose ? 1.6 : 1.3,
-                whiteSpace: f.prose ? 'pre-wrap' : 'nowrap',
-                overflow: f.prose ? undefined : 'hidden', textOverflow: f.prose ? undefined : 'ellipsis',
-              }}>
-                {f.value}
-              </span>
-            </div>
-          ))}
+        <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+          <FigureGrid items={facts} cols={cols} />
         </div>
 
         <div data-card-foot="" style={{

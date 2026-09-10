@@ -13,7 +13,7 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { ScheduleBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/schedule-block'
 import { CashBlockNew as CashBlock } from './_components/cash-block'
 import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
-import { SalesBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/sales-block'
+import { SalesBlockNew } from './_components/sales-block'
 import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { AddScheduleDialog, ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
@@ -453,7 +453,7 @@ export default function MgmtNewPage() {
               usdRate={usdRate}
               balanceHistory={balanceHistory}
             />
-            <SalesBlock invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} />
+            <SalesBlockNew invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
             <TaxManagementBlock obligations={taxObligations} />

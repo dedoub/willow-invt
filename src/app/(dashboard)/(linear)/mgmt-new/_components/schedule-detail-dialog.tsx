@@ -5,6 +5,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { FigureGrid, type FigureItem } from './figure-grid'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,8 +23,6 @@ interface Props {
   onDelete: (id: string) => void
   onEdit: (schedule: WillowMgmtSchedule) => void
 }
-
-type Field = { label: string; value: string; mono?: boolean; prose?: boolean; span?: number }
 
 /**
  * 일정 상세 — 거래 상세와 같이 섹션 카드를 그대로 띄운다.
@@ -44,7 +43,7 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
       : schedule.start_time.slice(0, 5)
     : null
 
-  const facts: Field[] = [
+  const facts: FigureItem[] = [
     { label: '상태', value: done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정' },
     { label: '구분', value: CATEGORY_LABELS[schedule.category] ?? schedule.category },
     { label: '일자', value: dateDisplay, mono: true },
@@ -82,32 +81,8 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
           />
         </div>
 
-        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
-          {facts.map((f, i) => (
-            <div key={f.label} style={{
-              padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-              minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
-              borderTop: i >= cols ? `1px solid ${t.neutrals.line}` : undefined,
-              gridColumn: f.span && f.span > 1 ? '1 / -1' : undefined,
-            }}>
-              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>
-                {f.label}
-              </span>
-              <span style={{
-                fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
-                fontWeight: f.prose ? t.weight.regular : t.weight.semibold,
-                fontFamily: f.mono ? t.font.mono : t.font.sans,
-                fontVariantNumeric: f.mono ? 'tabular-nums' : undefined,
-                color: t.neutrals.text,
-                lineHeight: f.prose ? 1.6 : 1.3,
-                whiteSpace: f.prose ? 'pre-wrap' : 'nowrap',
-                overflow: f.prose ? undefined : 'hidden', textOverflow: f.prose ? undefined : 'ellipsis',
-                textDecoration: f.label === '상태' && done ? 'none' : undefined,
-              }}>
-                {f.value}
-              </span>
-            </div>
-          ))}
+        <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+          <FigureGrid items={facts} cols={cols} />
         </div>
 
         {/* 태스크 — 카드 안 목록과 같은 문법. 행 사이는 얇은 선으로만 나눈다 */}
