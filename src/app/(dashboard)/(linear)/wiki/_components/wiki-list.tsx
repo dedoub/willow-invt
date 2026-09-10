@@ -506,6 +506,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 // 모달에선 우상단 닫기(X) 자리를 비워 둔다 — 편집 버튼과 겹치지 않게.
                 padding: modal ? '14px 48px 12px 18px' : '14px 18px 12px',
                 borderBottom: `1px solid ${t.neutrals.line}`,
+                // 본문이 길어 스크롤해도 제목·배지·편집은 위에 남는다(CEO 2026-09-10).
+                position: 'sticky', top: 0, zIndex: 1, background: t.neutrals.card,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <h2 style={{
