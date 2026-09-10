@@ -93,8 +93,9 @@ function ModalShell({ children, onClose }: { children: React.ReactNode; onClose:
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
       {/* 껍데기는 카드 그대로 — 사업관리 상세 모달과 같은 테두리·모서리를 받는다(2026-09-11) */}
+      {/* 높이는 내용이 정한다 — 짧은 노트에 빈 판이 남지 않게. 길면 상한까지만 자라고 안에서 스크롤한다(CEO 2026-09-11) */}
       <LCard pad={0} style={{
-        position: 'relative', width: 'min(720px, calc(100vw - 24px))', height: 'min(85vh, 760px)',
+        position: 'relative', width: 'min(720px, calc(100vw - 24px))', maxHeight: 'min(85vh, 760px)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <button onClick={onClose} aria-label="닫기" style={{
@@ -461,8 +462,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         {(!compact || selectedId || adding) && (
         <DetailShell onClose={closeDetail}>
         <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          overflow: (mobile && !embedded && !modal) ? 'visible' : 'hidden', minHeight: 0,
+          ...(modal ? { display: 'flex', flexDirection: 'column', minHeight: 0 } : { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }),
+          overflow: (mobile && !embedded && !modal) ? 'visible' : 'hidden',
           // fillHeight에선 섹션 높이를 왼쪽 목록(기본 10행)이 정해야 한다. 이 상세 패널은
           // flex 교차축에서 자기 내용 높이를 컨테이너로 올려보내서, 긴 노트를 열면 섹션이
           // 그만큼 길어졌다. overflow:hidden으로는 안 막힌다 — 내재 크기 계산엔 그대로 들어간다.
@@ -499,7 +500,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             </div>
           ) : selectedNote ? (
             /* Read mode */
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ ...(modal ? { minHeight: 0 } : { flex: 1 }), overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {/* Detail header */}
               {/* 바깥은 배경만 깔고, 선은 카드 패딩 안쪽에 긋는다 — 카드의 표 머리선과 같은 자리(2026-09-11) */}
               <div style={{
@@ -512,10 +513,11 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 padding: modal ? `${t.density.cardPad}px 32px ${t.density.panelPadX}px 0` : `${t.density.cardPad}px 0 ${t.density.panelPadX}px`,
                 borderBottom: `1px solid ${t.neutrals.line}`,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: t.density.kpiGap }}>
                   <h2 style={{
                     margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     color: t.neutrals.text, fontFamily: t.font.sans,
+                    minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
@@ -530,31 +532,12 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                   <span title={fmtUpdatedTitle(selectedNote.updated_at)} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     마지막 업데이트 {fmtDate(selectedNote.updated_at)}
                   </span>
-                  {/* 고정은 날짜 오른쪽 글자 칩 — 필터칩과 같은 표식을 달아 테마가 같은 모양으로 그린다 */}
-                  <button
-                    data-filter-chip=""
-                    data-active={selectedNote.is_pinned ? '' : undefined}
-                    onClick={handlePin}
-                    title={selectedNote.is_pinned ? '고정 해제' : '목록 위에 고정'}
-                    style={{
-                      border: 'none', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0,
-                      height: t.density.controlHSm, padding: `0 ${t.density.controlPadXSm}px`,
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-                      fontFamily: t.font.sans,
-                      fontWeight: selectedNote.is_pinned ? t.weight.medium : t.weight.regular,
-                      background: selectedNote.is_pinned ? t.brand[100] : t.neutrals.inner,
-                      color: selectedNote.is_pinned ? t.brand[700] : t.neutrals.muted,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {selectedNote.is_pinned ? '고정됨' : '고정'}
-                  </button>
                 </div>
               </div>
               </div>
 
               {/* Detail body */}
-              <div style={{ padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, flex: 1 }}>
+              <div style={{ padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, ...(modal ? {} : { flex: 1 }) }}>
                 {hasSelectedContent ? (
                   <div
                     style={{
@@ -647,7 +630,28 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
               }}>
                 <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={handleDelete}>삭제</LBtn></span>
-                <LBtn variant="secondary" size="sm" onClick={() => setEditing(true)}>수정</LBtn>
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+                  {/* 고정도 동작이라 삭제·수정과 같은 줄에 둔다. 켜지면 활성 칩과 같은 강조색(CEO 2026-09-11) */}
+                  <button
+                    data-filter-chip=""
+                    data-active={selectedNote.is_pinned ? '' : undefined}
+                    onClick={handlePin}
+                    title={selectedNote.is_pinned ? '고정 해제' : '목록 위에 고정'}
+                    style={{
+                      border: 'none', cursor: 'pointer', flexShrink: 0,
+                      height: t.density.controlHSm, padding: `0 ${t.density.controlPadXSm}px`,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
+                      fontFamily: t.font.sans,
+                      fontWeight: selectedNote.is_pinned ? t.weight.medium : t.weight.regular,
+                      background: selectedNote.is_pinned ? t.brand[100] : t.neutrals.inner,
+                      color: selectedNote.is_pinned ? t.brand[700] : t.neutrals.muted,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {selectedNote.is_pinned ? '고정됨' : '고정'}
+                  </button>
+                  <LBtn variant="secondary" size="sm" onClick={() => setEditing(true)}>수정</LBtn>
+                </div>
               </div>
             </div>
           ) : (
