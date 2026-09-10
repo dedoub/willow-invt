@@ -4,7 +4,7 @@
  * 현금관리 카드 — 새 디자인(사업관리 NEW 전용).
  * 데이터·계산·동작은 /mgmt 의 CashBlock 과 같다. 바꾼 것은 카드 안 배치뿐이다:
  *   1) 헤더는 제목과 기간 모드 토글만 — 그 오른쪽 아이콘 버튼은 없앴다(CEO 2026-09-10). 눈썹(CASHFLOW)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10).
- *      월/분기/연 토글은 헤더 오른쪽(원래 자리), 기간 이동 화살표와 라벨은 점선 아래 본문 가운데.
+ *      월/분기/연 토글은 헤더 오른쪽(원래 자리), 기간 이동 화살표와 라벨은 그 아래 본문 가운데. 구분선은 두지 않는다.
  *   2) 지표는 원래 3×3 배열 그대로, 배경 박스만 벗고 행 구분선으로 나눈다. 스파크라인은 숫자 아래.
  *   3) 필터 칩과 검색만 한 줄에 둔다 — 업로드·추가 아이콘 버튼은 뺐다(CEO 2026-09-10).
  * 지표 9개·표 열·행 높이는 그대로라 밀도는 변하지 않는다.
@@ -303,7 +303,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         {/* 1) 헤더 한 줄 — 기간 이동까지 여기서 끝낸다 */}
         {/* 헤더 영역 — 제목만. 액션(업로드·추가)은 표 바로 위 컨트롤 줄로 내렸다(CEO 2026-09-10) */}
-        <div style={{ paddingBottom: t.density.panelPadY, borderBottom: `1px dashed ${t.neutrals.line}` }}>
+        <div style={{ paddingBottom: t.density.panelPadY }}>
           <LSectionHead
             title="현금관리"
             tools={
