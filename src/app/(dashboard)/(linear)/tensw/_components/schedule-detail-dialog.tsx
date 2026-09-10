@@ -2,6 +2,7 @@
 
 import { t, eventTones, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule } from '@/types/tensw-mgmt'
 
@@ -95,32 +96,20 @@ export function ScheduleDetailDialog({
         {/* Pills row */}
         <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
           {/* Status pill */}
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: tone.bg, color: tone.fg,
-          }}>
+          <LBadge pill palette={tone}>
             {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
-          </span>
+          </LBadge>
 
           {/* Type pill */}
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: typeTone.bg, color: typeTone.fg,
-          }}>
+          <LBadge palette={typeTone}>
             {TYPE_LABELS[schedule.type] ?? schedule.type}
-          </span>
+          </LBadge>
 
           {/* Client pill */}
           {client && (
-            <span style={{
-              display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-              background: client.color + '20', color: client.color,
-            }}>
+            <LBadge palette={{ bg: client.color + '20', fg: client.color }}>
               {client.name}
-            </span>
+            </LBadge>
           )}
         </div>
 

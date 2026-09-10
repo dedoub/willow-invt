@@ -238,9 +238,9 @@ export function InquiryInbox() {
                     fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
                     fontWeight: t.weight.medium, color: t.neutrals.text,
                   }}>{meta?.label ?? th.app}</span>
-                  {th.unreadForAdmin && <LBadge tone="warn">미답변</LBadge>}
+                  {th.unreadForAdmin && <LBadge tone="warn" pill>미답변</LBadge>}
                   {th.channel === 'email' && <LBadge tone="neutral">구버전</LBadge>}
-                  {hasDraft && <LBadge tone="info">{rowSeeded ? '봇 초안' : '작성중'}</LBadge>}
+                  {hasDraft && <LBadge tone="info" pill>{rowSeeded ? '봇 초안' : '작성중'}</LBadge>}
                   <span style={{
                     marginLeft: 'auto', fontSize: `calc(${t.type.helper}px * var(--fz, 1))`,
                     color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0,

@@ -5,6 +5,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
@@ -151,20 +152,8 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
         </div>
 
         {/* Status filter — 현금관리·매출관리와 같은 자리에서 같은 모양으로 고른다. */}
-        <div style={{ display: 'flex', gap: t.density.gapXs, flexWrap: 'wrap', marginTop: t.density.blockGap }}>
-          {STATUS_FILTERS.map(filter => {
-            const active = status === filter.value
-            return (
-              <button key={filter.value} onClick={() => { setStatus(filter.value); setPage(0) }} style={{
-                border: 'none', cursor: 'pointer',
-                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-                fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-                background: active ? t.brand[100] : t.neutrals.inner,
-                color: active ? t.brand[700] : t.neutrals.muted,
-                transition: 'all .12s',
-              }}>{filter.label}</button>
-            )
-          })}
+        <div style={{ marginTop: t.density.blockGap }}>
+          <LFilterChip options={STATUS_FILTERS} value={status} onChange={v => { setStatus(v); setPage(0) }} />
         </div>
 
         {/* Search */}

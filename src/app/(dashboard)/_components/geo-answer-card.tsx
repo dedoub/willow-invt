@@ -16,6 +16,7 @@ import { useDashCols } from './cols-toggle'
 import { useIsMobile } from './linear-tokens'
 import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
 import { Bone } from './linear-skeleton'
+import { LNotice } from './linear-notice'
 import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-types'
 
 const mono = (size: number): React.CSSProperties => ({
@@ -120,15 +121,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
           action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}
         />
 
-        {error && (
-          <div style={{
-            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
-            background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-            fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
-          }}>
-            AI 답변 측정 조회 실패 — {error}
-          </div>
-        )}
+        {error && <LNotice tone="warn" text={`AI 답변 측정 조회 실패 — ${error}`} />}
 
         {/* 첫 조회는 뼈대로 기다린다. 여기만 뼈대가 없어 제목만 뜬 채 비어 있다가
             숫자가 튀어나왔다 — 카드가 고장 난 것처럼 보인다. 다시 조회는 이미

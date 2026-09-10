@@ -6,6 +6,8 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 interface ScheduleBlockProps {
@@ -252,13 +254,14 @@ function DayCell({
   )
 }
 
-const CATEGORY_FILTERS: { key: string; label: string }[] = [
-  { key: 'all', label: '전체' },
-  { key: 'willow-mgmt', label: '윌로우' },
-  { key: 'tensw-mgmt', label: '텐소프트웍스' },
-  { key: 'etf-etc', label: 'ETC' },
-  { key: 'akros', label: '아크로스' },
-  { key: 'other', label: '기타' },
+// 활성 칩은 카테고리 색을 그대로 쓴다('전체'만 브랜드 기본색).
+const CATEGORY_FILTERS: { value: string; label: string; tone?: { bg: string; fg: string } }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'willow-mgmt', label: '윌로우', tone: CATEGORY_TONES['willow-mgmt'] },
+  { value: 'tensw-mgmt', label: '텐소프트웍스', tone: CATEGORY_TONES['tensw-mgmt'] },
+  { value: 'etf-etc', label: 'ETC', tone: CATEGORY_TONES['etf-etc'] },
+  { value: 'akros', label: '아크로스', tone: CATEGORY_TONES['akros'] },
+  { value: 'other', label: '기타', tone: CATEGORY_TONES['other'] },
 ]
 
 export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSelectSchedule }: ScheduleBlockProps) {
@@ -341,23 +344,8 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       </div>
 
       {/* Category filter */}
-      <div style={{
-        display: 'flex', gap: t.density.gapXs, marginBottom: t.density.gapMd, flexWrap: 'wrap',
-      }}>
-        {CATEGORY_FILTERS.map(({ key, label }) => {
-          const active = categoryFilter === key
-          const tone = key !== 'all' ? CATEGORY_TONES[key] : null
-          return (
-            <button key={key} onClick={() => setCategoryFilter(key)} style={{
-              border: 'none', cursor: 'pointer',
-              padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-              fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-              background: active ? (tone ? tone.bg : t.brand[100]) : t.neutrals.inner,
-              color: active ? (tone ? tone.fg : t.brand[700]) : t.neutrals.muted,
-              transition: 'all .12s',
-            }}>{label}</button>
-          )
-        })}
+      <div style={{ marginBottom: t.density.gapMd }}>
+        <LFilterChip options={CATEGORY_FILTERS} value={categoryFilter} onChange={setCategoryFilter} />
       </div>
 
       {/* Day headers */}
@@ -446,14 +434,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
                   {dayItems.length}개 일정
                 </span>
               </div>
-              <button
-                onClick={() => onAddSchedule(selectedDate)}
-                style={{
-                  border: 'none', background: t.brand[100], color: t.brand[700],
-                  padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
-                  cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                }}
-              >+ 일정 추가</button>
+              <LBtn size="sm" icon={<LIcon name="plus" size={11} stroke={2.5} />} onClick={() => onAddSchedule(selectedDate)}>일정 추가</LBtn>
             </div>
             {dayItems.length === 0 && (
               <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>일정이 없습니다.</div>

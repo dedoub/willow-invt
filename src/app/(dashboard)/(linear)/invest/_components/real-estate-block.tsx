@@ -8,6 +8,9 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, AreaChart, Area,
@@ -126,17 +129,19 @@ const innerCard: React.CSSProperties = {
   minWidth: 0, overflow: 'hidden',
 }
 
-const thStyle: React.CSSProperties = {
-  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, cursor: 'pointer',
-  padding: `${t.density.gapSm}px ${t.density.gapXs}px`, textAlign: 'right' as const, fontWeight: t.weight.medium,
-  fontFamily: t.font.sans, whiteSpace: 'nowrap' as const,
-  userSelect: 'none' as const,
-}
+const LISTING_COLUMNS: LColumn<ReListingRow>[] = [
+  { key: 'complexName', label: '단지', width: 'minmax(96px,1.4fr)', sortValue: r => r.complexName },
+  { key: 'areaBand', label: '평형', width: 'minmax(48px,0.6fr)', align: 'right', sortValue: r => r.areaBand },
+  { key: 'actualAvgPpp', label: '실거래', width: 'minmax(64px,1fr)', align: 'right', sortValue: r => r.actualAvgPpp },
+  { key: 'listingMinPpp', label: '호가(저)', width: 'minmax(64px,1fr)', align: 'right', sortValue: r => r.listingMinPpp },
+  { key: 'listingMaxPpp', label: '호가(고)', width: 'minmax(64px,1fr)', align: 'right', sortValue: r => r.listingMaxPpp },
+  { key: 'gap', label: '괴리율', width: 'minmax(56px,0.8fr)', align: 'right', sortValue: r => r.gap },
+  { key: 'listingCount', label: '매물', width: 'minmax(40px,0.5fr)', align: 'right', sortValue: r => r.listingCount },
+]
 
-const tdStyle: React.CSSProperties = {
-  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, padding: `${t.density.gapSm}px ${t.density.gapXs}px`, textAlign: 'right' as const,
-  fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' as const,
-}
+// 전월비 배지 — 국내 시세 관례(상승=적, 하락=청)라 tonePalettes 의 pos/neg 와 방향이 반대다.
+const MOM_UP = { bg: '#FEE2E2', fg: '#EF4444' }
+const MOM_DOWN = { bg: '#DBEAFE', fg: '#3B82F6' }
 
 /* ── Helpers ── */
 
@@ -163,11 +168,6 @@ function gapColor(gap: number | null): string {
 
 /* ── Sub-components (module scope — stable identity across re-renders) ── */
 
-function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return null
-  return <span style={{ marginLeft: t.density.tableRowGap }}>{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: number | null; titleHint?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
@@ -179,14 +179,12 @@ function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: num
         }}
       >{title}</span>
       {momPct !== undefined && momPct !== null && (
-        <span style={{
-          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, borderRadius: t.radius.sm,
-          padding: `1px ${t.density.gapSm}px`,
-          background: momPct > 0 ? '#FEE2E2' : momPct < 0 ? '#DBEAFE' : t.neutrals.inner,
-          color: momPct > 0 ? '#EF4444' : momPct < 0 ? '#3B82F6' : t.neutrals.muted,
-        }}>
+        <LBadge
+          palette={momPct > 0 ? MOM_UP : momPct < 0 ? MOM_DOWN : { bg: t.neutrals.inner, fg: t.neutrals.muted }}
+          style={{ fontFamily: t.font.mono }}
+        >
           {momPct > 0 ? '+' : ''}{momPct.toFixed(1)}%
-        </span>
+        </LBadge>
       )}
     </div>
   )
@@ -378,60 +376,38 @@ function ListingTable({
   const msParam = tradeType === '매매' ? 'a1' : 'b1'
   return (
     <div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: t.font.sans, whiteSpace: 'nowrap' }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, textAlign: 'left' }} onClick={() => onSort('complexName')}>
-                단지<SortIndicator active={sortKey === 'complexName'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('areaBand')}>
-                평형<SortIndicator active={sortKey === 'areaBand'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('actualAvgPpp')}>
-                실거래<SortIndicator active={sortKey === 'actualAvgPpp'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('listingMinPpp')}>
-                호가(저)<SortIndicator active={sortKey === 'listingMinPpp'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('listingMaxPpp')}>
-                호가(고)<SortIndicator active={sortKey === 'listingMaxPpp'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('gap')}>
-                괴리율<SortIndicator active={sortKey === 'gap'} dir={sortDir} />
-              </th>
-              <th style={thStyle} onClick={() => onSort('listingCount')}>
-                매물<SortIndicator active={sortKey === 'listingCount'} dir={sortDir} />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
-                <td style={{ ...tdStyle, textAlign: 'left', fontFamily: t.font.sans }}>
-                  {r.complexNo ? (
-                    <a
-                      href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=${msParam}&a=APT&e=OPST`}
-                      target="_blank" rel="noopener noreferrer"
-                      style={{ color: t.brand[600], textDecoration: 'none' }}
-                    >
-                      {r.complexName}
-                    </a>
-                  ) : r.complexName}
-                </td>
-                <td style={tdStyle}>{r.areaBand}평</td>
-                <td style={tdStyle}>{fmtPpp(r.actualAvgPpp)}</td>
-                <td style={tdStyle}>{fmtPpp(r.listingMinPpp)}</td>
-                <td style={tdStyle}>{fmtPpp(r.listingMaxPpp)}</td>
-                <td style={{ ...tdStyle, color: gapColor(r.gap), fontWeight: t.weight.medium }}>
-                  {r.gap !== null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
-                </td>
-                <td style={tdStyle}>{r.listingCount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <LTableScroll columns={LISTING_COLUMNS}>
+        <LTableHead
+          columns={LISTING_COLUMNS}
+          sort={{ key: sortKey, dir: sortDir }}
+          onSort={(k) => onSort(k as SortKey)}
+        />
+        <LTableBody columns={LISTING_COLUMNS}>
+          {rows.map((r, i) => (
+            <LTableRow key={i} columns={LISTING_COLUMNS}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.complexNo ? (
+                  <a
+                    href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=${msParam}&a=APT&e=OPST`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ color: t.brand[600], textDecoration: 'none' }}
+                  >
+                    {r.complexName}
+                  </a>
+                ) : r.complexName}
+              </span>
+              <LTableMono align="right" tone="text">{r.areaBand}평</LTableMono>
+              <LTableMono align="right" tone="text">{fmtPpp(r.actualAvgPpp)}</LTableMono>
+              <LTableMono align="right" tone="text">{fmtPpp(r.listingMinPpp)}</LTableMono>
+              <LTableMono align="right" tone="text">{fmtPpp(r.listingMaxPpp)}</LTableMono>
+              <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', color: gapColor(r.gap), fontWeight: t.weight.medium, whiteSpace: 'nowrap' }}>
+                {r.gap !== null ? `${r.gap > 0 ? '+' : ''}${r.gap.toFixed(1)}%` : '-'}
+              </span>
+              <LTableMono align="right" tone="text">{r.listingCount}</LTableMono>
+            </LTableRow>
+          ))}
+        </LTableBody>
+      </LTableScroll>
       {pageCount > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.kpiGap }}>
           <button
@@ -824,19 +800,6 @@ export function RealEstateBlock() {
     setJeonsePage(0)
   }
 
-  /* ── Inline styles ── */
-  const chipActiveStyle: React.CSSProperties = {
-    background: t.brand[100], color: t.brand[700],
-    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-    cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
-    fontWeight: t.weight.medium, transition: 'all .12s',
-  }
-  const chipInactiveStyle: React.CSSProperties = {
-    background: t.neutrals.inner, color: t.neutrals.muted,
-    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-    cursor: 'pointer', border: 'none', fontFamily: t.font.sans,
-    fontWeight: t.weight.regular, transition: 'all .12s',
-  }
   /* ── Complex name lookup ── */
   const complexNameById = useMemo(() => {
     const map = new Map<string, string>()
@@ -938,17 +901,16 @@ export function RealEstateBlock() {
         }}>
           {/* Complex selector */}
           <div style={{ position: 'relative' }}>
-            <button
+            <LBtn
+              variant="secondary"
+              size="sm"
               onClick={() => setComplexDropdownOpen(v => !v)}
-              style={{
-                ...chipInactiveStyle,
-                display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
-              }}
+              icon={<LIcon name="building" size={12} color={t.neutrals.muted} />}
+              style={{ borderRadius: t.radius.pill, gap: t.density.gapXs }}
             >
-              <LIcon name="building" size={12} color={t.neutrals.muted} />
               단지 선택
               <LIcon name="chevronDown" size={10} color={t.neutrals.subtle} />
-            </button>
+            </LBtn>
             {complexDropdownOpen && (
               <div style={{
                 position: 'absolute', top: '100%', left: 0, marginTop: t.density.gapXs,
@@ -996,12 +958,7 @@ export function RealEstateBlock() {
 
           {/* Selected complex chips */}
           {selectedComplexIds.map(id => (
-            <span key={id} style={{
-              display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
-              background: t.brand[100], color: t.brand[700],
-              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, fontWeight: t.weight.medium,
-            }}>
+            <LBadge key={id} tone="brand" pill>
               {complexNameById.get(id) || id}
               <button
                 onClick={() => removeComplex(id)}
@@ -1012,7 +969,7 @@ export function RealEstateBlock() {
               >
                 <LIcon name="x" size={10} color={t.brand[600]} />
               </button>
-            </span>
+            </LBadge>
           ))}
 
           {/* Separator */}

@@ -5,6 +5,8 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
@@ -138,21 +140,13 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
       )}
 
       {/* 상태 필터 */}
-      <div style={{ display: 'flex', gap: t.density.gapSm, padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px`, flexWrap: 'wrap' }}>
-        {FILTERS.map(f => {
-          const active = filter === f.key
-          return (
-            <button key={f.key} onClick={() => { setFilter(f.key); setPage(0) }} style={{
-              border: 'none', cursor: 'pointer', borderRadius: t.radius.pill,
-              padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontFamily: t.font.sans,
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: active ? t.weight.medium : t.weight.regular,
-              background: active ? t.brand[600] : t.neutrals.inner,
-              color: active ? '#fff' : t.neutrals.muted,
-            }}>
-              {f.label}
-            </button>
-          )
-        })}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px` }}>
+        <LFilterChip
+          options={FILTERS.map(f => ({ value: f.key, label: f.label }))}
+          value={filter}
+          onChange={(v) => { setFilter(v); setPage(0) }}
+          gap={t.density.gapSm}
+        />
       </div>
 
       {/* 이슈 목록 */}
@@ -181,10 +175,10 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           const soon = n !== null && n >= 0 && n <= 3
 
           const codeChip = issue.issue_code ? (
-            <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-              color: t.neutrals.subtle, background: t.neutrals.inner, borderRadius: 3, padding: `1px ${t.density.gapXs}px`, flexShrink: 0,
-            }}>{issue.issue_code}</span>
+            <LBadge
+              palette={{ bg: t.neutrals.inner, fg: t.neutrals.subtle }}
+              style={{ fontFamily: t.font.mono, flexShrink: 0 }}
+            >{issue.issue_code}</LBadge>
           ) : null
 
           // 2열 요소: 마감 D-day + 상태 배지 + Gmail 링크
@@ -198,11 +192,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                   {overdue ? `초과 ${Math.abs(n)}일` : n === 0 ? '오늘' : `D-${n}`}
                 </span>
               )}
-              <span style={{
-                fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
-                padding: `${t.badge.padY}px ${t.badge.padX}px`, borderRadius: t.badge.radius,
-                background: sm.bg, color: sm.fg, whiteSpace: 'nowrap',
-              }}>{sm.label}</span>
+              <LBadge pill palette={{ bg: sm.bg, fg: sm.fg }}>{sm.label}</LBadge>
               {issue.thread_url && (
                 <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기" style={{
                   width: 26, height: 26, borderRadius: t.radius.sm, background: t.neutrals.inner,

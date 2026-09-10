@@ -16,6 +16,7 @@ import { useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -200,30 +201,26 @@ export default function RatesPage() {
                       </div>
                     </div>
                     {dirty && (
-                      <button
+                      <LBtn
+                        variant="brand"
+                        size="sm"
                         onClick={() => valid && save(app.key, row, parsed)}
                         disabled={!valid || saving === id}
-                        style={{
-                          height: t.density.controlHSm, padding: `0 ${t.density.panelPadX}px`, border: 'none',
-                          borderRadius: t.radius.sm, background: t.brand[600], color: '#fff',
-                          fontFamily: t.font.sans, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                          cursor: valid ? 'pointer' : 'default', opacity: valid ? 1 : 0.4,
-                        }}>
+                      >
                         저장
-                      </button>
+                      </LBtn>
                     )}
                     {row.overridden && !dirty && (
-                      <button
-                        onClick={() => save(app.key, row, null)}
-                        disabled={saving === id}
-                        title={`코드 기본값(${row.fallback})으로 되돌린다`}
-                        style={{
-                          height: t.density.controlHSm, padding: `0 ${t.density.panelPadX}px`, border: 'none',
-                          borderRadius: t.radius.sm, background: t.neutrals.inner, color: t.neutrals.muted,
-                          fontFamily: t.font.sans, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer',
-                        }}>
-                        되돌리기
-                      </button>
+                      <span title={`코드 기본값(${row.fallback})으로 되돌린다`}>
+                        <LBtn
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => save(app.key, row, null)}
+                          disabled={saving === id}
+                        >
+                          되돌리기
+                        </LBtn>
+                      </span>
                     )}
                   </div>
 

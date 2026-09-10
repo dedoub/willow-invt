@@ -7,6 +7,8 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableNumber, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
@@ -218,21 +220,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         </div>
 
         {/* Status filter chips + sort toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          {statusFilters.map(f => {
-            const active = statusFilter === f.value
-            return (
-              <button key={f.value} onClick={() => handleFilterChange(f.value)} style={{
-                border: 'none', cursor: 'pointer',
-                padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-                fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-                background: active ? t.brand[100] : t.neutrals.inner,
-                color: active ? t.brand[700] : t.neutrals.muted,
-                transition: 'all .12s',
-              }}>{f.label}</button>
-            )
-          })}
-        </div>
+        <LFilterChip options={statusFilters} value={statusFilter} onChange={handleFilterChange} gap={t.density.gapSm} />
 
         {/* Search */}
         <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
@@ -364,20 +352,10 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   )}
 
                   {/* Edit button */}
-                  <div style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEdit(inv) }}
-                      style={{
-                        padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
-                        background: t.neutrals.inner, border: 'none',
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                        color: t.neutrals.text, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-                      }}
-                    >
-                      <LIcon name="pencil" size={10} stroke={2} />
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
+                    <LBtn size="sm" icon={<LIcon name="pencil" size={10} stroke={2} />} onClick={() => onEdit(inv)}>
                       수정
-                    </button>
+                    </LBtn>
                   </div>
                 </div>
               )}

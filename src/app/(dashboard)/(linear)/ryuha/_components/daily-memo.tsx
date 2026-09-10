@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { RyuhaDailyMemo } from '@/types/ryuha'
 
 interface DailyMemoProps {
@@ -56,11 +56,7 @@ export function DailyMemo({ memos, selectedDate, onSave }: DailyMemoProps) {
         saving ? (
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>저장중...</span>
         ) : content !== lastSaved.current ? (
-          <button onClick={() => save(content)} style={{
-            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
-            background: t.brand[100], border: 'none', fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-            color: t.brand[700], cursor: 'pointer', fontFamily: t.font.mono,
-          }}>저장</button>
+          <LHeadBtn label="저장" title="메모 저장" onClick={() => save(content)} />
         ) : null
       } />
       <textarea

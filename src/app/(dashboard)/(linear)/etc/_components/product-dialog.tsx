@@ -137,17 +137,9 @@ function FeeTierEditor({
         </div>
       ))}
 
-      <button
-        onClick={addTier}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.brand[500],
-          padding: `${t.density.tableRowGap}px 0`, textAlign: 'left', display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-        }}
-      >
-        <LIcon name="plus" size={11} color={t.brand[500]} />
+      <LBtn variant="ghost" size="sm" icon={<LIcon name="plus" size={11} />} onClick={addTier} style={{ padding: 0, alignSelf: 'flex-start', color: t.brand[500] }}>
         Add Tier
-      </button>
+      </LBtn>
     </div>
   )
 }

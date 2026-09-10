@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
 
@@ -146,13 +147,9 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
                 <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
                   {row.date.slice(5)}
                 </span>
-                <span onClick={() => cycleType(idx)} style={{
-                  display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center', cursor: 'pointer',
-                  background: tone.bg, color: tone.fg,
-                }}>
+                <LBadge palette={tone} onClick={() => cycleType(idx)} title="클릭하면 유형이 바뀝니다" style={{ justifyContent: 'center' }}>
                   {TYPE_LABELS[row.type]}
-                </span>
+                </LBadge>
                 <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.counterparty}
                 </span>

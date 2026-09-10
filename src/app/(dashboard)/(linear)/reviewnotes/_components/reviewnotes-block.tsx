@@ -14,7 +14,8 @@ import { kstDateKey, kstToday, kstDaysAgo, kstWeekday, kstTime } from '@/lib/kst
 import type { ReviewNotesUserStats, ReviewNotesTrafficStats, ReviewNotesContentStats } from '@/lib/reviewnotes-types'
 import { formatCountryName, codeToFlag, COUNTRY_NAMES } from '@/lib/country-format'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -397,15 +398,7 @@ export function ReviewnotesBlock({
         />
 
         {/* Error */}
-        {error && (
-          <div style={{
-            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-            background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: t.density.gapMd,
-          }}>
-            {error}
-          </div>
-        )}
+        {error && <LNotice tone="danger" text={error} />}
 
         {loading && (() => {
           const splitLayout = !mobile && dashCols === 1
@@ -914,12 +907,8 @@ export function ReviewnotesBlock({
                       {(() => {
                         const c = formatCountryBadge(user.country)
                         return c ? (
-                          <span title={c.name} style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                            color: '#1E40AF', background: '#DBEAFE',
-                            padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
-                          }}>
-                            {c.flag} {c.code}
+                          <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
+                            <LTableBadge tone={tonePalettes.info}>{c.flag} {c.code}</LTableBadge>
                           </span>
                         ) : (
                           <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
@@ -945,13 +934,9 @@ export function ReviewnotesBlock({
                       {isAdmin || excluded ? (
                         <span
                           title={isAdmin ? '관리자 — 통계 제외' : '스토어 심사용 계정 — 통계 제외'}
-                          style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                            padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                            background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-                          }}
+                          style={{ display: 'inline-flex', minWidth: 0 }}
                         >
-                          {isAdmin ? 'Admin' : '제외'}
+                          <LTableBadge tone={tonePalettes.warn}>{isAdmin ? 'Admin' : '제외'}</LTableBadge>
                         </span>
                       ) : (
                         <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>

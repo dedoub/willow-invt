@@ -5,6 +5,9 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { FullEmail } from './email-detail-dialog'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
@@ -136,28 +139,12 @@ export function EmailBlock({
       {connected && (
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px`, display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
           {activeFilters.length > 0 && (
-            <div style={{ display: 'flex', gap: t.density.gapSm }}>
-              {activeFilters.map(f => {
-                const active = sourceFilter === f.key
-                return (
-                  <button
-                    key={f.key}
-                    onClick={() => handleFilterChange(f.key)}
-                    style={{
-                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-                      border: 'none', cursor: 'pointer',
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-                      fontWeight: active ? t.weight.medium : t.weight.regular,
-                      background: active ? t.brand[100] : t.neutrals.inner,
-                      color: active ? t.brand[700] : t.neutrals.muted,
-                      transition: 'all .12s',
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                )
-              })}
-            </div>
+            <LFilterChip
+              options={activeFilters.map(f => ({ value: f.key as string, label: f.label }))}
+              value={sourceFilter}
+              onChange={handleFilterChange}
+              gap={t.density.gapSm}
+            />
           )}
         </div>
       )}
@@ -182,22 +169,12 @@ export function EmailBlock({
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.tableRowGap }}>
                   {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
                   {m.direction === 'outbound' && (
-                    <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
-                      background: '#DAEEDD', color: '#1F5F3D',
-                    }}>발신</span>
+                    <LBadge tone="done">발신</LBadge>
                   )}
                   {m.sourceLabel && sourceFilter === 'all' && activeFilters.length > 0 && (
-                    <span style={{
-                      fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
-                      background: srcTone?.bg || t.neutrals.inner,
-                      color: srcTone?.fg || t.neutrals.subtle,
-                      flexShrink: 0,
-                    }}>
+                    <LBadge palette={srcTone ?? { bg: t.neutrals.inner, fg: t.neutrals.subtle }} style={{ flexShrink: 0 }}>
                       {SOURCE_FILTERS.find(f => f.key === m.sourceLabel)?.label || m.sourceLabel}
-                    </span>
+                    </LBadge>
                   )}
                   <span style={{
                     fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted,
@@ -206,12 +183,7 @@ export function EmailBlock({
                     {m.fromName || m.from.replace(/<.*>/, '').trim() || m.from}
                   </span>
                   {m.category && (
-                    <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
-                      padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
-                      background: t.neutrals.inner, color: t.neutrals.subtle,
-                      flexShrink: 0,
-                    }}>{m.category}</span>
+                    <LBadge palette={{ bg: t.neutrals.inner, fg: t.neutrals.subtle }} style={{ flexShrink: 0 }}>{m.category}</LBadge>
                   )}
                 </div>
                 <div style={{
@@ -240,15 +212,7 @@ export function EmailBlock({
           }}>
             <div>Gmail 연결이 필요합니다</div>
             {onConnect && (
-              <button
-                onClick={onConnect}
-                style={{
-                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.pill, border: 'none',
-                  cursor: 'pointer', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                  fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                  background: t.brand[100], color: t.brand[700],
-                }}
-              >Gmail 연결</button>
+              <LBtn variant="brand" size="sm" onClick={onConnect}>Gmail 연결</LBtn>
             )}
           </div>
         )}

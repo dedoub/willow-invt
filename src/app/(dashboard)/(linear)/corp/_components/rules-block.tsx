@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableRow, LTableScroll, type LColumn,
 } from '@/app/(dashboard)/_components/linear-table'
@@ -52,17 +53,14 @@ export function RulesBlock({ rules, onSelect }: Props) {
             }}
           />
         </label>
-        <button
-          onClick={() => setOnlyEffective(v => !v)}
-          style={{
-            height: t.density.controlH, padding: `0 ${t.density.controlPadXSm}px`, borderRadius: t.radius.pill, border: 'none',
-            cursor: 'pointer', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-            background: onlyEffective ? t.neutrals.text : t.neutrals.inner,
-            color: onlyEffective ? t.neutrals.card : t.neutrals.muted,
-          }}
-        >
-          {onlyEffective ? '기준일 시행 중' : '전체 버전'}
-        </button>
+        <LSegmented
+          options={[
+            { value: 'effective', label: '기준일 시행 중' },
+            { value: 'all', label: '전체 버전' },
+          ]}
+          value={onlyEffective ? 'effective' : 'all'}
+          onChange={(v) => setOnlyEffective(v === 'effective')}
+        />
         <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           {shown.length}건
         </span>

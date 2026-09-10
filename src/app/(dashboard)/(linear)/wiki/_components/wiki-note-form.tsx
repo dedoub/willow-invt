@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TiptapEditor, htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 
@@ -122,27 +123,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
 
       <div style={{ ...panelStyle, flexShrink: 0 }}>
         <div style={labelStyle}>섹션</div>
-        <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-          {SECTIONS.map(s => (
-            <button
-              key={s.value}
-              onClick={() => setSection(s.value)}
-              style={{
-                border: 'none',
-                cursor: 'pointer',
-                padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
-                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                borderRadius: t.radius.pill,
-                fontFamily: t.font.sans,
-                fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
-                background: section === s.value ? t.neutrals.card : 'transparent',
-                color: section === s.value ? t.neutrals.text : t.neutrals.muted,
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <LSegmented options={SECTIONS} value={section} onChange={setSection} compact />
       </div>
 
       <div style={{ ...panelStyle, flexShrink: 0 }}>
@@ -173,25 +154,11 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
       <div style={{ ...panelStyle, flexShrink: 0 }}>
         <div style={labelStyle}>첨부파일</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginBottom: t.density.kpiGap, flexWrap: 'wrap' }}>
-          <button
+          <LBtn size="sm" variant="secondary" icon={<LIcon name="paperclip" size={12} />}
             onClick={() => fileRef.current?.click()}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: t.density.gapXs,
-              background: t.neutrals.card,
-              border: 'none',
-              borderRadius: t.radius.sm,
-                        padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-              fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              color: t.neutrals.muted,
-              cursor: 'pointer',
-              fontFamily: t.font.sans,
-            }}
-          >
-            <LIcon name="paperclip" size={12} />
+            style={{ background: t.neutrals.card }}>
             파일 첨부
-          </button>
+          </LBtn>
           <input
             ref={fileRef}
             type="file"

@@ -6,7 +6,10 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+
+// 표 안 구분 배지(전량/일부, 매수/매도) — 행 배경 위에서 한 단계 눌린 중립 톤.
+const CELL_TONE = { bg: t.neutrals.inner, fg: t.neutrals.muted }
 
 interface StockTrade {
   id?: string
@@ -261,11 +264,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                       <span style={{ fontWeight: t.weight.medium }}>{r.ticker}</span>
                       <span style={{ color: t.neutrals.muted, marginLeft: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>{r.name}</span>
                     </div>
-                    <span style={{
-                      display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
-                      background: t.neutrals.inner, color: t.neutrals.muted,
-                    }}>{r.fullyClosed ? '전량' : '일부'}</span>
+                    <LTableBadge tone={CELL_TONE}>{r.fullyClosed ? '전량' : '일부'}</LTableBadge>
                     <span style={{
                       textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
                       color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
@@ -322,13 +321,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
                     <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
                       {(tr.trade_date || '').slice(5)}
                     </span>
-                    <span style={{
-                      display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, textAlign: 'center',
-                      background: t.neutrals.inner, color: t.neutrals.muted,
-                    }}>
-                      {isBuy ? '매수' : '매도'}
-                    </span>
+                    <LTableBadge tone={CELL_TONE}>{isBuy ? '매수' : '매도'}</LTableBadge>
                     <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <span style={{ fontWeight: t.weight.medium }}>
                         {tr.ticker.replace('.KS', '')}

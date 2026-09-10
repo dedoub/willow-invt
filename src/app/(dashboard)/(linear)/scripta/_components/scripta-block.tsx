@@ -14,7 +14,8 @@ import {
 import type { ScriptaStats, ScriptaUser, ScMetric } from '@/lib/scripta-types'
 import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -397,15 +398,7 @@ export function ScriptaBlock({
         />
 
         {/* Error */}
-        {error && (
-          <div style={{
-            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-            background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: t.density.gapMd,
-          }}>
-            {error}
-          </div>
-        )}
+        {error && <LNotice tone="danger" text={error} />}
 
         {loading && (() => {
           return (
@@ -820,12 +813,8 @@ export function ScriptaBlock({
                     </span>
                     {/* 통계에서 빠진 운영 계정 — 테이블에는 남기되 숫자와 섞이지 않음을 표시 */}
                     {isExcludedScriptaUser(user) && (
-                      <span title="통계 제외 계정" style={{
-                        fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
-                        background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-                      }}>
-                        ADMIN
+                      <span title="통계 제외 계정" style={{ display: 'inline-flex', flexShrink: 0 }}>
+                        <LTableBadge tone={tonePalettes.warn}>ADMIN</LTableBadge>
                       </span>
                     )}
                   </div>

@@ -124,15 +124,9 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
       {/* File attachments */}
       <div style={{ marginBottom: t.density.blockGap, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapSm }}>
-          <button onClick={() => fileRef.current?.click()} style={{
-            display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
-            background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
-            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-            cursor: 'pointer', fontFamily: t.font.sans,
-          }}>
-            <LIcon name="paperclip" size={12} />
+          <LBtn size="xs" variant="secondary" icon={<LIcon name="paperclip" size={12} />} onClick={() => fileRef.current?.click()}>
             파일 첨부
-          </button>
+          </LBtn>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }}
             onChange={e => { if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]) }} />
         </div>
@@ -432,18 +426,11 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
           {/* Mobile back button */}
           {mobile && (
-            <button
+            <LBtn size="md" variant="ghost" icon={<LIcon name="chevronLeft" size={13} stroke={2} />}
               onClick={() => { setSelectedId(null); setAdding(false); setEditing(false) }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: `${t.density.panelPadX}px ${t.density.controlPadXMd}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600],
-                fontFamily: t.font.sans,
-              }}
-            >
-              <LIcon name="chevronLeft" size={13} stroke={2} />
+              style={{ alignSelf: 'flex-start', color: t.brand[600] }}>
               목록으로
-            </button>
+            </LBtn>
           )}
 
           {adding ? (
@@ -486,14 +473,10 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
-                    <button onClick={() => setEditing(true)} style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.muted,
-                      fontFamily: t.font.sans, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
-                      whiteSpace: 'nowrap' as const, flexShrink: 0,
-                    }}>
+                    <LBtn size="xs" variant="ghost" onClick={() => setEditing(true)}
+                      style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       편집
-                    </button>
+                    </LBtn>
                   </div>
                 </div>
                 <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
@@ -613,18 +596,10 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                         padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
                       }}
                     />
-                    <button
-                      onClick={handleAddMemo}
-                      disabled={savingMemo || !newMemo.trim()}
-                      style={{
-                        background: t.neutrals.inner, border: 'none',
-                        borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
-                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
-                        cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
-                      }}
-                    >
+                    <LBtn size="sm" variant="secondary" onClick={handleAddMemo} disabled={savingMemo || !newMemo.trim()}
+                      style={{ flexShrink: 0, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle }}>
                       추가
-                    </button>
+                    </LBtn>
                   </div>
                 </div>
               </div>

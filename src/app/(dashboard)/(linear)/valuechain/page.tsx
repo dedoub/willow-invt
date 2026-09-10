@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { ValueChainSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
@@ -73,7 +74,7 @@ export default function ValueChainPage() {
     return (
       <LCard>
         <div style={{ color: t.accent.neg, fontSize: `calc(${t.type.body}px * var(--fz, 1))` }}>통계를 불러오지 못했습니다: {error}</div>
-        <button onClick={() => load(true)} style={refreshBtnStyle()}>다시 시도</button>
+        <LBtn size="sm" variant="secondary" onClick={() => load(true)} style={{ marginTop: t.density.kpiGap }}>다시 시도</LBtn>
       </LCard>
     )
   }
@@ -449,13 +450,3 @@ function MiniBars({ data }: { data: number[] }) {
   )
 }
 
-function refreshBtnStyle(active = false): React.CSSProperties {
-  return {
-    display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm,
-    background: t.neutrals.inner, color: t.neutrals.muted,
-    border: 'none', borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
-    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-    cursor: active ? 'default' : 'pointer', fontFamily: t.font.sans,
-    opacity: active ? 0.6 : 1, marginTop: t.density.kpiGap,
-  }
-}

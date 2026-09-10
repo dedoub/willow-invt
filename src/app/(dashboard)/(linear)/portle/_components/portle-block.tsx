@@ -9,6 +9,8 @@ import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
 import { PORTLE_KIND_LABELS } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
+import { LTableBadge } from '@/app/(dashboard)/_components/linear-table'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -295,15 +297,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
 
-        {error && (
-          <div style={{
-            padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-            background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, marginBottom: t.density.gapMd,
-          }}>
-            {error}
-          </div>
-        )}
+        {error && <LNotice tone="danger" text={error} />}
 
         {loading && (() => {
           return (
@@ -695,12 +689,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   </div>
                   {/* 사용자 — 유형 배지 + 축약 ID (전체 ID는 title로) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }} title={user.subject}>
-                    <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`,
-                      borderRadius: t.radius.pill, background: typeTone.bg, color: typeTone.fg, whiteSpace: 'nowrap' as const,
-                    }}>
-                      {typeTone.label}
-                    </span>
+                    <LTableBadge tone={typeTone}>{typeTone.label}</LTableBadge>
                     <span style={{ ...userTextCell, fontFamily: t.font.mono }}>{subjectShort(user)}</span>
                   </div>
                   <div style={userNumCell}>{user.calls.toLocaleString()}</div>
@@ -714,13 +703,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 구독 — 활성이면 스토어 표시, 만료는 흐리게 */}
                   <div style={{ ...userNumCell, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
                     {ent ? (
-                      <span style={{
-                        padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.pill, fontWeight: t.weight.semibold,
-                        background: ent.active ? tonePalettes.pos.bg : t.neutrals.inner,
-                        color: ent.active ? tonePalettes.pos.fg : t.neutrals.subtle,
-                      }}>
+                      <LTableBadge tone={ent.active ? tonePalettes.pos : { bg: t.neutrals.inner, fg: t.neutrals.subtle }}>
                         {ent.store === 'apple' ? 'Apple' : 'Google'}
-                      </span>
+                      </LTableBadge>
                     ) : '—'}
                   </div>
                 </div>

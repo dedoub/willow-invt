@@ -2,6 +2,7 @@
 
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 interface Invoice {
@@ -83,21 +84,11 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
 
         {/* Type + status pills */}
         <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: typeTone.bg, color: typeTone.fg,
-          }}>
-            {TYPE_LABELS[invoice.type]}
-          </span>
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: invoice.status === 'completed' ? '#DAEEDD' : t.neutrals.inner,
-            color: invoice.status === 'completed' ? '#1F5F3D' : t.neutrals.muted,
-          }}>
-            {invoice.status === 'completed' ? '완료' : '발행'}
-          </span>
+          {/* 유형은 분류 배지(기본 반경), 상태는 pill */}
+          <LBadge palette={typeTone}>{TYPE_LABELS[invoice.type]}</LBadge>
+          {invoice.status === 'completed'
+            ? <LBadge tone="done" pill>완료</LBadge>
+            : <LBadge palette={{ bg: t.neutrals.inner, fg: t.neutrals.muted }} pill>발행</LBadge>}
         </div>
 
         {/* Body */}

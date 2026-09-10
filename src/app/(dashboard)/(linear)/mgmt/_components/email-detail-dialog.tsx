@@ -2,6 +2,7 @@
 
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 export interface FullEmail {
@@ -59,20 +60,9 @@ export function EmailDetailDialog({ email, onClose, onReply, onForward }: EmailD
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6 }}>
                 EMAIL
               </span>
-              <span style={{
-                padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                background: isInbound ? '#DCE8F5' : '#DAEEDD',
-                color: isInbound ? '#1F4E79' : '#1F5F3D',
-              }}>
-                {isInbound ? '수신' : '발신'}
-              </span>
+              <LBadge tone={isInbound ? 'info' : 'done'}>{isInbound ? '수신' : '발신'}</LBadge>
               {email.category && (
-                <span style={{
-                  padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                  background: t.neutrals.inner, color: t.neutrals.muted,
-                }}>
-                  {email.category}
-                </span>
+                <LBadge palette={{ bg: t.neutrals.inner, fg: t.neutrals.muted }}>{email.category}</LBadge>
               )}
             </div>
             <div style={{

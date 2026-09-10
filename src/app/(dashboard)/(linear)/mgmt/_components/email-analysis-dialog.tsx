@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
 interface Issue {
@@ -106,19 +108,12 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
         </div>
 
         {/* Category tabs */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.panelPadY}px`, display: 'flex', gap: t.density.gapXs, overflowX: 'auto' }}>
-          {analysis.categories.map((c, i) => (
-            <button key={i} onClick={() => setActiveCategory(i)} style={{
-              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, fontWeight: activeCategory === i ? t.weight.medium : t.weight.regular,
-              background: activeCategory === i ? t.brand[100] : t.neutrals.inner,
-              color: activeCategory === i ? t.brand[700] : t.neutrals.muted,
-              transition: 'all .12s',
-            }}>
-              {c.category} <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, opacity: 0.7 }}>{c.emailCount}</span>
-            </button>
-          ))}
+        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.panelPadY}px` }}>
+          <LFilterChip
+            options={analysis.categories.map((c, i) => ({ value: String(i), label: `${c.category} ${c.emailCount}` }))}
+            value={String(activeCategory)}
+            onChange={v => setActiveCategory(Number(v))}
+          />
         </div>
 
         {/* Category content */}
@@ -133,12 +128,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
             {cat.recentTopics.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs, marginBottom: t.density.blockGap }}>
                 {cat.recentTopics.map((topic, i) => (
-                  <span key={i} style={{
-                    padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, fontSize: `calc(${t.type.label}px * var(--fz, 1))`,
-                    background: t.neutrals.inner, color: t.neutrals.muted, fontFamily: t.font.sans,
-                  }}>
-                    {topic}
-                  </span>
+                  <LBadge key={i} palette={{ bg: t.neutrals.inner, fg: t.neutrals.muted }}>{topic}</LBadge>
                 ))}
               </div>
             )}
@@ -154,12 +144,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                       marginBottom: t.density.gapXs,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
-                        <span style={{
-                          padding: `1px ${t.density.gapSm}px`, borderRadius: 3, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                          background: pt.bg, color: pt.fg,
-                        }}>
-                          {issue.priority}
-                        </span>
+                        <LBadge palette={pt}>{issue.priority}</LBadge>
                         <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text }}>{issue.title}</span>
                       </div>
                       <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.muted, lineHeight: 1.5 }}>{issue.description}</div>
@@ -205,12 +190,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                           {todo.task}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap }}>
-                          <span style={{
-                            padding: '0px 4px', borderRadius: 2, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                            background: pt.bg, color: pt.fg,
-                          }}>
-                            {todo.priority}
-                          </span>
+                          <LBadge palette={pt}>{todo.priority}</LBadge>
                           {todo.dueDate && (
                             <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle }}>
                               마감 {todo.dueDate}

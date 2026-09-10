@@ -2,6 +2,7 @@
 
 import { t, eventTones, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
@@ -100,20 +101,9 @@ export function ScheduleDetailDialog({ schedule, onClose, onToggleComplete, onDe
 
         {/* Status pill */}
         <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: tone.bg, color: tone.fg,
-          }}>
-            {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
-          </span>
-          <span style={{
-            display: 'inline-block', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-            background: catTone.bg, color: catTone.fg,
-          }}>
-            {catLabel}
-          </span>
+          {/* 상태는 pill, 카테고리는 분류 배지(기본 반경) */}
+          <LBadge palette={tone} pill>{done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}</LBadge>
+          <LBadge palette={catTone}>{catLabel}</LBadge>
         </div>
 
         {/* Body */}

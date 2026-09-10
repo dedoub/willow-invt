@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FullEmail } from './email-detail-dialog'
 
@@ -145,10 +146,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
             <Label>첨부파일</Label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
               {files.map((f, i) => (
-                <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`,
-                  borderRadius: t.radius.sm, background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-                }}>
+                <LBadge key={i} palette={{ bg: t.neutrals.inner, fg: t.neutrals.muted }}>
                   <LIcon name="file" size={10} stroke={1.8} color={t.neutrals.subtle} />
                   <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                   <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} style={{
@@ -157,7 +155,7 @@ export function ComposeEmailDialog({ open, mode, originalEmail, gmailContext, on
                   }}>
                     <LIcon name="x" size={9} stroke={2.5} />
                   </button>
-                </span>
+                </LBadge>
               ))}
               <label style={{
                 display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.panelPadX}px`,

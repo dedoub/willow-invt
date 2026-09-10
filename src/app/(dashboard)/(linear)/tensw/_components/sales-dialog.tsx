@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
@@ -291,17 +292,12 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
             </div>
             <div>
               <Label>{purchase ? '지급상태' : '수금상태'}</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-                {PAYMENT_STATUS_OPTIONS_BY_TYPE[kind].map(s => (
-                  <ChipBtn
-                    key={s.key}
-                    active={form.payment_status === s.key}
-                    onClick={() => set('payment_status', s.key)}
-                  >
-                    {s.label}
-                  </ChipBtn>
-                ))}
-              </div>
+              <LFilterChip
+                options={PAYMENT_STATUS_OPTIONS_BY_TYPE[kind].map(s => ({ value: s.key as string, label: s.label }))}
+                value={form.payment_status}
+                onChange={v => set('payment_status', v)}
+                gap={t.density.gapSm}
+              />
             </div>
           </div>
 
@@ -309,11 +305,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapSm }}>
               <Label>품목</Label>
-              <button onClick={() => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))} style={{
-                border: 'none', cursor: 'pointer', padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
-                borderRadius: t.radius.pill, background: t.neutrals.inner, color: t.neutrals.muted,
-                fontFamily: t.font.sans, fontWeight: t.weight.medium,
-              }}>+ 추가</button>
+              <LBtn size="xs" variant="secondary" onClick={() => setForm(prev => ({ ...prev, items: [...prev.items, emptyItem()] }))}>+ 추가</LBtn>
             </div>
             {form.items.length === 0 && (
               <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.panelPadY}px 0` }}>
@@ -420,23 +412,5 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
-  )
-}
-
-function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: 'none', cursor: 'pointer',
-        padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-        fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-        background: active ? t.brand[100] : t.neutrals.inner,
-        color: active ? t.brand[700] : t.neutrals.muted,
-        transition: 'all .12s',
-      }}
-    >
-      {children}
-    </button>
   )
 }

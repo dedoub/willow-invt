@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { WikiNote, WikiMemo } from './wiki-note-row'
@@ -383,13 +384,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap,
                       }}>
-                        <span style={{
-                          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.badge.weight,
-                          padding: `1px ${t.density.gapSm}px`, borderRadius: 3,
-                          background: badge.bg, color: badge.fg,
-                        }}>
-                          {badge.label}
-                        </span>
+                        <LBadge palette={{ bg: badge.bg, fg: badge.fg }}>{badge.label}</LBadge>
                         <span title={fmtUpdatedTitle(note.updated_at)} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                           {fmtDate(note.updated_at)}
                         </span>
@@ -466,18 +461,11 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         }}>
           {/* 목록으로 back button (compact) */}
           {compact && !modal && (
-            <button
+            <LBtn size="md" variant="ghost" icon={<LIcon name="chevronLeft" size={13} stroke={2} />}
               onClick={closeDetail}
-              style={{
-                display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: `${t.density.panelPadX}px ${t.density.controlPadXMd}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600],
-                fontFamily: t.font.sans,
-              }}
-            >
-              <LIcon name="chevronLeft" size={13} stroke={2} />
+              style={{ alignSelf: 'flex-start', color: t.brand[600] }}>
               목록으로
-            </button>
+            </LBtn>
           )}
           {adding ? (
             /* New note form — 뷰포트 높이 안에서 폼 내부 스크롤 */
@@ -523,28 +511,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
                       color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
                     }}>📌</button>
-                    <button onClick={() => setEditing(true)} style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.muted,
-                      fontFamily: t.font.sans, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
-                      whiteSpace: 'nowrap' as const, flexShrink: 0,
-                    }}>
+                    <LBtn size="xs" variant="ghost" onClick={() => setEditing(true)}
+                      style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       편집
-                    </button>
+                    </LBtn>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
                   {(() => {
                     const badge = SECTION_BADGES[selectedNote.section] || SECTION_BADGES['akros']
                     return (
-                      <span style={{
-                        fontSize: `calc(${t.badge.size}px * var(--fz, 1))`, fontWeight: t.badge.weight,
-                        padding: `${t.badge.padY}px ${t.badge.padX}px`,
-                        borderRadius: t.badge.radius,
-                        background: badge.bg, color: badge.fg,
-                      }}>
-                        {badge.label}
-                      </span>
+                      <LBadge palette={{ bg: badge.bg, fg: badge.fg }}>{badge.label}</LBadge>
                     )
                   })()}
                   <span title={fmtUpdatedTitle(selectedNote.updated_at)} style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
@@ -630,18 +607,10 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                         padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
                       }}
                     />
-                    <button
-                      onClick={handleAddMemo}
-                      disabled={savingMemo || !newMemo.trim()}
-                      style={{
-                        background: t.neutrals.inner, border: 'none',
-                        borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
-                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle,
-                        cursor: newMemo.trim() ? 'pointer' : 'default', fontFamily: t.font.sans, flexShrink: 0,
-                      }}
-                    >
+                    <LBtn size="sm" variant="secondary" onClick={handleAddMemo} disabled={savingMemo || !newMemo.trim()}
+                      style={{ flexShrink: 0, color: newMemo.trim() ? t.brand[600] : t.neutrals.subtle }}>
                       추가
-                    </button>
+                    </LBtn>
                   </div>
                 </div>
               </div>

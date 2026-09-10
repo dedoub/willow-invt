@@ -5,6 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LTableScroll } from '@/app/(dashboard)/_components/linear-table'
 import { RyuhaBodyRecord } from '@/types/ryuha'
 
@@ -320,24 +321,11 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
               display: 'flex', justifyContent: 'space-between',
             }}>
               {editRecord ? (
-                <button onClick={handleDelete} disabled={saving} style={{
-                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
-                  background: '#FEE2E2', border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                  color: t.accent.neg, cursor: 'pointer', fontWeight: t.weight.medium,
-                }}>삭제</button>
+                <LBtn size="sm" variant="danger" onClick={handleDelete} disabled={saving}>삭제</LBtn>
               ) : <div />}
               <div style={{ display: 'flex', gap: t.density.gapSm }}>
-                <button onClick={() => setDialogOpen(false)} style={{
-                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.sm,
-                  background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                  color: t.neutrals.muted, cursor: 'pointer',
-                }}>취소</button>
-                <button onClick={handleSave} disabled={saving} style={{
-                  padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, borderRadius: t.radius.sm,
-                  background: t.brand[600], border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                  color: '#fff', cursor: 'pointer', fontWeight: t.weight.medium,
-                  opacity: saving ? 0.5 : 1,
-                }}>{saving ? '저장중...' : '저장'}</button>
+                <LBtn size="sm" variant="secondary" onClick={() => setDialogOpen(false)}>취소</LBtn>
+                <LBtn size="sm" variant="brand" onClick={handleSave} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn>
               </div>
             </div>
           </div>

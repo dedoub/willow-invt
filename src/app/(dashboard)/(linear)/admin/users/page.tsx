@@ -8,6 +8,8 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 
 interface UserData {
   id: string
@@ -278,32 +280,20 @@ export default function UsersPage() {
                         <option value="viewer">뷰어</option>
                       </select>
                     ) : (
-                      <button
-                        onClick={() => !isMe && setEditingRole(u.id)}
-                        disabled={isMe}
-                        style={{
-                          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-                          padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
-                          background: role.bg, color: role.fg,
-                          border: 'none', cursor: isMe ? 'default' : 'pointer',
-                          flexShrink: 0,
-                        }}
-                      >{role.label}</button>
+                      <LBadge
+                        pill
+                        palette={{ bg: role.bg, fg: role.fg }}
+                        onClick={isMe ? undefined : () => setEditingRole(u.id)}
+                        style={{ flexShrink: 0 }}
+                      >{role.label}</LBadge>
                     )}
 
-                    <button
-                      onClick={() => !isMe && handleToggleActive(u.id, u.is_active)}
-                      disabled={isMe}
-                      style={{
-                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-                        padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, border: 'none',
-                        background: u.is_active ? '#10B98122' : '#EF444422',
-                        color: u.is_active ? '#059669' : '#DC2626',
-                        cursor: isMe ? 'default' : 'pointer',
-                        opacity: isMe ? 0.6 : 1,
-                        flexShrink: 0,
-                      }}
-                    >{u.is_active ? '활성' : '비활성'}</button>
+                    <LBadge
+                      pill
+                      tone={u.is_active ? 'done' : 'danger'}
+                      onClick={isMe ? undefined : () => handleToggleActive(u.id, u.is_active)}
+                      style={{ opacity: isMe ? 0.6 : 1, flexShrink: 0 }}
+                    >{u.is_active ? '활성' : '비활성'}</LBadge>
 
                     {!mobile && (
                       <span style={{
@@ -417,24 +407,10 @@ export default function UsersPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm }}>
-              <button
-                onClick={() => setPermUser(null)}
-                style={{
-                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                  background: t.neutrals.inner, color: t.neutrals.muted,
-                  border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
-                }}
-              >취소</button>
-              <button
-                onClick={savePerms}
-                disabled={savingPerms}
-                style={{
-                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                  background: t.brand[600], color: '#fff',
-                  border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
-                  opacity: savingPerms ? 0.6 : 1,
-                }}
-              >{savingPerms ? '저장 중…' : '저장'}</button>
+              <LBtn variant="secondary" size="sm" onClick={() => setPermUser(null)}>취소</LBtn>
+              <LBtn variant="brand" size="sm" onClick={savePerms} disabled={savingPerms}>
+                {savingPerms ? '저장 중…' : '저장'}
+              </LBtn>
             </div>
           </div>
         </div>

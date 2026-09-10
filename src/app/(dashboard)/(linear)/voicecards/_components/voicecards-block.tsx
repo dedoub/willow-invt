@@ -18,7 +18,8 @@ import {
   isVoicecardsDeviceAccountRow,
   isVoicecardsGoogleUserRow,
 } from '@/lib/voicecards-device-journey'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -304,10 +305,9 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
-          <span title="핫리드: 최근 7일 활성 미구매자 중 구매 가능성 상위 10%" style={{
-            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, background: '#FEE2E2', color: '#B91C1C',
-            borderRadius: 3, padding: `0 ${t.density.gapXs}px`, fontWeight: t.weight.medium,
-          }}>🔥</span>
+          <span title="핫리드: 최근 7일 활성 미구매자 중 구매 가능성 상위 10%" style={{ display: 'inline-flex' }}>
+            <LTableBadge tone={CELL_TONES.hotLead}>🔥</LTableBadge>
+          </span>
         )}
         {u.intentBanner && (
           <span title="업그레이드 모달/배너 클릭" style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>💳</span>
@@ -323,6 +323,17 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
 }
 
 // 타겟 오퍼 단계 셀. 퍼널: 발송 → 열람 → 스누즈 → 전환. 종료: 닫음/만료.
+// 사용자 표 셀 배지 색. 규격(크기·패딩·굵기)은 LTableBadge가 t.badge로 통일하고 여기선 색만 둔다.
+const CELL_TONES = {
+  hotLead: { bg: '#FEE2E2', fg: '#B91C1C' },
+  ios:     { bg: '#E0F2FE', fg: '#0369A1' },
+  android: { bg: '#DCFCE7', fg: '#15803D' },
+  plain:   { bg: t.neutrals.card, fg: t.neutrals.muted },
+  locale:  { bg: '#F3E8FF', fg: '#6B21A8' },
+  country: { bg: '#DBEAFE', fg: '#1E40AF' },
+  paid:    { bg: '#DCFCE7', fg: '#166534' },
+} as const
+
 const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string; title: string }> = {
   sent:     { label: '발송',  fg: '#4B5563', bg: '#F3F4F6', title: '오퍼 발송됨 (아직 열람 전)' },
   seen:     { label: '열람',  fg: '#1E40AF', bg: '#DBEAFE', title: '오퍼 모달을 봄' },
@@ -361,11 +372,10 @@ function OfferStageCell({ stage, at }: { stage: string | null; at: string | null
   const s = OFFER_STAGE_STYLE[stage]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
-      <span title={s.title} style={{
-        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-        color: s.fg, background: s.bg, padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
-      }}>
-        {stage === 'redeemed' ? '💰' + s.label : s.label}
+      <span title={s.title} style={{ display: 'inline-flex', minWidth: 0 }}>
+        <LTableBadge tone={{ bg: s.bg, fg: s.fg }}>
+          {stage === 'redeemed' ? '💰' + s.label : s.label}
+        </LTableBadge>
       </span>
       {at && (
         <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
@@ -460,10 +470,6 @@ function withWeekday(d: string): string {
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
-function SkelBar({ width, height = 12, style }: { width: number | string; height?: number; style?: React.CSSProperties }) {
-  return <div className="l-skeleton" style={{ width, height, maxWidth: '100%', ...style }} />
-}
-
 function SkelStat({ compact }: { compact: boolean }) {
   // LStat 2열 배치와 동일: 좌측 라벨/값/오늘·7일/보조라벨 4줄, 우측 스파크라인(≤50% 폭·80% 높이)
   return (
@@ -473,13 +479,13 @@ function SkelStat({ compact }: { compact: boolean }) {
       minWidth: 0, overflow: 'hidden',
     }}>
       <div style={{ minWidth: 0 }}>
-        <SkelBar width={56} height={9} style={{ marginBottom: t.density.gapSm }} />
-        <SkelBar width={64} height={16} style={{ marginBottom: t.density.gapSm }} />
-        <SkelBar width={76} height={9} style={{ marginBottom: t.density.gapXs }} />
-        <SkelBar width={68} height={9} />
+        <Bone w={56} h={9} style={{ marginBottom: t.density.gapSm }} />
+        <Bone w={64} h={16} style={{ marginBottom: t.density.gapSm }} />
+        <Bone w={76} h={9} style={{ marginBottom: t.density.gapXs }} />
+        <Bone w={68} h={9} />
       </div>
       {!compact && (
-        <div className="l-skeleton" style={{ flex: 1, minWidth: 20, maxWidth: '50%', height: '80%', alignSelf: 'center', borderRadius: t.radius.sm }} />
+        <Bone style={{ width: 'auto', flex: 1, minWidth: 20, maxWidth: '50%', height: '80%', alignSelf: 'center' }} />
       )}
     </div>
   )
@@ -494,14 +500,14 @@ function SkelPie() {
       minWidth: 0, overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs }}>
-        <SkelBar width={40} height={10} />
-        <SkelBar width={64} height={12} />
+        <Bone w={40} h={10} />
+        <Bone w={64} h={12} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flex: 1, padding: `${t.density.gapXs}px 0` }}>
-        <div className="l-skeleton" style={{ width: 80, height: 80, borderRadius: '50%', flexShrink: 0, maxWidth: '100%' }} />
+        <Bone w={80} h={80} r={t.radius.pill} style={{ flexShrink: 0 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, flex: 1, minWidth: 0 }}>
-          <SkelBar width="85%" height={9} />
-          <SkelBar width="70%" height={9} />
+          <Bone w="85%" h={9} />
+          <Bone w="70%" h={9} />
         </div>
       </div>
     </div>
@@ -516,14 +522,14 @@ function SkelBars() {
       display: 'flex', flexDirection: 'column', gap: t.density.gapSm, minHeight: 150, height: '100%', boxSizing: 'border-box',
       minWidth: 0, overflow: 'hidden',
     }}>
-      <SkelBar width={70} height={10} />
+      <Bone w={70} h={10} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: `${t.density.gapSm}px 0` }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.tableRowGap, width: '100%', height: '100%', minHeight: 96 }}>
           {Array.from({ length: 42 }).map((_, i) => (
-            <div
+            <Bone
               key={i}
-              className="l-skeleton"
-              style={{ flex: 1, minWidth: 2, height: `${28 + ((i * 37) % 56)}%`, borderRadius: 1 }}
+              r={1}
+              style={{ width: 'auto', flex: 1, minWidth: 2, height: `${28 + ((i * 37) % 56)}%` }}
             />
           ))}
         </div>
@@ -538,12 +544,12 @@ function SkelUserRow() {
       padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
       display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
     }}>
-      <div className="l-skeleton" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0 }} />
+      <Bone w={26} h={26} r={t.radius.pill} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <SkelBar width={120} height={10} style={{ marginBottom: t.density.gapXs }} />
-        <SkelBar width="80%" height={9} />
+        <Bone w={120} h={10} style={{ marginBottom: t.density.gapXs }} />
+        <Bone w="80%" h={9} />
       </div>
-      <SkelBar width={36} height={9} />
+      <Bone w={36} h={9} />
     </div>
   )
 }
@@ -798,18 +804,9 @@ export function VoicecardsBlock({
             color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
           }}>
             <span>인사이트 데이터를 불러오지 못했어요</span>
-            <button
-              onClick={onRefresh}
-              disabled={refreshingFunnel}
-              style={{
-                padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm, border: 'none',
-                cursor: refreshingFunnel ? 'default' : 'pointer', opacity: refreshingFunnel ? 0.5 : 1,
-                background: t.brand[500], color: '#fff',
-                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
-              }}
-            >
+            <LBtn variant="brand" size="sm" onClick={onRefresh} disabled={refreshingFunnel}>
               다시 시도
-            </button>
+            </LBtn>
           </div>
         )}
         {userStats && anonymousStats?.summary && (() => {
@@ -1718,14 +1715,9 @@ export function VoicecardsBlock({
                   {/* 플랫폼 */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.platform ? (
-                      <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                        color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
-                        background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
-                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                      }}>
-                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform}
-                      </span>
+                      <LTableBadge tone={user.platform === 'ios' ? CELL_TONES.ios : user.platform === 'android' ? CELL_TONES.android : CELL_TONES.plain}>
+                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform.toUpperCase()}
+                      </LTableBadge>
                     ) : (
                       <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
@@ -1733,14 +1725,9 @@ export function VoicecardsBlock({
                   {/* 앱버전 */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.appVersion ? (
-                      <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                        color: t.neutrals.muted, background: t.neutrals.card,
-                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-                      }}>
+                      <LTableBadge tone={CELL_TONES.plain}>
                         v{user.appVersion}
-                      </span>
+                      </LTableBadge>
                     ) : (
                       <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
@@ -1748,13 +1735,9 @@ export function VoicecardsBlock({
                   {/* 언어 (locale) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.locale ? (
-                      <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                        color: '#6B21A8', background: '#F3E8FF',
-                        padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
-                      }}>
-                        {user.locale}
-                      </span>
+                      <LTableBadge tone={CELL_TONES.locale}>
+                        {user.locale.toUpperCase()}
+                      </LTableBadge>
                     ) : (
                       <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
                     )}
@@ -1764,12 +1747,10 @@ export function VoicecardsBlock({
                     {(() => {
                       const c = formatCountry(user.country, user.locale)
                       return c ? (
-                        <span title={c.name} style={{
-                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                          color: '#1E40AF', background: '#DBEAFE',
-                          padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
-                        }}>
-                          {c.flag} {c.code}
+                        <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
+                          <LTableBadge tone={CELL_TONES.country}>
+                            {c.flag} {c.code}
+                          </LTableBadge>
                         </span>
                       ) : (
                         <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
@@ -1806,14 +1787,9 @@ export function VoicecardsBlock({
                   <IntentCell u={user} />
                   <OfferStageCell stage={user.offerStage} at={user.offerStageAt} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                    <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                      color: user.hasPurchased ? '#166534' : t.neutrals.muted,
-                      background: user.hasPurchased ? '#DCFCE7' : t.neutrals.card,
-                      padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
-                    }}>
+                    <LTableBadge tone={user.hasPurchased ? CELL_TONES.paid : CELL_TONES.plain}>
                       {user.hasPurchased ? '유료' : '무료'}
-                    </span>
+                    </LTableBadge>
                   </div>
                   {/* 백그라운드 재생 보장 종료 — 기간권(users.unlimited_until). 크레딧 잔액과 별개로
                       이 날짜까지는 화면을 꺼도 듣기가 돈다. 자동 갱신이 없어 지나면 그냥 닫힌다.

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { ETFDisplayData } from '@/lib/etf-types'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 
 interface ProductBlockProps {
   etfs: ETFDisplayData[]
@@ -45,7 +45,19 @@ function fmtFlow(v: number | null): string {
   return `${sign}$${abs.toFixed(0)}`
 }
 
+const COLUMNS: LColumn<ETFDisplayData>[] = [
+  { key: 'symbol', label: 'Symbol', width: 'minmax(72px,0.6fr)' },
+  { key: 'fundName', label: 'Fund name', width: 'minmax(160px,2fr)' },
+  { key: 'listing', label: 'Listing', width: 'minmax(80px,0.7fr)', hideMobile: true },
+  { key: 'aum', label: 'AUM', width: 'minmax(72px,0.6fr)', align: 'right' },
+  { key: 'flow', label: '1M flow', width: 'minmax(72px,0.6fr)', align: 'right', hideMobile: true },
+  { key: 'fee', label: 'Fee/mo', width: 'minmax(72px,0.6fr)', align: 'right', hideMobile: true },
+  { key: 'remaining', label: 'Remaining', width: 'minmax(80px,0.6fr)', align: 'right' },
+  { key: 'actions', label: '', width: '72px', align: 'center' },
+]
+
 export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRefresh }: ProductBlockProps) {
+  const mobile = useIsMobile()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const totalPages = Math.max(1, Math.ceil(etfs.length / pageSize))
@@ -55,16 +67,6 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
-  }
-
-  const thStyle: React.CSSProperties = {
-    padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
-    fontWeight: t.weight.semibold, color: t.neutrals.subtle, textAlign: 'left',
-    letterSpacing: 0.3, whiteSpace: 'nowrap',
-  }
-  const tdStyle: React.CSSProperties = {
-    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
-    color: t.neutrals.text, whiteSpace: 'nowrap',
   }
 
   return (
@@ -81,84 +83,46 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
         } />
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: 740, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: 72 }} />
-            <col />
-            <col style={{ width: 92 }} />
-            <col style={{ width: 84 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 80 }} />
-            <col style={{ width: 72 }} />
-          </colgroup>
-          <thead>
-            <tr style={{ background: t.neutrals.inner, borderBottom: `1px solid ${t.neutrals.line}` }}>
-              <th style={thStyle}>SYMBOL</th>
-              <th style={thStyle}>FUND NAME</th>
-              <th style={thStyle}>LISTING</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>AUM</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>1M FLOW</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>FEE/MO</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>REMAINING</th>
-              <th style={thStyle}></th>
-            </tr>
-          </thead>
-          <tbody>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
+          <LTableHead columns={COLUMNS} mobile={mobile} />
+          {paged.length === 0 && <LTableEmpty>상품 데이터가 없습니다</LTableEmpty>}
+          <LTableBody columns={COLUMNS} mobile={mobile}>
             {paged.map(etf => (
-              <tr key={etf.id} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
+              <LTableRow key={etf.id} columns={COLUMNS} mobile={mobile}>
+                <LTableMono tone="text" strong>
                   {etf.fundUrl ? (
                     <a href={etf.fundUrl} target="_blank" rel="noopener noreferrer"
                       style={{ color: t.brand[500], textDecoration: 'none' }}>{etf.symbol}</a>
                   ) : etf.symbol}
-                </td>
-                <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                </LTableMono>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.neutrals.text }}>
                   {etf.fundName}
-                </td>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>
-                  {etf.listingDate || '-'}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
-                  {fmtUsd(etf.aum)}
-                </td>
-                <td style={{
-                  ...tdStyle, textAlign: 'right', fontFamily: t.font.mono,
-                  color: (etf.flow ?? 0) >= 0 ? '#16A34A' : '#DC2626',
-                }}>
-                  {fmtFlow(etf.flow)}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
-                  {fmtUsd(etf.totalMonthlyFee)}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
-                  {fmtUsd(etf.remainingFee)}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'center' }}>
-                  <div style={{ display: 'flex', gap: t.density.tableRowGap, justifyContent: 'center' }}>
-                    <button onClick={() => onEdit(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                      <LIcon name="pencil" size={12} />
-                    </button>
-                    <button onClick={() => onDocuments(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                      <LIcon name="file" size={12} />
-                    </button>
-                    <button onClick={() => { if (confirm(`${etf.symbol} 삭제?`)) onDelete(etf) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                      <LIcon name="x" size={12} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                </span>
+                {!mobile && <LTableMono>{etf.listingDate || '-'}</LTableMono>}
+                <LTableMono align="right" tone="text">{fmtUsd(etf.aum)}</LTableMono>
+                {!mobile && (
+                  <LTableMono align="right">
+                    <span style={{ color: (etf.flow ?? 0) >= 0 ? t.accent.pos : t.accent.neg }}>{fmtFlow(etf.flow)}</span>
+                  </LTableMono>
+                )}
+                {!mobile && <LTableMono align="right" tone="text">{fmtUsd(etf.totalMonthlyFee)}</LTableMono>}
+                <LTableMono align="right" tone="text" strong>{fmtUsd(etf.remainingFee)}</LTableMono>
+                <div style={{ display: 'flex', gap: t.density.tableRowGap, justifyContent: 'center' }}>
+                  <button onClick={() => onEdit(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
+                    <LIcon name="pencil" size={12} />
+                  </button>
+                  <button onClick={() => onDocuments(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
+                    <LIcon name="file" size={12} />
+                  </button>
+                  <button onClick={() => { if (confirm(`${etf.symbol} 삭제?`)) onDelete(etf) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
+                    <LIcon name="x" size={12} />
+                  </button>
+                </div>
+              </LTableRow>
             ))}
-            {paged.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: t.neutrals.subtle, padding: 30 }}>
-                  상품 데이터가 없습니다
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

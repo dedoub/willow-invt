@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
@@ -136,13 +137,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
           {/* Type chips */}
           <div>
             <Label>유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-              {TYPE_OPTIONS.map(o => (
-                <ChipBtn key={o.value} active={form.type === o.value} onClick={() => set('type', o.value)}>
-                  {o.label}
-                </ChipBtn>
-              ))}
-            </div>
+            <LFilterChip options={TYPE_OPTIONS} value={form.type} onChange={v => set('type', v)} gap={t.density.gapSm} />
           </div>
 
           {/* Counterparty */}
@@ -224,18 +219,5 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
-  )
-}
-
-function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      border: 'none', cursor: 'pointer',
-      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-      fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-      background: active ? t.brand[100] : t.neutrals.inner,
-      color: active ? t.brand[700] : t.neutrals.muted,
-      transition: 'all .12s',
-    }}>{children}</button>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { RyuhaSchedule } from '@/types/ryuha'
 
@@ -164,19 +165,18 @@ export function ScheduleDialog({
           {/* Type chips */}
           <div>
             <Label>유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-              {([
-                { key: 'school', label: '학교' },
-                { key: 'academy', label: '학원' },
-                { key: 'arts', label: '예체능' },
-                { key: 'homework', label: '과제' },
-                { key: 'etc', label: '기타' },
-              ] as const).map(({ key, label }) => (
-                <ChipBtn key={key} active={form.type === key} onClick={() => setForm({ ...form, type: key })}>
-                  {label}
-                </ChipBtn>
-              ))}
-            </div>
+            <LFilterChip
+              options={[
+                { value: 'school', label: '학교' },
+                { value: 'academy', label: '학원' },
+                { value: 'arts', label: '예체능' },
+                { value: 'homework', label: '과제' },
+                { value: 'etc', label: '기타' },
+              ] as const}
+              value={form.type}
+              onChange={key => setForm({ ...form, type: key })}
+              gap={t.density.gapSm}
+            />
           </div>
 
           {/* Dates */}
@@ -255,16 +255,14 @@ export function ScheduleDialog({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
                 <Label>과제 항목</Label>
-                <button onClick={() => setForm({
-                  ...form,
-                  homework_items: [...form.homework_items, { content: '', deadline: form.schedule_date }],
-                })} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[600], display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-                  fontFamily: t.font.sans,
-                }}>
-                  <LIcon name="plus" size={11} stroke={2} /> 추가
-                </button>
+                <LBtn size="xs" variant="ghost" icon={<LIcon name="plus" size={11} stroke={2} />}
+                  onClick={() => setForm({
+                    ...form,
+                    homework_items: [...form.homework_items, { content: '', deadline: form.schedule_date }],
+                  })}
+                  style={{ color: t.brand[600] }}>
+                  추가
+                </LBtn>
               </div>
               {form.homework_items.map((item, idx) => (
                 <div key={idx} style={{
@@ -331,18 +329,5 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
-  )
-}
-
-function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      border: 'none', cursor: 'pointer',
-      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-      fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-      background: active ? t.brand[100] : t.neutrals.inner,
-      color: active ? t.brand[700] : t.neutrals.muted,
-      transition: 'all .12s',
-    }}>{children}</button>
   )
 }

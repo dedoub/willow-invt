@@ -7,6 +7,8 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -131,6 +133,8 @@ function resolveIcon(icon: string | null): string {
 }
 
 // ─── Status badge config ─────────────────────────────────────────────────────
+
+const MANAGER_PALETTE = { bg: '#EDE9FE', fg: '#7C3AED' }
 
 const STATUS_STYLES: Record<string, { bg: string; fg: string; label: string }> = {
   active:   { bg: '#16A34A20', fg: '#16A34A', label: '진행' },
@@ -281,29 +285,11 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         </div>
 
         {/* Filter badges */}
-        <div style={{ display: 'flex', gap: t.density.gapXs, flexWrap: 'wrap' }}>
-          {filters.map(f => {
-            const active = filter === f.key
-            return (
-              <button
-                key={f.key}
-                onClick={() => handleFilterChange(f.key)}
-                style={{
-                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, borderRadius: t.radius.pill,
-                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-                  fontWeight: active ? t.weight.medium : t.weight.regular,
-                  background: active ? t.brand[100] : t.neutrals.inner,
-                  color: active ? t.brand[700] : t.neutrals.muted,
-                  border: 'none', cursor: 'pointer', transition: 'all .12s',
-                }}
-              >
-                {f.label}{f.count > 0 && (
-                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, marginLeft: t.density.tableRowGap }}>{f.count}</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <LFilterChip
+          options={filters.map(f => ({ value: f.key, label: f.count > 0 ? `${f.label} ${f.count}` : f.label }))}
+          value={filter}
+          onChange={handleFilterChange}
+        />
       </div>
 
       {/* Project rows */}
@@ -359,14 +345,9 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 </div>
 
                 {/* Status badge */}
-                <span style={{
-                  display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
-                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-                  background: statusStyle.bg, color: statusStyle.fg,
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                }}>
+                <LBadge pill palette={statusStyle} style={{ flexShrink: 0 }}>
                   {statusStyle.label}
-                </span>
+                </LBadge>
 
                 {/* Stats mini: 대기/진행/완료 */}
                 <div style={{
@@ -511,12 +492,9 @@ function ExpandedDetail({
               <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>진행 중 (담당자별)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.inProgressByMember.slice(0, 4).map((m, i) => (
-                  <span key={i} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                    background: tonePalettes.info.bg, color: tonePalettes.info.fg,
-                  }}>
+                  <LBadge key={i} tone="info">
                     {m.name} {m.count}
-                  </span>
+                  </LBadge>
                 ))}
                 {project.inProgressByMember.length > 4 && (
                   <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>+{project.inProgressByMember.length - 4}</span>
@@ -531,12 +509,9 @@ function ExpandedDetail({
               <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>완료 (담당자별)</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.completedByMember.slice(0, 4).map((m, i) => (
-                  <span key={i} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                    background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
-                  }}>
+                  <LBadge key={i} tone="pos">
                     {m.name} {m.count}
-                  </span>
+                  </LBadge>
                 ))}
                 {project.completedByMember.length > 4 && (
                   <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>+{project.completedByMember.length - 4}</span>
@@ -615,12 +590,9 @@ function ExpandedDetail({
             <DetailSection label="문서">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
                 {project.docs.slice(0, 6).map(doc => (
-                  <span key={doc.id} style={{
-                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                    background: t.neutrals.inner, color: t.neutrals.text,
-                  }}>
+                  <LBadge key={doc.id} palette={{ bg: t.neutrals.inner, fg: t.neutrals.text }}>
                     {doc.title}
-                  </span>
+                  </LBadge>
                 ))}
                 {project.docs.length > 6 && (
                   <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>+{project.docs.length - 6}</span>
@@ -636,10 +608,7 @@ function ExpandedDetail({
                 {project.members.filter(m => m.is_manager).map(m => (
                   <span key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
                     <span style={{ color: t.neutrals.text }}>{m.name}</span>
-                    <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm,
-                      background: '#EDE9FE', color: '#7C3AED',
-                    }}>매니저</span>
+                    <LBadge palette={MANAGER_PALETTE}>매니저</LBadge>
                   </span>
                 ))}
                 {project.members.filter(m => !m.is_manager).length > 0 && (
@@ -718,12 +687,9 @@ function ExpandedDetail({
                   }}>
                     {todo.title}
                   </span>
-                  <span style={{
-                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                    background: pTone.bg, color: pTone.fg, fontWeight: t.weight.medium, flexShrink: 0,
-                  }}>
+                  <LBadge palette={pTone} style={{ flexShrink: 0 }}>
                     {PRIORITY_LABELS[todo.priority] ?? todo.priority}
-                  </span>
+                  </LBadge>
                   {todo.due_date && (
                     <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted, flexShrink: 0 }}>
                       {formatDate(todo.due_date)}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
@@ -291,23 +292,21 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
             <div>
               <Label>상환방식</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-                {REPAYMENT_TYPES.map(rt => (
-                  <ChipBtn key={rt.key} active={form.repayment_type === rt.key} onClick={() => set('repayment_type', rt.key)}>
-                    {rt.label}
-                  </ChipBtn>
-                ))}
-              </div>
+              <LFilterChip
+                options={REPAYMENT_TYPES.map(rt => ({ value: rt.key, label: rt.label }))}
+                value={form.repayment_type}
+                onChange={v => set('repayment_type', v)}
+                gap={t.density.gapSm}
+              />
             </div>
             <div>
               <Label>상태</Label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-                {STATUS_OPTIONS.map(s => (
-                  <ChipBtn key={s.key} active={form.status === s.key} onClick={() => set('status', s.key)}>
-                    {s.label}
-                  </ChipBtn>
-                ))}
-              </div>
+              <LFilterChip
+                options={STATUS_OPTIONS.map(s => ({ value: s.key, label: s.label }))}
+                value={form.status}
+                onChange={v => set('status', v)}
+                gap={t.density.gapSm}
+              />
             </div>
           </div>
 
@@ -371,23 +370,5 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
-  )
-}
-
-function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: 'none', cursor: 'pointer',
-        padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-        fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-        background: active ? t.brand[100] : t.neutrals.inner,
-        color: active ? t.brand[700] : t.neutrals.muted,
-        transition: 'all .12s',
-      }}
-    >
-      {children}
-    </button>
   )
 }

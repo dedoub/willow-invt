@@ -7,6 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableAmount, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 
@@ -341,21 +342,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
 
         {/* Type filter chips */}
         <div style={{ marginTop: t.density.blockGap }}>
-          <div style={{ display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' as const }}>
-            {TYPE_FILTERS.map(f => {
-              const active = typeFilter === f.value
-              return (
-                <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{
-                  border: 'none', cursor: 'pointer',
-                  padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-                  fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-                  background: active ? t.brand[100] : t.neutrals.inner,
-                  color: active ? t.brand[700] : t.neutrals.muted,
-                  transition: 'all .12s',
-                }}>{f.label}</button>
-              )
-            })}
-          </div>
+          <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapSm} />
         </div>
 
         {/* Search */}

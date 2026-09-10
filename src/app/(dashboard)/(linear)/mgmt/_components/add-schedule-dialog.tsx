@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
@@ -26,12 +27,12 @@ export interface ScheduleFormData {
   description: string
 }
 
-const CATEGORY_OPTIONS: { key: string; label: string }[] = [
-  { key: 'willow-mgmt', label: '윌로우' },
-  { key: 'tensw-mgmt', label: '텐소프트웍스' },
-  { key: 'etf-etc', label: 'ETC' },
-  { key: 'akros', label: '아크로스' },
-  { key: 'other', label: '기타' },
+const CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'willow-mgmt', label: '윌로우' },
+  { value: 'tensw-mgmt', label: '텐소프트웍스' },
+  { value: 'etf-etc', label: 'ETC' },
+  { value: 'akros', label: '아크로스' },
+  { value: 'other', label: '기타' },
 ]
 
 const inputBase: React.CSSProperties = {
@@ -139,13 +140,7 @@ export function AddScheduleDialog({ open, defaultDate, editingSchedule, onClose,
           {/* Category chips */}
           <div>
             <Label>유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-              {CATEGORY_OPTIONS.map(c => (
-                <ChipBtn key={c.key} active={form.category === c.key} onClick={() => set('category', c.key)}>
-                  {c.label}
-                </ChipBtn>
-              ))}
-            </div>
+            <LFilterChip options={CATEGORY_OPTIONS} value={form.category} onChange={v => set('category', v)} gap={t.density.gapSm} />
           </div>
 
           {/* Dates */}
@@ -209,18 +204,5 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
     }}>
       {children}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
     </div>
-  )
-}
-
-function ChipBtn({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      border: 'none', cursor: 'pointer',
-      padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-      fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-      background: active ? t.brand[100] : t.neutrals.inner,
-      color: active ? t.brand[700] : t.neutrals.muted,
-      transition: 'all .12s',
-    }}>{children}</button>
   )
 }

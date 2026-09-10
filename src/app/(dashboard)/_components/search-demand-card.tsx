@@ -8,13 +8,14 @@
 // 방문자 수를 세는 카드가 아니라 "발행한 페이지가 검색 수요를 잡고 있는가"를 보는 카드다.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { t, tonePalettes, useIsMobile } from './linear-tokens'
+import { t, useIsMobile } from './linear-tokens'
 import { LCard } from './linear-card'
 import { LSectionHead, LHeadBtn } from './linear-section-head'
 import { LSegmented } from './linear-segmented'
 import { LStat } from './linear-stat'
 import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
 import { Bone } from './linear-skeleton'
+import { LNotice } from './linear-notice'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from './cols-toggle'
 import type { SearchDemandStats, Channel, UmamiSiteKey } from '@/lib/umami'
@@ -677,15 +678,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             }
           />
 
-          {gscError && (
-            <div style={{
-              padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
-              background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
-              fontSize: `calc(${t.type.label}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.6,
-            }}>
-              Search Console 조회 실패 — {gscError}
-            </div>
-          )}
+          {gscError && <LNotice tone="warn" text={`Search Console 조회 실패 — ${gscError}`} />}
 
           {loading && <Skeleton mobile={mobile} />}
 
@@ -833,15 +826,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
             }
           />
 
-          {error && (
-            <div style={{
-              padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md, marginBottom: t.density.gapMd,
-              background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, wordBreak: 'keep-all' as const, lineHeight: 1.5,
-            }}>
-              {error}
-            </div>
-          )}
+          {error && <LNotice tone="danger" text={error} />}
 
           {loading && <Skeleton mobile={mobile} />}
 

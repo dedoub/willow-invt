@@ -4,6 +4,8 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { StockCard, StockCardData, PyramidingInfo, MonitorInfo } from './stock-card'
 
 // 종목관리 칸반에서 맨 왼쪽 "포트폴리오" 컬럼 노출 여부.
@@ -132,10 +134,7 @@ function renderGroupedCards(
     return (
       <div key={parent} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs, marginTop: t.density.gapSm }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, padding: `0 ${t.density.tableRowGap}px` }}>
-          <span style={{
-            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`,
-            borderRadius: t.radius.sm, background: pc.bg, color: pc.fg,
-          }}>{parent}</span>
+          <LBadge palette={pc}>{parent}</LBadge>
           <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
             {total}
           </span>
@@ -146,10 +145,7 @@ function renderGroupedCards(
             <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
               {sub && sc && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, padding: `0 ${t.density.tableRowGap}px`, marginTop: t.density.tableRowGap }}>
-                  <span style={{
-                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `0 ${t.density.gapSm}px`,
-                    borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
-                  }}>{sub}</span>
+                  <LBadge palette={sc}>{sub}</LBadge>
                   <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     {subCards.length}
                   </span>
@@ -569,16 +565,12 @@ export function PortfolioKanban({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
-          <button
+          <LBtn
+            variant={sortBy1m ? 'brand' : 'secondary'}
+            size="sm"
             onClick={() => setSortBy1m(v => { localStorage.setItem('kanban-sort-1m', v ? '0' : '1'); return !v })}
-            style={{
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, border: 'none',
-              background: sortBy1m ? t.brand[600] : t.neutrals.inner,
-              color: sortBy1m ? '#fff' : t.neutrals.muted,
-              cursor: 'pointer', transition: 'all .15s',
-            }}
-          >1M ↓</button>
+            style={{ fontFamily: t.font.mono }}
+          >1M ↓</LBtn>
         } />
       </div>
 

@@ -6,7 +6,9 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { AkrosProduct } from '@/lib/etf-types'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import {
+  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableMono, LTableDate, type LColumn,
+} from '@/app/(dashboard)/_components/linear-table'
 
 interface ProductBlockProps {
   products: AkrosProduct[]
@@ -79,6 +81,16 @@ function fmtArr(v: number | null, currency: string): string {
   return `$${v.toFixed(0)}`
 }
 
+const COLUMNS: LColumn[] = [
+  { key: 'ticker', label: 'TICKER', width: '72px' },
+  { key: 'country', label: 'COUNTRY', width: '62px' },
+  { key: 'name', label: '상품명', width: 'minmax(180px,1fr)' },
+  { key: 'listing', label: '설정일', width: '92px' },
+  { key: 'aum', label: 'AUM', width: '100px', align: 'right' },
+  { key: 'flow', label: '1M FLOW', width: '104px', align: 'right' },
+  { key: 'arr', label: 'ARR', width: '80px', align: 'right' },
+]
+
 export function ProductBlock({ products }: ProductBlockProps) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
@@ -91,16 +103,6 @@ export function ProductBlock({ products }: ProductBlockProps) {
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
   }
 
-  const thStyle: React.CSSProperties = {
-    padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
-    fontWeight: t.weight.semibold, color: t.neutrals.subtle, textAlign: 'left',
-    letterSpacing: 0.3, whiteSpace: 'nowrap',
-  }
-  const tdStyle: React.CSSProperties = {
-    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
-    color: t.neutrals.text, whiteSpace: 'nowrap',
-  }
-
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
@@ -111,63 +113,30 @@ export function ProductBlock({ products }: ProductBlockProps) {
         } />
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: 660, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: 72 }} />
-            <col style={{ width: 62 }} />
-            <col />
-            <col style={{ width: 92 }} />
-            <col style={{ width: 100 }} />
-            <col style={{ width: 104 }} />
-            <col style={{ width: 80 }} />
-          </colgroup>
-          <thead>
-            <tr style={{ background: t.neutrals.inner, borderBottom: `1px solid ${t.neutrals.line}` }}>
-              <th style={thStyle}>TICKER</th>
-              <th style={thStyle}>COUNTRY</th>
-              <th style={thStyle}>상품명</th>
-              <th style={thStyle}>설정일</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>AUM</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>1M FLOW</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>ARR</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
+        <LTableScroll columns={COLUMNS}>
+          <LTableHead columns={COLUMNS} />
+          {paged.length === 0 && <LTableEmpty>상품 데이터가 없습니다</LTableEmpty>}
+          <LTableBody columns={COLUMNS}>
             {paged.map(p => (
-              <tr key={p.symbol} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: t.weight.medium }}>{p.symbol}</td>
-                <td style={{ ...tdStyle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))` }}>{p.country}</td>
-                <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <LTableRow key={p.symbol} columns={COLUMNS}>
+                <LTableMono tone="text" strong>{p.symbol}</LTableMono>
+                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, whiteSpace: 'nowrap' }}>{p.country}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.product_name_local || p.product_name}
-                </td>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>
-                  {p.listing_date || '-'}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {fmtAum(p.market_cap, p.currency)}
-                </td>
-                <td style={{
-                  ...tdStyle, textAlign: 'right', fontFamily: t.font.mono,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: (p.product_flow ?? 0) >= 0 ? '#16A34A' : '#DC2626',
-                }}>
-                  {fmtFlow(p.product_flow, p.currency)}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
-                  {fmtArr(p.arr, p.currency)}
-                </td>
-              </tr>
+                </span>
+                <LTableDate value={p.listing_date} format="full" />
+                <LTableMono align="right" tone="text">{fmtAum(p.market_cap, p.currency)}</LTableMono>
+                <LTableMono align="right" tone={(p.product_flow ?? 0) >= 0 ? 'text' : 'neg'}>
+                  <span style={{ color: (p.product_flow ?? 0) >= 0 ? t.accent.pos : undefined }}>
+                    {fmtFlow(p.product_flow, p.currency)}
+                  </span>
+                </LTableMono>
+                <LTableMono align="right" tone="text" strong>{fmtArr(p.arr, p.currency)}</LTableMono>
+              </LTableRow>
             ))}
-            {paged.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: t.neutrals.subtle, padding: 30 }}>
-                  상품 데이터가 없습니다
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}

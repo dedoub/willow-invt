@@ -2,6 +2,7 @@
 
 import { memo, useState } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 
 /* ── Types ── */
 
@@ -208,17 +209,11 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           )}
           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
           {data.breakout && (
-            <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-              flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
-            }}>돌파{data.breakoutGap != null && ` +${data.breakoutGap.toFixed(1)}%`}</span>
+            <LBadge tone="pos" pill style={{ flexShrink: 0 }}>돌파{data.breakoutGap != null && ` +${data.breakoutGap.toFixed(1)}%`}</LBadge>
           )}
           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
           {data.qldTransition && (
-            <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-              flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-            }}>QLD 전환 후보</span>
+            <LBadge tone="neg" pill style={{ flexShrink: 0 }}>QLD 전환 후보</LBadge>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0 }}>
@@ -239,21 +234,12 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
           {data.sector ? (
-            <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-              borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted,
-            }}>{data.sector}</span>
+            <LBadge palette={{ bg: t.neutrals.card, fg: t.neutrals.muted }}>{data.sector}</LBadge>
           ) : (data.group === 'watchlist' || data.group === 'research') ? (
-            <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-              borderRadius: t.radius.sm, background: '#FEF3C7', color: '#B45309',
-            }}>미분류</span>
+            <LBadge palette={{ bg: '#FEF3C7', fg: '#B45309' }}>미분류</LBadge>
           ) : null}
           {data.sourceType === 'smallcap' && (
-            <span style={{
-              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapXs}px`,
-              borderRadius: t.radius.sm, background: '#E0E7FF', color: '#4338CA',
-            }}>스몰캡</span>
+            <LBadge palette={{ bg: '#E0E7FF', fg: '#4338CA' }}>스몰캡</LBadge>
           )}
         </div>
         {data.changePercent != null && (
@@ -268,23 +254,17 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           {data.signal && SIGNAL_STYLE[data.signal] && (
-            <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-              borderRadius: t.radius.pill, background: SIGNAL_STYLE[data.signal].bg, color: SIGNAL_STYLE[data.signal].fg,
-            }}>
+            <LBadge pill palette={{ bg: SIGNAL_STYLE[data.signal].bg, fg: SIGNAL_STYLE[data.signal].fg }}>
               {SIGNAL_STYLE[data.signal].label}
               {data.gapFromHighPct != null && ` ${data.gapFromHighPct > 0 ? '+' : ''}${data.gapFromHighPct.toFixed(1)}%`}
-            </span>
+            </LBadge>
           )}
           {data.momentumScore != null && (() => {
             const mt = momentumTone(data.momentumScore)
             return (
-              <span style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-                borderRadius: t.radius.pill, background: mt.bg, color: mt.fg,
-              }}>
+              <LBadge pill palette={{ bg: mt.bg, fg: mt.fg }}>
                 M {data.momentumScore}
-              </span>
+              </LBadge>
             )
           })()}
           {data.group === 'portfolio' && data.holdingQty != null && (
@@ -294,14 +274,9 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           )}
           {/* Research: verdict + composite */}
           {data.group === 'research' && data.verdict && (
-            <span style={{
-              fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-              borderRadius: t.radius.pill,
-              background: data.verdict === 'pass_tier1' ? tonePalettes.done.bg : tonePalettes.info.bg,
-              color: data.verdict === 'pass_tier1' ? tonePalettes.done.fg : tonePalettes.info.fg,
-            }}>
+            <LBadge pill tone={data.verdict === 'pass_tier1' ? 'done' : 'info'}>
               {data.verdict === 'pass_tier1' ? 'Tier 1' : 'Tier 2'}
-            </span>
+            </LBadge>
           )}
           {data.group === 'research' && data.compositeScore != null && (
             <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
@@ -318,10 +293,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             const mt = data.monitor.stage >= 7 ? { bg: '#EDE5F5', fg: '#5B3A8C' }
               : data.monitor.stage >= 4 ? tonePalettes.info : tonePalettes.neutral
             return (
-              <span style={{
-                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`,
-                borderRadius: t.radius.sm, background: mt.bg, color: mt.fg,
-              }}>M{data.monitor.stage}</span>
+              <LBadge palette={{ bg: mt.bg, fg: mt.fg }} style={{ fontFamily: t.font.mono }}>M{data.monitor.stage}</LBadge>
             )
           })()}
           <span style={{
@@ -351,10 +323,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
             {(() => {
               const tt = trancheTone(data.pyramiding.tranche)
               return (
-                <span style={{
-                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`,
-                  borderRadius: t.radius.sm, background: tt.bg, color: tt.fg,
-                }}>T{data.pyramiding.tranche}</span>
+                <LBadge palette={{ bg: tt.bg, fg: tt.fg }} style={{ fontFamily: t.font.mono }}>T{data.pyramiding.tranche}</LBadge>
               )
             })()}
             <span style={{
@@ -378,10 +347,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
           {(() => {
             const ps = PYRAMID_STATUS[data.pyramiding.status]
             return ps ? (
-              <span style={{
-                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapSm}px`,
-                borderRadius: t.radius.pill, background: ps.bg, color: ps.fg,
-              }}>{ps.label}</span>
+              <LBadge pill palette={{ bg: ps.bg, fg: ps.fg }}>{ps.label}</LBadge>
             ) : null
           })()}
         </div>

@@ -6,6 +6,8 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { RyuhaSchedule, RyuhaDailyMemo } from '@/types/ryuha'
 
 interface CalendarBlockProps {
@@ -405,23 +407,16 @@ export function CalendarBlock({
       </div>
 
       {/* Category filter */}
-      <div style={{
-        display: 'flex', gap: t.density.gapXs, marginBottom: t.density.gapMd, flexWrap: 'wrap',
-      }}>
-        {CATEGORY_FILTERS.map(({ key, label }) => {
-          const active = categoryFilter === key
-          const tone = key !== 'all' ? CATEGORY_TONES[key] : null
-          return (
-            <button key={key} onClick={() => setCategoryFilter(key)} style={{
-              border: 'none', cursor: 'pointer',
-              padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
-              fontFamily: t.font.sans, fontWeight: active ? t.weight.medium : t.weight.regular,
-              background: active ? (tone ? tone.bg : t.brand[100]) : t.neutrals.inner,
-              color: active ? (tone ? tone.fg : t.brand[700]) : t.neutrals.muted,
-              transition: 'all .12s',
-            }}>{label}</button>
-          )
-        })}
+      <div style={{ marginBottom: t.density.gapMd }}>
+        <LFilterChip
+          options={CATEGORY_FILTERS.map(({ key, label }) => ({
+            value: key,
+            label,
+            tone: key !== 'all' ? CATEGORY_TONES[key] : undefined,
+          }))}
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+        />
       </div>
 
       {/* Day headers */}
@@ -516,14 +511,7 @@ export function CalendarBlock({
                   {dayItems.length}개 일정
                 </span>
               </div>
-              <button
-                onClick={() => onAddSchedule(selectedDate)}
-                style={{
-                  border: 'none', background: t.brand[100], color: t.brand[700],
-                  padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
-                  cursor: 'pointer', fontFamily: t.font.sans, fontWeight: t.weight.medium,
-                }}
-              >+ 일정 추가</button>
+              <LBtn size="xs" variant="brand" onClick={() => onAddSchedule(selectedDate)}>+ 일정 추가</LBtn>
             </div>
             {dayItems.length === 0 && !dayMemo && (
               <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>일정이 없습니다.</div>
@@ -533,13 +521,8 @@ export function CalendarBlock({
             ))}
             {dayMemo && <MemoChip content={dayMemo} onClick={() => setMemoDialogDate(selectedDate)} />}
             {!dayMemo && (
-              <button
-                onClick={() => setMemoDialogDate(selectedDate)}
-                style={{
-                  border: 'none', background: 'transparent', color: t.neutrals.subtle,
-                  padding: `${t.density.gapXs}px 0`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, cursor: 'pointer', textAlign: 'left' as const,
-                }}
-              >+ 메모 작성</button>
+              <LBtn size="xs" variant="ghost" onClick={() => setMemoDialogDate(selectedDate)}
+                style={{ alignSelf: 'flex-start', padding: 0, color: t.neutrals.subtle }}>+ 메모 작성</LBtn>
             )}
           </div>
         )
@@ -652,26 +635,11 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
           alignItems: 'center', gap: t.density.kpiGap, marginTop: 14,
         }}>
           {initialContent && (
-            <button onClick={handleDelete} disabled={saving} style={{
-              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
-              background: '#FEE2E2', border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              color: '#DC2626', cursor: 'pointer', fontFamily: t.font.sans,
-              fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,
-            }}>삭제</button>
+            <LBtn size="sm" variant="danger" onClick={handleDelete} disabled={saving}>삭제</LBtn>
           )}
           <div style={{ display: 'flex', gap: t.density.gapSm }}>
-            <button onClick={onClose} style={{
-              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              color: t.neutrals.muted, cursor: 'pointer', fontFamily: t.font.sans,
-              fontWeight: t.weight.regular,
-            }}>취소</button>
-            <button onClick={handleSave} disabled={saving} style={{
-              padding: `${t.density.gapSm}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              color: t.neutrals.text, cursor: 'pointer', fontFamily: t.font.sans,
-              fontWeight: t.weight.regular, opacity: saving ? 0.5 : 1,
-            }}>{saving ? '저장중...' : '저장'}</button>
+            <LBtn size="sm" variant="secondary" onClick={onClose}>취소</LBtn>
+            <LBtn size="sm" variant="primary" onClick={handleSave} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn>
           </div>
         </div>
       </div>

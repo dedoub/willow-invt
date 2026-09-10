@@ -6,6 +6,8 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 
 /* ── Types ── */
 
@@ -26,6 +28,15 @@ export interface TickerTheme {
 
 /* ── Pyramiding triggers ── */
 const TRANCHE_TRIGGERS = [null, 0.10, 0.20, 0.30, 0.40, 0.55, 0.75, 1.00, 1.35, 1.75] as const
+
+const THEME_COLUMNS: LColumn[] = [
+  { key: 'theme', label: '분류', width: 'minmax(96px,1fr)' },
+  { key: 'count', label: '종목', width: '40px', align: 'right' },
+  { key: 'value', label: '평가액', width: 'minmax(84px,auto)', align: 'right' },
+  { key: 'weight', label: '비중', width: '48px', align: 'right' },
+  { key: 'pnl', label: '손익', width: 'minmax(84px,auto)', align: 'right' },
+  { key: 'pct', label: '수익률', width: '56px', align: 'right' },
+]
 
 const PYRAMID_STATUS: Record<string, { label: string; bg: string; fg: string }> = {
   BUY:         { label: '추매구간', ...tonePalettes.done },
@@ -525,73 +536,61 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
       {/* Theme/sub-theme summary table */}
       {hasQuotes && themeStats.parents.length > 0 && (
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
-          <div style={{
-            background: t.neutrals.inner, borderRadius: t.radius.md, overflow: 'hidden',
-            border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
-          }}>
-            <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: mobile ? 0 : 360, borderCollapse: 'collapse', fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-              <thead>
-                <tr style={{ background: t.neutrals.card }}>
-                  <th style={{ textAlign: 'left',  padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>분류</th>
-                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>종목</th>
-                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>평가액</th>
-                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>비중</th>
-                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`,  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>손익</th>
-                  <th style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.medium }}>수익률</th>
-                </tr>
-              </thead>
-              <tbody>
-                {themeStats.parents.map((p, pi) => {
-                  const tc = THEME_COLORS[p.parent] || THEME_COLORS['미분류']
-                  const subs = themeStats.subs.get(p.parent) || []
-                  const pnl = p.valKrw - p.invKrw
-                  const pct = p.invKrw > 0 ? (pnl / p.invKrw) * 100 : 0
-                  return (
-                    <Fragment key={p.parent}>
-                      <tr style={{ borderTop: pi > 0 ? `1px solid ${t.neutrals.line}` : undefined, fontWeight: t.weight.medium }}>
-                        <td style={{ padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, maxWidth: mobile ? 80 : undefined }}>
-                          <span style={{ display: 'inline-block', maxWidth: mobile ? 70 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, background: tc.bg, color: tc.fg }} title={p.parent}>{p.parent}</span>
-                        </td>
-                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{p.count}</td>
-                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px` }}>{fmtAmount(p.valKrw, 'KRW')}</td>
-                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{p.pctOfTotal.toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{fmtAmount(pnl, 'KRW')}</td>
-                        <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, color: pnlColor(pnl) }}>{pnl > 0 ? '+' : ''}{pct.toFixed(1)}%</td>
-                      </tr>
-                      {subs.map(s => {
-                        const sc = SUB_GROUP_COLORS[s.sub] || SUB_GROUP_COLORS['기타']
-                        const subPnl = s.valKrw - s.invKrw
-                        const subPct = s.invKrw > 0 ? (subPnl / s.invKrw) * 100 : 0
-                        return (
-                          <tr key={s.sub} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))` }}>
-                            <td style={{ padding: '4px 10px 4px 22px', maxWidth: mobile ? 80 : undefined }}>
-                              <span style={{ display: 'inline-block', maxWidth: mobile ? 58 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle', fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm, background: sc.bg, color: sc.fg }} title={s.sub}>{s.sub}</span>
-                            </td>
-                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{s.count}</td>
-                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.text }}>{fmtAmount(s.valKrw, 'KRW')}</td>
-                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{s.pctOfTotal.toFixed(1)}%</td>
-                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.gapSm}px`, color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')}</td>
-                            <td style={{ textAlign: 'right', padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, color: pnlColor(subPnl) }}>{subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}%</td>
-                          </tr>
-                        )
-                      })}
-                    </Fragment>
-                  )
-                })}
-                {/* Total row */}
-                <tr style={{ borderTop: `1px solid ${t.neutrals.line}`, background: t.neutrals.card, fontWeight: t.weight.semibold }}>
-                  <td style={{ padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3 }}>합계</td>
-                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>{summary.count}</td>
-                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px` }}>{fmtAmount(summary.totalVal, 'KRW')}</td>
-                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: t.neutrals.muted }}>100.0%</td>
-                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.gapSm}px`, color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')}</td>
-                  <td style={{ textAlign: 'right', padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, color: pnlColor(summary.totalPnl) }}>{summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%</td>
-                </tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
+          <LTableScroll columns={THEME_COLUMNS}>
+            <LTableHead columns={THEME_COLUMNS} />
+            <LTableBody columns={THEME_COLUMNS}>
+              {themeStats.parents.map((p) => {
+                const tc = THEME_COLORS[p.parent] || THEME_COLORS['미분류']
+                const subs = themeStats.subs.get(p.parent) || []
+                const pnl = p.valKrw - p.invKrw
+                const pct = p.invKrw > 0 ? (pnl / p.invKrw) * 100 : 0
+                return (
+                  <Fragment key={p.parent}>
+                    <LTableRow columns={THEME_COLUMNS}>
+                      <span style={{ minWidth: 0, display: 'flex' }}>
+                        <LBadge palette={tc} title={p.parent} style={{ maxWidth: mobile ? 70 : undefined }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{p.parent}</span>
+                        </LBadge>
+                      </span>
+                      <LTableMono align="right">{p.count}</LTableMono>
+                      <LTableMono align="right" tone="text" strong>{fmtAmount(p.valKrw, 'KRW')}</LTableMono>
+                      <LTableMono align="right">{p.pctOfTotal.toFixed(1)}%</LTableMono>
+                      <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium, color: pnlColor(pnl), whiteSpace: 'nowrap' }}>{pnl > 0 ? '+' : ''}{fmtAmount(pnl, 'KRW')}</span>
+                      <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium, color: pnlColor(pnl), whiteSpace: 'nowrap' }}>{pnl > 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                    </LTableRow>
+                    {subs.map(sub => {
+                      const sc = SUB_GROUP_COLORS[sub.sub] || SUB_GROUP_COLORS['기타']
+                      const subPnl = sub.valKrw - sub.invKrw
+                      const subPct = sub.invKrw > 0 ? (subPnl / sub.invKrw) * 100 : 0
+                      return (
+                        <LTableRow key={sub.sub} columns={THEME_COLUMNS}>
+                          <span style={{ minWidth: 0, display: 'flex', paddingLeft: t.density.gapMd }}>
+                            <LBadge palette={sc} title={sub.sub} style={{ maxWidth: mobile ? 58 : undefined }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{sub.sub}</span>
+                            </LBadge>
+                          </span>
+                          <LTableMono align="right">{sub.count}</LTableMono>
+                          <LTableMono align="right" tone="text">{fmtAmount(sub.valKrw, 'KRW')}</LTableMono>
+                          <LTableMono align="right">{sub.pctOfTotal.toFixed(1)}%</LTableMono>
+                          <span style={{ textAlign: 'right', fontFamily: t.font.mono, color: pnlColor(subPnl), whiteSpace: 'nowrap' }}>{subPnl > 0 ? '+' : ''}{fmtAmount(subPnl, 'KRW')}</span>
+                          <span style={{ textAlign: 'right', fontFamily: t.font.mono, color: pnlColor(subPnl), whiteSpace: 'nowrap' }}>{subPnl > 0 ? '+' : ''}{subPct.toFixed(1)}%</span>
+                        </LTableRow>
+                      )
+                    })}
+                  </Fragment>
+                )
+              })}
+              {/* Total row */}
+              <LTableRow columns={THEME_COLUMNS}>
+                <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, textTransform: 'uppercase', letterSpacing: 0.3 }}>합계</span>
+                <LTableMono align="right" strong>{summary.count}</LTableMono>
+                <LTableMono align="right" tone="text" strong>{fmtAmount(summary.totalVal, 'KRW')}</LTableMono>
+                <LTableMono align="right" strong>100.0%</LTableMono>
+                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: pnlColor(summary.totalPnl), whiteSpace: 'nowrap' }}>{summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')}</span>
+                <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: pnlColor(summary.totalPnl), whiteSpace: 'nowrap' }}>{summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%</span>
+              </LTableRow>
+            </LTableBody>
+          </LTableScroll>
         </div>
       )}
 
@@ -608,10 +607,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             <div key={theme}>
               {/* Theme header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapSm }}>
-                <span style={{
-                  fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`,
-                  borderRadius: t.radius.sm, background: tc.bg, color: tc.fg,
-                }}>{theme}</span>
+                <LBadge palette={tc}>{theme}</LBadge>
                 <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                   {items.length}종목
                   {hasQuotes && groupValKrw > 0 && (
@@ -636,10 +632,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                     <div key={sub ?? '__flat'} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }} data-sub-group="1">
                       {sub && sc && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap }}>
-                          <span style={{
-                            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-                            borderRadius: t.radius.sm, background: sc.bg, color: sc.fg,
-                          }}>{sub}</span>
+                          <LBadge palette={sc}>{sub}</LBadge>
                           <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                             {subItems.length}종목
                             {hasQuotes && subValKrw > 0 && (
@@ -708,7 +701,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             const detail = tickerSectors[h.ticker] || tickerSectors[h.ticker.replace('.KS', '')]
                             if (!detail) return null
                             return (
-                              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm, background: t.neutrals.card, color: t.neutrals.muted }}>{detail}</span>
+                              <LBadge palette={{ bg: t.neutrals.card, fg: t.neutrals.muted }}>{detail}</LBadge>
                             )
                           })()}
                           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
@@ -716,29 +709,18 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                             const bo = breakoutMap[h.ticker] ?? breakoutMap[h.ticker.replace('.KS', '')]
                             if (!bo?.breakout) return null
                             return (
-                              <span style={{
-                                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                                flexShrink: 0, background: tonePalettes.pos.bg, color: tonePalettes.pos.fg,
-                              }}>돌파 +{bo.gapPct.toFixed(1)}%</span>
+                              <LBadge tone="pos" pill style={{ flexShrink: 0 }}>돌파 +{bo.gapPct.toFixed(1)}%</LBadge>
                             )
                           })()}
                           {/* QLD 전환 후보: 6개월 모멘텀이 QLD보다 낮아 베타 강등 후보 */}
                           {(qldTransition[h.ticker] ?? qldTransition[h.ticker.replace('.KS', '')]) && (
-                            <span style={{
-                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                              flexShrink: 0, background: tonePalettes.neg.bg, color: tonePalettes.neg.fg,
-                            }}>QLD 전환 후보</span>
+                            <LBadge tone="neg" pill style={{ flexShrink: 0 }}>QLD 전환 후보</LBadge>
                           )}
                         </div>
                         {h.dailyChangePercent !== 0 && (
-                          <span style={{
-                            fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, padding: `1px ${t.density.gapSm}px`,
-                            borderRadius: t.radius.sm, flexShrink: 0,
-                            background: h.dailyChangePercent > 0 ? tonePalettes.pos.bg : tonePalettes.neg.bg,
-                            color: h.dailyChangePercent > 0 ? tonePalettes.pos.fg : tonePalettes.neg.fg,
-                          }}>
+                          <LBadge tone={h.dailyChangePercent > 0 ? 'pos' : 'neg'} style={{ flexShrink: 0, fontFamily: t.font.mono }}>
                             {h.dailyChangePercent > 0 ? '+' : ''}{h.dailyChangePercent.toFixed(1)}%
-                          </span>
+                          </LBadge>
                         )}
                       </div>
 
@@ -791,11 +773,10 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                       {pyramiding && ps && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapXs, paddingTop: t.density.gapXs }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                            <span style={{
-                              fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapXs}px`, borderRadius: t.radius.sm,
-                              background: pyramiding.tranche >= 8 ? tonePalettes.done.bg : pyramiding.tranche >= 5 ? tonePalettes.info.bg : tonePalettes.neutral.bg,
-                              color: pyramiding.tranche >= 8 ? tonePalettes.done.fg : pyramiding.tranche >= 5 ? tonePalettes.info.fg : tonePalettes.neutral.fg,
-                            }}>T{pyramiding.tranche}</span>
+                            <LBadge
+                              tone={pyramiding.tranche >= 8 ? 'done' : pyramiding.tranche >= 5 ? 'info' : 'neutral'}
+                              style={{ fontFamily: t.font.mono }}
+                            >T{pyramiding.tranche}</LBadge>
                             <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.mono, color: pnlColor(h.pnlPercent) }}>
                               {h.pnlPercent > 0 ? '+' : ''}{h.pnlPercent.toFixed(1)}%
                             </span>
@@ -810,10 +791,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                               </span>
                             )}
                           </div>
-                          <span style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.bold, padding: `1px ${t.density.gapSm}px`,
-                            borderRadius: t.radius.pill, background: ps.bg, color: ps.fg,
-                          }}>{ps.label}</span>
+                          <LBadge pill palette={{ bg: ps.bg, fg: ps.fg }}>{ps.label}</LBadge>
                         </div>
                       )}
                     </div>

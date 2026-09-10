@@ -5,6 +5,7 @@ import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
@@ -186,11 +187,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                 <div style={{ overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
-                      <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
-                        borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: t.weight.medium,
-                        flexShrink: 0,
-                      }}>{sty.label}</span>
+                      <LBadge pill palette={{ bg: sty.bg, fg: sty.fg }} style={{ flexShrink: 0 }}>{sty.label}</LBadge>
                       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
                         {inv.invoice_date}
                       </span>

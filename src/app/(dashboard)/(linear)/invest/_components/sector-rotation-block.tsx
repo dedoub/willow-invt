@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SectorRotationChartModal } from './sector-rotation-chart'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LTableHead, templateOf, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 
 interface SectorEtf {
   ticker: string
@@ -62,34 +65,12 @@ function fmtPct(r: number | null): string {
 type SortKey = '1m' | '3m' | '6m' | '1y' | 'group' | 'name'
 type SortDir = 'asc' | 'desc'
 
-function HeaderCell({
-  label, sortKey, current, dir, onClick, align = 'left',
-}: {
-  label: string
-  sortKey: SortKey
-  current: SortKey
-  dir: SortDir
-  onClick: (k: SortKey) => void
-  align?: 'left' | 'center' | 'right'
-}) {
-  const active = current === sortKey
-  const justify = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'
-  return (
-    <button
-      onClick={() => onClick(sortKey)}
-      style={{
-        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: active ? t.neutrals.text : t.neutrals.subtle,
-        fontFamily: t.font.mono, fontWeight: t.weight.semibold, textTransform: 'uppercase' as const,
-        display: 'flex', alignItems: 'center', justifyContent: justify,
-        gap: t.density.tableRowGap,
-      }}
-    >
-      <span>{label}</span>
-      <span style={{ width: 8, opacity: active ? 1 : 0.25 }}>{active ? (dir === 'asc' ? '↑' : '↓') : '·'}</span>
-    </button>
-  )
-}
+// LTableHead 와 데이터 행이 같은 열 정의를 쓴다. sortValue 는 정렬 가능 표시용이고 실제 정렬은 블록 상태(sortBy/sortDir)가 한다.
+const COLUMNS: LColumn<SectorEtf>[] = [
+  { key: 'group', label: '티커', width: '72px', sortValue: e => e.group },
+  { key: 'name', label: '이름', width: 'minmax(0,1fr)', hideMobile: true, sortValue: e => e.name },
+  ...PERIODS.map((p): LColumn<SectorEtf> => ({ key: p, label: p.toUpperCase(), width: 'minmax(56px,78px)', align: 'center', sortValue: e => e.returns[p] })),
+]
 
 interface SectorRotationBlockProps {
   /** 사용자 보유/감시 중인 axis 집합 (예: {'AI 인프라','지정학/안보','넥스트'}). 매칭되는 ETF 행은 하이라이트. */
@@ -185,7 +166,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="l-skeleton" style={{ height: 24, borderRadius: t.radius.sm }} />
+            <Bone key={i} h={24} />
           ))}
         </div>
       )}
@@ -193,18 +174,12 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       {!loading && sorted.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
           {/* Header row — 각 헤더 클릭 시 정렬 (같은 헤더 재클릭 시 방향 토글) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
-            gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.gapSm}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
-            fontFamily: t.font.mono, fontWeight: t.weight.semibold, textTransform: 'uppercase' as const,
-          }}>
-            <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
-            {!mobile && <HeaderCell label="이름" sortKey="name" current={sortBy} dir={sortDir} onClick={handleSort} />}
-            {PERIODS.map(p => (
-              <HeaderCell key={p} label={p.toUpperCase()} sortKey={p} current={sortBy} dir={sortDir} onClick={handleSort} align="center" />
-            ))}
-          </div>
+          <LTableHead
+            columns={COLUMNS}
+            mobile={mobile}
+            sort={{ key: sortBy, dir: sortDir }}
+            onSort={(k) => handleSort(k as SortKey)}
+          />
           {/* Data rows */}
           {sorted.map(etf => {
             const axesForEtf = ETF_AXES[etf.ticker] || []
@@ -218,19 +193,20 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             return (
             <div key={etf.ticker} style={{
               display: 'grid',
-              gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
-              gap: t.density.gapXs, alignItems: 'center', padding: `0 ${t.density.gapSm}px`,
+              gridTemplateColumns: templateOf(COLUMNS as LColumn<never>[], mobile),
+              gap: t.density.tableColGap, alignItems: 'center', padding: `0 ${t.density.tableRowPadX}px`,
               fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
               background: rowBg, // 그룹 구분은 배경 색조만 — 좌측 색 테두리는 중복이라 뺐다(2026-09-10)
               borderRadius: t.radius.sm,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
-                <span style={{
-                  fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `0 ${t.density.gapXs}px`, borderRadius: 3,
-                  background: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
-                  color: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
-                  flexShrink: 0,
-                }}>{isSectorGroup ? 'S' : isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</span>
+                <LBadge
+                  palette={{
+                    bg: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
+                    fg: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
+                  }}
+                  style={{ flexShrink: 0, fontFamily: t.font.mono }}
+                >{isSectorGroup ? 'S' : isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</LBadge>
                 <span style={{
                   fontFamily: t.font.mono, fontWeight: (isSectorGroup || isHolding || isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
                   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: tickerColor,
