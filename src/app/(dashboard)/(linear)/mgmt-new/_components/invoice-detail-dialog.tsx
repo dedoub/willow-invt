@@ -48,18 +48,18 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
   const isIncome = invoice.type === 'revenue' || invoice.type === 'asset'
   const cols = 2
 
+  // 표의 열 순서를 그대로 따른다 — 행에서 본 것을 같은 순서로 다시 읽게(CEO 2026-09-10)
   const facts: Field[] = [
+    { label: '구분', value: TYPE_LABELS[invoice.type] ?? invoice.type },
     {
       label: '금액',
       value: `${isIncome ? '+' : '-'}${Math.abs(invoice.amount).toLocaleString()}원`,
       tone: isIncome ? 'pos' : 'neg',
       mono: true,
     },
-    { label: '구분', value: TYPE_LABELS[invoice.type] ?? invoice.type },
-    { label: '상태', value: invoice.status === 'completed' ? '완료' : '발행' },
+    { label: '날짜', value: invoice.payment_date || invoice.issue_date || '-', mono: true },
+    { label: '거래처', value: invoice.counterparty },
   ]
-  if (invoice.issue_date) facts.push({ label: '발행일', value: invoice.issue_date, mono: true })
-  if (invoice.payment_date) facts.push({ label: isIncome ? '입금일' : '지급일', value: invoice.payment_date, mono: true })
   // 마지막 줄이 덜 찼으면 남은 칸까지 늘린다 — 안 그러면 그 위 구분선이 반만 그어진다
   if (facts.length % cols !== 0) facts[facts.length - 1].span = cols
   if (invoice.description) facts.push({ label: '적요', value: invoice.description, prose: true, span: cols })
