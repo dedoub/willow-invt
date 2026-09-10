@@ -335,6 +335,7 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
                 ]}
               />
             }
+            toolsInline
             mb={0}
           />
         </div>
