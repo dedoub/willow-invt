@@ -48,7 +48,9 @@ const SOURCES: Record<TaxObligationSource, string> = {
 const COLUMNS: LColumn<FinanceTaxObligation>[] = [
   { key: 'status', label: '상태', width: '68px' },
   { key: 'source', label: '출처', width: '62px' },
-  { key: 'due', label: '납부기한', width: '92px' },
+  { key: 'due', label: '납부기한', width: '72px' },
+  // 기한 옆에 실제 납부일을 둔다 — 언제까지였는지와 언제 나갔는지를 나란히 읽는다(CEO 2026-09-10)
+  { key: 'paid', label: '납부일', width: '64px' },
   { key: 'title', label: '고지내역', width: 'minmax(130px,1fr)' },
   { key: 'amount', label: '금액', width: 'minmax(80px,110px)', align: 'right' },
 ]
@@ -232,6 +234,7 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
                 <LTableBadge tone={STATUS_TONES[item.status]}>{STATUS_LABELS[item.status]}</LTableBadge>
                 <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SOURCES[item.source]}</span>
                 <LTableDate value={item.due_date} />
+                <LTableDate value={item.paid_at ? item.paid_at.slice(0, 10) : null} tone="muted" />
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: t.weight.medium }} title={`${item.agency} · ${item.title}`}>
                   {item.title}
                 </span>

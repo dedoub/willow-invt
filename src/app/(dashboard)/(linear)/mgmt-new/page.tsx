@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
-import { ScheduleBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/schedule-block'
+import { ScheduleBlockNew } from './_components/schedule-block'
 import { CashBlockNew as CashBlock } from './_components/cash-block'
 import { TaxManagementBlockNew } from './_components/tax-management-block'
 import { SalesBlockNew } from './_components/sales-block'
@@ -434,7 +434,7 @@ export default function MgmtNewPage() {
       <div className="theme-outline">
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-        <ScheduleBlock
+        <ScheduleBlockNew
           schedules={schedules}
           onAddSchedule={handleAddSchedule}
           onToggleComplete={handleToggleComplete}

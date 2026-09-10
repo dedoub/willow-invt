@@ -268,9 +268,10 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
         <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map(row => {
           const foreign = row.currency !== 'KRW'
+          // 행을 감싸는 div를 두면 모든 행이 부모의 :last-child가 되어 행 구분선이 사라진다.
+          // 인라인 펼침을 없앤 뒤로는 감쌀 이유도 없어 LTableRow를 바로 놓는다(CEO 2026-09-10).
           return (
-            <div key={row.id}>
-              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setSelected(row)}>
+              <LTableRow key={row.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(row)}>
                 <LTableBadge tone={SOURCE_TONES[row.source]}>
                   {SOURCE_LABEL[row.source]}
                 </LTableBadge>
@@ -298,8 +299,6 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
                   <LIcon name="chevronRight" size={12} stroke={2} />
                 </span>
               </LTableRow>
-
-            </div>
           )
         })}
         </LTableBody>
