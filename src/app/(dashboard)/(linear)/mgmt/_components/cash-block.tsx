@@ -525,7 +525,7 @@ const navBtn: React.CSSProperties = {
 /**
  * 총 잔고 추이 — 선택 기간의 일자별 잔고 한 줄. 시리즈가 하나라 회색 단색이고, y축은 0원 기준이다.
  */
-function BalanceTrend({ points }: { points: Array<{ date: string; value: number }> }) {
+export function BalanceTrend({ points }: { points: Array<{ date: string; value: number }> }) {
   const [hover, setHover] = useState<number | null>(null)
   const values = points.map(p => p.value)
   // y축은 늘 0원에서 시작한다 — 최솟값을 바닥으로 잡으면 몇 만 원 움직임이 절벽처럼 보인다(CEO 2026-09-10).

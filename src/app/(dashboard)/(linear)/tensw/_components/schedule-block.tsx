@@ -51,19 +51,20 @@ function getMonthGrid(year: number, month: number): Date[][] {
   return weeks
 }
 
-// 매출=녹색(done), 비용=주황(pending), 기타거래는 유형(기한·미팅)으로 — 필터 칩 색과 같다.
+// 분류는 색조 대신 회색 명도로 나눈다 — 매출이 가장 진하고 기타가 가장 옅다
+// (2026-09-11 윌로우 일정 카드와 같은 문법).
 const CATEGORY_TONE: Record<ScheduleCategory, { bg: string; fg: string }> = {
-  revenue: tonePalettes.done,
-  expense: tonePalettes.pending,
-  other: tonePalettes.neutral,
+  revenue: { bg: '#D3D7DD', fg: '#1F242B' },
+  expense: { bg: '#E4E7EB', fg: '#2C323A' },
+  other:   { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
 function getScheduleTone(s: TenswMgmtSchedule): { bg: string; fg: string } {
   const c = getScheduleCategory(s)
   if (c !== 'other') return CATEGORY_TONE[c]
-  if (s.type === 'deadline') return tonePalettes.warn
-  if (s.type === 'meeting') return tonePalettes.info
-  return tonePalettes.neutral
+  if (s.type === 'deadline') return { bg: '#DCE0E5', fg: '#262C33' }
+  if (s.type === 'meeting') return { bg: '#EAECEF', fg: '#343A42' }
+  return CATEGORY_TONE.other
 }
 
 function matchesDate(s: TenswMgmtSchedule, dateStr: string) {
@@ -82,7 +83,7 @@ function EventChip({ s, compact, onToggle, onSelect }: {
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
-      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
+      fontSize: `calc(${compact ? t.type.tableCell : t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
       display: 'flex', alignItems: 'flex-start', gap: t.density.gapXs,
     }}>
@@ -142,7 +143,8 @@ function DayCell({
   borderRight: boolean; minHeight: number
 }) {
   const [hovered, setHovered] = useState(false)
-  const [pop, setPop] = useState<{ left: number; top: number } | null>(null)
+  // 셀 안에서 그대로 펼친다 — 뜬 창을 띄우면 달력 위에 겹쳐 읽기가 끊긴다(2026-09-11)
+  const [expanded, setExpanded] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -151,7 +153,7 @@ function DayCell({
       style={{
         minHeight, padding: compact ? 6 : 8, position: 'relative',
         borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
-        background: isSelected ? t.brand[100] : isToday ? t.brand[50] : 'transparent',
+        background: isSelected ? '#EDEFF2' : isToday ? '#F5F6F8' : 'transparent',
         opacity: dimmed ? 0.35 : 1,
         minWidth: 0, overflow: 'hidden',
         cursor: onClickDate ? 'pointer' : undefined,
@@ -163,8 +165,8 @@ function DayCell({
         marginBottom: compact ? 3 : 6,
       }}>
         <span style={{
-          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-          color: isToday ? t.brand[700] : t.neutrals.subtle,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
+          color: isToday ? t.chart.mono : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
           {day.getDate()}
@@ -175,7 +177,7 @@ function DayCell({
             onClick={(e) => { e.stopPropagation(); onAdd(dateStr) }}
             style={{
               width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
-              background: t.brand[100], color: t.brand[700],
+              background: 'transparent', color: t.neutrals.muted,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 0, flexShrink: 0,
             }}
@@ -203,20 +205,16 @@ function DayCell({
           </div>
         ) : compact ? (
           <>
-            {schedules.slice(0, 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
+            {schedules.slice(0, expanded ? schedules.length : 2).map(s => <EventChip key={s.id} s={s} compact onToggle={onToggle} onSelect={onSelect} />)}
             {schedules.length > 2 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                  setPop({ left: Math.min(r.left, window.innerWidth - 252), top: r.bottom + 4 })
-                }}
+                onClick={(e) => { e.stopPropagation(); setExpanded(v => !v) }}
                 style={{
                   alignSelf: 'flex-start', border: 'none', background: 'transparent', padding: 0,
                   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono, cursor: 'pointer',
                 }}
               >
-                +{schedules.length - 2}
+                {expanded ? '접기' : `+${schedules.length - 2}`}
               </button>
             )}
           </>
@@ -224,27 +222,6 @@ function DayCell({
           schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={onSelect} />)
         )}
       </div>
-      {pop && (
-        <>
-          <div onClick={(e) => { e.stopPropagation(); setPop(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.04)' }} />
-          <div onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
-              width: 240, maxHeight: 340, overflowY: 'auto',
-              background: t.neutrals.card, borderRadius: t.radius.md,
-              border: `1px solid ${t.neutrals.line}`, padding: t.density.panelPadY,
-              display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
-            }}>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
-              {dateStr.slice(5).replace('-', '월 ')}일
-              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: t.weight.regular, color: t.neutrals.subtle }}>({schedules.length})</span>
-            </div>
-            {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
-            {schedules.map(s => <EventChip key={s.id} s={s} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
-          </div>
-        </>
-      )}
     </div>
   )
 }
@@ -285,7 +262,6 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
   const weekDays = useMemo(() => getWeekDays(baseDate), [baseDate])
   const monthGrid = useMemo(() => getMonthGrid(baseDate.getFullYear(), baseDate.getMonth()), [baseDate])
 
-  const eyebrow = viewMode === 'week' ? 'SCHEDULE · 주간' : 'SCHEDULE · 월간'
   const navLabel = viewMode === 'week'
     ? (() => {
         const w0 = weekDays[0], w6 = weekDays[6]
@@ -296,7 +272,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
 
   return (
     <LCard>
-      <LSectionHead eyebrow={eyebrow} title="일정" tools={
+      <LSectionHead title="일정" toolsInline mb={t.density.panelPadY} tools={
         <LSegmented
           value={viewMode}
           onChange={updateViewMode}
@@ -343,7 +319,6 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       {/* Day headers */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-        background: t.neutrals.inner, borderRadius: `${t.radius.md}px ${t.radius.md}px 0 0`,
         borderBottom: `1px solid ${t.neutrals.line}`,
       }}>
         {DAY_NAMES.map((name, i) => (
@@ -356,12 +331,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       </div>
 
       {viewMode === 'week' ? (
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {weekDays.map((day, i) => {
             const dateStr = formatDateLocal(day)
             return (
@@ -379,11 +349,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
           })}
         </div>
       ) : (
-        <div style={{
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div>
           {monthGrid.map((week, wi) => (
             <div key={wi} style={{
               display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -416,7 +382,7 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         return (
           <div style={{
             marginTop: t.density.kpiGap, padding: t.density.blockGap,
-            background: t.neutrals.inner, borderRadius: t.radius.md,
+            borderTop: `1px solid ${t.neutrals.line}`,
             display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

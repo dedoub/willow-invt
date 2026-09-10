@@ -5,7 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
@@ -271,13 +271,17 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
           title="프로젝트"
         />
 
-        {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
-          <LStat label="배정 대기" value={String(totalPending)} tone="warn" />
-          <LStat label="진행 중" value={String(totalInProgress)} tone="info" />
-          <LStat label="완료" value={String(totalCompleted)} tone="pos" />
-          <LStat label="전체 진행률" value={overallProgress} tone="default" />
-        </div>
+        {/* 지표 — 배경 박스를 벗고 라벨 위·값 아래에 행 구분선만 */}
+        {(() => {
+          const figures: FigureItem[] = [
+            { label: '배정 대기', value: String(totalPending), mono: true },
+            { label: '진행 중', value: String(totalInProgress), mono: true },
+            { label: '완료', value: String(totalCompleted), mono: true },
+            { label: '전체 진행률', value: overallProgress, mono: true },
+          ]
+          return <FigureGrid items={figures} cols={mobile ? 2 : 4} />
+        })()}
+        <div style={{ height: t.density.blockGap }} />
 
         {/* Filter badges */}
         <LFilterChip
@@ -466,15 +470,14 @@ function ExpandedDetail({
 
   return (
     <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
-      {/* Stats KPIs */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
-      }}>
-        <LStat label="배정 대기" value={String(waiting)} tone="warn" />
-        <LStat label="진행 중" value={String(inProgress)} tone="info" />
-        <LStat label="완료" value={String(completed)} tone="pos" />
-        <LStat label="진행률" value={progress} tone="default" />
-      </div>
+      {/* 지표 — 카드와 같은 격자 */}
+      <FigureGrid cols={mobile ? 2 : 4} items={[
+        { label: '배정 대기', value: String(waiting), mono: true },
+        { label: '진행 중', value: String(inProgress), mono: true },
+        { label: '완료', value: String(completed), mono: true },
+        { label: '진행률', value: progress, mono: true },
+      ]} />
+      <div style={{ height: t.density.blockGap }} />
 
       {/* Member breakdowns */}
       {(project.inProgressByMember.length > 0 || project.completedByMember.length > 0) && (

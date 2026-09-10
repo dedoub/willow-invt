@@ -5,7 +5,8 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
+import { BalanceTrend } from '@/app/(dashboard)/(linear)/mgmt/_components/cash-block'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
@@ -289,22 +290,29 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        {/* Header: eyebrow+title left, period mode toggle right */}
-        <LSectionHead eyebrow={eyebrowLabel} title="현금관리" tools={
-          <LSegmented
-            value={periodMode}
-            onChange={setPeriodMode}
-            options={[
-              { value: 'month', label: MODE_LABELS.month },
-              { value: 'quarter', label: MODE_LABELS.quarter },
-              { value: 'year', label: MODE_LABELS.year },
-            ]}
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title="현금관리"
+            tools={
+              <LSegmented
+                value={periodMode}
+                onChange={setPeriodMode}
+                options={[
+                  { value: 'month', label: MODE_LABELS.month },
+                  { value: 'quarter', label: MODE_LABELS.quarter },
+                  { value: 'year', label: MODE_LABELS.year },
+                ]}
+              />
+            }
+            toolsInline
+            mb={0}
           />
-        } />
+        </div>
 
-        {/* Navigation — centered */}
+        {/* 기간 — 카드 전체에 걸리는 조건이라 지표 위 가운데에 둔다 */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`,
         }}>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, -1, periodMode))} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -312,7 +320,10 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+            fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+          }}>
             {periodLabel}
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
@@ -323,22 +334,42 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           </button>
         </div>
 
-        {/* KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
-          <LStat label="매출" value={`${revenue.toLocaleString()}원`} />
-          <LStat label="비용" value={`${expense.toLocaleString()}원`} />
-          <LStat label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
-          <LStat label="부채" value={`${liability.toLocaleString()}원`} />
-          <LStat label="대체" value={`${transfer.toLocaleString()}원`} />
-          <LStat label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} />
-          <div onClick={() => setBalanceModal('우리')} style={{ cursor: 'pointer' }}>
-            <LStat label="우리은행" value={`${periodEndBalance.woori.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
+        {/* 지표 — 배경 박스를 벗고 라벨 위·값 아래에 행 구분선만 */}
+        {(() => {
+          const cols = mobile ? 2 : 3
+          const asOf = periodEndBalance.asOfDate ?? latestBalanceDate
+          const sub = asOf ? `${asOf} 기준` : undefined
+          const figures: FigureItem[] = [
+            { label: '매출', value: `${revenue.toLocaleString()}원`, mono: true },
+            { label: '비용', value: `${expense.toLocaleString()}원`, mono: true },
+            { label: '영업이익', value: `${operatingIncome.toLocaleString()}원`, mono: true, tone: operatingIncome >= 0 ? 'pos' : 'neg' },
+            { label: '부채', value: `${liability.toLocaleString()}원`, mono: true },
+            { label: '대체', value: `${transfer.toLocaleString()}원`, mono: true },
+            { label: '현금흐름', value: `${cashFlow.toLocaleString()}원`, mono: true, tone: cashFlow >= 0 ? 'pos' : 'neg' },
+            { label: '우리은행', value: `${periodEndBalance.woori.toLocaleString()}원`, mono: true, sub, onClick: () => setBalanceModal('우리') },
+            { label: '신한은행', value: `${periodEndBalance.shinhan.toLocaleString()}원`, mono: true, sub, onClick: () => setBalanceModal('신한') },
+            { label: '총 잔고', value: `${periodEndBalance.total.toLocaleString()}원`, mono: true, sub },
+          ]
+          return <FigureGrid items={figures} cols={cols} />
+        })()}
+
+        {/* 총 잔고 추이 — 숫자 옆이 아니라 별도 영역으로 뺀다(윌로우 현금관리와 같은 문법) */}
+        {totalBalanceSpark.length > 1 && (
+          <div style={{ padding: `${t.density.panelPadX}px ${t.density.panelPadX}px 0` }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+              gap: t.density.gapSm, marginBottom: t.density.gapSm,
+            }}>
+              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                총 잔고 추이
+              </span>
+              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                {totalBalanceSpark[0].date} ~ {totalBalanceSpark[totalBalanceSpark.length - 1].date}
+              </span>
+            </div>
+            <BalanceTrend points={totalBalanceSpark} />
           </div>
-          <div onClick={() => setBalanceModal('신한')} style={{ cursor: 'pointer' }}>
-            <LStat label="신한은행" value={`${periodEndBalance.shinhan.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} />
-          </div>
-          <LStat label="총 잔고" value={`${periodEndBalance.total.toLocaleString()}원`} sub={periodEndBalance.asOfDate ? `${periodEndBalance.asOfDate} 기준` : (latestBalanceDate ? `${latestBalanceDate} 기준` : undefined)} sparkline={mobile ? undefined : totalBalanceSpark} sparkFormat={(v) => `${v.toLocaleString()}원`} />
-        </div>
+        )}
 
         {/* Type filter chips */}
         <div style={{ marginTop: t.density.blockGap }}>

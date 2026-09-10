@@ -5,7 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
@@ -177,9 +177,10 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           }
         />
 
-        {/* Year navigation */}
+        {/* 연도 — 카드 전체에 걸리는 조건이라 지표 위 가운데에 둔다 */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`,
         }}>
           <button onClick={() => { setYear(y => y - 1); setPage(0) }} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -187,7 +188,10 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+            fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+          }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -198,29 +202,27 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           </button>
         </div>
 
-        {/* Summary stats */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: mode === 'purchase' ? 'repeat(2, 1fr)' : (mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'),
-          gap: t.density.kpiGap, marginBottom: t.density.blockGap,
-        }}>
-          {mode === 'sales' ? (
-            <>
-              <LStat label="수금완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
-              <LStat label="미수금" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} />
-              <LStat label="계약예정" value={`${plannedTotal.toLocaleString()}원`} tone="default" title="계약 미체결 가안·전망 매출" />
-              <LStat label="발행예정" value={`${scheduledTotal.toLocaleString()}원`} tone="info" title="계약이 체결돼 계산서 발행만 남은 매출" />
-            </>
-          ) : (
-            <>
-              <LStat label="지급완료" value={`${paidTotal.toLocaleString()}원`} tone="pos" />
-              <LStat label="미지급" value={`${pendingTotal.toLocaleString()}원`} tone={pendingTotal > 0 ? 'warn' : 'default'} title="계산서는 받았으나 아직 지급하지 않은 금액" />
-            </>
-          )}
-        </div>
+        {/* 지표 — 배경 박스를 벗고 라벨 위·값 아래에 행 구분선만 */}
+        {(() => {
+          const cols = mode === 'purchase' ? 2 : (mobile ? 2 : 4)
+          const figures: FigureItem[] = mode === 'sales'
+            ? [
+              { label: '수금완료', value: `${paidTotal.toLocaleString()}원`, mono: true },
+              { label: '미수금', value: `${pendingTotal.toLocaleString()}원`, mono: true, tone: pendingTotal > 0 ? 'neg' : undefined },
+              { label: '계약예정', value: `${plannedTotal.toLocaleString()}원`, mono: true, title: '계약 미체결 가안·전망 매출' },
+              { label: '발행예정', value: `${scheduledTotal.toLocaleString()}원`, mono: true, title: '계약이 체결돼 계산서 발행만 남은 매출' },
+            ]
+            : [
+              { label: '지급완료', value: `${paidTotal.toLocaleString()}원`, mono: true },
+              { label: '미지급', value: `${pendingTotal.toLocaleString()}원`, mono: true, tone: pendingTotal > 0 ? 'neg' : undefined, title: '계산서는 받았으나 아직 지급하지 않은 금액' },
+            ]
+          return <FigureGrid items={figures} cols={cols} />
+        })()}
 
-        {/* Status filter chips + sort toggle */}
-        <LFilterChip options={statusFilters} value={statusFilter} onChange={handleFilterChange} gap={t.density.gapSm} />
+        {/* 상태 칩 — 표 바로 위 한 줄 */}
+        <div style={{ marginTop: t.density.blockGap }}>
+          <LFilterChip options={statusFilters} value={statusFilter} onChange={handleFilterChange} gap={t.density.gapXs} />
+        </div>
 
         {/* Search */}
         <div style={{ position: 'relative', marginTop: t.density.gapMd }}>

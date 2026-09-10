@@ -5,7 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
@@ -129,18 +129,21 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
     <LCard pad={0} style={style}>
       {/* Header */}
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead
-          eyebrow="LOANS"
-          title="차입금관리"
-        />
-
-        {/* Summary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
-          <LStat label="총 원금" value={`${totalPrincipal.toLocaleString()}원`} />
-          <LStat label="평균 이율" value={avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-'} tone="default" />
-          <LStat label="월 이자" value={totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-'} />
-          <LStat label="연 이자" value={totalMonthlyInterest > 0 ? `${(totalMonthlyInterest * 12).toLocaleString()}원` : '-'} />
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead title="차입금관리" mb={0} />
         </div>
+
+        {/* 지표 — 배경 박스를 벗고 라벨 위·값 아래에 행 구분선만 */}
+        {(() => {
+          const figures: FigureItem[] = [
+            { label: '총 원금', value: `${totalPrincipal.toLocaleString()}원`, mono: true },
+            { label: '평균 이율', value: avgRate > 0 ? `${avgRate.toFixed(2)}%` : '-', mono: true },
+            { label: '월 이자', value: totalMonthlyInterest > 0 ? `${totalMonthlyInterest.toLocaleString()}원` : '-', mono: true },
+            { label: '연 이자', value: totalMonthlyInterest > 0 ? `${(totalMonthlyInterest * 12).toLocaleString()}원` : '-', mono: true },
+          ]
+          return <FigureGrid items={figures} cols={mobile ? 2 : 4} />
+        })()}
+        <div style={{ height: t.density.blockGap }} />
 
         {/* Status filter chips */}
         <LFilterChip

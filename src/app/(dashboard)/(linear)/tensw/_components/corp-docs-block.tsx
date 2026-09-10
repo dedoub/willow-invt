@@ -1,6 +1,6 @@
 'use client'
 
-import { CorpDocsBlock } from '@/app/(dashboard)/_components/corp-docs-block'
+import { CorpDocsBlock } from '@/app/(dashboard)/(linear)/work/_components/corp-docs-block'
 import type { CorpDocument } from '@/types/willow-corp'
 
 interface Props {

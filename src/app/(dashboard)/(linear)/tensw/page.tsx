@@ -12,10 +12,10 @@ import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { SalesBlock } from './_components/sales-block'
 import { LoanBlock } from './_components/loan-block'
-import { CardBlock } from '@/app/(dashboard)/_components/card-block'
+import { CardBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/card-block'
 import { TenswWikiBlock } from './_components/wiki-block'
 import { TenswCorpDocsBlock } from './_components/corp-docs-block'
-import { TaxManagementBlock } from './_components/tax-management-block'
+import { TaxManagementBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/tax-management-block'
 
 // Dialogs
 import { ScheduleAddDialog, TenswScheduleFormData } from './_components/schedule-add-dialog'
@@ -25,8 +25,8 @@ import { SalesDialog, TenswSalesFormData } from './_components/sales-dialog'
 import { LoanDialog, TenswLoanFormData } from './_components/loan-dialog'
 
 // Shared components
-import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
-import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
+import { EmailBlock } from '@/app/(dashboard)/(linear)/work/_components/email-block'
+import { EmailDetailDialog, type FullEmail } from '@/app/(dashboard)/(linear)/work/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 
 // Types
@@ -481,7 +481,9 @@ export default function TenswPage() {
   return (
     <>
       {loadPhase === 0 ? <TenswSkeleton /> : (
-        <>
+        /* 윌로우 사업관리·문서함과 같은 카드 문법을 그대로 쓴다(CEO 2026-09-11).
+           theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. */
+        <div className="theme-outline">
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {/* Schedule (full width) */}
           <ScheduleBlock
@@ -625,7 +627,7 @@ export default function TenswPage() {
           onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
           onSent={() => { fetchEmails() }}
         />
-        </>
+        </div>
       )}
     </>
   )

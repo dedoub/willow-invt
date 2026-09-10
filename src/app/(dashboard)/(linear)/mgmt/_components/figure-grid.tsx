@@ -28,6 +28,8 @@ export type FigureItem = {
   title?: string
   /** 라벨 옆 작은 스위치 — 그 값이 무엇을 뜻하는지 바꾸는 컨트롤만 여기에 둔다 */
   labelExtra?: ReactNode
+  /** 칸을 누르면 상세를 여는 지표(은행 잔고 등) */
+  onClick?: () => void
 }
 
 export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number }) {
@@ -35,7 +37,8 @@ export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
       {laid.map((f, i) => (
-        <div key={`${i}-${f.label}`} title={f.title} style={{
+        <div key={`${i}-${f.label}`} title={f.title} onClick={f.onClick} style={{
+          cursor: f.onClick ? 'pointer' : undefined,
           padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
           minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap,
           // 구분선은 열 수를 보고 첫 줄만 건너뛴다 — 모바일 2열에서 3열 기준으로 그으면 지그재그가 된다
