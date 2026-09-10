@@ -279,8 +279,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       : fillHeight ? { display: 'flex', flexDirection: 'column' }
       : undefined
     }>
-      {/* 제목과 칩 사이는 법인서류함과 같은 간격(blockGap) */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap, flexShrink: 0 }}>
+      {/* 제목과 칩 사이는 사업관리 카드와 같은 리듬(머리 여백 + 다음 블록 여백) */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY + t.density.panelPadX, flexShrink: 0 }}>
         <LSectionHead
           title="업무위키"
           tools={

@@ -133,7 +133,7 @@ export function EmailBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY + t.density.panelPadX }}>
         <LSectionHead
           title={title}
           action={connected ? <LHeadBtn icon="refresh" title="이메일 동기화" onClick={onSync} busy={isSyncing} /> : undefined}

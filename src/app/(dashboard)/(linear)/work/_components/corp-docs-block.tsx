@@ -52,7 +52,7 @@ export function CorpDocsBlock({ company, documents: given, loading: givenLoading
 
   return (
     <LCard style={style}>
-      <LSectionHead title="공식문서" mb={t.density.blockGap} />
+      <LSectionHead title="공식문서" mb={t.density.panelPadY + t.density.panelPadX} />
       {error && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={error} /></div>}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
