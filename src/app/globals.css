@@ -756,6 +756,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .theme-outline [data-table-row] button {
   border-color: transparent !important;
 }
+/* 지표(KPI) — 회색 판을 벗는다. 카드 안에서 값이 뜨는 자리는 선과 여백으로만 잡는다 */
+.theme-outline [data-stat] {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
 /* 세그먼트는 트랙을 버리고 필터칩과 똑같은 낱개 버튼이 된다 */
 .theme-outline [data-segment-group] {
   background: transparent !important;

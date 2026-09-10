@@ -175,6 +175,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
   const hasSpark = sparkData.length > 1
   return (
     <div
+      data-stat=""
       style={{
         background: t.neutrals.inner, borderRadius: t.radius.sm,
         padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, position: 'relative',
