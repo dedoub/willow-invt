@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth'
 import type { Invoice, UpdateInvoiceInput, LineItem } from '@/lib/invoice'
+import { isInvoiceDeliveryTargetAllowed } from '@/lib/invoice/delivery-policy'
 
 // GET /api/invoices/[id] - Get single invoice
 export async function GET(
@@ -51,6 +52,20 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json() as UpdateInvoiceInput
     const supabase = getServiceSupabase()
+
+    if (body.sent_to_etc_at != null || body.scheduled_etc_email_id != null) {
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('willow_invoices')
+        .select('line_items')
+        .eq('id', id)
+        .single()
+      if (invoiceError || !invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+      if (!isInvoiceDeliveryTargetAllowed(invoice, 'etc')) {
+        return NextResponse.json({ error: 'Referral Fee invoices can only be sent to the bank' }, { status: 400 })
+      }
+    }
 
     // Build update object
     const updateData: Record<string, unknown> = {}

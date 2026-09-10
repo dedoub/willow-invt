@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Invoice } from '@/lib/invoice/types'
+import { isReferralFeeInvoice } from '@/lib/invoice/delivery-policy'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
 type EffectiveStatus =
@@ -151,6 +152,7 @@ export function InvoiceBlock({
           const sty = STATUS_STYLES[effective]
           const firstDesc = inv.line_items[0]?.description ?? ''
           const isPaid = inv.status === 'paid'
+          const bankOnly = isReferralFeeInvoice(inv)
 
           return (
             <div
@@ -232,16 +234,18 @@ export function InvoiceBlock({
                   </a>
 
                   {/* ETC */}
-                  <button
-                    onClick={() => onSendEtc(inv)}
-                    style={actionBtnStyle(
-                      !!inv.sent_to_etc_at,
-                      tonePalettes.info.bg,
-                      tonePalettes.info.fg
-                    )}
-                  >
-                    ETC
-                  </button>
+                  {!bankOnly && (
+                    <button
+                      onClick={() => onSendEtc(inv)}
+                      style={actionBtnStyle(
+                        !!inv.sent_to_etc_at,
+                        tonePalettes.info.bg,
+                        tonePalettes.info.fg
+                      )}
+                    >
+                      ETC
+                    </button>
+                  )}
 
                   {/* 은행 */}
                   <button

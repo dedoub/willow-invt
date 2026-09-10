@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getGmailClient, createMimeMessage, EmailAttachmentData, GmailContext } from '@/lib/gmail-server'
+import { getServiceSupabase } from '@/lib/supabase'
+import { isInvoiceDeliveryTargetAllowed, type InvoiceDeliveryTarget } from '@/lib/invoice/delivery-policy'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +21,22 @@ export async function POST(request: NextRequest) {
     const cc = formData.get('cc') as string | null
     const bcc = formData.get('bcc') as string | null
     const replyTo = formData.get('replyTo') as string | null
+    const invoiceId = formData.get('invoiceId') as string | null
+    const invoiceTarget = formData.get('invoiceTarget') as InvoiceDeliveryTarget | null
+
+    if (invoiceId && invoiceTarget) {
+      const { data: invoice, error } = await getServiceSupabase()
+        .from('willow_invoices')
+        .select('line_items')
+        .eq('id', invoiceId)
+        .single()
+      if (error || !invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+      if (!isInvoiceDeliveryTargetAllowed(invoice, invoiceTarget)) {
+        return NextResponse.json({ error: 'Referral Fee invoices can only be sent to the bank' }, { status: 400 })
+      }
+    }
 
     // 첨부파일 처리
     const attachments: EmailAttachmentData[] = []

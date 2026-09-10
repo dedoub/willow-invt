@@ -5,6 +5,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Invoice } from '@/lib/invoice/types'
+import { isInvoiceDeliveryTargetAllowed } from '@/lib/invoice/delivery-policy'
 
 // ============ Props ============
 
@@ -110,6 +111,10 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
 
   const handleSend = async () => {
     if (!invoice || !pdfBlob) return
+    if (!isInvoiceDeliveryTargetAllowed(invoice, target)) {
+      alert('Referral Fee 인보이스는 은행에만 발송할 수 있어요.')
+      return
+    }
     setSending(true)
     try {
       const isScheduled = scheduled && scheduledDate && scheduledTime
@@ -119,6 +124,8 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
       formData.append('subject', subject)
       formData.append('body', body)
       formData.append('attachments', pdfBlob, `${invoice.invoice_no}.pdf`)
+      formData.append('invoiceId', invoice.id)
+      formData.append('invoiceTarget', target)
 
       let sendData: Record<string, unknown>
       if (isScheduled) {

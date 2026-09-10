@@ -8,6 +8,7 @@ import { EtcSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct } from '@/lib/etf-client'
 import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
 import { Invoice } from '@/lib/invoice/types'
+import { isInvoiceDeliveryTargetAllowed } from '@/lib/invoice/delivery-policy'
 import { StatsBlock } from './_components/stats-block'
 import { ProductBlock } from './_components/product-block'
 import { ProductDialog } from './_components/product-dialog'
@@ -158,7 +159,11 @@ export default function EtcPage() {
   // Invoice handlers
   const handleAddInvoice = () => { setEditInvoice(null); setInvoiceDialogOpen(true) }
   const handleEditInvoice = (inv: Invoice) => { setEditInvoice(inv); setInvoiceDialogOpen(true) }
-  const handleSendEtc = (inv: Invoice) => { setSendInvoice(inv); setSendTarget('etc') }
+  const handleSendEtc = (inv: Invoice) => {
+    if (!isInvoiceDeliveryTargetAllowed(inv, 'etc')) return
+    setSendInvoice(inv)
+    setSendTarget('etc')
+  }
   const handleSendBank = (inv: Invoice) => { setSendInvoice(inv); setSendTarget('bank') }
   const handleInvoiceSaved = () => { setInvoiceDialogOpen(false); setEditInvoice(null); loadInvoices() }
 

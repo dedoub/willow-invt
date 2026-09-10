@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import { planAkrosSync } from './lib/akros-invoice-sync.mjs'
+import { syncCommercialSchedules } from './lib/commercial-schedule-sync.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -66,25 +67,24 @@ async function run() {
   }
   if (plan.insert.length === 0 && plan.updatePaid.length === 0) {
     log('바뀔 내용 없음')
-    return
-  }
-  if (DRY_RUN) {
+  } else if (DRY_RUN) {
     log(`dry run: 추가 ${plan.insert.length}건, 수금일 ${plan.updatePaid.length}건`)
-    return
+  } else {
+    if (plan.insert.length > 0) {
+      const { error } = await sb.from('akros_tax_invoices').insert(plan.insert)
+      if (error) throw new Error(`추가 실패: ${error.message}`)
+    }
+    for (const row of plan.updatePaid) {
+      const { error } = await sb.from('akros_tax_invoices')
+        .update({ paid_at: row.paid_at, updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+      if (error) throw new Error(`수금일 갱신 실패: ${error.message}`)
+    }
+    log(`반영 완료: 추가 ${plan.insert.length}건, 수금일 ${plan.updatePaid.length}건`)
   }
 
-  if (plan.insert.length > 0) {
-    const { error } = await sb.from('akros_tax_invoices').insert(plan.insert)
-    if (error) throw new Error(`추가 실패: ${error.message}`)
-  }
-  for (const row of plan.updatePaid) {
-    const { error } = await sb.from('akros_tax_invoices')
-      .update({ paid_at: row.paid_at, updated_at: new Date().toISOString() })
-      .eq('id', row.id)
-    if (error) throw new Error(`수금일 갱신 실패: ${error.message}`)
-  }
-
-  log(`반영 완료: 추가 ${plan.insert.length}건, 수금일 ${plan.updatePaid.length}건`)
+  const scheduleResult = await syncCommercialSchedules(sb, { dryRun: DRY_RUN, log })
+  log(`사업관리 일정 ${DRY_RUN ? 'dry run' : '반영 완료'}: 전체 ${scheduleResult.desiredCount}건, 추가 ${scheduleResult.insert.length}건, 갱신 ${scheduleResult.update.length}건`)
 }
 
 run().catch(error => {

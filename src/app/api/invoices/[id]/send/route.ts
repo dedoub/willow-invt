@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth'
 import { getGmailClient, createMimeMessage, EmailAttachmentData } from '@/lib/gmail-server'
 import { generateInvoicePdf, generatePdfFilename, DEFAULT_CLIENT, formatCurrency } from '@/lib/invoice'
 import type { Invoice } from '@/lib/invoice'
+import { isReferralFeeInvoice } from '@/lib/invoice/delivery-policy'
 
 // POST /api/invoices/[id]/send - Send invoice via Gmail
 export async function POST(
@@ -39,6 +40,13 @@ export async function POST(
     }
 
     const invoice = data as Invoice
+
+    if (isReferralFeeInvoice(invoice)) {
+      return NextResponse.json(
+        { error: 'Referral Fee invoices must use the bank-only delivery flow' },
+        { status: 400 },
+      )
+    }
 
     // Get Gmail client
     const gmail = await getGmailClient()
