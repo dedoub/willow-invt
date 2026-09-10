@@ -88,7 +88,8 @@ function ModalShell({ children, onClose }: { children: React.ReactNode; onClose:
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <button onClick={onClose} aria-label="닫기" style={{
-          position: 'absolute', top: 10, right: 10, zIndex: 1,
+          // 상세 헤더가 sticky(zIndex 1, 배경 있음)라 그 위에 있어야 가려지지 않는다.
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
           background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm, padding: t.density.gapSm,
           cursor: 'pointer', color: t.neutrals.muted, display: 'flex',
         }}>
