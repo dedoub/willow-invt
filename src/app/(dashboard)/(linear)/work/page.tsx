@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
-import { EmailBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/email-block'
-import { WikiList } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-list'
+import { EmailBlock } from './_components/email-block'
+import { WikiList } from './_components/wiki-list'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
-import { CorpDocsBlock } from '@/app/(dashboard)/_components/corp-docs-block'
+import { CorpDocsBlock } from './_components/corp-docs-block'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
+import { EmailDetailDialog, type FullEmail } from './_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 
 type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
@@ -184,7 +184,8 @@ export default function WorkPage() {
   const twoCols = mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr')
 
   return (
-    <>
+    /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리와 같은 카드 문법(2026-09-11). */
+    <div className="theme-outline">
       {/* 상단: 업무위키 + 법인서류함 · 하단: 회사 이메일 + 개인 이메일 (CEO 2026-09-10) */}
       <div style={{
         display: 'grid', gridTemplateColumns: twoCols,
@@ -250,6 +251,6 @@ export default function WorkPage() {
         onClose={() => { setComposeOpen(false); setComposeOriginal(null) }}
         onSent={() => { fetchWork(); fetchPersonal() }}
       />
-    </>
+    </div>
   )
 }

@@ -247,7 +247,7 @@ export function EmailBlock({
           </LTableScroll>
         ) : (
           <div style={{
-            padding: `${t.density.pagePadX}px ${t.density.cardPad}px`, textAlign: 'center',
+            padding: `${t.density.pagePadBottom}px 0 ${t.density.cardPad}px`, textAlign: 'center',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: t.density.gapMd,
             fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>
@@ -257,7 +257,8 @@ export function EmailBlock({
         )}
       </div>
 
-      {/* Pagination bar */}
+      {/* 페이지 줄 — 연결된 카드에만 둔다 */}
+      {connected && (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
@@ -298,6 +299,7 @@ export function EmailBlock({
           </div>
         )}
       </div>
+      )}
     </LCard>
   )
 }

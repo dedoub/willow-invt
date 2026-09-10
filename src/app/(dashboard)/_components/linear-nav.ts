@@ -44,8 +44,6 @@ export const NAV_GROUPS: NavGroup[] = [
       // 새 디자인을 한 페이지씩 잡아 보는 자리 — 확정되면 /mgmt를 대체한다(2026-09-10).
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
-      // 문서함을 카드 하나씩 새 문법으로 옮겨 보는 자리. 다 옮기면 /work 로 합치고 지운다.
-      { id: 'work-new',   href: '/work-new',   label: '문서함 NEW', icon: 'book' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book', hidden: true },
