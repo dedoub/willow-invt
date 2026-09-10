@@ -22,9 +22,11 @@ linear 대시보드는 `linear-tokens.ts`의 폰트 토큰을 사용한다.
 | KPI label | 9.5px mono uppercase |
 | KPI value | 13px, semibold, tabular nums |
 | 표 헤더 | 9px mono uppercase |
-| 표 셀 | 10-12px |
-| 배지 | 10-11px |
-| 버튼 | 12-14px |
+| 표 셀 | 10px `t.type.tableCell` (조밀) · 12px `t.type.tableBody` |
+| 배지 | 11px `t.badge.size` (표 셀 배지 포함) |
+| 컨트롤(버튼·세그먼트·필터칩·셀렉트·검색) | 11px `t.type.control` — 크기(sm/md/lg)와 무관하게 단일 |
+| 차트 축·데이터 라벨 | 8px `t.type.chartLabel` (차트 전용) |
+| 히어로 숫자 | 22px `t.type.display` (다이얼로그 금액·점수 한 칸) |
 
 숫자에는 `fontVariantNumeric: 'tabular-nums'`를 우선 적용한다.
 KPI label과 표 헤더는 대문자/mono를 허용하지만, 일반 본문과 버튼에는 과한 uppercase를 쓰지 않는다.

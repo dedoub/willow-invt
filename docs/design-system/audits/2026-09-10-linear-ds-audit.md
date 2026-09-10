@@ -921,3 +921,38 @@
 
 차트 7.5/8px 라벨과 96/120/132/150/160/168/190px 계열 높이는 일반 density 토큰으로 편입하지 않는 편이 낫다. 차트 전용 `chartLabel` 하나와 소수의 chart-size preset을 두고, `Bone h/w`는 공식 예외로 문서화하는 구성이 적절하다.
 
+
+---
+
+## 8. 후속 조치 (2026-09-10, 같은 날 처리)
+
+CEO 지시로 6단계 전부를 순서대로 처리했다. 커밋은 단계별로 나눴다.
+
+| 단계 | 커밋 | 내용 |
+|---|---|---|
+| 1 | `f1510c2` | LBtn md/lg·LSegmented md·LFilterChip md 라벨 → `t.type.control`, 필터칩 gap·패딩 토큰화, LTableBadge → `t.badge` 규격, 표 숫자 굵기·페이지 셀렉트 패딩 토큰화 |
+| 2 | `2f4610d` | 팝오버·드롭다운·차트 툴팁 그림자 → `t.neutrals.line` 1px, 사이드바 툴팁 그림자 제거, 체크 원형 1.5px 링 → 채움 농도, 색상 스와치 outline → 안쪽 체크, 매수후보·섹터행 색 테두리 → 배경 색조, 노트북 인용구·위키 폼 inset 선 제거 |
+| 3 | `2c201b2` | 폰트 리터럴 896건 → `t.type.*`. 신규 토큰 `display`(22)·`chartLabel`(8). 14/16px 제목 → sectionTitle 15로 통일, 11.5→12, 12.5→13, 8.5→9 |
+| 4 | `ddc5308` | 간격·반경·컨트롤 높이 리터럴 2,070건 → `t.density`/`t.radius`. 홀수(3/5/7/9) 인접 토큰 스냅 |
+| 5 | `bc2ef47` | 굵기 리터럴 195건 → `t.weight` |
+| 6 | `1149e8a`, `643491d` | LBadge에 `palette`·`title`·`style`·`onClick` 추가. 50개 파일에서 직접 버튼·ChipBtn·배지·원시 표·스켈레톤·notice를 LBtn/LHeadBtn/LSegmented/LFilterChip/LBadge/LTableBadge/LTable*/Bone/LNotice로 통합 |
+
+### 인정한 예외 (2단계 D 항목)
+- `analysis-block.tsx` 수익률 모드 점 테두리(카테고리 인코딩)와 그라디언트 범례 — 데이터 시각화 인코딩.
+- `practice-view.tsx` 공책 줄(repeating-linear-gradient) — 쓰기 baseline 기능.
+- `voicecards-block.tsx` 로그인율 점선 범례 스와치 — 차트 범례 글리프(현재 숨김 기능).
+
+### 보류 (별도 표 마이그레이션 단계로)
+- 커스텀 grid 표의 헤더 정렬 `<button>`: `valuechain/page.tsx`, `portle-block.tsx`, `reviewnotes-block.tsx`, `scripta-block.tsx`, `voicecards-block.tsx` 사용자 표. 외부 2단 정렬 상태 또는 다중 컬럼 정렬 계약이라 `LTableHead`(sortValue 단일 정렬)와 맞지 않는다. 공식 `DataTable` 내부도 같은 button 패턴을 쓴다.
+- `sector-rotation-block.tsx` 기간 수익률 히트맵 셀 버튼(값에 따라 배경색)과 데이터 행(그룹별 rowBg 의미) — LBtn/LTableRow에 배경 override가 없음. 헤더만 공식 축으로 옮겼다.
+- `tax-invoice-block.tsx` 발행/입금 토글, `real-estate-block.tsx` 드롭다운 항목, 아이콘 전용 닫기·페이지 이동·행 액션, 체크박스·스와치 폼 컨트롤 — `current-elements.md` 허용 예외.
+- 4단계에서 남긴 값: 1px 헤어라인, 2/3px 차트 마크 반경, 차트·패널 콘텐츠 높이(80~300px). 차트 preset 컴포넌트로 다룰 것.
+- 다른 세션이 편집 중이던 파일 4개(`tensw/schedule-block.tsx`, `tensw/schedule-add-dialog.tsx`, `etc/invoice-block.tsx`, `etc/invoice-send-dialog.tsx`)는 3~5단계 코드모드를 HEAD 기준으로만 적용했고 6단계 E/F는 미처리. 그 세션 커밋 후 같은 규칙으로 처리해야 한다.
+
+### 문서 정정
+- `current-elements.md` LinearHeader 52px → 48px(`t.density.headerH`).
+- `typography.md` 버튼 12–14px → 컨트롤 11px 단일, 배지 11px, 표 셀 10/12px, `chartLabel`·`display` 추가.
+- `.claude/templates/linear-dashboard-template.tsx` 리터럴 예제 → 토큰 참조.
+
+### 남은 측정
+- 재감사는 같은 프롬프트(`scratchpad/ds-audit-prompt.md` 기준)로 다시 돌려 위반 건수 추이를 잰다. 예상 잔여: 보류 항목 + 타 세션 파일 4개 + 차트 높이 리터럴.

@@ -29,7 +29,7 @@
 ### App Shell
 
 - `LinearSidebar`: 좌측 네이비 단색 내비게이션
-- `LinearHeader`: 52px 상단바, breadcrumb, refresh, 페이지 액션
+- `LinearHeader`: 48px(`t.density.headerH`) 상단바, breadcrumb, refresh, 페이지 액션
 - `DashColsToggle`: 1열/2열 전환이 필요한 페이지 전용 액션
 
 ### Layout

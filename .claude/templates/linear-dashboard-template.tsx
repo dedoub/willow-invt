@@ -40,7 +40,7 @@ export function LinearBlockTemplate() {
         meta="보조 정보"
         action={<LBtn size="sm" icon={<LIcon name="plus" size={13} />}>추가</LBtn>}
       />
-      <div style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: '8px 10px' }}>
+      <div style={{ background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px` }}>
         콘텐츠
       </div>
     </LCard>
@@ -53,7 +53,7 @@ export function LinearKpiGridTemplate() {
     <div style={{
       display: 'grid',
       gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-      gap: 8,
+      gap: t.density.kpiGap,
     }}>
       <LStat label="ACTIVE" value="1,234" sub="최근 7일" tone="info" />
       <LStat label="GROWTH" value="+12.4%" sub="전주 대비" tone="pos" sparkline={[3, 4, 5, 4, 7, 8]} />
@@ -70,7 +70,7 @@ export function LinearFiltersTemplate() {
   const [mode, setMode] = useState<Mode>('all')
   const [tag, setTag] = useState<Tag>('all')
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap' }}>
       <LSegmented
         value={mode}
         onChange={setMode}
@@ -136,7 +136,7 @@ export function LinearTableTemplate({ rows }: { rows: TableItem[] }) {
 export function LinearSkeletonTemplate() {
   return (
     <LCard>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
         <Bone w={80} h={8} />
         <Bone w={140} h={14} />
         <Bone h={52} />
