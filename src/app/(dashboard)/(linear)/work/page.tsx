@@ -73,8 +73,9 @@ export default function WorkPage() {
   }
 
   const handleWikiUpdate = async (id: string, data: Partial<{ title: string; content: string; section: string; is_pinned: boolean; attachments: unknown; memos: unknown }>) => {
+    // 위키 API 는 PATCH 만 받는다. PUT 이면 405 가 나고 고정·메모·편집이 조용히 실패한다(2026-09-11).
     const res = await fetch(`/api/wiki/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
     })
     if (res.ok) await loadNotes()
   }

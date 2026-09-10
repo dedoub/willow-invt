@@ -421,7 +421,6 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             {/* Page size input */}
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={pageSize} onChange={applyPageSize} />
-              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{notes.length}건</span>
             </div>
 
             {/* Page navigation */}
@@ -502,12 +501,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             /* Read mode */
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               {/* Detail header */}
+              {/* 바깥은 배경만 깔고, 선은 카드 패딩 안쪽에 긋는다 — 카드의 표 머리선과 같은 자리(2026-09-11) */}
               <div style={{
-                // 모달에선 우상단 닫기(X) 자리를 비워 둔다 — 편집 버튼과 겹치지 않게.
-                padding: modal ? `${t.density.cardPad}px 48px ${t.density.panelPadX}px ${t.density.cardPad}px` : `${t.density.cardPad}px ${t.density.cardPad}px ${t.density.panelPadX}px`,
-                borderBottom: `1px solid ${t.neutrals.line}`,
-                // 본문이 길어 스크롤해도 제목·배지·편집은 위에 남는다(CEO 2026-09-10).
+                padding: `0 ${t.density.cardPad}px`,
+                // 본문이 길어 스크롤해도 제목·배지는 위에 남는다(CEO 2026-09-10).
                 position: 'sticky', top: 0, zIndex: 1, background: t.neutrals.card,
+              }}>
+              <div style={{
+                // 모달에선 우상단 닫기(X) 자리를 비워 둔다.
+                padding: modal ? `${t.density.cardPad}px 32px ${t.density.panelPadX}px 0` : `${t.density.cardPad}px 0 ${t.density.panelPadX}px`,
+                borderBottom: `1px solid ${t.neutrals.line}`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
                   <h2 style={{
@@ -516,16 +519,6 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                   }}>
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
-                    {/* 아이콘만 든 버튼이라 테마가 칩 테두리를 씌우지 않는다. 고정은 강조색으로만 표시한다 */}
-                    <button onClick={handlePin} title={selectedNote.is_pinned ? '고정 해제' : '고정'} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-                      borderRadius: t.radius.sm, flexShrink: 0, display: 'flex', alignItems: 'center',
-                      color: selectedNote.is_pinned ? t.chart.mono : t.neutrals.subtle,
-                    }}>
-                      <LIcon name="pin" size={14} stroke={2} />
-                    </button>
-                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
                   {(() => {
@@ -534,10 +527,30 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                       <LBadge palette={{ bg: badge.bg, fg: badge.fg }}>{badge.label}</LBadge>
                     )
                   })()}
-                  <span title={fmtUpdatedTitle(selectedNote.updated_at)} style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                  <span title={fmtUpdatedTitle(selectedNote.updated_at)} style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
                     마지막 업데이트 {fmtDate(selectedNote.updated_at)}
                   </span>
+                  {/* 고정은 날짜 오른쪽 글자 칩 — 필터칩과 같은 표식을 달아 테마가 같은 모양으로 그린다 */}
+                  <button
+                    data-filter-chip=""
+                    data-active={selectedNote.is_pinned ? '' : undefined}
+                    onClick={handlePin}
+                    title={selectedNote.is_pinned ? '고정 해제' : '목록 위에 고정'}
+                    style={{
+                      border: 'none', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0,
+                      height: t.density.controlHSm, padding: `0 ${t.density.controlPadXSm}px`,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.pill,
+                      fontFamily: t.font.sans,
+                      fontWeight: selectedNote.is_pinned ? t.weight.medium : t.weight.regular,
+                      background: selectedNote.is_pinned ? t.brand[100] : t.neutrals.inner,
+                      color: selectedNote.is_pinned ? t.brand[700] : t.neutrals.muted,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {selectedNote.is_pinned ? '고정됨' : '고정'}
+                  </button>
                 </div>
+              </div>
               </div>
 
               {/* Detail body */}
@@ -545,7 +558,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 {hasSelectedContent ? (
                   <div
                     style={{
-                      fontSize: `calc(${t.type.body}px * var(--fz, 1))`,
+                      fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                       lineHeight: 1.7,
                       color: t.neutrals.text,
                       fontFamily: t.font.sans,
