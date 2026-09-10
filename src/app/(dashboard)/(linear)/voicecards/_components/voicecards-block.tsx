@@ -258,10 +258,10 @@ function NumDeltaCell({ total, delta, dim, note }: { total: number; delta: numbe
     <div style={{ ...userNumCell, color: dim ? t.neutrals.muted : userNumCell.color, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
       <span>{formatNumber(total)}</span>
       {note && (
-        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.subtle }}>{note}</span>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle }}>{note}</span>
       )}
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{formatNumber(Math.abs(d))}
         </span>
       )}
@@ -362,7 +362,7 @@ function OfferStageCell({ stage, at }: { stage: string | null; at: string | null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, lineHeight: 1.1, minWidth: 0 }}>
       <span title={s.title} style={{
-        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
         color: s.fg, background: s.bg, padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
       }}>
         {stage === 'redeemed' ? '💰' + s.label : s.label}
@@ -805,7 +805,7 @@ export function VoicecardsBlock({
                 padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm, border: 'none',
                 cursor: refreshingFunnel ? 'default' : 'pointer', opacity: refreshingFunnel ? 0.5 : 1,
                 background: t.brand[500], color: '#fff',
-                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
               }}
             >
               다시 시도
@@ -1067,7 +1067,7 @@ export function VoicecardsBlock({
                   value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                   valueExtra={svLast ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                       fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       {svLast.date.slice(5)} 기준
@@ -1083,7 +1083,7 @@ export function VoicecardsBlock({
                   value={devices.toLocaleString()}
                   valueExtra={svTotal > 0 ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {installRate}%</span>
@@ -1103,7 +1103,7 @@ export function VoicecardsBlock({
                   value={userStats.totalUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {loginRate}%</span>
@@ -1125,7 +1125,7 @@ export function VoicecardsBlock({
                   value={linkedUsers.toLocaleString()}
                   valueExtra={(
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                       color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       <span>전환 {linkedRate}%</span>
@@ -1155,7 +1155,7 @@ export function VoicecardsBlock({
                   // 헤드라인에는 기기 계정이 섞여 있어서 이게 없으면 앞 칸과 어떻게 이어지는지 알 수 없다.
                   valueExtra={(deviceAccountActivated + anonDeviceActivated) > 0 ? (
                     <span style={{
-                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                       color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                     }}>
                       구글 {googleActivated.toLocaleString()}
@@ -1179,7 +1179,7 @@ export function VoicecardsBlock({
                     value={fmtK(creditsSold)}
                     valueExtra={(
                       <span style={{
-                        fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                        fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                         color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                       }}>
                         CPMAU {fmtPerMau(creditsPerMau)}
@@ -1404,7 +1404,7 @@ export function VoicecardsBlock({
             // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
             const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
               <span style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                 fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
               }}>
                 {(n / userStats.totalCards).toFixed(1)}x
@@ -1702,12 +1702,12 @@ export function VoicecardsBlock({
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
                       {initial}
                     </div>
                     <span title={titleParts || undefined} style={{
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       color: user.nickname ? t.neutrals.text : t.neutrals.muted,
                       fontFamily: user.nickname ? t.font.sans : t.font.mono,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
@@ -1719,7 +1719,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.platform ? (
                       <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                         color: user.platform === 'ios' ? '#0369A1' : user.platform === 'android' ? '#15803D' : t.neutrals.muted,
                         background: user.platform === 'ios' ? '#E0F2FE' : user.platform === 'android' ? '#DCFCE7' : t.neutrals.card,
                         padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
@@ -1734,7 +1734,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.appVersion ? (
                       <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                         color: t.neutrals.muted, background: t.neutrals.card,
                         padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
@@ -1749,7 +1749,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.locale ? (
                       <span style={{
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                         color: '#6B21A8', background: '#F3E8FF',
                         padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                       }}>
@@ -1765,7 +1765,7 @@ export function VoicecardsBlock({
                       const c = formatCountry(user.country, user.locale)
                       return c ? (
                         <span title={c.name} style={{
-                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                           color: '#1E40AF', background: '#DBEAFE',
                           padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                         }}>
@@ -1779,7 +1779,7 @@ export function VoicecardsBlock({
                   {/* 구글연동 = Drive 폴더 생성 완료(users.folder_id). deferred-Drive라
                       시트 0이어도 연동은 끝났을 수 있다(AI draft만 두고 이탈 등). */}
                   <div style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                     whiteSpace: 'nowrap', textAlign: 'center',
                     color: user.hasFolder ? t.neutrals.muted : '#B45309',
                   }}>
@@ -1788,7 +1788,7 @@ export function VoicecardsBlock({
                   {/* 활성화 = 첫 시트 저장(또는 카드 보유). 미활성 && 구글연동 완료 = "연동후대기" —
                       draft만 두고 이탈한 복귀 유도 타깃이라 대기로 구분 표기. */}
                   <div style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                     whiteSpace: 'nowrap', textAlign: 'center',
                     color: isVoicecardsLearningActivated(user) ? t.neutrals.muted : '#B45309',
                   }}>
@@ -1807,7 +1807,7 @@ export function VoicecardsBlock({
                   <OfferStageCell stage={user.offerStage} at={user.offerStageAt} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                       color: user.hasPurchased ? '#166534' : t.neutrals.muted,
                       background: user.hasPurchased ? '#DCFCE7' : t.neutrals.card,
                       padding: `1px ${t.density.gapSm}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
@@ -1837,7 +1837,7 @@ export function VoicecardsBlock({
                   <NumDeltaCell total={user.credits} delta={user.balanceDeltaToday} dim />
                   <div style={userNumCell}>
                     {user.activeDays7d > 0
-                      ? <span style={{ fontWeight: 600 }}>{user.activeDays7d}<span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>/7</span></span>
+                      ? <span style={{ fontWeight: t.weight.semibold }}>{user.activeDays7d}<span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular }}>/7</span></span>
                       : <span style={{ color: t.neutrals.subtle }}>—</span>}
                   </div>
                 </div>

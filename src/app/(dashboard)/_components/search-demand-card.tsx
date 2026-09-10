@@ -460,7 +460,7 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
           g.indexed.toLocaleString(),
           g.total.toLocaleString(),
           // 0%는 막힌 클러스터라 눈에 걸리게 둔다
-          <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{g.pct}%</span>,
+          <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{g.pct}%</span>,
           ...(hasLocale ? [
             <span key="loc" style={{ color: t.neutrals.muted }}>
               {g.localeTotal > 0 ? `${g.localeIndexed}/${g.localeTotal}` : '—'}
@@ -482,7 +482,7 @@ function Delta({ now, prev }: { now: number; prev: number }) {
   const pct = Math.round((diff / prev) * 100)
   return (
     <span style={{
-      ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600,
+      ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: t.weight.semibold,
       color: diff > 0 ? t.accent.pos : t.accent.neg,
     }}>
       {diff > 0 ? '+' : '−'}{Math.abs(pct)}%
@@ -728,7 +728,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                     value={index && index.base.total > 0 ? `${index.indexedPct}%` : '—'}
                     valueExtra={index && index.changeFromPrev ? (
                       <span style={{
-                        ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600,
+                        ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: t.weight.semibold,
                         color: index.changeFromPrev > 0 ? t.accent.pos : t.accent.neg,
                       }}>
                         {index.changeFromPrev > 0 ? '+' : '−'}{Math.abs(index.changeFromPrev)}쪽

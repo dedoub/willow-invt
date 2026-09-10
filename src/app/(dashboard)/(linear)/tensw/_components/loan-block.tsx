@@ -180,11 +180,11 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
             <div key={loan.id}>
               <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : loan.id)}>
                 <LTableBadge tone={statusTone}>{STATUS_LABELS[loan.status] ?? loan.status}</LTableBadge>
-                <span style={{ fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: t.weight.medium, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {loan.bank}
                   {maturityWarning && (
                     <span style={{
-                      marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                      marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                       padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                       background: tonePalettes.danger.bg, color: tonePalettes.danger.fg,
                       whiteSpace: 'nowrap',
@@ -272,7 +272,7 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
                       style={{
                         padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                       }}

@@ -40,7 +40,7 @@ function formatDateShort(dateString?: string | null): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -404,7 +404,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
                 valueExtra={svLast ? (
                   <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     {svLast.date.slice(5)} 기준
@@ -556,13 +556,13 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px',
                   gap: t.density.gapSm, alignItems: 'center', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
-                  <div style={{ ...userTextCell, color: t.neutrals.text, fontWeight: 500 }}>
+                  <div style={{ ...userTextCell, color: t.neutrals.text, fontWeight: t.weight.medium }}>
                     {PORTLE_KIND_LABELS[k.kind] ?? k.kind}
                   </div>
                   <div style={{ ...userNumCell, display: 'flex', flexDirection: 'column', lineHeight: 1.15, alignItems: 'center' }}>
                     <span>{k.calls.toLocaleString()}</span>
                     {k.callsToday > 0 && (
-                      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: '#059669' }}>
+                      <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: '#059669' }}>
                         +{k.callsToday.toLocaleString()}
                       </span>
                     )}
@@ -696,7 +696,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 사용자 — 유형 배지 + 축약 ID (전체 ID는 title로) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }} title={user.subject}>
                     <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, padding: `1px ${t.density.gapSm}px`,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `1px ${t.density.gapSm}px`,
                       borderRadius: t.radius.pill, background: typeTone.bg, color: typeTone.fg, whiteSpace: 'nowrap' as const,
                     }}>
                       {typeTone.label}
@@ -715,7 +715,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   <div style={{ ...userNumCell, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
                     {ent ? (
                       <span style={{
-                        padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.pill, fontWeight: 600,
+                        padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.pill, fontWeight: t.weight.semibold,
                         background: ent.active ? tonePalettes.pos.bg : t.neutrals.inner,
                         color: ent.active ? tonePalettes.pos.fg : t.neutrals.subtle,
                       }}>

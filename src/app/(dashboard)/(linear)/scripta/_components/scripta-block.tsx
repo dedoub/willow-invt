@@ -62,7 +62,7 @@ function fmtArpu(cents: number): string {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -277,7 +277,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
     }}>
       <span>{total.toLocaleString()}</span>
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{Math.abs(d).toLocaleString()}
         </span>
       )}
@@ -533,7 +533,7 @@ export function ScriptaBlock({
               value={sales ? sales.creditsSold.toLocaleString() : '—'}
               valueExtra={sales ? (
                 <span style={{
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                   color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatUsd(sales.revenueUsd)}
@@ -667,7 +667,7 @@ export function ScriptaBlock({
                 value={stats.credits.spent.toLocaleString()}
                 valueExtra={stats.credits.refunded > 0 ? (
                   <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                     fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                   }}>
                     환불 {stats.credits.refunded.toLocaleString()}
@@ -804,7 +804,7 @@ export function ScriptaBlock({
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, overflow: 'hidden',
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, overflow: 'hidden',
                     }}>
                       {user.avatarUrl
                         ? <img src={user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -812,7 +812,7 @@ export function ScriptaBlock({
                       }
                     </div>
                     <span style={{
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       color: user.name ? t.neutrals.text : t.neutrals.muted,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
                     }}>
@@ -821,7 +821,7 @@ export function ScriptaBlock({
                     {/* 통계에서 빠진 운영 계정 — 테이블에는 남기되 숫자와 섞이지 않음을 표시 */}
                     {isExcludedScriptaUser(user) && (
                       <span title="통계 제외 계정" style={{
-                        fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                        fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                         padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, flexShrink: 0,
                         background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
                       }}>

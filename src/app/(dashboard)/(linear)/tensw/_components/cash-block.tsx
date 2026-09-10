@@ -311,7 +311,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
@@ -417,7 +417,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
                   {shortAccount(item.account_number)}
                 </span>
               )}
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.counterparty}
               </span>
               <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -518,7 +518,7 @@ function BankBalanceModal({
             }}>
               BALANCE
             </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600 }}>{bank}은행 계좌별 잔고</div>
+            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>{bank}은행 계좌별 잔고</div>
           </div>
           <button onClick={onClose} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -549,7 +549,7 @@ function BankBalanceModal({
                 )}
               </span>
               <span style={{
-                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                 fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
               }}>
                 {Number(b.balance).toLocaleString()}원
@@ -564,7 +564,7 @@ function BankBalanceModal({
         }}>
           <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>합계</span>
           <span style={{
-            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
             fontVariantNumeric: 'tabular-nums',
           }}>
             {total.toLocaleString()}원

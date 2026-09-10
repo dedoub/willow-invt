@@ -65,11 +65,11 @@ export function LinearHeader({ title, group = '윌로우인베스트먼트', sub
             <LIcon name="chevronRight" size={11} color={t.neutrals.subtle} stroke={2} />
           </>
         )}
-        <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{title}</span>
+        <span style={{ color: t.neutrals.text, fontWeight: t.weight.medium }}>{title}</span>
         {subtitle && (
           <>
             <span style={{ margin: `0 ${t.density.gapSm}px`, color: t.neutrals.subtle, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>-</span>
-            <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 400 }}>{subtitle}</span>
+            <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.regular }}>{subtitle}</span>
           </>
         )}
       </div>

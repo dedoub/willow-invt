@@ -188,7 +188,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                     <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                       <span style={{
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
-                        borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: 500,
+                        borderRadius: t.radius.sm, background: sty.bg, color: sty.fg, fontWeight: t.weight.medium,
                         flexShrink: 0,
                       }}>{sty.label}</span>
                       <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
@@ -204,14 +204,14 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                       <button onClick={() => toggleStatus(inv, 'issued_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                         color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
                         backgroundColor: inv.issued_at ? tonePalettes.info.bg : 'transparent',
                       }}>발행</button>
                       <button onClick={() => toggleStatus(inv, 'paid_at')} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                         color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
                         backgroundColor: inv.paid_at ? tonePalettes.done.bg : 'transparent',
                       }}>입금</button>
@@ -224,7 +224,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.gapXs, paddingLeft: t.density.tableRowGap, minWidth: 0 }}>
-                    <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {inv.amount.toLocaleString()}원
                     </span>
                     {inv.notes && (
@@ -289,7 +289,7 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
             background: t.neutrals.card, borderRadius: t.radius.lg,
             width: '100%', maxWidth: 400, padding: t.density.pagePadX,
           }}>
-            <h3 style={{ margin: '0 0 14px', fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, fontFamily: t.font.sans }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
               세금계산서 추가
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>

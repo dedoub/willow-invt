@@ -79,7 +79,7 @@ export function LSectionHead({ eyebrow, title, meta, note, action, tools, toolsI
           }}>
             {showNote && (
               <span style={{
-                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 500, whiteSpace: 'nowrap' as const,
+                fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, whiteSpace: 'nowrap' as const,
                 padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                 background: t.neutrals.inner, color: t.neutrals.muted,
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',

@@ -272,7 +272,7 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => navigate(1)} style={{
@@ -389,13 +389,13 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
                 {cardTail(a.card_no) || '—'}
               </span>
               <span style={{
-                fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 textDecoration: isCancel ? 'line-through' : undefined,
                 color: isCancel ? t.neutrals.subtle : undefined,
               }}>
                 {a.store_name || '미상'}
                 {(a.home_foreign_type === '2' || installment) && (
-                  <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: 400 }}>
+                  <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontWeight: t.weight.regular }}>
                     {a.home_foreign_type === '2' ? '해외' : ''}
                     {a.home_foreign_type === '2' && installment ? ' · ' : ''}
                     {installment ? `${a.installment_month}개월` : ''}

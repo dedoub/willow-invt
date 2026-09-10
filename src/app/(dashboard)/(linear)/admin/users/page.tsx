@@ -217,7 +217,7 @@ export default function UsersPage() {
 
         <div style={{ padding: `12px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           <div style={{
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
             fontFamily: t.font.mono, letterSpacing: 0.3,
             textTransform: 'uppercase', marginBottom: t.density.gapMd,
           }}>
@@ -244,12 +244,12 @@ export default function UsersPage() {
                       width: 28, height: t.density.controlHSm, borderRadius: 28, flexShrink: 0,
                       background: t.brand[200], color: t.brand[800],
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>{(u.name?.[0] || '?').toUpperCase()}</div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
+                        fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
                         display: 'flex', alignItems: 'center', gap: t.density.gapSm,
                       }}>
                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{u.name}</span>
@@ -282,7 +282,7 @@ export default function UsersPage() {
                         onClick={() => !isMe && setEditingRole(u.id)}
                         disabled={isMe}
                         style={{
-                          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
+                          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
                           padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
                           background: role.bg, color: role.fg,
                           border: 'none', cursor: isMe ? 'default' : 'pointer',
@@ -295,7 +295,7 @@ export default function UsersPage() {
                       onClick={() => !isMe && handleToggleActive(u.id, u.is_active)}
                       disabled={isMe}
                       style={{
-                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
+                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
                         padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill, border: 'none',
                         background: u.is_active ? '#10B98122' : '#EF444422',
                         color: u.is_active ? '#059669' : '#DC2626',
@@ -357,11 +357,11 @@ export default function UsersPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: t.density.kpiGap }}>
               <div>
                 <div style={{
-                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
                   fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
                   marginBottom: t.density.gapXs,
                 }}>PERMISSIONS</div>
-                <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text }}>{permUser.name}</div>
+                <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text }}>{permUser.name}</div>
                 <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>{permUser.email}</div>
               </div>
               <button
@@ -378,7 +378,7 @@ export default function UsersPage() {
                 display: 'flex', alignItems: 'center', gap: t.density.gapSm,
                 padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
                 background: t.neutrals.inner, cursor: 'pointer',
-                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
               }}>
                 <input
                   type="checkbox"
@@ -391,7 +391,7 @@ export default function UsersPage() {
               {Object.entries(pagesBySection).map(([section, pages]) => (
                 <div key={section}>
                   <div style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
                     fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase',
                     marginBottom: t.density.gapXs,
                   }}>{SECTION_LABEL[section] ?? section}</div>
@@ -420,7 +420,7 @@ export default function UsersPage() {
               <button
                 onClick={() => setPermUser(null)}
                 style={{
-                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
+                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                   background: t.neutrals.inner, color: t.neutrals.muted,
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                 }}
@@ -429,7 +429,7 @@ export default function UsersPage() {
                 onClick={savePerms}
                 disabled={savingPerms}
                 style={{
-                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500,
+                  padding: `${t.density.gapSm}px ${t.density.blockGap}px`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                   background: t.brand[600], color: '#fff',
                   border: 'none', borderRadius: t.radius.sm, cursor: 'pointer',
                   opacity: savingPerms ? 0.6 : 1,

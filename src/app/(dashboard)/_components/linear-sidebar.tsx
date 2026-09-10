@@ -25,7 +25,7 @@ function orderItems(items: NavItem[], order: string[]): NavItem[] {
 }
 
 const GROUP_LABEL_STYLE: CSSProperties = {
-  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, letterSpacing: 0.8,
+  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 0.8,
   textTransform: 'uppercase' as const, color: t.sidebar.subtle,
   padding: `${t.density.blockGap}px ${t.density.panelPadY}px ${t.density.gapXs}px`,
 }

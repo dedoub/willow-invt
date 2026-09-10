@@ -73,7 +73,7 @@ function Delta({ now, base }: { now: number; base: number | null }) {
   const diff = Math.round((now - base) * 10) / 10
   if (diff === 0) return null
   return (
-    <span style={{ ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: 600, color: diff > 0 ? t.accent.pos : t.accent.neg }}>
+    <span style={{ ...mono(9.5), marginLeft: t.density.gapSm, fontWeight: t.weight.semibold, color: diff > 0 ? t.accent.pos : t.accent.neg }}>
       {diff > 0 ? '+' : '−'}{Math.abs(diff)}%p
     </span>
   )
@@ -206,7 +206,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
-                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{q.top3}%</span>,
+                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{q.top3}%</span>,
                   ],
                   sort: [q.question, q.stage, q.top3],
                 }))}
@@ -265,7 +265,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                   cells: [
                     e.engine,
                     `${e.mentioned}%`,
-                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: 600 }}>{e.top3}%</span>,
+                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{e.top3}%</span>,
                     `${e.cited}%`,
                     String(e.runs),
                   ],

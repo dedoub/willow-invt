@@ -68,10 +68,10 @@ export function DocumentsBlock({ documents, onSelect }: Props) {
                 <LTableBadge tone={docStatusTone(doc.status)}>
                   {CORP_DOC_TYPE_LABEL[doc.doc_type] ?? doc.doc_type}
                 </LTableBadge>
-                <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {doc.title}
                   {doc.counterparty && (
-                    <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}> · {doc.counterparty}</span>
+                    <span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular }}> · {doc.counterparty}</span>
                   )}
                 </span>
                 {!mobile && (doc.issued_at ? <LTableDate value={doc.issued_at} format="ymd" /> : <span style={{ color: t.neutrals.subtle }}>-</span>)}

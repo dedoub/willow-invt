@@ -87,11 +87,11 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
         {/* Header */}
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
               IMPORT PREVIEW
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              파싱 결과 확인 {bankName && <span style={{ fontWeight: 400, color: t.neutrals.muted, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, marginLeft: t.density.gapSm }}>· {bankName}</span>}
+              파싱 결과 확인 {bankName && <span style={{ fontWeight: t.weight.regular, color: t.neutrals.muted, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, marginLeft: t.density.gapSm }}>· {bankName}</span>}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -153,14 +153,14 @@ export function ParsePreviewDialog({ open, transactions: initial, bankName, onCl
                 }}>
                   {TYPE_LABELS[row.type]}
                 </span>
-                <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.counterparty}
                 </span>
                 <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.description}
                 </span>
                 <span style={{
-                  textAlign: 'right', fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+                  textAlign: 'right', fontWeight: t.weight.medium, fontVariantNumeric: 'tabular-nums',
                   color: isIncome ? t.accent.pos : t.accent.neg, whiteSpace: 'nowrap',
                 }}>
                   {isIncome ? '+' : '-'}{row.amount.toLocaleString()}

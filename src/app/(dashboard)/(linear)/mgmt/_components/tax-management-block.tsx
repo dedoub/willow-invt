@@ -133,7 +133,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(current => current + 1); setPage(0) }} style={{
@@ -214,7 +214,7 @@ export function TaxManagementBlock({ obligations }: { obligations: FinanceTaxObl
                 <LTableBadge tone={tone}>{STATUS_LABELS[item.status]}</LTableBadge>
                 <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SOURCES[item.source]}</span>
                 <LTableDate value={item.due_date} />
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={`${item.agency} · ${item.title}`}>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: t.weight.medium }} title={`${item.agency} · ${item.title}`}>
                   {item.title}
                 </span>
                 <LTableNumber value={item.amount} />

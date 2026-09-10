@@ -154,7 +154,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
     }}>
       <span>{total.toLocaleString()}</span>
       {Number.isFinite(d) && d !== 0 && (
-        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, color: d > 0 ? '#059669' : '#DC2626' }}>
+        <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: d > 0 ? '#059669' : '#DC2626' }}>
           {d > 0 ? '+' : '−'}{Math.abs(d).toLocaleString()}
         </span>
       )}
@@ -166,7 +166,7 @@ function NumDeltaCell({ total, delta }: { total: number; delta: number }) {
 const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
-    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
     color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
@@ -543,7 +543,7 @@ export function ReviewnotesBlock({
               value={trafficStats.totals.views.toLocaleString()}
               valueExtra={trafficStats.totals.visitors > 0 ? (
                 <span style={{
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                   fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {(trafficStats.totals.views / trafficStats.totals.visitors).toFixed(1)}x
@@ -578,7 +578,7 @@ export function ReviewnotesBlock({
               value={sales ? sales.creditsSold.toLocaleString() : '—'}
               valueExtra={sales ? (
                 <span style={{
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: 500,
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
                   color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatCurrency(sales.revenueUsd)}
@@ -892,7 +892,7 @@ export function ReviewnotesBlock({
                         width: 22, height: 22, borderRadius: 22, flexShrink: 0,
                         background: t.brand[200], color: t.brand[800],
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, overflow: 'hidden',
+                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, overflow: 'hidden',
                       }}>
                         {user.image
                           ? <img src={user.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -900,7 +900,7 @@ export function ReviewnotesBlock({
                         }
                       </div>
                       <span style={{
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                         color: user.name ? t.neutrals.text : t.neutrals.muted,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
                       }}>
@@ -915,7 +915,7 @@ export function ReviewnotesBlock({
                         const c = formatCountryBadge(user.country)
                         return c ? (
                           <span title={c.name} style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                             color: '#1E40AF', background: '#DBEAFE',
                             padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, whiteSpace: 'nowrap',
                           }}>
@@ -946,7 +946,7 @@ export function ReviewnotesBlock({
                         <span
                           title={isAdmin ? '관리자 — 통계 제외' : '스토어 심사용 계정 — 통계 제외'}
                           style={{
-                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                            fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                             padding: `1px ${t.density.gapXs}px`, borderRadius: 3, lineHeight: 1.4, textTransform: 'uppercase' as const,
                             background: tonePalettes.warn.bg, color: tonePalettes.warn.fg,
                           }}

@@ -35,7 +35,7 @@ export function RuleDialog({ rule, onClose }: Props) {
       }}>
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               {(CORP_RULE_TYPE_LABEL[rule.rule_type] ?? rule.rule_type).toUpperCase()} · v{rule.version_no}
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
@@ -78,7 +78,7 @@ export function RuleDialog({ rule, onClose }: Props) {
                   }}
                 >
                   <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, width: 78, flexShrink: 0 }}>{a.no}</span>
-                  <span style={{ flex: 1, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 500 }}>{a.title}</span>
+                  <span style={{ flex: 1, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>{a.title}</span>
                   <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
                     <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
                   </span>

@@ -122,7 +122,7 @@ export function InvoiceBlock({
     borderRadius: t.radius.sm,
     fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
     fontFamily: t.font.mono,
-    fontWeight: 500,
+    fontWeight: t.weight.medium,
     color: active ? activeFg : t.neutrals.line,
   })
 
@@ -176,7 +176,7 @@ export function InvoiceBlock({
                     borderRadius: t.radius.sm,
                     background: sty.bg,
                     color: sty.fg,
-                    fontWeight: 500,
+                    fontWeight: t.weight.medium,
                     flexShrink: 0,
                   }}>
                     {sty.label}
@@ -185,7 +185,7 @@ export function InvoiceBlock({
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
                     color: t.neutrals.text,
-                    fontWeight: 500,
+                    fontWeight: t.weight.medium,
                     flexShrink: 0,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -223,7 +223,7 @@ export function InvoiceBlock({
                       borderRadius: t.radius.sm,
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
                       fontFamily: t.font.mono,
-                      fontWeight: 500,
+                      fontWeight: t.weight.medium,
                       color: t.neutrals.muted,
                       textDecoration: 'none',
                     }}
@@ -296,7 +296,7 @@ export function InvoiceBlock({
                 <span style={{
                   fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
                   fontFamily: t.font.mono,
-                  fontWeight: 500,
+                  fontWeight: t.weight.medium,
                   color: t.neutrals.text,
                   whiteSpace: 'nowrap',
                   flexShrink: 0,

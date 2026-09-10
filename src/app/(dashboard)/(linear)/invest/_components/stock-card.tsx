@@ -200,7 +200,7 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
                 padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.md, width: 240, zIndex: 100,
                 whiteSpace: 'normal', pointerEvents: 'none',
               }}>
-                {data.valueChainPosition && <div style={{ fontWeight: 600, marginBottom: t.density.gapXs }}>{data.valueChainPosition}</div>}
+                {data.valueChainPosition && <div style={{ fontWeight: t.weight.semibold, marginBottom: t.density.gapXs }}>{data.valueChainPosition}</div>}
                 {data.structuralThesis}
               </span>
               <style>{`.info-tip:hover .info-tip-content{display:block!important}`}</style>

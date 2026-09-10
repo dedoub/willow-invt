@@ -78,7 +78,7 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
       }}>
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               {doc.doc_no}
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
@@ -138,7 +138,7 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
             {events?.map(ev => (
               <div key={ev.id} style={{ display: 'flex', gap: t.density.gapMd, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
                 <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{formatDateTime(ev.at)}</span>
-                <span style={{ color: t.neutrals.text, fontWeight: 500 }}>{EVENT_LABEL[ev.event] ?? ev.event}</span>
+                <span style={{ color: t.neutrals.text, fontWeight: t.weight.medium }}>{EVENT_LABEL[ev.event] ?? ev.event}</span>
                 <span style={{ color: t.neutrals.muted, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {eventDetail(ev)}
                 </span>
@@ -163,7 +163,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>
+      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>
         {title}
       </div>
       {children}

@@ -62,7 +62,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
         {/* Header */}
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               CASHFLOW
             </div>
             <div style={{
@@ -108,7 +108,7 @@ export function InvoiceDetailDialog({ invoice, onClose, onDelete, onEdit }: Invo
             display: 'flex', alignItems: 'baseline', gap: t.density.gapSm,
           }}>
             <span style={{
-              fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+              fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontVariantNumeric: 'tabular-nums',
               fontFamily: t.font.sans, letterSpacing: -0.5,
               color: isIncome ? t.accent.pos : t.accent.neg,
             }}>

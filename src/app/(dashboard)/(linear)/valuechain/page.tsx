@@ -81,7 +81,7 @@ export default function ValueChainPage() {
   const { summary, maturity, updates, crawl, trends, articleUpdates } = stats
 
   const sectionLabel: React.CSSProperties = {
-    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
     fontFamily: t.font.mono, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: t.density.gapMd,
     whiteSpace: 'nowrap',
   }
@@ -94,8 +94,8 @@ export default function ValueChainPage() {
     letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
   }
   // 질문 역설계 블록 공통 스타일
-  const qHead: React.CSSProperties = { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: t.density.gapSm, display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, whiteSpace: 'nowrap', overflow: 'hidden' }
-  const qHeadSub: React.CSSProperties = { fontWeight: 400, color: t.neutrals.subtle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, overflow: 'hidden', textOverflow: 'ellipsis' }
+  const qHead: React.CSSProperties = { fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, marginBottom: t.density.gapSm, display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, whiteSpace: 'nowrap', overflow: 'hidden' }
+  const qHeadSub: React.CSSProperties = { fontWeight: t.weight.regular, color: t.neutrals.subtle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, overflow: 'hidden', textOverflow: 'ellipsis' }
   const ellip: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
   // ── 클릭 정렬 헤더 ──
@@ -258,7 +258,7 @@ export default function ValueChainPage() {
 
         {/* 질문 역설계 — fetch 흔적을 사용자 질문으로 되짚는 관측 신호 (valuechain-wiki docs/traffic-capture.md) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>질문 역설계 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>AI 인용 fetch 흔적 → 사용자 질문 역추적</span></div>
+          <div style={sectionLabel}>질문 역설계 <span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular, textTransform: 'none' }}>AI 인용 fetch 흔적 → 사용자 질문 역추적</span></div>
 
           {/* ① 측면: 질문형 패싯 fetch — 인사이트 KPI와 동일한 칩 그리드 */}
           <div style={qHead}>① 어떤 측면을 물었나 <span style={qHeadSub}>AI가 가져간 질문형 패싯</span></div>
@@ -311,7 +311,7 @@ export default function ValueChainPage() {
 
         {/* 기업 노드 업데이트 */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>기업 노드 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400, textTransform: 'none' }}>증명(P) · 파급(R) 각 6점</span></div>
+          <div style={sectionLabel}>기업 노드 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular, textTransform: 'none' }}>증명(P) · 파급(R) 각 6점</span></div>
           {/* 최근 업데이트 내역 — 위키 /roadmap 노드 현황과 동일 항목 + 인용퍼널 */}
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: UPDATE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
@@ -369,7 +369,7 @@ export default function ValueChainPage() {
 
         {/* 분석 아티클 업데이트 현황 (vc_articles) */}
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: 400 }}>{articleUpdates.length}건</span></div>
+          <div style={sectionLabel}>분석 아티클 업데이트 <span style={{ color: t.neutrals.subtle, fontWeight: t.weight.regular }}>{articleUpdates.length}건</span></div>
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 540, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 헤더 (정렬 가능) — 최초 | 수정 | 제목 | 변경 | 학습·인덱싱·인용·방문 */}

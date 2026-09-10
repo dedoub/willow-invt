@@ -318,7 +318,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
             {periodLabel}
           </span>
           <button onClick={() => setBaseDate(navigatePeriod(baseDate, 1, periodMode))} style={{
@@ -430,7 +430,7 @@ export function CashBlock({ invoices, onAddInvoice, onSelectInvoice, onFileUploa
             <LTableRow key={v.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelectInvoice(v)}>
               <LTableBadge tone={typeTone}>{TYPE_LABELS[v.type]}</LTableBadge>
               <LTableDate value={v.payment_date || v.issue_date} />
-              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.counterparty}
               </span>
               <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -94,7 +94,7 @@ function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
-      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: 500, lineHeight: 1.3,
+      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
       display: 'flex', alignItems: 'flex-start', gap: t.density.gapXs,
     }}>
@@ -155,7 +155,7 @@ function MemoChip({ content, compact, onClick }: {
       style={{
         padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
         background: tonePalettes.done.bg, color: tonePalettes.done.fg,
-        fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: 500, lineHeight: 1.3,
+        fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
         minWidth: 0, overflow: 'hidden', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: t.density.gapXs,
       }}
@@ -209,7 +209,7 @@ function DayCell({
         marginBottom: compact ? 3 : 6,
       }}>
         <span style={{
-          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
+          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
           color: isToday ? t.brand[700] : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
@@ -301,9 +301,9 @@ function DayCell({
               border: `1px solid ${t.neutrals.line}`, padding: t.density.panelPadY,
               display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
             }}>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
+            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, marginBottom: t.density.tableRowGap }}>
               {dateStr.slice(5).replace('-', '월 ')}일
-              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: 400, color: t.neutrals.subtle }}>({schedules.length})</span>
+              <span style={{ marginLeft: t.density.gapXs, fontFamily: t.font.mono, fontWeight: t.weight.regular, color: t.neutrals.subtle }}>({schedules.length})</span>
             </div>
             {/* 팝오버(z 1001)는 셀 안에 있고 상세 다이얼로그(z 1000)는 페이지 레벨이라, 닫지 않으면 상세가 팝오버 뒤에 깔린다. */}
             {schedules.map(s => <EventChip key={s.id} s={s} dateStr={dateStr} onToggle={onToggle} onSelect={sch => { setPop(null); onSelect(sch) }} />)}
@@ -393,7 +393,7 @@ export function CalendarBlock({
         }}>
           <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
-        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
           {navLabel}
         </span>
         <button onClick={() => navigate(1)} style={{
@@ -432,7 +432,7 @@ export function CalendarBlock({
       }}>
         {DAY_NAMES.map(name => (
           <div key={name} style={{
-            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
             color: name === '토' || name === '일' ? t.neutrals.subtle : t.neutrals.muted,
             letterSpacing: 0.5, textAlign: 'center',
           }}>{name}</div>
@@ -622,7 +622,7 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
           marginBottom: t.density.blockGap,
         }}>
           <h3 style={{
-            margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: 600,
+            margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
             color: t.neutrals.text, fontFamily: t.font.sans,
           }}>
             {dateLabel} 메모

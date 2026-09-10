@@ -188,7 +188,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -264,7 +264,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
                   {SOURCE_LABEL[row.source]}
                 </LTableBadge>
                 <LTableDate value={row.date} format="ymd" />
-                <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {row.counterparty}
                 </span>
                 {!mobile && (
@@ -276,7 +276,7 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style }: SalesBlock
                 {foreign ? (
                   <span style={{
                     textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                    fontWeight: 500, color: t.neutrals.text, fontVariantNumeric: 'tabular-nums',
+                    fontWeight: t.weight.medium, color: t.neutrals.text, fontVariantNumeric: 'tabular-nums',
                   }}>
                     ${row.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </span>

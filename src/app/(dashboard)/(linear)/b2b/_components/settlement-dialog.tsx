@@ -99,7 +99,7 @@ export function SettlementDialog({ refNo, storedReconciliation = null, storedUpd
       }}>
         <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
+            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
               {refNo}
             </div>
             <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text, lineHeight: 1.35 }}>
@@ -254,11 +254,11 @@ function WorkRow({ work, expanded, onToggle }: { work: B2bWorkRecordDetail; expa
   return (
     <div style={{ borderTop: `1px solid ${t.neutrals.line}` }}>
       <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, padding: `${t.density.gapSm}px 0`, cursor: 'pointer' }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {work.title}
         </span>
         <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{period}</span>
-        <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
+        <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, whiteSpace: 'nowrap' }}>
           {work.pricing ? `₩${Math.round(work.pricing.agreed_amount).toLocaleString()}` : '-'}
         </span>
         <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
@@ -328,7 +328,7 @@ function InvoiceRow({ label, invoice }: {
           <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {invoice.approval_no ?? '-'}
           </span>
-          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text }}>
+          <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text }}>
             ₩{Math.round(invoice.total_amount).toLocaleString()}
           </span>
         </>
@@ -348,7 +348,7 @@ function CashRows({ label, rows }: { label: string; rows: { id: string; payment_
         <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: `${t.density.tableRowGap}px 0` }}>
           <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle }}>{r.payment_date}</span>
           <span style={{ flex: 1, minWidth: 0, color: t.neutrals.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.counterparty ?? '-'}</span>
-          <span style={{ fontFamily: t.font.mono, fontWeight: 500, color: t.neutrals.text }}>₩{Math.round(Math.abs(r.amount)).toLocaleString()}</span>
+          <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.medium, color: t.neutrals.text }}>₩{Math.round(Math.abs(r.amount)).toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -370,7 +370,7 @@ function Field({ label, value, block }: { label: string; value: string; block?: 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>
+      <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, letterSpacing: 0.6, color: t.neutrals.subtle, marginBottom: t.density.gapXs }}>
         {title}
       </div>
       {children}

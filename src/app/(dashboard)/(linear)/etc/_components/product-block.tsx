@@ -59,7 +59,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
 
   const thStyle: React.CSSProperties = {
     padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
-    fontWeight: 600, color: t.neutrals.subtle, textAlign: 'left',
+    fontWeight: t.weight.semibold, color: t.neutrals.subtle, textAlign: 'left',
     letterSpacing: 0.3, whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
@@ -108,7 +108,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
           <tbody>
             {paged.map(etf => (
               <tr key={etf.id} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: 500 }}>
+                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
                   {etf.fundUrl ? (
                     <a href={etf.fundUrl} target="_blank" rel="noopener noreferrer"
                       style={{ color: t.brand[500], textDecoration: 'none' }}>{etf.symbol}</a>
@@ -132,7 +132,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
                 <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono }}>
                   {fmtUsd(etf.totalMonthlyFee)}
                 </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: 500 }}>
+                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
                   {fmtUsd(etf.remainingFee)}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'center' }}>

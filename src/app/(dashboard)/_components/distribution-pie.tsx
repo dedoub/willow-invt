@@ -69,7 +69,7 @@ export function DistributionPie({
                 style={{
                   padding: `2px ${t.density.gapSm}px`, borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',
                   whiteSpace: 'nowrap' as const,
-                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans,
+                  fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans,
                   background: active ? t.brand[500] : 'transparent',
                   color: active ? '#fff' : t.neutrals.muted,
                   transition: 'background 120ms ease, color 120ms ease',

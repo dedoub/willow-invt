@@ -138,13 +138,13 @@ function Sparkline({
           zIndex: 10, lineHeight: 1.3,
         }}>
           <div style={{ fontFamily: t.font.mono, opacity: 0.7, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }}>{withWeekday(data[hover].date)}</div>
-          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+          <div style={{ fontWeight: t.weight.semibold, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
             {data2 && data2[hover] != null && <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color, flexShrink: 0 }} />}
             {fmt(data[hover].value)}
           </div>
           {/* 점선(보조 시리즈) 값도 함께 표시 */}
           {data2 && data2[hover] != null && (
-            <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+            <div style={{ fontWeight: t.weight.medium, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <span style={{ display: 'inline-block', width: 7, height: 2, borderRadius: 1, background: color2 ?? t.accent.warn, flexShrink: 0, backgroundImage: 'none' }} />
               {(format2 ?? ((v: number) => v.toLocaleString()))(data2[hover].value)}
             </div>
@@ -215,13 +215,13 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             {labelExtra}
           </div>
           <div style={{
-            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 600, letterSpacing: -0.3,
+            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums' as const,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
             color,
           }}>
             {value}
-            {unit && <span style={{ fontSize: `calc(${t.type.badge}px * var(--fz, 1))`, marginLeft: t.density.gapXs, color: t.neutrals.muted, fontWeight: 400 }}>{unit}</span>}
+            {unit && <span style={{ fontSize: `calc(${t.type.badge}px * var(--fz, 1))`, marginLeft: t.density.gapXs, color: t.neutrals.muted, fontWeight: t.weight.regular }}>{unit}</span>}
             {valueExtra}
           </div>
           {sub && (

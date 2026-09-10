@@ -185,7 +185,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           }}>
             <LIcon name="chevronLeft" size={14} stroke={2} />
           </button>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: 500, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
+          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 60, textAlign: 'center' }}>
             {year}년
           </span>
           <button onClick={() => { setYear(y => y + 1); setPage(0) }} style={{
@@ -278,7 +278,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
               <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : inv.id)}>
                 <LTableBadge tone={tone}>{statusLabels[inv.payment_status] ?? inv.payment_status}</LTableBadge>
                 <LTableDate value={inv.issue_date} />
-                <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {inv.counterparty}
                 </span>
                 {!mobile && (
@@ -324,7 +324,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                   {inv.items && inv.items.length > 0 && (
                     <div style={{ marginTop: t.density.kpiGap }}>
                       <div style={{
-                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
                         fontFamily: t.font.mono, marginBottom: t.density.gapXs, letterSpacing: 0.3,
                       }}>
                         품목
@@ -370,7 +370,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
                       style={{
                         padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
                         background: t.neutrals.inner, border: 'none',
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                         color: t.neutrals.text, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: t.density.gapXs,
                       }}

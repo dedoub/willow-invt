@@ -342,7 +342,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Name + description */}
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div style={{
-                    fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: 500, color: t.neutrals.text,
+                    fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {project.name}
@@ -361,7 +361,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                 {/* Status badge */}
                 <span style={{
                   display: 'inline-block', padding: `${t.density.tableRowGap}px ${t.density.panelPadY}px`, borderRadius: t.radius.pill,
-                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                   background: statusStyle.bg, color: statusStyle.fg,
                   whiteSpace: 'nowrap', flexShrink: 0,
                 }}>
@@ -386,7 +386,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
 
                 {/* Progress */}
                 <span style={{
-                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 500,
+                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
                   color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0,
                   minWidth: 32, textAlign: 'right',
                 }}>
@@ -666,7 +666,7 @@ function ExpandedDetail({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, marginBottom: t.density.tableRowGap }}>
                         <span style={{
-                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: 600, color: actTone.fg,
+                          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: actTone.fg,
                         }}>
                           {actTone.label}
                         </span>
@@ -677,7 +677,7 @@ function ExpandedDetail({
                         )}
                       </div>
                       <div style={{
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: actTone.fg, fontWeight: 500,
+                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: actTone.fg, fontWeight: t.weight.medium,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {act.title}
@@ -720,7 +720,7 @@ function ExpandedDetail({
                   </span>
                   <span style={{
                     fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, padding: `1px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                    background: pTone.bg, color: pTone.fg, fontWeight: 500, flexShrink: 0,
+                    background: pTone.bg, color: pTone.fg, fontWeight: t.weight.medium, flexShrink: 0,
                   }}>
                     {PRIORITY_LABELS[todo.priority] ?? todo.priority}
                   </span>
@@ -766,7 +766,7 @@ function ExpandedDetail({
             style={{
               padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
               background: t.neutrals.inner, border: 'none',
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
               color: t.brand[700], cursor: 'pointer', textDecoration: 'none',
               display: 'flex', alignItems: 'center', gap: t.density.gapXs,
             }}
@@ -783,7 +783,7 @@ function ExpandedDetail({
           style={{
             padding: `${t.density.gapXs}px ${t.density.blockGap}px`, borderRadius: t.radius.sm,
             background: t.neutrals.inner, border: 'none',
-            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: 500,
+            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
             color: t.neutrals.text, cursor: 'pointer', textDecoration: 'none',
             display: 'flex', alignItems: 'center', gap: t.density.gapXs,
           }}
@@ -806,7 +806,7 @@ function DetailSection({
   return (
     <div style={extraStyle}>
       <div style={{
-        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: 600, color: t.neutrals.subtle,
+        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
         fontFamily: t.font.mono, letterSpacing: 0.3,
         textTransform: 'uppercase' as const, marginBottom: t.density.gapSm,
       }}>

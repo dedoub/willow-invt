@@ -80,7 +80,7 @@ function HeaderCell({
       style={{
         background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
         fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: active ? t.neutrals.text : t.neutrals.subtle,
-        fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
+        fontFamily: t.font.mono, fontWeight: t.weight.semibold, textTransform: 'uppercase' as const,
         display: 'flex', alignItems: 'center', justifyContent: justify,
         gap: t.density.tableRowGap,
       }}
@@ -168,7 +168,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
     <div style={{ background: t.neutrals.card, borderRadius: t.radius.lg, padding: mobile ? 12 : 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: t.density.kpiGap, flexWrap: 'wrap', gap: t.density.gapSm }}>
         <div>
-          <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
+          <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
             SECTOR ROTATION
           </div>
           <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
@@ -197,7 +197,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             display: 'grid',
             gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
             gap: t.density.gapXs, padding: `${t.density.gapXs}px ${t.density.gapSm}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
-            fontFamily: t.font.mono, fontWeight: 600, textTransform: 'uppercase' as const,
+            fontFamily: t.font.mono, fontWeight: t.weight.semibold, textTransform: 'uppercase' as const,
           }}>
             <HeaderCell label="티커" sortKey="group" current={sortBy} dir={sortDir} onClick={handleSort} />
             {!mobile && <HeaderCell label="이름" sortKey="name" current={sortBy} dir={sortDir} onClick={handleSort} />}
@@ -226,7 +226,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
                 <span style={{
-                  fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: 600, padding: `0 ${t.density.gapXs}px`, borderRadius: 3,
+                  fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontWeight: t.weight.semibold, padding: `0 ${t.density.gapXs}px`, borderRadius: 3,
                   background: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
                   color: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
                   flexShrink: 0,

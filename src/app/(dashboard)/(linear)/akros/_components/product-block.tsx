@@ -93,7 +93,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
 
   const thStyle: React.CSSProperties = {
     padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono,
-    fontWeight: 600, color: t.neutrals.subtle, textAlign: 'left',
+    fontWeight: t.weight.semibold, color: t.neutrals.subtle, textAlign: 'left',
     letterSpacing: 0.3, whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
@@ -136,7 +136,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
           <tbody>
             {paged.map(p => (
               <tr key={p.symbol} style={{ borderBottom: `1px solid ${t.neutrals.line}` }}>
-                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: 500 }}>{p.symbol}</td>
+                <td style={{ ...tdStyle, fontFamily: t.font.mono, fontWeight: t.weight.medium }}>{p.symbol}</td>
                 <td style={{ ...tdStyle, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))` }}>{p.country}</td>
                 <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.product_name_local || p.product_name}
@@ -154,7 +154,7 @@ export function ProductBlock({ products }: ProductBlockProps) {
                 }}>
                   {fmtFlow(p.product_flow, p.currency)}
                 </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: 500 }}>
+                <td style={{ ...tdStyle, textAlign: 'right', fontFamily: t.font.mono, fontWeight: t.weight.medium }}>
                   {fmtArr(p.arr, p.currency)}
                 </td>
               </tr>

@@ -79,7 +79,7 @@ export function RulesBlock({ rules, onSelect }: Props) {
                 <LTableBadge tone={rule.rule_type === 'articles' ? tonePalettes.brand : tonePalettes.neutral}>
                   {CORP_RULE_TYPE_LABEL[rule.rule_type] ?? rule.rule_type}
                 </LTableBadge>
-                <span style={{ minWidth: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {rule.title}
                 </span>
                 <span style={{ textAlign: 'right', fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>v{rule.version_no}</span>

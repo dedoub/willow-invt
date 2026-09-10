@@ -185,7 +185,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
         }}>
           <div>
             <div style={{
-              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
               color: t.neutrals.subtle, letterSpacing: 0.6,
               textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap,
             }}>

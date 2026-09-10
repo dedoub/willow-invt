@@ -183,14 +183,14 @@ export function EmailBlock({
                   {m.unread && <span style={{ width: 5, height: 5, borderRadius: 3, background: t.brand[600], flexShrink: 0 }} />}
                   {m.direction === 'outbound' && (
                     <span style={{
-                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                       padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
                       background: '#DAEEDD', color: '#1F5F3D',
                     }}>발신</span>
                   )}
                   {m.sourceLabel && sourceFilter === 'all' && activeFilters.length > 0 && (
                     <span style={{
-                      fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: 600,
+                      fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
                       padding: `0 ${t.density.gapXs}px`, borderRadius: 2,
                       background: srcTone?.bg || t.neutrals.inner,
                       color: srcTone?.fg || t.neutrals.subtle,
