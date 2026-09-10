@@ -770,6 +770,18 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 0 !important;
 }
 
+/* 칩이 많으면 줄을 늘리지 말고 가로로 민다 — 카드 높이가 들쭉날쭉해지지 않는다(CEO 2026-09-10).
+   스크롤바는 숨기고 손가락·트랙패드로 밀어 쓴다. */
+.theme-outline [data-filter-chips] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.theme-outline [data-filter-chips]::-webkit-scrollbar { display: none; }
+.theme-outline [data-filter-chip] { flex-shrink: 0; }
+
 /* 세그먼트는 트랙을 버리고 필터칩과 똑같은 낱개 버튼이 된다 */
 .theme-outline [data-segment-group] {
   background: transparent !important;

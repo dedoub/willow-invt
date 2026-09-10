@@ -32,7 +32,7 @@ export function LFilterChip<V extends string>(props: Props<V>) {
   const isActive = (v: V) => props.multi ? props.value.includes(v) : props.value === v
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap, flexWrap: 'wrap' as const }}>
+    <div data-filter-chips="" style={{ display: 'flex', alignItems: 'center', gap, flexWrap: 'wrap' as const }}>
       {options.map(opt => {
         const active = isActive(opt.value)
         const activeBg = opt.tone?.bg ?? t.brand[100]
