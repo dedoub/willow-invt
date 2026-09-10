@@ -756,11 +756,15 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .theme-outline [data-table-row] button {
   border-color: transparent !important;
 }
-.theme-outline [data-segment] {
-  /* 세그먼트는 붙어 있던 트랙을 버리고 낱개 버튼으로 선다 */
-  margin-right: 4px;
+/* 세그먼트는 트랙을 버리고 필터칩과 똑같은 낱개 버튼이 된다 */
+.theme-outline [data-segment-group] {
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 4px;
 }
-.theme-outline [data-segment]:last-child { margin-right: 0; }
+.theme-outline [data-segment] {
+  min-width: 0 !important;
+}
 .theme-outline input[type="text"],
 .theme-outline input:not([type]),
 .theme-outline input[type="search"] {

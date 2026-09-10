@@ -34,7 +34,7 @@ export function LSegmented<V extends string>({ options, value, onChange, size = 
   const minWidth = size === 'sm' ? t.density.segmentedMinWSm : t.density.segmentedMinWMd
 
   return (
-    <div style={{
+    <div data-segment-group="" style={{
       display: 'inline-flex', alignItems: 'center',
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: t.density.tableRowGap,
     }}>
