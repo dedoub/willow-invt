@@ -101,6 +101,13 @@ export function EmailBlock({
     return available.length <= 2 ? [] : available
   }, [sourceCounts])
 
+  // 출처가 한 갈래뿐이면(개인 이메일) 출처·분류 열은 빈 칸만 반복하므로 뺀다(CEO 2026-09-11)
+  const multiSource = activeFilters.length > 0
+  const columns = useMemo(
+    () => (multiSource ? COLUMNS : COLUMNS.filter(c => c.key !== 'source' && c.key !== 'category')),
+    [multiSource],
+  )
+
   const filtered = useMemo(() => {
     let rows = sourceFilter === 'all' ? emails : emails.filter(e => (e.sourceLabel || 'WILLOW') === sourceFilter)
     const q = search.trim().toLowerCase()
@@ -190,12 +197,12 @@ export function EmailBlock({
       {/* 목록 — 사업관리 표와 같은 문법. 행을 누르면 상세 모달이 열린다 */}
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         {connected ? (
-          <LTableScroll columns={COLUMNS}>
-            <LTableHead columns={COLUMNS} />
+          <LTableScroll columns={columns}>
+            <LTableHead columns={columns} />
             {filtered.length === 0 ? (
               <LTableEmpty>{search ? '검색 결과가 없습니다' : '이메일이 없습니다'}</LTableEmpty>
             ) : (
-              <LTableBody columns={COLUMNS}>
+              <LTableBody columns={columns}>
                 {paged.map(m => {
                   const outbound = m.direction === 'outbound'
                   const srcKey = m.sourceLabel || 'WILLOW'
@@ -203,15 +210,17 @@ export function EmailBlock({
                   return (
                     <LTableRow
                       key={`${m.sourceLabel || ''}-${m.id}`}
-                      columns={COLUMNS}
+                      columns={columns}
                       onClick={() => onSelectEmail(m)}
                     >
-                      <LTableBadge tone={outbound ? OUTBOUND_TONE : (SOURCE_TONE[srcKey] ?? SOURCE_TONE.WILLOW)}>
-                        {outbound ? '발신' : srcLabel}
-                      </LTableBadge>
-                      {m.category
+                      {multiSource && (
+                        <LTableBadge tone={outbound ? OUTBOUND_TONE : (SOURCE_TONE[srcKey] ?? SOURCE_TONE.WILLOW)}>
+                          {outbound ? '발신' : srcLabel}
+                        </LTableBadge>
+                      )}
+                      {multiSource && (m.category
                         ? <LTableBadge tone={{ bg: '#F5F6F8', fg: '#4B525A' }}>{m.category}</LTableBadge>
-                        : <span />}
+                        : <span />)}
                       <span style={{
                         fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                         color: t.neutrals.subtle, whiteSpace: 'nowrap',
@@ -230,6 +239,10 @@ export function EmailBlock({
                       }}>
                         {m.unread && (
                           <span style={{ width: 5, height: 5, borderRadius: 3, background: t.chart.mono, flexShrink: 0 }} />
+                        )}
+                        {/* 열이 줄어든 카드에서는 발신 여부를 제목 앞에 붙인다 */}
+                        {!multiSource && outbound && (
+                          <LTableBadge tone={OUTBOUND_TONE}>발신</LTableBadge>
                         )}
                         <span style={{
                           minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
