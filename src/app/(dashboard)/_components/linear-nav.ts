@@ -102,6 +102,8 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-app-edu-order',
     items: [
       { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'Flashcards', dot: '#4FBE84', mark: '/voicecards-mark.png' },
+      // 보이스카드를 카드 하나씩 새 문법으로 옮겨 보는 자리. 다 옮기면 /voicecards 로 합치고 지운다.
+      { id: 'voicecards-new', href: '/voicecards-new', label: 'VoiceCards NEW', tag: 'Flashcards', dot: '#4FBE84', mark: '/voicecards-mark.png' },
       { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'Notes',      dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
       { id: 'scripta',     href: '/scripta',     label: 'Scripta',     tag: 'Writing',    dot: '#E894B0', mark: '/scripta-mark.png' },
     ],
