@@ -21,7 +21,9 @@ export async function GET(request: Request) {
   const [approvalsRes, billingRes] = await Promise.all([
     supabase
       .from('willow_finance_card_approvals')
-      .select('id, used_date, used_time, card_no, store_name, store_type, store_corp_no, amount, krw_amount, home_foreign_type, vat, payment_type, installment_month, cancel_yn, cancel_amount')
+      .select('id, used_date, used_time, card_no, store_name, store_type, store_corp_no, amount, krw_amount, home_foreign_type, vat, payment_type, installment_month, cancel_yn, cancel_amount, edited_at')
+      // 화면에서 지운 줄은 수집기가 같은 지문으로 다시 넣어도 보이지 않는다
+      .is('deleted_at', null)
       .gte('used_date', from)
       .lte('used_date', to)
       .order('used_date', { ascending: false }),
@@ -55,4 +57,58 @@ export async function GET(request: Request) {
       annual_fee: b.annual_fee === null ? null : Number(b.annual_fee),
     })),
   })
+}
+
+// 사람이 고칠 수 있는 칸만 연다. 지문·원본 raw·카드번호는 카드사 원본 그대로 둔다.
+const EDITABLE = new Set([
+  'used_date', 'used_time', 'store_name', 'store_type', 'store_corp_no',
+  'amount', 'krw_amount', 'vat', 'installment_month', 'cancel_yn', 'cancel_amount',
+])
+
+const NUMERIC = new Set(['amount', 'krw_amount', 'vat', 'cancel_amount'])
+
+// PUT — 승인 한 줄 수정. 가맹점 이름이 분류를 정하므로 여기가 실제로 고칠 일이 있는 칸이다.
+export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
+  const body = await request.json()
+  const { id, ...rest } = body ?? {}
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const updates: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(rest)) {
+    if (EDITABLE.has(key)) updates[key] = value === '' ? null : value
+  }
+  for (const key of NUMERIC) {
+    if (updates[key] !== undefined && updates[key] !== null) updates[key] = Number(updates[key])
+  }
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'no editable field given' }, { status: 400 })
+  }
+
+  const { error } = await getServiceSupabase()
+    .from('willow_finance_card_approvals')
+    .update({ ...updates, edited_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
+// DELETE — 물리 삭제하면 다음 수집이 되살리므로 가림 처리한다.
+export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
+  const id = new URL(request.url).searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const { error } = await getServiceSupabase()
+    .from('willow_finance_card_approvals')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

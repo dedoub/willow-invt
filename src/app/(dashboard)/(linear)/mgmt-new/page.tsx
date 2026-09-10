@@ -455,16 +455,17 @@ export default function MgmtNewPage() {
               usdRate={usdRate}
               balanceHistory={balanceHistory}
             />
-            <SalesBlockNew invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} />
+            <SalesBlockNew invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} onRefresh={loadData} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-            <TaxManagementBlockNew obligations={taxObligations} />
+            <TaxManagementBlockNew obligations={taxObligations} onRefresh={loadData} />
             <CardBlockNew
               approvals={cardApprovals}
               billing={cardBilling}
               year={cardYear}
               onYearChange={setCardYear}
               storageKey="willow-card"
+              onRefresh={loadData}
             />
           </div>
         </div>

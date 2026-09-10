@@ -11,6 +11,7 @@ import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { CardApproval, CardBilling } from '@/types/finance-card'
 import { FigureGrid, type FigureItem } from './figure-grid'
 import { CardDetailDialog } from './card-detail-dialog'
+import { RecordEditDialog, type EditField } from './record-edit-dialog'
 
 // 구분 배지가 늘 1열이다. 다른 표들과 배지 열 위치를 맞춘다.
 const COLUMNS: LColumn<CardApproval>[] = [
@@ -159,10 +160,12 @@ interface CardBlockProps {
   onYearChange: (year: number) => void
   /** 회사별로 행수·정렬 기억을 나눈다. */
   storageKey?: string
+  /** 고치거나 지운 뒤 목록을 다시 받아오게 한다. */
+  onRefresh?: () => void
   style?: React.CSSProperties
 }
 
-export function CardBlockNew({ approvals, billing, year, onYearChange, storageKey = 'tensw-card', style }: CardBlockProps) {
+export function CardBlockNew({ approvals, billing, year, onYearChange, storageKey = 'tensw-card', style, onRefresh }: CardBlockProps) {
   const mobile = useIsMobile()
   const [basis, setBasis] = useState<Basis>('billing')
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
@@ -173,6 +176,38 @@ export function CardBlockNew({ approvals, billing, year, onYearChange, storageKe
   const [category, setCategory] = useState<string>('all')
   const [searchOpen, setSearchOpen] = useState(false)
   const [selected, setSelected] = useState<CardApproval | null>(null)
+  const [editing, setEditing] = useState<CardApproval | null>(null)
+
+  // 가맹점 이름이 분류를 정하므로 여기가 실제로 고칠 일이 있는 칸이다.
+  const EDIT_FIELDS: EditField[] = [
+    { key: 'store_name', label: '가맹점', required: true, full: true },
+    { key: 'used_date', label: '날짜', kind: 'date', required: true },
+    { key: 'used_time', label: '시간', kind: 'time' },
+    { key: 'amount', label: '금액', kind: 'number', required: true },
+    { key: 'krw_amount', label: '원화 환산', kind: 'number' },
+    { key: 'store_type', label: '업종' },
+    { key: 'vat', label: '부가세', kind: 'number' },
+    { key: 'installment_month', label: '할부 개월' },
+    { key: 'store_corp_no', label: '사업자번호' },
+  ]
+
+  const removeApproval = async (item: CardApproval) => {
+    setSelected(null)
+    await fetch(`/api/willow-mgmt/cards?id=${item.id}`, { method: 'DELETE' })
+    onRefresh?.()
+  }
+
+  const saveApproval = async (item: CardApproval, values: Record<string, string>) => {
+    const res = await fetch('/api/willow-mgmt/cards', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, ...values }),
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '저장하지 못했습니다.')
+    setEditing(null)
+    setSelected(null)
+    onRefresh?.()
+  }
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<CardApproval>(storageKey, COLUMNS)
 
   const applyPageSize = (n: number) => {
@@ -476,6 +511,27 @@ export function CardBlockNew({ approvals, billing, year, onYearChange, storageKe
         approval={selected}
         category={selected ? classify(selected.store_name, selected.store_type).label : ''}
         onClose={() => setSelected(null)}
+        onEdit={() => { if (selected) setEditing(selected) }}
+        onDelete={() => { if (selected) removeApproval(selected) }}
+      />
+      <RecordEditDialog
+        open={!!editing}
+        title="승인내역 수정"
+        fields={EDIT_FIELDS}
+        initial={editing ? {
+          store_name: editing.store_name ?? '',
+          used_date: editing.used_date,
+          used_time: editing.used_time ? editing.used_time.slice(0, 5) : '',
+          amount: String(editing.amount),
+          krw_amount: String(editing.krw),
+          store_type: editing.store_type ?? '',
+          vat: editing.vat === null ? '' : String(editing.vat),
+          installment_month: editing.installment_month ?? '',
+          store_corp_no: editing.store_corp_no ?? '',
+        } : {}}
+        note="카드사에서 수집한 승인내역입니다. 지운 줄은 다음 수집에서도 다시 올라오지 않습니다."
+        onClose={() => setEditing(null)}
+        onSave={values => saveApproval(editing!, values)}
       />
     </LCard>
   )

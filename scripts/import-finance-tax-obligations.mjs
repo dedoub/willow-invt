@@ -45,11 +45,29 @@ async function run() {
     return
   }
 
-  const { data, error } = await supabaseClient()
+  const sb = supabaseClient()
+
+  // 화면에서 손댄 줄은 건너뛴다. 이 upsert 는 충돌 시 값을 덮으므로, 그냥 넣으면
+  // 사람이 고친 내용과 지운 표시가 수집 때마다 사라진다.
+  const { data: touched, error: touchedError } = await sb
     .from('finance_tax_obligations')
-    .upsert(rows, { onConflict: 'company,source,fingerprint' })
+    .select('fingerprint')
+    .eq('company', company)
+    .eq('source', source)
+    .or('edited_at.not.is.null,deleted_at.not.is.null')
+  if (touchedError) throw touchedError
+
+  const skip = new Set((touched ?? []).map(row => row.fingerprint))
+  const fresh = rows.filter(row => !skip.has(row.fingerprint))
+
+  const { data, error } = await sb
+    .from('finance_tax_obligations')
+    .upsert(fresh, { onConflict: 'company,source,fingerprint' })
     .select('id')
   if (error) throw error
+  if (skip.size > 0) {
+    console.log(`[tax-obligation-import] skipped ${rows.length - fresh.length} row(s) edited or deleted on screen`)
+  }
 
   console.log(`[tax-obligation-import] company=${company}, source=${source}, rows=${data?.length ?? 0}`)
 }

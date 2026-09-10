@@ -18,7 +18,9 @@ export async function GET(request: Request) {
   const supabase = getServiceSupabase()
   let query = supabase
     .from('willow_finance_tax_invoices')
-    .select('id, transe_type, reporting_date, issue_date, supplier_company, supplier_reg_number, contractor_company, contractor_reg_number, rep_items, supply_amount, tax_amount, total_amount, invoice_kind, receipt_or_charge, approval_no')
+    .select('id, transe_type, reporting_date, issue_date, supplier_company, supplier_reg_number, contractor_company, contractor_reg_number, rep_items, supply_amount, tax_amount, total_amount, invoice_kind, receipt_or_charge, approval_no, edited_at')
+    // 화면에서 지운 줄은 수집기가 같은 지문으로 다시 넣어도 보이지 않는다
+    .is('deleted_at', null)
     .order('reporting_date', { ascending: false })
 
   if (year) query = query.gte('reporting_date', `${year}-01-01`).lte('reporting_date', `${year}-12-31`)
@@ -37,4 +39,75 @@ export async function GET(request: Request) {
       counterparty_reg_number: row.transe_type === 'purchase' ? row.supplier_reg_number : row.contractor_reg_number,
     })),
   })
+}
+
+// 사람이 고칠 수 있는 칸만 연다. 지문·원본 payload·승인번호는 홈택스 원본 그대로 둔다.
+const EDITABLE = new Set([
+  'reporting_date', 'issue_date', 'rep_items', 'note',
+  'supply_amount', 'tax_amount', 'total_amount',
+  'invoice_kind', 'receipt_or_charge',
+  'supplier_company', 'contractor_company',
+])
+
+const NUMERIC = new Set(['supply_amount', 'tax_amount', 'total_amount'])
+
+// PUT — 계산서 한 줄 수정. 수집기는 ignoreDuplicates 라 고친 값이 덮이지 않지만,
+// 사람이 손댄 줄임을 남겨 두면 나중에 원본과 대조할 수 있다.
+export async function PUT(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
+  const body = await request.json()
+  const { id, counterparty, ...rest } = body ?? {}
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const supabase = getServiceSupabase()
+
+  const updates: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(rest)) {
+    if (EDITABLE.has(key)) updates[key] = value === '' ? null : value
+  }
+  for (const key of NUMERIC) {
+    if (updates[key] !== undefined && updates[key] !== null) updates[key] = Number(updates[key])
+  }
+
+  // 거래처는 매출이면 공급받는자, 매입이면 공급자 칸이다. 화면은 한 칸으로 보여주므로 여기서 가른다.
+  if (typeof counterparty === 'string') {
+    const { data: row, error: readError } = await supabase
+      .from('willow_finance_tax_invoices')
+      .select('transe_type')
+      .eq('id', id)
+      .single()
+    if (readError) return NextResponse.json({ error: readError.message }, { status: 500 })
+    updates[row.transe_type === 'purchase' ? 'supplier_company' : 'contractor_company'] = counterparty
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'no editable field given' }, { status: 400 })
+  }
+
+  const { error } = await supabase
+    .from('willow_finance_tax_invoices')
+    .update({ ...updates, edited_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
+// DELETE — 물리 삭제하면 다음 수집이 되살리므로 가림 처리한다.
+export async function DELETE(request: Request) {
+  const denied = await denyUnlessDashboardAccess(request)
+  if (denied) return denied
+
+  const id = new URL(request.url).searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const { error } = await getServiceSupabase()
+    .from('willow_finance_tax_invoices')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

@@ -11,6 +11,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
 import { FigureGrid, type FigureItem } from './figure-grid'
 import { TaxDetailDialog } from './tax-detail-dialog'
+import { RecordEditDialog, type EditField } from './record-edit-dialog'
 
 type SourceFilter = 'all' | TaxObligationSource
 
@@ -72,7 +73,7 @@ function obligationYear(item: FinanceTaxObligation): string | null {
   return item.due_date?.slice(0, 4) ?? item.period_label?.slice(0, 4) ?? null
 }
 
-export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTaxObligation[] }) {
+export function TaxManagementBlockNew({ obligations, onRefresh }: { obligations: FinanceTaxObligation[]; onRefresh?: () => void }) {
   const mobile = useIsMobile()
   const [source, setSource] = useState<SourceFilter>('all')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -82,6 +83,39 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
   const [pageSize, setPageSize] = useState(storedPageSize)
   const [searchOpen, setSearchOpen] = useState(false)
   const [selected, setSelected] = useState<FinanceTaxObligation | null>(null)
+  const [editing, setEditing] = useState<FinanceTaxObligation | null>(null)
+
+  // 수집 원장이지만 사람이 고칠 수 있는 칸만 연다. 저장하면 다음 수집이 그 줄을 건너뛴다.
+  const EDIT_FIELDS: EditField[] = [
+    { key: 'status', label: '상태', kind: 'chips', options: STATUS_FILTERS.filter(o => o.value !== 'all').map(o => ({ value: o.value, label: o.label })), full: true },
+    { key: 'title', label: '고지내역', required: true, full: true },
+    { key: 'agency', label: '기관', required: true },
+    { key: 'obligation_type', label: '세목' },
+    { key: 'amount', label: '금액', kind: 'number', required: true },
+    { key: 'due_date', label: '납부기한', kind: 'date' },
+    { key: 'issued_date', label: '고지일', kind: 'date' },
+    { key: 'paid_at', label: '납부일', kind: 'date' },
+    { key: 'period_label', label: '과세기간' },
+    { key: 'notice_number', label: '전자납부번호' },
+  ]
+
+  const removeObligation = async (item: FinanceTaxObligation) => {
+    setSelected(null)
+    await fetch(`/api/finance/tax-obligations?id=${item.id}`, { method: 'DELETE' })
+    onRefresh?.()
+  }
+
+  const saveObligation = async (item: FinanceTaxObligation, values: Record<string, string>) => {
+    const res = await fetch('/api/finance/tax-obligations', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, ...values }),
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '저장하지 못했습니다.')
+    setEditing(null)
+    setSelected(null)
+    onRefresh?.()
+  }
 
   const yearScoped = useMemo(
     () => obligations.filter(item => obligationYear(item) === String(year)),
@@ -289,7 +323,32 @@ export function TaxManagementBlockNew({ obligations }: { obligations: FinanceTax
         )}
       </div>
 
-      <TaxDetailDialog obligation={selected} onClose={() => setSelected(null)} />
+      <TaxDetailDialog
+        obligation={selected}
+        onClose={() => setSelected(null)}
+        onEdit={() => { if (selected) setEditing(selected) }}
+        onDelete={() => { if (selected) removeObligation(selected) }}
+      />
+      <RecordEditDialog
+        open={!!editing}
+        title="고지 수정"
+        fields={EDIT_FIELDS}
+        initial={editing ? {
+          status: editing.status,
+          title: editing.title,
+          agency: editing.agency,
+          obligation_type: editing.obligation_type,
+          amount: String(editing.amount),
+          due_date: editing.due_date ?? '',
+          issued_date: editing.issued_date ?? '',
+          paid_at: editing.paid_at ?? '',
+          period_label: editing.period_label ?? '',
+          notice_number: editing.notice_number ?? '',
+        } : {}}
+        note="홈택스·위택스·4대보험에서 수집한 고지입니다. 저장하면 다음 수집이 이 줄을 건너뜁니다."
+        onClose={() => setEditing(null)}
+        onSave={values => saveObligation(editing!, values)}
+      />
     </LCard>
   )
 }

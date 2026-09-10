@@ -2,6 +2,7 @@
 
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from './figure-grid'
 
@@ -24,13 +25,15 @@ interface Props {
   row: SalesDetailRow | null
   usdRate: number
   onClose: () => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
 /**
  * 매출 상세 — 거래 상세와 같은 문법. 카드를 그대로 띄우고 표의 열 순서로 읽힌다.
  * 행 안에서 펼치면 표가 밀려 흐름이 끊겨 모달로 뺐다(CEO 2026-09-10).
  */
-export function SalesDetailDialog({ row, usdRate, onClose }: Props) {
+export function SalesDetailDialog({ row, usdRate, onClose, onEdit, onDelete }: Props) {
   const mobile = useIsMobile()
   if (!row) return null
 
@@ -83,12 +86,12 @@ export function SalesDetailDialog({ row, usdRate, onClose }: Props) {
           <FigureGrid items={[...facts, ...extras]} cols={cols} />
         </div>
 
-        {/* 수집 원장이라 화면에서 고치지 않는다 — 버튼 자리에 출처를 남겨 다른 상세와 같은 끝단을 만든다 */}
         <div style={{
-          margin: `0 ${t.density.cardPad}px`, paddingBottom: t.density.cardPad,
-          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.4,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
+          margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
         }}>
-          {row.source === 'tax' ? '홈택스에서 수집한 전자세금계산서입니다. 이 화면에서는 고치지 않습니다.' : 'ETC 해외 인보이스입니다. 발행·수금은 인보이스 화면에서 관리합니다.'}
+          <LBtn variant="ghost" size="sm" onClick={onDelete}>삭제</LBtn>
+          <LBtn variant="secondary" size="sm" onClick={onEdit}>수정</LBtn>
         </div>
 
       </LCard>

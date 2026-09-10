@@ -2,6 +2,7 @@
 
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from './figure-grid'
 import type { CardApproval } from '@/types/finance-card'
@@ -11,6 +12,8 @@ interface Props {
   /** 표에서 쓰는 분류 라벨 — 분류 규칙은 카드 블록이 갖고 있다 */
   category: string
   onClose: () => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
 /** 마스킹된 카드번호에서 끝 네 자리 */
@@ -22,7 +25,7 @@ function cardTail(cardNo: string | null | undefined): string {
  * 승인 상세 — 표의 열 순서대로 읽고, 행에 못 담은 업종·할부·부가세를 아래에 잇는다.
  * 카드 문법 그대로다(2026-09-10).
  */
-export function CardDetailDialog({ approval, category, onClose }: Props) {
+export function CardDetailDialog({ approval, category, onClose, onEdit, onDelete }: Props) {
   const mobile = useIsMobile()
   if (!approval) return null
 
@@ -78,12 +81,12 @@ export function CardDetailDialog({ approval, category, onClose }: Props) {
           <FigureGrid items={items} cols={cols} />
         </div>
 
-        {/* 수집 원장이라 화면에서 고치지 않는다 — 버튼 자리에 출처를 남겨 다른 상세와 같은 끝단을 만든다 */}
         <div style={{
-          margin: `0 ${t.density.cardPad}px`, paddingBottom: t.density.cardPad,
-          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.4,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
+          margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
         }}>
-          카드사에서 수집한 승인내역입니다. 이 화면에서는 고치지 않습니다.
+          <LBtn variant="ghost" size="sm" onClick={onDelete}>삭제</LBtn>
+          <LBtn variant="secondary" size="sm" onClick={onEdit}>수정</LBtn>
         </div>
 
       </LCard>

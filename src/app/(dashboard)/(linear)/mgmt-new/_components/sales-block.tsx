@@ -12,6 +12,7 @@ import {
 import type { WillowInvoice, WillowTaxInvoice } from '@/types/willow-mgmt'
 import { FigureGrid, type FigureItem } from './figure-grid'
 import { SalesDetailDialog } from './sales-detail-dialog'
+import { RecordEditDialog, type EditField } from './record-edit-dialog'
 
 // 윌로우 매출은 두 갈래다.
 //   세금계산서 — 홈택스에서 수집한 국내 전자세금계산서(원화)
@@ -74,10 +75,12 @@ interface SalesBlockProps {
   etcInvoices: WillowInvoice[]
   /** 원화 환산 환율. 0이면 환산하지 않고 USD 그대로 둔다. */
   usdRate: number
+  /** 고치거나 지운 뒤 목록을 다시 받아오게 한다. */
+  onRefresh?: () => void
   style?: React.CSSProperties
 }
 
-export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBlockProps) {
+export function SalesBlockNew({ invoices, etcInvoices, usdRate, style, onRefresh }: SalesBlockProps) {
   const mobile = useIsMobile()
   const [mode, setMode] = useState<Mode>('sales')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -85,6 +88,83 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [selected, setSelected] = useState<SalesRow | null>(null)
+  const [editing, setEditing] = useState<SalesRow | null>(null)
+
+  // 계산서는 홈택스 수집분, 인보이스는 우리가 발행한 건이라 고칠 칸이 다르다.
+  const TAX_FIELDS: EditField[] = [
+    { key: 'counterparty', label: '거래처', required: true, full: true },
+    { key: 'reporting_date', label: '작성일', kind: 'date', required: true },
+    { key: 'issue_date', label: '발행일', kind: 'date' },
+    { key: 'supply_amount', label: '공급가액', kind: 'number' },
+    { key: 'tax_amount', label: '부가세', kind: 'number' },
+    { key: 'total_amount', label: '합계', kind: 'number', required: true },
+    { key: 'rep_items', label: '품목', kind: 'textarea', full: true },
+  ]
+  const ETC_FIELDS: EditField[] = [
+    { key: 'bill_to_company', label: '거래처', required: true, full: true },
+    { key: 'invoice_date', label: '작성일', kind: 'date', required: true },
+    { key: 'paid_at', label: '수금일', kind: 'date' },
+    { key: 'attention', label: '수신' },
+    { key: 'notes', label: '비고', kind: 'textarea', full: true },
+  ]
+
+  const removeRow = async (row: SalesRow) => {
+    setSelected(null)
+    const url = row.source === 'tax'
+      ? `/api/willow-mgmt/tax-invoices?id=${row.id}`
+      : `/api/invoices/${row.id}`
+    await fetch(url, { method: 'DELETE' })
+    onRefresh?.()
+  }
+
+  const saveRow = async (row: SalesRow, values: Record<string, string>) => {
+    const res = row.source === 'tax'
+      ? await fetch('/api/willow-mgmt/tax-invoices', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, ...values }),
+      })
+      : await fetch(`/api/invoices/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bill_to_company: values.bill_to_company,
+          invoice_date: values.invoice_date,
+          paid_at: values.paid_at || null,
+          attention: values.attention || null,
+          notes: values.notes || null,
+        }),
+      })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '저장하지 못했습니다.')
+    setEditing(null)
+    setSelected(null)
+    onRefresh?.()
+  }
+
+  const editInitial = (row: SalesRow): Record<string, string> => {
+    if (row.source === 'tax') {
+      const supply = row.extra.find(e => e.label === '공급가액')?.value ?? ''
+      const tax = row.extra.find(e => e.label === '부가세')?.value ?? ''
+      const digits = (v: string) => v.replace(/[^0-9-]/g, '')
+      return {
+        counterparty: row.counterparty,
+        reporting_date: row.date,
+        issue_date: row.issuedAt ?? '',
+        supply_amount: digits(supply),
+        tax_amount: digits(tax),
+        total_amount: String(row.amount),
+        rep_items: row.detail,
+      }
+    }
+    const paid = row.extra.find(e => e.label === '수금일')?.value ?? ''
+    return {
+      bill_to_company: row.counterparty,
+      invoice_date: row.date,
+      paid_at: paid === '-' ? '' : paid,
+      attention: row.extra.find(e => e.label === '수신')?.value ?? '',
+      notes: '',
+    }
+  }
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<SalesRow>('willow-sales', COLUMNS)
 
   const yearFiltered = useMemo<SalesRow[]>(() => {
@@ -351,6 +431,19 @@ export function SalesBlockNew({ invoices, etcInvoices, usdRate, style }: SalesBl
         row={selected ? { ...selected, sourceLabel: SOURCE_LABEL[selected.source] } : null}
         usdRate={usdRate}
         onClose={() => setSelected(null)}
+        onEdit={() => { if (selected) setEditing(selected) }}
+        onDelete={() => { if (selected) removeRow(selected) }}
+      />
+      <RecordEditDialog
+        open={!!editing}
+        title={editing?.source === 'etc' ? '인보이스 수정' : '계산서 수정'}
+        fields={editing?.source === 'etc' ? ETC_FIELDS : TAX_FIELDS}
+        initial={editing ? editInitial(editing) : {}}
+        note={editing?.source === 'etc'
+          ? 'ETC 해외 인보이스입니다. 발송·수금 상태는 인보이스 화면에서 관리합니다.'
+          : '홈택스에서 수집한 전자세금계산서입니다. 지운 줄은 다음 수집에서도 다시 올라오지 않습니다.'}
+        onClose={() => setEditing(null)}
+        onSave={values => saveRow(editing!, values)}
       />
     </LCard>
   )
