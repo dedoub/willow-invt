@@ -390,7 +390,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       {/* Navigation */}
       <nav style={{ flex: 1, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, overflowY: 'auto', overflowX: 'hidden' }}>
         {!rail && groupHead(willow.key, willow.label)}
-        {!isFolded(willow.key) && willow.items.map(navLink)}
+        {!isFolded(willow.key) && willow.items.filter(i => !i.hidden).map(navLink)}
 
         {/* 관계회사 — 회사 자체 다음에 바로. 관계사간 거래 원장도 여기 */}
         {sortableGroup(investees.key, investees.label, investeesOrder)}
@@ -398,7 +398,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {/* 자산관리 — 윌로우 명의 투자자산 */}
         {!rail && groupHead(assets.key, assets.label)}
         {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
-        {!isFolded(assets.key) && assets.items.map(navLink)}
+        {!isFolded(assets.key) && assets.items.filter(i => !i.hidden).map(navLink)}
 
         {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
         {sortableGroup(appsEdu.key, appsEdu.label, appsEduOrder)}
@@ -408,7 +408,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
           <>
             {!rail && groupHead(inquiries.key, inquiries.label)}
             {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
-            {!isFolded(inquiries.key) && inquiries.items.map(navLink)}
+            {!isFolded(inquiries.key) && inquiries.items.filter(i => !i.hidden).map(navLink)}
           </>
         )}
 
@@ -418,7 +418,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
           <>
             {!rail && groupHead(admin.key, admin.label)}
             {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
-            {!isFolded(admin.key) && admin.items.map(navLink)}
+            {!isFolded(admin.key) && admin.items.filter(i => !i.hidden).map(navLink)}
           </>
         )}
       </nav>

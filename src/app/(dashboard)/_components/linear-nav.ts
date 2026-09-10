@@ -6,6 +6,11 @@ export interface NavItem {
   id: string
   href: string
   label: string
+  /**
+   * 사이드바에 안 보이는 항목. 페이지는 살아 있고 breadcrumb·탭 제목도 이 이름을 쓴다.
+   * 여러 화면을 한 페이지로 합치고 옛 경로를 남겨 둘 때 쓴다(2026-09-10 업무 통합).
+   */
+  hidden?: boolean
   icon?: string   // 아이콘 메뉴(윌로우/관리자)
   dot?: string    // 서비스 색. 네이비 면 위에서 읽히는 라이트 톤.
   /**
@@ -36,9 +41,12 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '윌로우인베스트먼트',
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '사업관리',  icon: 'briefcase' },
-      { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail' },
-      { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book' },
-      { id: 'corp',       href: '/corp',       label: '법인서류함', icon: 'file' },
+      // 업무 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10).
+      { id: 'work',       href: '/work',       label: '업무',      icon: 'book' },
+      // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
+      { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
+      { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book', hidden: true },
+      { id: 'corp',       href: '/corp',       label: '법인서류함', icon: 'file', hidden: true },
     ],
   },
   {

@@ -9,7 +9,6 @@ import { CashBlock } from './_components/cash-block'
 import { TaxManagementBlock } from './_components/tax-management-block'
 import { SalesBlock } from './_components/sales-block'
 import { CardBlock } from '@/app/(dashboard)/_components/card-block'
-import { EmailBlock } from './_components/email-block'
 import { AddScheduleDialog, ScheduleFormData } from './_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from './_components/add-invoice-dialog'
 import { InvoiceDetailDialog } from './_components/invoice-detail-dialog'
@@ -427,7 +426,7 @@ export default function MgmtPage() {
       {loadPhase === 0 ? <MgmtSkeleton /> : (
       <>
 
-      {/* 일정 · 현금/매출 · 세금/카드 · 이메일 */}
+      {/* 일정 · 현금/매출 · 세금/카드 — 이메일·위키·서류함은 /work 통합 페이지로 옮겼다(CEO 2026-09-10) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <ScheduleBlock
           schedules={schedules}
@@ -462,14 +461,7 @@ export default function MgmtPage() {
           </div>
         </div>
 
-        <EmailBlock
-          emails={emails}
-          connected={gmailConnected}
-          onSelectEmail={setSelectedEmail}
-          onSync={handleSyncEmails}
-          onCompose={handleCompose}
-          isSyncing={isSyncing}
-        />
+
       </div>
 
       {/* Schedule dialogs */}
