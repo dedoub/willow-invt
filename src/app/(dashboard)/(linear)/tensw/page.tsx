@@ -534,10 +534,12 @@ export default function TenswPage() {
           </div>
 
           {/* Wiki (1/2) + Email (1/2) — 위키는 목록만, 상세는 모달 (CEO 2026-09-10). 1열 토글 시엔 세로 스택 */}
+          {/* alignItems:start — 두 카드가 각자 내용만큼만 자란다. 늘려 맞추면 짧은 쪽에 빈 판이 남는다(CEO 2026-09-11) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
             gap: t.density.blockGap,
+            alignItems: 'start',
           }}>
             <TenswWikiBlock
               notes={wikiNotes}
@@ -545,10 +547,6 @@ export default function TenswPage() {
               onCreate={handleCreateWiki}
               onUpdate={handleUpdateWiki}
               onDelete={handleDeleteWiki}
-              // 1열이든 2열이든 목록(기본 10행)이 높이를 정한다. availH(뷰포트 하단까지)는
-              // 이 블록이 페이지 아래쪽에 있을 때 top이 이미 화면 밖이라 최소값 360으로
-              // 눌려서, 1열 모드에서만 섹션이 짧아졌다.
-              fillHeight={!mobile}
             />
             <EmailBlock
               emails={emails}
