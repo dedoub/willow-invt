@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   buildVoicecardsUserPurchaseFacts,
   mergeVoicecardsPurchaseSignals,
+  summarizeVoicecardsMonthlyPurchases,
   summarizeVoicecardsPurchaseSignals,
 } from '../voicecards-purchase-alert'
 
@@ -74,6 +75,28 @@ test('counts receipt-only purchases in dashboard revenue totals', () => {
   assert.equal(totals.creditsTotal, 1100)
   assert.equal(totals.iosByDate.get('2026-09-08'), 9.99)
   assert.equal(totals.creditsByDate.get('2026-09-08'), 1100)
+})
+
+test('counts receipt-only purchases in the monthly alert summary', () => {
+  const signals = mergeVoicecardsPurchaseSignals([], [{
+    store_txn_id: 'txn-1',
+    platform: 'ios',
+    user_id: 'user-1',
+    product_id: 'com.monor.voicecards.credits.1000',
+    credits: 1100,
+    created_at: '2026-09-08T03:47:20.000Z',
+  }])
+
+  const summary = summarizeVoicecardsMonthlyPurchases(
+    signals,
+    productId => productId === 'com.monor.voicecards.credits.1000' ? 9.99 : null,
+  )
+
+  assert.deepEqual(summary, {
+    purchaseCount: 1,
+    listUsd: 9.99,
+    unpricedCount: 0,
+  })
 })
 
 test('uses receipts for user-table purchase date and credit totals', () => {

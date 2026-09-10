@@ -25,7 +25,11 @@ import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
 import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsActivationDateFromEvidence, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
-import { mergeVoicecardsPurchaseSignals, type VoicecardsPurchaseReceipt } from '../src/lib/voicecards-purchase-alert'
+import { mergeVoicecardsPurchaseSignals, summarizeVoicecardsMonthlyPurchases, type VoicecardsPurchaseReceipt } from '../src/lib/voicecards-purchase-alert'
+import {
+  aggregateVoicecardsStoreRevenue,
+  type VoicecardsStoreRevenueRow,
+} from '../src/lib/voicecards-store-revenue'
 
 // ============================================================
 // Config
@@ -2761,18 +2765,10 @@ function vcPurchaseCountryLabel(country: string | null | undefined): string {
 // 결제 알림과 정산 확정 알림이 같은 블록을 쓴다. 같은 달 매출이 두 메시지에서 다르게
 // 보이면 어느 쪽이 맞는지 되물어야 하므로 계산은 여기 한 곳에만 둔다.
 //
-// 두 숫자를 따로 적는 이유: 결제 이벤트는 즉시 잡히지만 정가이고(스토어 수수료·환율
-// 반영 전), 스토어 정산은 실수령이지만 1~2일 늦고 지금은 iOS만 들어온다. 둘을 하나로
-// 합치면 어느 쪽도 아닌 값이 된다.
+// 결제 건수는 서버 영수증을 즉시 잡고, 실제 판매액과 실수령액은 스토어 보고서에서
+// 읽는다. 스토어 보고서는 늦게 들어오므로 보고 범위를 함께 밝혀 둘을 섞지 않는다.
 
-interface VoicecardsStoreRevenueRow {
-  date: string
-  platform: string
-  product_id: string
-  currency: string
-  units: number
-  proceeds: number
-  proceeds_currency: string | null
+interface VoicecardsStoredRevenueRow extends VoicecardsStoreRevenueRow {
   created_at: string
 }
 
@@ -2817,87 +2813,114 @@ function vcCurrentMonthWindow(now = new Date()): { startIso: string; startDate: 
   return { startIso, startDate, label: `${month + 1}/1~${month + 1}/${kstNow.getUTCDate()}` }
 }
 
-function vcPurchaseUsdAmount(productId: string, country: string | null | undefined): number | null {
-  const countryCode = country?.trim().toUpperCase() || ''
-  const localUsd = VC_PRODUCT_PRICES_LOCAL_USD[countryCode]?.[productId]
-  if (localUsd) return localUsd
-  return VC_PRODUCT_PRICES_USD[productId] ?? null
-}
-
 // 읽지 못한 것과 정산이 없는 것은 다르다. 앞의 것을 빈 배열로 돌려주면 알림이
 // "정산 없음"이라고 조용히 잘못 말한다 — 실제로 그렇게 한 번 나갔다.
 async function fetchVoicecardsStoreRevenueSince(
   column: 'date' | 'created_at',
   since: string
-): Promise<VoicecardsStoreRevenueRow[] | null> {
+): Promise<VoicecardsStoredRevenueRow[] | null> {
   if (!voicecardsAdminSupabase) return null
   const { data, error } = await voicecardsAdminSupabase
     .from('store_revenue')
-    .select('date, platform, product_id, currency, units, proceeds, proceeds_currency, created_at')
+    .select('date, platform, product_id, currency, units, customer_price, proceeds, proceeds_currency, created_at')
     .gte(column, since)
     .order('created_at', { ascending: true })
   if (error) {
     console.error('VoiceCards store_revenue 조회 실패:', error.message)
     return null
   }
-  return (data || []) as VoicecardsStoreRevenueRow[]
+  return (data || []) as VoicecardsStoredRevenueRow[]
 }
 
-// 통화가 섞인 실수령액을 USD 한 줄로 만든다. 환산 못한 통화는 숨기지 않고 원통화로 남긴다.
-async function vcFormatProceeds(rows: VoicecardsStoreRevenueRow[]): Promise<string> {
-  const byCurrency = new Map<string, number>()
-  for (const row of rows) {
-    const code = (row.proceeds_currency || row.currency || 'USD').trim().toUpperCase()
-    byCurrency.set(code, (byCurrency.get(code) || 0) + (Number(row.proceeds) || 0))
-  }
-  if (!byCurrency.size) return '$0.00'
+function vcFormatUsd(amount: number): string {
+  return `${amount < 0 ? '-' : ''}$${Math.abs(amount).toFixed(2)}`
+}
 
-  const rates = await fetchVoicecardsUsdFxRates(Array.from(byCurrency.keys()))
+// 통화가 섞인 스토어 금액을 USD 합계와 스토어별 내역으로 만든다. 환산할 수 없는
+// 통화는 숨기지 않고 원통화로 남긴다.
+async function vcFormatStoreCurrencyAmounts(
+  amounts: Map<string, number>,
+): Promise<{ total: string; byPlatform: string }> {
+  const currencies = Array.from(new Set(Array.from(amounts.keys()).map(key => key.split(':')[1])))
+  const rates = await fetchVoicecardsUsdFxRates(currencies)
+  const perPlatform = new Map<string, { usd: number; unconverted: string[] }>()
   let usdTotal = 0
-  const unconverted: string[] = []
-  for (const [code, amount] of byCurrency) {
-    if (code === 'USD') { usdTotal += amount; continue }
-    const rate = rates?.[code]
-    if (rate && rate > 0) usdTotal += amount / rate
-    else unconverted.push(`${code} ${amount.toLocaleString('en-US')}`)
+  const unconvertedTotal: string[] = []
+
+  for (const [key, amount] of amounts) {
+    const [platform, currency] = key.split(':')
+    const value = perPlatform.get(platform) || { usd: 0, unconverted: [] }
+    if (currency === 'USD') {
+      value.usd += amount
+      usdTotal += amount
+    } else {
+      const rate = rates?.[currency]
+      if (rate && rate > 0) {
+        value.usd += amount / rate
+        usdTotal += amount / rate
+      } else {
+        const original = `${currency} ${amount.toLocaleString('en-US')}`
+        value.unconverted.push(original)
+        unconvertedTotal.push(original)
+      }
+    }
+    perPlatform.set(platform, value)
   }
 
-  const usdPart = usdTotal > 0 ? `$${usdTotal.toFixed(2)}` : ''
-  if (!unconverted.length) return usdPart || '$0.00'
-  return [usdPart, ...unconverted].filter(Boolean).join(' + ')
+  const platformLabel = (platform: string) => platform === 'ios' ? 'iOS' : 'Android'
+  const byPlatform = Array.from(perPlatform.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([platform, value]) => {
+      const parts = [value.usd !== 0 ? vcFormatUsd(value.usd) : '', ...value.unconverted].filter(Boolean)
+      return `${platformLabel(platform)} ${parts.join(' + ') || '$0.00'}`
+    })
+    .join(' · ')
+  const totalParts = [usdTotal !== 0 ? vcFormatUsd(usdTotal) : '', ...unconvertedTotal].filter(Boolean)
+  return { total: totalParts.join(' + ') || '$0.00', byPlatform }
 }
 
 async function buildVoicecardsMonthlyRevenueLines(): Promise<string[]> {
   const { startIso, startDate, label } = vcCurrentMonthWindow()
-  const [purchaseEvents, revenueRows] = await Promise.all([
-    fetchVoicecardsPurchaseEventsSince(startIso),
+  const [purchaseSignals, revenueRows] = await Promise.all([
+    fetchVoicecardsPurchaseSignalsSince(startIso),
     fetchVoicecardsStoreRevenueSince('date', startDate),
   ])
-
-  const userCountryMap = await fetchVoicecardsUserCountries(
-    Array.from(new Set(purchaseEvents.map(event => event.user_id).filter(Boolean) as string[]))
+  const purchases = summarizeVoicecardsMonthlyPurchases(
+    purchaseSignals,
+    productId => VC_PRODUCT_PRICES_USD[productId] ?? null,
   )
-  let listUsd = 0
-  let unpricedCount = 0
-  for (const event of purchaseEvents) {
-    const productId = typeof event.properties?.product_id === 'string' ? event.properties.product_id : ''
-    const country = event.country || (event.user_id ? userCountryMap.get(event.user_id) : null)
-    const usd = vcPurchaseUsdAmount(productId, country)
-    if (usd === null) unpricedCount += 1
-    else listUsd += usd
-  }
 
   const lines = [`📊 이번 달 누적 (${label} KST)`]
-  lines.push(
-    `- 결제 ${purchaseEvents.length}건 · 정가 기준 $${listUsd.toFixed(2)}`
-    + (unpricedCount ? ` (가격 미확인 ${unpricedCount}건 제외)` : '')
-  )
   if (revenueRows === null) {
+    lines.push(`- 결제 ${purchases.purchaseCount}건 · 실제 판매액 조회 실패`)
     lines.push('- 정산 확정: 조회 실패 (store_revenue 읽기 권한·연결 확인 필요)')
   } else if (revenueRows.length) {
-    const platforms = Array.from(new Set(revenueRows.map(row => row.platform === 'ios' ? 'iOS' : 'Android')))
-    lines.push(`- 정산 확정 ${await vcFormatProceeds(revenueRows)} · 실수령 (${platforms.join('·')} ${revenueRows.length}건, 1~2일 지연)`)
+    const totals = aggregateVoicecardsStoreRevenue(revenueRows)
+    const [sales, proceeds] = await Promise.all([
+      vcFormatStoreCurrencyAmounts(totals.salesByPlatformCurrency),
+      vcFormatStoreCurrencyAmounts(totals.proceedsByPlatformCurrency),
+    ])
+    const coverage = totals.reportedUnits === purchases.purchaseCount
+      ? `${totals.reportedUnits}건`
+      : `스토어 보고 ${totals.reportedUnits}/${purchases.purchaseCount}건`
+    lines.push(
+      `- 결제 ${purchases.purchaseCount}건 · 실제 판매 ${sales.total}`
+      + ` (${sales.byPlatform}; ${coverage}, 1~2일 지연)`
+      + (totals.unpricedRows ? ` · 금액 미확인 ${totals.unpricedRows}행` : '')
+    )
+    const unsettledPlatforms = Array.from(new Set(
+      revenueRows.filter(row => row.proceeds === null).map(row => row.platform === 'ios' ? 'iOS' : 'Android')
+    ))
+    if (totals.proceedsByPlatformCurrency.size) {
+      lines.push(
+        `- 정산 확정 ${proceeds.total} · 실수령 (${proceeds.byPlatform})`
+        + (unsettledPlatforms.length ? ` · ${unsettledPlatforms.join('·')} 정산 대기` : '')
+      )
+    } else {
+      lines.push(`- 정산 확정 없음 (${unsettledPlatforms.join('·') || '스토어'} 수익 리포트 대기)`)
+    }
   } else {
+    lines.push(`- 결제 ${purchases.purchaseCount}건 · 실제 판매 집계 대기 (스토어 리포트 1~2일 지연)`)
     lines.push('- 정산 확정 없음 (스토어 리포트 1~2일 지연)')
   }
   return lines
@@ -3005,7 +3028,7 @@ async function monitorVoicecardsPurchasesOnce() {
   saveVoicecardsEventMonitorState()
 }
 
-// 스토어 정산 확정 알림. store-revenue-sync 가 직접 텔레그램을 쏘던 것을 여기로 옮겼다 —
+// 스토어 매출 집계 알림. store-revenue-sync 가 직접 텔레그램을 쏘던 것을 여기로 옮겼다 —
 // 결제·정산이 각자 다른 코드에서 나가면 형식도 월 누적도 따로 놀고, 그쪽 메시지는
 // CEO 대화 맥락에 들어가지 않아 되물을 수도 없었다.
 let voicecardsStoreRevenueMonitorRunning = false
@@ -3041,19 +3064,25 @@ async function monitorVoicecardsStoreRevenueOnce() {
   if (!rows.length) return
 
   const alertHash = simpleHash(JSON.stringify(
-    rows.map(row => [row.date, row.platform, row.product_id, row.currency, row.proceeds])
+    rows.map(row => [row.date, row.platform, row.product_id, row.currency, row.customer_price, row.proceeds])
   ))
   if (alertState.lastHash === alertHash) return
 
   const detailLines = rows.slice(0, 8).map(row => {
     const platform = row.platform === 'ios' ? 'iOS' : 'Android'
-    const proceeds = `${Number(row.proceeds).toLocaleString('en-US')}${row.proceeds_currency ? ` ${row.proceeds_currency}` : ''}`
-    return `- ${row.date} ${platform} · ${row.product_id} × ${row.units} · 결제 ${row.currency} → 실수령 ${proceeds}`
+    const sales = row.customer_price === null
+      ? '금액 미확인'
+      : `${Number(row.customer_price).toLocaleString('en-US')} ${row.currency}`
+    const proceedsCurrency = row.proceeds_currency || row.currency
+    const proceeds = row.proceeds === null
+      ? '정산 대기'
+      : `${Number(row.proceeds).toLocaleString('en-US')} ${proceedsCurrency}`
+    return `- ${row.date} ${platform} · ${row.product_id} × ${row.units} · 결제 ${sales} → 실수령 ${proceeds}`
   })
   const monthlyLines = await buildVoicecardsMonthlyRevenueLines()
   const body = [
-    '💵 [VoiceCards 정산 확정]',
-    `- 신규 확정 ${rows.length}건 (실제 수령액)`,
+    '💵 [VoiceCards 스토어 매출 집계]',
+    `- 신규 반영 ${rows.length}건 (실제 판매액)`,
     ...detailLines,
     rows.length > detailLines.length ? `- 외 ${rows.length - detailLines.length}건` : '',
   ].filter(Boolean).join('\n')

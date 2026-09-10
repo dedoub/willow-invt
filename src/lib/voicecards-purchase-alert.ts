@@ -33,6 +33,12 @@ export interface VoicecardsUserPurchaseFacts {
   lastPurchaseAt: string | null
 }
 
+export interface VoicecardsMonthlyPurchaseSummary {
+  purchaseCount: number
+  listUsd: number
+  unpricedCount: number
+}
+
 const PURCHASE_SOURCE_DEDUP_WINDOW_MS = 2 * 60 * 1000
 
 function receiptMatchesEvent(
@@ -120,6 +126,27 @@ export function summarizeVoicecardsPurchaseSignals(
   }
 
   return totals
+}
+
+export function summarizeVoicecardsMonthlyPurchases(
+  signals: VoicecardsPurchaseSignal[],
+  priceForProduct: (productId: string) => number | null,
+): VoicecardsMonthlyPurchaseSummary {
+  let purchaseCount = 0
+  let listUsd = 0
+  let unpricedCount = 0
+
+  for (const signal of signals) {
+    const properties = signal.properties || {}
+    if (properties.reason !== 'purchase') continue
+    purchaseCount += 1
+    const productId = typeof properties.product_id === 'string' ? properties.product_id : ''
+    const price = priceForProduct(productId)
+    if (price === null || !Number.isFinite(price)) unpricedCount += 1
+    else listUsd += price
+  }
+
+  return { purchaseCount, listUsd, unpricedCount }
 }
 
 export function buildVoicecardsUserPurchaseFacts(
