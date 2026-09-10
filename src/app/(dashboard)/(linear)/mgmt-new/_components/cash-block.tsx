@@ -60,12 +60,14 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'transfer', label: '대체' },
 ]
 
+// 구분 배지 — 색조 대신 회색 명도로 가른다. 원본 파스텔은 명도가 228~240으로 몰려 있어
+// 탈색만 해서는 서로 구분되지 않았다. 다섯 단계를 눈에 보이는 간격으로 직접 잡는다(CEO 2026-09-10).
 const TYPE_TONES: Record<string, { bg: string; fg: string }> = {
-  revenue:   { bg: '#DCE8F5', fg: '#1F4E79' },
-  expense:   { bg: '#F9E8D0', fg: '#8A5A1A' },
-  asset:     { bg: '#DAEEDD', fg: '#1F5F3D' },
-  liability: { bg: '#F3DADA', fg: '#8A2A2A' },
-  transfer:  { bg: '#E8E0F0', fg: '#5B3D8A' },
+  revenue:   { bg: '#D3D7DD', fg: '#1F242B' },
+  expense:   { bg: '#E4E7EB', fg: '#2C323A' },
+  asset:     { bg: '#EDEFF2', fg: '#3A4048' },
+  liability: { bg: '#C7CCD3', fg: '#171B21' },
+  transfer:  { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
 const TYPE_LABELS: Record<string, string> = {

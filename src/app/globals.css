@@ -746,11 +746,13 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-color: #D6D9DD !important;
   color: #111827 !important;
 }
+/* 활성 상태 = 브랜드 네이비. 사이드바 면(#0A2E40)과 같은 색이라 좌측 메뉴와 본문 컨트롤이 한 덩어리로 읽힌다.
+   강조색은 여기(활성 칩·탭)에만 쓰고 나머지는 회색으로 둔다(CEO 2026-09-10). */
 .theme-outline [data-filter-chip][data-active],
 .theme-outline [data-segment][data-active] {
-  background: #111827 !important;
+  background: #0A2E40 !important;
   color: #FFFFFF !important;
-  border-color: #111827 !important;
+  border-color: #0A2E40 !important;
 }
 /* 아이콘만 있는 버튼(기간 이동 쉐브론, 페이지 이동, 행 액션)은 테두리를 두지 않는다.
    글자가 없으니 눌리는 자리는 아이콘 자체로 충분하고, 테두리가 붙으면 화면이 조각난다(CEO 2026-09-10). */
@@ -789,6 +791,7 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
    탈색만 하므로 매출·비용·자산·부채·대체가 서로 다른 명도의 회색이 되어 구분은 되고 화면은 조용하다
    (CEO 2026-09-10: 단색은 유지하되 분간은 되게). */
 .theme-outline [data-table-badge] {
-  filter: grayscale(1) contrast(0.92);
+  /* 색조만 걷어낸다. 카드가 회색 단계를 직접 넘겨주면 그 명도차가 그대로 남는다 */
+  filter: grayscale(1);
   border-radius: 6px !important;
 }
