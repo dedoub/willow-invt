@@ -107,7 +107,7 @@ export function SectorRotationChartModal({
                   width={48}
                 />
                 <Tooltip
-                  contentStyle={{ background: t.neutrals.card, border: 'none', borderRadius: 8, fontSize: 'calc(11px * var(--fz, 1))', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
+                  contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.lg, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}
                   labelFormatter={(d) => d}
                   formatter={(v) => typeof v === 'number' ? `${(v * 100).toFixed(2)}%` : String(v ?? '')}
                 />

@@ -186,8 +186,7 @@ export function EmailAnalysisDialog({ open, analysis, todos, onClose, onToggleTo
                         onClick={() => saved && onToggleTodo(saved.id, !done)}
                         style={{
                           width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1,
-                          background: done ? t.accent.pos : 'transparent',
-                          border: `1.5px solid ${done ? t.accent.pos : t.neutrals.subtle}`,
+                          background: done ? t.accent.pos : t.neutrals.line,
                           cursor: saved ? 'pointer' : 'default',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
                         }}

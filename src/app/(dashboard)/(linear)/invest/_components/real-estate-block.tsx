@@ -953,7 +953,7 @@ export function RealEstateBlock() {
               <div style={{
                 position: 'absolute', top: '100%', left: 0, marginTop: 4,
                 background: t.neutrals.card, borderRadius: t.radius.md,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 20,
+                border: `1px solid ${t.neutrals.line}`, zIndex: 20,
                 minWidth: 180, maxHeight: 240, overflowY: 'auto', padding: 4,
               }}>
                 {reComplexes.length === 0 ? (

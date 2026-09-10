@@ -92,7 +92,6 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
     background: t.neutrals.inner,
     borderRadius: t.radius.md,
     padding: 12,
-    boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
   }
 
   const titleInputStyle: React.CSSProperties = {
@@ -106,7 +105,6 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
     border: 'none',
     color: t.neutrals.text,
     outline: 'none',
-    boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
   }
 
   return (
@@ -139,7 +137,6 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
                 fontWeight: section === s.value ? t.weight.medium : t.weight.regular,
                 background: section === s.value ? t.neutrals.card : 'transparent',
                 color: section === s.value ? t.neutrals.text : t.neutrals.muted,
-                boxShadow: section === s.value ? `0 0 0 1px ${t.neutrals.line}` : 'none',
               }}
             >
               {s.label}
@@ -184,8 +181,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               background: t.neutrals.card,
               border: 'none',
               borderRadius: t.radius.sm,
-              boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
-              padding: '7px 10px',
+                        padding: '7px 10px',
               fontSize: 'calc(12px * var(--fz, 1))',
               color: t.neutrals.muted,
               cursor: 'pointer',
@@ -221,8 +217,7 @@ export function WikiNoteForm({ onSave, onCancel, initial, onDelete }: WikiNoteFo
               padding: '5px 9px',
               fontSize: 'calc(11px * var(--fz, 1))',
               color: t.neutrals.muted,
-              boxShadow: `inset 0 0 0 1px ${t.neutrals.line}`,
-              marginRight: 4,
+                        marginRight: 4,
               marginBottom: 4,
             }}
           >

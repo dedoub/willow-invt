@@ -694,10 +694,9 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const isBuyCandidate = (isBuySignal || isBreakout) && pyramiding?.status !== 'FULL'
                   return (
                     <div key={h.ticker} style={{
-                      background: isStrongBuy ? '#BCE6C9' : t.neutrals.inner,
+                      // 매수 후보(추매구간/돌파)는 옅은 녹색 배경, 강한 매수는 진한 녹색 배경 — 선 대신 색 계층으로 구분 (FULL 제외)
+                      background: isStrongBuy ? '#BCE6C9' : isBuyCandidate ? tonePalettes.done.bg : t.neutrals.inner,
                       borderRadius: t.radius.md, padding: '8px 10px',
-                      // 매수 후보(추매구간/돌파) 종목은 녹색 테두리로 구분 (FULL 제외)
-                      border: isBuyCandidate ? `1px solid ${t.accent.pos}` : undefined,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>

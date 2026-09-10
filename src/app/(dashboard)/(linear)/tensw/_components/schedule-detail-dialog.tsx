@@ -162,8 +162,7 @@ export function ScheduleDetailDialog({
                   }}>
                     <div style={{
                       width: 14, height: 14, borderRadius: 999, flexShrink: 0, marginTop: 1,
-                      border: `1.5px solid ${task.is_completed ? t.accent.pos : t.neutrals.subtle}`,
-                      background: task.is_completed ? t.accent.pos : 'transparent',
+                      background: task.is_completed ? t.accent.pos : t.neutrals.line,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {task.is_completed && (

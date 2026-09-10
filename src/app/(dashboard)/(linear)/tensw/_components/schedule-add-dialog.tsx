@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule, TenswMgmtClient } from '@/types/tensw-mgmt'
@@ -244,11 +244,12 @@ export function ScheduleAddDialog({
                       onClick={() => setNewClientColor(c)}
                       style={{
                         width: 20, height: 20, borderRadius: 999,
-                        background: c, border: 'none', cursor: 'pointer',
-                        outline: newClientColor === c ? `2px solid ${c}` : 'none',
-                        outlineOffset: 2,
+                        background: c, border: 'none', cursor: 'pointer', padding: 0,
+                        // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
+                        color: readableOn(c), fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                        transform: newClientColor === c ? 'scale(1.15)' : undefined,
                       }}
-                    />
+                    >{newClientColor === c ? '✓' : ''}</button>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>

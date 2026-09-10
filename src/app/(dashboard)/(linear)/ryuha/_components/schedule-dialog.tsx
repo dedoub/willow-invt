@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { RyuhaSchedule } from '@/types/ryuha'
@@ -217,19 +217,19 @@ export function ScheduleDialog({
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => setForm({ ...form, color: '' })}
                 style={{
-                  width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
-                  background: t.neutrals.inner,
-                  outline: !form.color ? `2px solid ${t.neutrals.muted}` : 'none',
-                  outlineOffset: 2,
-                }} />
+                  width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', padding: 0,
+                  background: !form.color ? t.neutrals.line : t.neutrals.inner,
+                  color: t.neutrals.muted, fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                }}>{!form.color ? '✓' : ''}</button>
               {COLORS.map(c => (
                 <button key={c} onClick={() => setForm({ ...form, color: c })}
                   style={{
-                    width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+                    width: 22, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', padding: 0,
                     background: c,
-                    outline: form.color === c ? `2px solid ${c}` : 'none',
-                    outlineOffset: 2,
-                  }} />
+                    // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
+                    color: readableOn(c), fontSize: 'calc(11px * var(--fz, 1))', lineHeight: 1,
+                    transform: form.color === c ? 'scale(1.15)' : undefined,
+                  }}>{form.color === c ? '✓' : ''}</button>
               ))}
             </div>
           </div>

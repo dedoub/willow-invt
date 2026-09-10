@@ -535,8 +535,8 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                         },
                         pre: ({ children }) => <pre style={{ margin: 0 }}>{children}</pre>,
                         blockquote: ({ children }) => <blockquote style={{
-                          margin: '8px 0', paddingLeft: 12,
-                          borderLeft: `3px solid ${t.neutrals.line}`,
+                          margin: '8px 0', padding: '6px 10px',
+                          background: t.neutrals.inner, borderRadius: t.radius.sm,
                           color: t.neutrals.muted,
                         }}>{children}</blockquote>,
                         a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: t.brand[600], textDecoration: 'none' }}>{children}</a>,

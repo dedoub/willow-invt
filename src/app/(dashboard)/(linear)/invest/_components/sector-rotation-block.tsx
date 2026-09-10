@@ -214,7 +214,6 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             const isSectorGroup = etf.group === 'SectorGroup'
             // SectorGroup 보라 / Holding 핑크 / Benchmark 앰버 / isMine 인디고 / 나머지 회색
             const rowBg = isSectorGroup ? 'rgba(16, 185, 129, 0.10)' : isHolding ? 'rgba(236, 72, 153, 0.10)' : isBenchmark ? 'rgba(245, 158, 11, 0.10)' : isMine ? 'rgba(99, 102, 241, 0.10)' : 'transparent'
-            const rowBorder = isSectorGroup ? '2px solid #10B981' : isHolding ? '2px solid #EC4899' : isBenchmark ? '2px solid #F59E0B' : isMine ? '2px solid #6366F1' : '2px solid transparent'
             const tickerColor = isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#B45309' : isMine ? '#4338CA' : t.neutrals.text
             return (
             <div key={etf.ticker} style={{
@@ -222,8 +221,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
               gridTemplateColumns: mobile ? '72px repeat(4, 1fr)' : '70px 1fr repeat(4, 78px)',
               gap: 4, alignItems: 'center', padding: '0 6px',
               fontSize: 'calc(11px * var(--fz, 1))', color: t.neutrals.text,
-              background: rowBg,
-              borderLeft: rowBorder,
+              background: rowBg, // 그룹 구분은 배경 색조만 — 좌측 색 테두리는 중복이라 뺐다(2026-09-10)
               borderRadius: t.radius.sm,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>

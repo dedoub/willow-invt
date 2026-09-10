@@ -90,7 +90,6 @@ function RailTip({ label, sub, enabled, children }: {
           fontSize: 'calc(11.5px * var(--fz, 1))', fontWeight: t.weight.medium,
           whiteSpace: 'nowrap', zIndex: 200, pointerEvents: 'none',
           fontFamily: t.font.sans, letterSpacing: -0.1,
-          boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
         }}>
           {/* 좌측 화살표 */}
           <span style={{

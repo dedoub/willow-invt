@@ -95,10 +95,11 @@ function EventChip({ s, compact, onToggle, onSelect }: {
         style={{
           flexShrink: 0, width: compact ? 10 : 12, height: compact ? 10 : 12,
           marginTop: compact ? 1 : 2,
-          borderRadius: 999, border: `1.5px solid ${colors.fg}`,
-          background: done ? colors.fg : 'transparent',
+          // 선 대신 채움으로 상태 구분 — 미완료는 같은 색을 옅게, 완료는 진하게(2026-09-10 감사 반영).
+          borderRadius: 999, border: 'none',
+          background: colors.fg,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 0, opacity: done ? 1 : 0.5,
+          padding: 0, opacity: done ? 1 : 0.3,
         }}
       >
         {done && (
@@ -235,7 +236,7 @@ function DayCell({
               position: 'fixed', left: pop.left, top: pop.top, zIndex: 1001,
               width: 240, maxHeight: 340, overflowY: 'auto',
               background: t.neutrals.card, borderRadius: t.radius.md,
-              boxShadow: '0 4px 16px rgba(15,15,20,0.16)', padding: 8,
+              border: `1px solid ${t.neutrals.line}`, padding: 8,
               display: 'flex', flexDirection: 'column', gap: 4,
             }}>
             <div style={{ fontSize: 'calc(11px * var(--fz, 1))', fontWeight: 600, color: t.neutrals.text, marginBottom: 2 }}>
