@@ -85,7 +85,7 @@ export function TaxDetailDialog({ obligation, onClose, onEdit, onDelete }: Props
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm,
           margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
         }}>
-          <LBtn variant="ghost" size="sm" onClick={onDelete}>삭제</LBtn>
+          <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={onDelete}>삭제</LBtn></span>
           <LBtn variant="secondary" size="sm" onClick={onEdit}>수정</LBtn>
         </div>
 

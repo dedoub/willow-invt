@@ -799,6 +799,16 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-radius: 6px !important;
 }
 
+/* 삭제만 붉은 선과 붉은 글자를 쓴다 — 되돌릴 수 없는 동작은 눌리기 전에 보여야 한다 */
+.theme-outline [data-danger-action] button {
+  color: #C23A3A !important;
+  border-color: #E6BDBD !important;
+}
+.theme-outline [data-danger-action] button:hover {
+  border-color: #C23A3A !important;
+  color: #A32F2F !important;
+}
+
 /* 폼의 주 동작(저장)만 활성 칩과 같은 강조색을 쓴다 — 나머지 버튼은 선 한 겹 그대로 */
 .theme-outline [data-primary-action] button {
   background: #0A2E40 !important;

@@ -133,7 +133,7 @@ export function ScheduleDetailDialogNew({ schedule, onClose, onToggleComplete, o
           margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY,
           paddingBottom: t.density.cardPad,
         }}>
-          <LBtn variant="ghost" size="sm" onClick={() => { onDelete(schedule.id); onClose() }}>삭제</LBtn>
+          <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={() => { onDelete(schedule.id); onClose() }}>삭제</LBtn></span>
           <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <LBtn variant="ghost" size="sm" onClick={() => { onToggleComplete(schedule.id, !done); onClose() }}>
               {done ? '미완료로 변경' : '완료 처리'}

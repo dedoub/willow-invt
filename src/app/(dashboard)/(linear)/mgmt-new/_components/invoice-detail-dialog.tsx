@@ -84,7 +84,7 @@ export function InvoiceDetailDialogNew({ invoice, onClose, onDelete, onEdit }: P
           margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY,
           paddingBottom: t.density.cardPad,
         }}>
-          <LBtn variant="ghost" size="sm" onClick={() => { onDelete(invoice.id); onClose() }}>삭제</LBtn>
+          <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={() => { onDelete(invoice.id); onClose() }}>삭제</LBtn></span>
           <LBtn variant="secondary" size="sm" onClick={() => { onEdit(invoice); onClose() }}>수정</LBtn>
         </div>
       </LCard>
