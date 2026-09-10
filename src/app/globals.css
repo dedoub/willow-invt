@@ -752,9 +752,15 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: #FFFFFF !important;
   border-color: #111827 !important;
 }
-/* 표 안 행 액션·아이콘만 있는 자리는 테두리를 두지 않는다 — 행이 조각나 보인다 */
+/* 아이콘만 있는 버튼(기간 이동 쉐브론, 페이지 이동, 행 액션)은 테두리를 두지 않는다.
+   글자가 없으니 눌리는 자리는 아이콘 자체로 충분하고, 테두리가 붙으면 화면이 조각난다(CEO 2026-09-10). */
+.theme-outline button:has(> svg:only-child),
 .theme-outline [data-table-row] button {
   border-color: transparent !important;
+  background: transparent !important;
+}
+.theme-outline button:has(> svg:only-child):hover {
+  color: #111827 !important;
 }
 /* 지표(KPI) — 회색 판을 벗는다. 카드 안에서 값이 뜨는 자리는 선과 여백으로만 잡는다 */
 .theme-outline [data-stat] {

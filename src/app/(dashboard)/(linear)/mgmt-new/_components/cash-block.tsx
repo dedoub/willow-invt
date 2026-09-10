@@ -359,24 +359,29 @@ export function CashBlockNew({ invoices, onSelectInvoice, bankBalances = [], usd
           </button>
         </div>
 
-        {/* 2) 지표 — 원래 3×3 배열 그대로. 배경 박스만 벗고 칸은 선으로 나눈다 */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))',
-        }}>
-          <Figure label="매출" value={`${revenue.toLocaleString()}원`} />
-          <Figure label="비용" value={`${expense.toLocaleString()}원`} />
-          <Figure label="영업이익" value={`${operatingIncome.toLocaleString()}원`} tone={operatingIncome >= 0 ? 'pos' : 'neg'} />
-          <Figure label="부채" value={`${liability.toLocaleString()}원`} divider />
-          <Figure label="대체" value={`${transfer.toLocaleString()}원`} divider />
-          <Figure label="현금흐름" value={`${cashFlow.toLocaleString()}원`} tone={cashFlow >= 0 ? 'pos' : 'neg'} divider />
-          <Figure label="원화 잔고" value={`${periodEndBalance.krw.toLocaleString()}원`} divider />
-          <Figure label="외화 잔고" value={`$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} divider />
-          <Figure
-            label="총 잔고" value={`${periodEndBalance.totalKrw.toLocaleString()}원`}
-            sub={asOf ? `${asOf} 기준` : undefined} divider
-          />
-        </div>
+        {/* 2) 지표 — 원래 3×3 배열 그대로. 배경 박스만 벗고 행 구분선으로 나눈다.
+             구분선은 열 수를 보고 첫 줄만 건너뛴다 — 모바일 2열에서 3열 기준으로 그으면 지그재그가 된다. */}
+        {(() => {
+          const cols = mobile ? 2 : 3
+          const figures = [
+            { label: '매출', value: `${revenue.toLocaleString()}원` },
+            { label: '비용', value: `${expense.toLocaleString()}원` },
+            { label: '영업이익', value: `${operatingIncome.toLocaleString()}원`, tone: operatingIncome >= 0 ? 'pos' as const : 'neg' as const },
+            { label: '부채', value: `${liability.toLocaleString()}원` },
+            { label: '대체', value: `${transfer.toLocaleString()}원` },
+            { label: '현금흐름', value: `${cashFlow.toLocaleString()}원`, tone: cashFlow >= 0 ? 'pos' as const : 'neg' as const },
+            { label: '원화 잔고', value: `${periodEndBalance.krw.toLocaleString()}원` },
+            { label: '외화 잔고', value: `$${periodEndBalance.fx.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
+            { label: '총 잔고', value: `${periodEndBalance.totalKrw.toLocaleString()}원`, sub: asOf ? `${asOf} 기준` : undefined },
+          ]
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+              {figures.map((f, i) => (
+                <Figure key={f.label} label={f.label} value={f.value} tone={f.tone} sub={f.sub} divider={i >= cols} />
+              ))}
+            </div>
+          )
+        })()}
 
         {/* 2-2) 총 잔고 추이 — 선택한 기간의 일자별 잔고. 지표 옆이 아니라 별도 영역으로 뺐다 */}
         {totalBalanceSpark.length > 1 && (
