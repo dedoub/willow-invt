@@ -81,3 +81,6 @@ supabase/.temp/
 
 # 서브에이전트 작업 보고. 도구가 만든 기록이지 소스가 아니다.
 .superpowers/
+
+# Pretendard는 빌드 전 node_modules에서 복사한다 (scripts/copy-pretendard.mjs)
+public/fonts/pretendard/

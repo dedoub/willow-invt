@@ -30,7 +30,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        {/* Pretendard Variable 동적 서브셋 — public/fonts 정적 서빙(번들러 우회, 같은 오리진). scripts/copy-pretendard.mjs 참고 */}
+        <link rel="stylesheet" href="/fonts/pretendard/pretendardvariable-dynamic-subset.css" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { Inter as InterTight } from 'next/font/google'
 import { JetBrains_Mono } from 'next/font/google'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LinearSidebar } from '@/app/(dashboard)/_components/linear-sidebar'
@@ -11,12 +10,6 @@ import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
 import { DashColsToggle } from '@/app/(dashboard)/_components/cols-toggle'
 import { EnglishProfileToggle } from '@/app/(dashboard)/_components/english-profile'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
-
-const interTight = InterTight({
-  subsets: ['latin'],
-  variable: '--font-inter-tight',
-  weight: ['400', '500', '600', '700'],
-})
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
@@ -69,7 +62,7 @@ export default function LinearRouteLayout({
   const info = breadcrumbFor(pathname)
 
   return (
-    <div className={`${interTight.variable} ${jetbrainsMono.variable}`}>
+    <div className={jetbrainsMono.variable}>
       {/* 키보드 포커스 링 (접근성) — 마우스 클릭엔 안 뜨고 키보드 탐색 시에만 */}
       <style dangerouslySetInnerHTML={{ __html: `
         :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #166A97;outline-offset:1px;}

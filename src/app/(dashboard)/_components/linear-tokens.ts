@@ -20,7 +20,8 @@ export const t = {
     // 맨 앞 "Twemoji Country Flags": Windows처럼 국기 이모지 미지원 브라우저에서만 주입되는 폰트(폴리필).
     //   국기 글리프만 담고 있어 일반 라틴/한글은 다음 폰트로 폴백 → 국기만 이 폰트로 렌더됨.
     // 한글/Windows 폴백 포함 — mono엔 한글 글리프가 없어 Windows에서 깨지므로 Apple SD Gothic Neo(맥)/Malgun Gothic(윈)을 명시
-    sans: '"Twemoji Country Flags", "Inter Tight", "Inter", system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+    // 본문: Pretendard Variable(한글+라틴+숫자 한 폰트, 가변 굵기, tabular-nums). globals.css에서 동적 서브셋을 자체 호스팅.
+    sans: '"Twemoji Country Flags", "Pretendard Variable", Pretendard, system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
     mono: '"Twemoji Country Flags", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", "Malgun Gothic", monospace',
   },
   weight: { regular: 420, medium: 520, semibold: 620, bold: 720 },
@@ -83,24 +84,30 @@ export const t = {
     gapLg: 16,
   },
   type: {
-    tableHead: 9,
-    panelTitle: 9.5,
-    helper: 9.5,
-    label: 10.5,
-    badge: 11,
-    // 컨트롤 텍스트 단일 기준 — 버튼·세그먼트·셀렉트·검색창·필터칩의 라벨은 전부 이 값.
-    // 화면마다 10/10.5/11/11.5/12로 흩어져 있던 것을 통일 (2026-08-21).
-    control: 11,
+    // 크기 단계는 4단 + 히어로. 0.5px 차이는 위계로 읽히지 않아 없앴다 (CEO 2026-09-10).
+    //   caption 10 → control 12 → body 14 → title 16 → display 22 (차트 라벨 9는 위계 밖 예외)
+    // 이름은 역할이다. 같은 단계의 이름들은 값이 같아야 한다 — 한 단계만 바꾸려면 새 단계를 만들지 말고 역할 이름을 옮겨라.
+    // caption
+    tableHead: 10,
+    panelTitle: 10,
+    helper: 10,
+    label: 10,
     tableCell: 10,
+    // control
+    badge: 12,
+    control: 12,
     tableBody: 12,
-    body: 13,
-    sectionTitle: 15,
-    // 히어로 숫자(다이얼로그 금액·점수) 전용. 본문 위계가 아니라 강조 표시 한 칸 — 남용 금지 (2026-09-10 감사).
+    // body
+    body: 14,
+    // title
+    sectionTitle: 16,
+    // 히어로 숫자(다이얼로그 금액·점수) 전용. 남용 금지.
     display: 22,
-    // 차트 축·막대 위 데이터 라벨 전용. 표·배지·본문에는 쓰지 않는다 (2026-09-10 감사).
-    chartLabel: 8,
+    // 차트 축·막대 위 데이터 라벨 전용. 표·배지·본문에는 쓰지 않는다.
+    chartLabel: 9,
   },
-  badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 11 },
+
+  badge: { radius: 4, weight: 520, padX: 7, padY: 2, size: 12 },
 } as const
 
 export type LinearTokens = typeof t
