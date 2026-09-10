@@ -561,13 +561,14 @@ function Figure({ label, value, tone, spark, divider, sub }: {
 }
 
 /**
- * 총 잔고 추이 — 선택 기간의 일자별 잔고 한 줄. 시리즈가 하나라 회색 단색이고 값은 호버로 읽는다.
+ * 총 잔고 추이 — 선택 기간의 일자별 잔고 한 줄. 시리즈가 하나라 회색 단색이고, y축은 0원 기준이다.
  */
 function BalanceTrend({ points }: { points: Array<{ date: string; value: number }> }) {
   const [hover, setHover] = useState<number | null>(null)
   const values = points.map(p => p.value)
-  const max = Math.max(...values)
-  const min = Math.min(...values)
+  // y축은 늘 0원에서 시작한다 — 최솟값을 바닥으로 잡으면 몇 만 원 움직임이 절벽처럼 보인다(CEO 2026-09-10).
+  const max = Math.max(...values, 0)
+  const min = Math.min(...values, 0)
   const span = max - min || 1
   const x = (i: number) => (i / (points.length - 1)) * 100
   const y = (v: number) => 100 - ((v - min) / span) * 100
@@ -583,6 +584,14 @@ function BalanceTrend({ points }: { points: Array<{ date: string; value: number 
         setHover(Math.round(ratio * (points.length - 1)))
       }}
     >
+      <span style={{
+        position: 'absolute', left: 0, top: -2, fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`,
+        fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+      }}>{max.toLocaleString()}</span>
+      <span style={{
+        position: 'absolute', left: 0, bottom: -2, fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`,
+        fontFamily: t.font.mono, color: t.neutrals.subtle, lineHeight: 1,
+      }}>0</span>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
         {[0, 100].map(p => (
           <line key={p} x1="0" x2="100" y1={p} y2={p} stroke={t.chart.grid} strokeWidth={1} vectorEffect="non-scaling-stroke" />
