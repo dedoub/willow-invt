@@ -17,9 +17,9 @@ import { SalesBlock } from '@/app/(dashboard)/(linear)/mgmt/_components/sales-bl
 import { CardBlock } from '@/app/(dashboard)/_components/card-block'
 import { AddScheduleDialog, ScheduleFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-schedule-dialog'
 import { AddInvoiceDialog, InvoiceFormData } from '@/app/(dashboard)/(linear)/mgmt/_components/add-invoice-dialog'
-import { InvoiceDetailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/invoice-detail-dialog'
+import { InvoiceDetailDialogNew } from './_components/invoice-detail-dialog'
 import { ParsePreviewDialog, ParsedTransaction } from '@/app/(dashboard)/(linear)/mgmt/_components/parse-preview-dialog'
-import { ScheduleDetailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/schedule-detail-dialog'
+import { ScheduleDetailDialogNew } from './_components/schedule-detail-dialog'
 import { EmailDetailDialog, FullEmail } from '@/app/(dashboard)/(linear)/mgmt/_components/email-detail-dialog'
 import { ComposeEmailDialog } from '@/app/(dashboard)/(linear)/mgmt/_components/compose-email-dialog'
 import { MgmtSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -471,7 +471,7 @@ export default function MgmtNewPage() {
       </div>
 
       {/* Schedule dialogs */}
-      <ScheduleDetailDialog
+      <ScheduleDetailDialogNew
         schedule={selectedSchedule}
         onClose={() => setSelectedSchedule(null)}
         onToggleComplete={handleToggleComplete}
@@ -487,7 +487,7 @@ export default function MgmtNewPage() {
       />
 
       {/* Invoice dialogs */}
-      <InvoiceDetailDialog
+      <InvoiceDetailDialogNew
         invoice={selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         onDelete={handleDeleteInvoice}
