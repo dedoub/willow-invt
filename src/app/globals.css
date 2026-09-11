@@ -762,9 +762,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: #FFFFFF !important;
   border-color: #0A2E40 !important;
 }
-/* 국기는 색을 빼고 모양만 남긴다 — 회색 표 안에서 유일한 색이 되면 계열색처럼 읽힌다.
-   글자는 이미 단색이라 이 필터에 영향받지 않는다(2026-09-11) */
-.flag-mono { filter: grayscale(1); }
+/* 이모지(국기·아이콘)는 색을 빼고 모양만 남긴다 — 회색 표 안에서 유일한 색이 되면
+   계열색처럼 읽힌다. 글자는 이미 단색이라 이 필터에 영향받지 않는다(2026-09-11) */
+.flag-mono,
+.emoji-mono { filter: grayscale(1); }
 
 /* 카드 머리의 새로고침·외부링크 버튼은 회색 판을 깔지 않는다 — 제목 줄에 판이 뜨면
    그 줄만 컨트롤 바처럼 읽힌다. 링크는 <a> 라서 위의 button 규칙이 닿지 않는다(2026-09-11) */
@@ -884,8 +885,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-weight: 420 !important;
   font-size: calc(9px * var(--fz, 1)) !important;
 }
-/* 정렬 머리는 버튼이라 테마의 칩 테두리가 붙는다 — 표 머리에서는 벗긴다 */
-.theme-outline [data-panel-head] button {
+/* 정렬 머리는 버튼이라 테마의 칩 테두리가 붙는다 — 표 머리에서는 벗긴다.
+   손으로 짠 표(사용자 표)는 data-table-head 를 쓰므로 둘 다 받는다 */
+.theme-outline [data-panel-head] button,
+.theme-outline [data-table-head] button {
   border: none !important;
   border-radius: 0 !important;
   padding: 0 !important;

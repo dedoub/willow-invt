@@ -310,11 +310,11 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, whiteSpace: 'nowrap' }}>
         {u.hotLead && (
           <span title="핫리드: 최근 7일 활성 미구매자 중 구매 가능성 상위 10%" style={{ display: 'inline-flex' }}>
-            <LTableBadge tone={CELL_TONES.hotLead}>🔥</LTableBadge>
+            <LTableBadge tone={CELL_TONES.hotLead}><span className="emoji-mono">🔥</span></LTableBadge>
           </span>
         )}
         {u.intentBanner && (
-          <span title="업그레이드 모달/배너 클릭" style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>💳</span>
+          <span title="업그레이드 모달/배너 클릭" className="emoji-mono" style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>💳</span>
         )}
       </div>
       {u.lastIntentAt && (
@@ -328,24 +328,26 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
 
 // 타겟 오퍼 단계 셀. 퍼널: 발송 → 열람 → 스누즈 → 전환. 종료: 닫음/만료.
 // 사용자 표 셀 배지 색. 규격(크기·패딩·굵기)은 LTableBadge가 t.badge로 통일하고 여기선 색만 둔다.
+// 칩(판)은 쓰지 않는다 — 표 안에서 판이 깔리면 그 칸만 버튼처럼 읽힌다(CEO 2026-09-11).
+// 값의 무게는 글자 짙기로만 가른다.
 const CELL_TONES = {
-  hotLead: { bg: '#C7CCD3', fg: '#3A3D42' },
-  ios:     { bg: '#DCE0E5', fg: '#3A3D42' },
-  android: { bg: '#E4E7EB', fg: '#3A3D42' },
-  plain:   { bg: t.neutrals.card, fg: t.neutrals.muted },
-  locale:  { bg: '#EDEFF2', fg: '#3A3D42' },
-  country: { bg: '#EAECEF', fg: '#3A3D42' },
-  paid:    { bg: '#D3D7DD', fg: '#3A3D42' },
+  hotLead: { bg: 'transparent', fg: t.neutrals.text },
+  ios:     { bg: 'transparent', fg: t.neutrals.text },
+  android: { bg: 'transparent', fg: t.neutrals.text },
+  plain:   { bg: 'transparent', fg: t.neutrals.muted },
+  locale:  { bg: 'transparent', fg: t.neutrals.muted },
+  country: { bg: 'transparent', fg: t.neutrals.text },
+  paid:    { bg: 'transparent', fg: t.neutrals.text },
 } as const
 
 // 단계가 앞설수록 짙다 — 색이 아니라 짙기로 퍼널을 읽는다
 const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string; title: string }> = {
-  sent:     { label: '발송',  fg: '#3A3D42', bg: '#EAECEF', title: '오퍼 발송됨 (아직 열람 전)' },
-  seen:     { label: '열람',  fg: '#3A3D42', bg: '#DCE0E5', title: '오퍼 모달을 봄' },
-  snoozed:  { label: '스누즈', fg: '#3A3D42', bg: '#E4E7EB', title: '“나중에” — 배너로 스누즈' },
-  redeemed: { label: '전환',  fg: '#3A3D42', bg: '#C7CCD3', title: '구매하여 보너스 지급됨 (전환)' },
-  dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F5F6F8', title: '배너 X — 영구 닫음' },
-  expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F5F6F8', title: '만료됨 (미전환)' },
+  sent:     { label: '발송',  fg: t.neutrals.muted,  bg: 'transparent', title: '오퍼 발송됨 (아직 열람 전)' },
+  seen:     { label: '열람',  fg: t.neutrals.text,   bg: 'transparent', title: '오퍼 모달을 봄' },
+  snoozed:  { label: '스누즈', fg: t.neutrals.muted,  bg: 'transparent', title: '“나중에” — 배너로 스누즈' },
+  redeemed: { label: '전환',  fg: t.neutrals.text,   bg: 'transparent', title: '구매하여 보너스 지급됨 (전환)' },
+  dismissed:{ label: '닫음',  fg: t.neutrals.subtle, bg: 'transparent', title: '배너 X — 영구 닫음' },
+  expired:  { label: '만료',  fg: t.neutrals.subtle, bg: 'transparent', title: '만료됨 (미전환)' },
 }
 // 백그라운드 재생 보장(기간권) 셀. 남은 기간이 있는 사람과 지나간 사람은 읽는 방식이 다르다 —
 // 살아 있으면 "언제까지"가, 끝났으면 "언제 끝났는지"가 다음 행동을 정한다.
@@ -1717,7 +1719,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                      background: '#E4E7EB', color: '#3A3D42',
+                      background: 'transparent', color: t.neutrals.muted,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
