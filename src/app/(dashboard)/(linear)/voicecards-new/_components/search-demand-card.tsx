@@ -502,7 +502,7 @@ function Delta({ now, prev }: { now: number; prev: number }) {
 
 function Skeleton({ mobile }: { mobile: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
         {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
       </div>
@@ -689,7 +689,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && gsc && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
               {/* 1열 모드: 좌 차트(전체 높이) · 우 지표 6장(3열). 그 외에는 지표 먼저, 차트는 아래 전폭. */}
               <div style={{
                 display: 'grid',
@@ -844,7 +844,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
