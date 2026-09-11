@@ -167,6 +167,9 @@ export default function VoicecardsNewPage() {
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
+  // 세 API 가 모두 도착한 시각 — 카드 푸터가 "언제 본 숫자인지"를 말한다. 서버 캐시(1시간)가
+  // 있으므로 데이터 생성 시각이 아니라 이 화면이 받아 온 시각이다.
+  const [vcLoadedAt, setVcLoadedAt] = useState<Date | null>(null)
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -214,6 +217,7 @@ export default function VoicecardsNewPage() {
       .finally(() => { setVcRevenueLoading(false); setVcRefreshRevenue(false) })
 
     await Promise.all([usersP, eventsP, revenueP])
+    setVcLoadedAt(new Date())
   }, [])
 
   useEffect(() => {
@@ -273,6 +277,7 @@ export default function VoicecardsNewPage() {
         refreshingUsers={vcRefreshUsers}
         refreshingEvents={vcRefreshEvents}
         refreshingRevenue={vcRefreshRevenue}
+        loadedAt={vcLoadedAt}
       />
       </div>
     </div>

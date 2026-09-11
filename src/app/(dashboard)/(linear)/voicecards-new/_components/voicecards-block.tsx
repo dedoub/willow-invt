@@ -21,6 +21,7 @@ import {
 import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -199,6 +200,8 @@ export interface VoicecardsBlockProps {
   refreshingUsers: boolean
   refreshingEvents: boolean
   refreshingRevenue: boolean
+  /** 이 화면이 세 API 를 받아 온 시각 — 카드 푸터에 적는다 */
+  loadedAt?: Date | null
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
 }
 
@@ -557,10 +560,16 @@ function SkelUserRow() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** 카드 푸터 우측 — 이 화면이 숫자를 받아 온 시각. 서버 캐시가 1시간이라 데이터 생성 시각과는 다르다 */
+function loadedLabel(at?: Date | null) {
+  if (!at) return undefined
+  return `불러온 시각 ${at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+}
+
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols,
+  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, loadedAt,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   // 퍼널은 세 소스를 모두 그린다(스토어·설치=events, 로그인·연동·활성화=users, 판매크레딧=revenue).
@@ -1288,6 +1297,13 @@ export function VoicecardsBlock({
           )
         })()}
       </div>
+      {userStats && anonymousStats?.summary && (
+        <LCardFoot
+          left="봇·데모 덱 제외 · 스토어 방문은 리포트 특성상 ~1주 지연"
+          right={loadedLabel(loadedAt)}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
 
     {/* 카드2: 활동 지표 */}
@@ -1581,6 +1597,13 @@ export function VoicecardsBlock({
             )
           })()}
         </div>
+      )}
+      {userStats && (
+        <LCardFoot
+          left="크레딧은 환불 차감 후 원장 기준 · 데모 덱 제외"
+          right={loadedLabel(loadedAt)}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       )}
     </LCard>
     </div>
