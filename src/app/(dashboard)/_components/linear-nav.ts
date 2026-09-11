@@ -91,8 +91,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '앱서비스 - 금융',
     orderKey: 'sidebar-app-finance-order',
     items: [
-      { id: 'portle',     href: '/portle',     label: 'Portle',     tag: 'Calculator', dot: '#E8927C', mark: '/portle-mark.png' },
-      { id: 'valuechain', href: '/valuechain', label: 'ValueChain', tag: 'Wiki',             dot: '#A392EC' },
+      { id: 'portle',     href: '/portle',     label: '포틀',       tag: 'Portle',     dot: '#E8927C', mark: '/portle-mark.png' },
+      { id: 'valuechain', href: '/valuechain', label: '밸류체인',   tag: 'ValueChain',       dot: '#A392EC' },
     ],
   },
   {
@@ -101,10 +101,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '앱서비스 - 교육',
     orderKey: 'sidebar-app-edu-order',
     items: [
-      { id: 'voicecards',  href: '/voicecards',  label: 'VoiceCards',  tag: 'Flashcards', dot: '#4FBE84', mark: '/voicecards-mark.png' },
-      // 보이스카드를 카드 하나씩 새 문법으로 옮겨 보는 자리. 다 옮기면 /voicecards 로 합치고 지운다.
-      { id: 'reviewnotes', href: '/reviewnotes', label: 'ReviewNotes', tag: 'Notes',      dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
-      { id: 'scripta',     href: '/scripta',     label: 'Scripta',     tag: 'Writing',    dot: '#E894B0', mark: '/scripta-mark.png' },
+      { id: 'voicecards',  href: '/voicecards',  label: '보이스카드',  tag: 'VoiceCards',  dot: '#4FBE84', mark: '/voicecards-mark.png' },
+      { id: 'reviewnotes', href: '/reviewnotes', label: '리뷰노트',    tag: 'ReviewNotes', dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
+      { id: 'scripta',     href: '/scripta',     label: '스크립타',    tag: 'Scripta',     dot: '#E894B0', mark: '/scripta-mark.png' },
     ],
   },
   {

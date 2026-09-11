@@ -185,7 +185,8 @@ export default function ValueChainPage() {
   })
 
   return (
-    <>
+    /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리와 같은 카드 문법(2026-09-11). */
+    <div className="theme-outline">
     {/* 최상단: 검색 수요 포착 (Search Console + Umami) — 보이스카드/리뷰노트와 동일 섹션.
         노드를 몇 개 쌓았는지가 아니라, 그 노드가 검색 수요와 연결되는지를 본다. */}
     {/* 카드는 그리드 없이 조각 두 개만 내놓는다(다른 페이지에서 그 사이에 섹션을 끼우기 위해서).
@@ -411,7 +412,7 @@ export default function ValueChainPage() {
 
       </LCard>
     </div>
-    </>
+    </div>
   )
 }
 

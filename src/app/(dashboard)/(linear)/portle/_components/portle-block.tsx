@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
@@ -44,7 +45,7 @@ const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-    color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+    color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
   </span>
@@ -67,10 +68,11 @@ function PortleAiTrendCard({ daily, days = 42 }: {
   const totalOf = (r: { success: number; empty: number; failure: number }) => r.success + r.empty + r.failure
   const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
-  const OK = '#10b981'
-  const EMPTY = '#f59e0b'
-  const FAIL = '#ef4444'
-  const MA_COLOR = '#6366f1'
+  // 색이 아니라 짙기로 가른다 — 성공이 짙고 실패가 옅다(2026-09-11 카드 문법)
+  const OK = '#0A2E40'
+  const EMPTY = '#8D959D'
+  const FAIL = '#C7CCD3'
+  const MA_COLOR = '#17181C'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
   const ma = rows.map((_, i) => {
@@ -292,8 +294,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          eyebrow="FUNNEL"
-          title="스토어 → 설치 → 로그인 → 활성화 → 구독"
+          title="결제 전환"
+          mb={t.density.panelPadY + t.density.panelPadX}
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
 
@@ -389,9 +391,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const PENDING_APP = '수집 대기 (앱 이벤트)'
 
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
             {/* 좌: 퍼널 6카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
               <LStat
                 label="스토어 방문"
                 title="플레이·앱스토어 등록정보 방문자 누적 (portle_store_visits). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문 → 설치 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독."
@@ -424,6 +426,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 tone={signins.length > 0 ? 'pos' : 'default'}
                 sparkline={mobile || signins.length === 0 ? undefined : signinsCum}
                 sparkline2={mobile ? undefined : loginRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
                 sparkFormat2={(v) => `${v}%`}
                 spark2Domain={[0, 100]}
                 dualScale
@@ -436,6 +440,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 sub={driveLinks.length > 0 ? todaySub(driveLinks) : PENDING_APP}
                 sparkline={mobile || driveLinks.length === 0 ? undefined : driveCum}
                 sparkline2={mobile ? undefined : driveRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
                 sparkFormat2={(v) => `${v}%`}
                 spark2Domain={[0, 100]}
                 dualScale
@@ -448,6 +454,8 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 sub={sheetActivations.length > 0 ? todaySub(sheetActivations) : PENDING_APP}
                 sparkline={mobile || sheetActivations.length === 0 ? undefined : sheetCum}
                 sparkline2={mobile ? undefined : sheetRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
                 sparkFormat2={(v) => `${v}%`}
                 spark2Domain={[0, 100]}
                 dualScale
@@ -460,7 +468,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 sub="스토어 IAP 기준"
                 tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
               />
-            </div>
+            </StatRows>
             {/* 일별 AI 호출 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
               <PortleAiTrendCard daily={stats.daily} />
@@ -478,10 +486,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
 
     {/* 카드2: AI 안정성 · 기능별 — 호출량/성공률/토큰 + kind별 분해 */}
     <LCard pad={0}>
-      <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          eyebrow="AI"
-          title="AI 안정성 · 기능별"
+          title="활동 지표"
           mb={10}
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
         />
@@ -500,7 +507,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           const todayCalls = todayRow ? todayRow.success + todayRow.empty + todayRow.failure : 0
           const todayRate = todayCalls > 0 && todayRow ? rate(todayRow.success, todayCalls) : null
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: t.density.kpiGap, marginBottom: t.density.gapMd }}>
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : (dashCols === 2 ? 'repeat(3, minmax(0,1fr))' : 'repeat(5, minmax(0,1fr))')}>
               <LStat
                 label="AI 사용자"
                 title="AI를 한 번이라도 호출한 subject 누적 (google 로그인 + device 기기 — 기기 사용자도 정상 경로)."
@@ -534,13 +541,13 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 value={totals.sharedSheets.toLocaleString()}
                 sub="단축코드 발급 기준"
               />
-            </div>
+            </StatRows>
           )
         })()}
         {!loading && stats && (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', marginTop: t.density.pagePadBottom }}>
           <div style={{ minWidth: 560, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px', gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: 'minmax(90px,1.2fr) 64px 110px minmax(80px,1fr) 52px 64px 64px', gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {['기능', '호출', '성공 · 빈 · 실패', '성공률', '사용자', '토큰', '마지막'].map((h, i) => (
                 <div key={h} style={{ ...userHeadCell, textAlign: i === 0 ? 'left' : 'center' }}>{h}</div>
               ))}
@@ -564,16 +571,16 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     )}
                   </div>
                   <div style={{ ...userNumCell, color: t.neutrals.muted }}>
-                    <span style={{ color: '#059669' }}>{k.success}</span>
+                    <span style={{ color: t.neutrals.text }}>{k.success}</span>
                     {' · '}
-                    <span style={{ color: '#D97706' }}>{k.empty}</span>
+                    <span>{k.empty}</span>
                     {' · '}
-                    <span style={{ color: '#DC2626' }}>{k.failure}</span>
+                    <span style={{ color: t.neutrals.subtle }}>{k.failure}</span>
                   </div>
                   {/* 성공률 바 — 낮을수록 문제 기능이 한눈에 보이도록 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{ flex: 1, height: 4, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
-                      <div style={{ width: `${okPct}%`, height: '100%', borderRadius: 2, background: okPct >= 80 ? '#10b981' : okPct >= 50 ? '#f59e0b' : '#ef4444' }} />
+                      <div style={{ width: `${okPct}%`, height: '100%', borderRadius: 2, background: okPct >= 80 ? '#0A2E40' : okPct >= 50 ? '#8D959D' : '#C7CCD3' }} />
                     </div>
                     <span style={{ ...userNumCell, width: 34, textAlign: 'right' }}>{okPct}%</span>
                   </div>
@@ -587,6 +594,13 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           </div>
         )}
       </div>
+      {!loading && stats && (
+        <LCardFoot
+          left="성공 · 빈 응답 · 실패는 서버 로그 기준"
+          right={`호출 ${stats.totals.calls.toLocaleString()}회`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
     </div>
 
@@ -597,11 +611,10 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     }}>
     <LCard pad={0}>
       {loading && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="USERS"
             title="사용자"
-            mb={8}
+            mb={t.density.panelPadY + t.density.panelPadX}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
@@ -612,11 +625,10 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         </div>
       )}
       {!loading && stats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="USERS"
             title="사용자"
-            mb={8}
+            mb={t.density.panelPadY + t.density.panelPadX}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
@@ -647,7 +659,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const active = userSort === col.key
                 return (
@@ -675,7 +687,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               const okPct = rate(user.success, user.calls)
               const ent = user.entitlement
               return (
-                <div key={user.subject} style={{
+                <div key={user.subject} data-table-row="" style={{
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
@@ -694,7 +706,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     <span style={{ ...userTextCell, fontFamily: t.font.mono }}>{subjectShort(user)}</span>
                   </div>
                   <div style={userNumCell}>{user.calls.toLocaleString()}</div>
-                  <div style={{ ...userNumCell, color: okPct >= 80 ? '#059669' : okPct >= 50 ? '#D97706' : '#DC2626' }}>{okPct}%</div>
+                  <div style={{ ...userNumCell, color: okPct >= 80 ? t.neutrals.text : t.neutrals.muted }}>{okPct}%</div>
                   <div style={userNumCell}>{(user.byKind.echo_news ?? 0) || '—'}</div>
                   <div style={userNumCell}>{(user.byKind.ingest_transactions ?? 0) || '—'}</div>
                   <div style={userNumCell}>{(user.byKind.translate_rule ?? 0) || '—'}</div>
