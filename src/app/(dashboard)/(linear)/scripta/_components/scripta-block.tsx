@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -65,7 +66,7 @@ const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-    color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+    color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
   </span>
@@ -130,9 +131,10 @@ function ScDauTrendCard({ daily, days = 42 }: {
   const rows = (daily ?? []).slice(-days)
   const max = rows.reduce((m, r) => Math.max(m, r.active), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
-  const MEMBER = '#3b82f6'
-  const NEW = '#8b5cf6'
-  const MA_COLOR = '#f97316'
+  // 색이 아니라 짙기로 가른다 — 위로 갈수록 '새 사람'(2026-09-11 카드 문법)
+  const MEMBER = '#0A2E40'
+  const NEW = '#8D959D'
+  const MA_COLOR = '#17181C'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
   const ma = rows.map((_, i) => {
@@ -380,16 +382,92 @@ export function ScriptaBlock({
     <>
     {/* 퍼널 · 콘텐츠 — 두 섹션이 한 열로 붙어 다닌다 */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-    {/* 카드1: 퍼널 + 인사이트 */}
+    {/* 카드1: 활동 지표 */}
+    <LCard pad={0}>
+      {loading && (
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
+          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 6)} />
+        </div>
+      )}
+      {!loading && stats && (() => {
+        const win = buildWindow(stats)
+        const c = stats.content
+        // 크레딧 소진은 퍼널이 아니라 여기 있다 — 결제 전 단계가 아니라 학습을 얼마나 돌렸는지의
+        // 결과값이고, 옆의 Cortex·글·문장 카운트와 같은 "무엇을 얼마나 만들고 썼나" 묶음이다.
+        const spent = stats.credits.dailySpent
+        const todayKey = kstToday()
+        const sevenAgoKey = kstDaysAgo(6)
+        const card = (label: string, m: ScMetric, unit: string, title?: string) => (
+          <LStat
+            label={label}
+            title={title}
+            value={m.total.toLocaleString()}
+            sub={`오늘 ${m.today.toLocaleString()}${unit} · 7일 ${m.d7.toLocaleString()}${unit}`}
+            sparkline={mobile ? undefined : cumOf(m.daily, win)}
+          />
+        )
+        return (
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+            <LSectionHead
+              title="활동 지표"
+              mb={t.density.panelPadY + t.density.panelPadX}
+              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+            />
+            {/* Cortex → 글 → 문단 → 문장 → 청크 + 크레딧 소진. 와이드(1열) 한 줄, 2열 모드 3+3, 모바일 2열. */}
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : (dashCols === 2 ? 'repeat(3, minmax(0,1fr))' : 'repeat(6, minmax(0,1fr))')}>
+              {card('Cortex', c.cortices, '개', '하나의 쓰기 목표와 채점 기준을 공유하는 학습 컨테이너.')}
+              {card('글', c.texts, '개', '사용자가 등록한 목표 글(Text) 누적.')}
+              {card('문단', c.paragraphs, '개')}
+              {card('문장', c.sentences, '개', '반복 학습과 취약도 계산의 기본 단위.')}
+              {card('청크', c.chunks, '개', '외국어 문장의 의미와 어순을 복원하는 보조 단위.')}
+              <LStat
+                label="크레딧 소진"
+                title="구조 생성·채점·필기 인식으로 차감된 크레딧 누적 (실패 환불 전 총 차감). 판매가 아니라 사용량이라 퍼널이 아니라 이 묶음에 둔다 — 사용처 분해는 퍼널 섹션의 '크레딧 사용처' 파이."
+                value={stats.credits.spent.toLocaleString()}
+                valueExtra={stats.credits.refunded > 0 ? (
+                  <span style={{
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
+                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  }}>
+                    환불 {stats.credits.refunded.toLocaleString()}
+                  </span>
+                ) : undefined}
+                sub={`오늘 ${countOn(spent, todayKey).toLocaleString()} · 7일 ${countSince(spent, sevenAgoKey).toLocaleString()}`}
+                subExtra={
+                  <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
+                    잔액 {stats.credits.balance.toLocaleString()}
+                  </span>
+                }
+                sparkline={mobile ? undefined : cumOf(spent, win)}
+              />
+            </StatRows>
+          </div>
+        )
+      })()}
+      {!loading && stats && (
+        <LCardFoot
+          left="AI 채점"
+          right={`${stats.aiGrades.total.toLocaleString()}회`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
+    </LCard>
+
+    {/* 카드2: 결제 전환 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          eyebrow="FUNNEL"
-          title="가입 → 글 등록 → 연습 → 결제"
+          title="결제 전환"
+          mb={t.density.panelPadY + t.density.panelPadX}
           action={
             <>
-              <LHeadBtn icon="pencil" title="Scripta 앱" href="https://scripta.quest" />
-              <LHeadBtn icon="trending" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
+              <LHeadBtn icon="externalLink" title="Scripta 앱" href="https://scripta.quest" />
+              <LHeadBtn icon="externalLink" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
               <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
             </>
           }
@@ -472,10 +550,10 @@ export function ScriptaBlock({
 
         return (
           <div>
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
           {/* 좌: 퍼널 카드(3×2) + 파이 · 우: 일별 활동자 전체높이 (1열 모드 전용, 리뷰노트와 동일) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom, minWidth: 0 }}>
+          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
             <LStat
               label="가입"
               title="Scripta 계정 누적 (auth.users). 랜딩 트래픽 수집이 없어 방문 대비 전환은 아직 못 잰다."
@@ -524,7 +602,7 @@ export function ScriptaBlock({
               valueExtra={sales ? (
                 <span style={{
                   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
+                  color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatUsd(sales.revenueUsd)}
                 </span>
@@ -556,20 +634,20 @@ export function ScriptaBlock({
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
-              spark2Color={t.accent.warn}
+              spark2Color={t.neutrals.subtle}
               sparkFormat2={(v) => `${v}%`}
               dualScale
             />
-          </div>
+          </StatRows>
           {/* 연습 단위 / 크레딧 사용처 / 목표 언어 — 리뷰노트의 유입경로·국가·기기 자리 */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px` }}>
             <DistributionPie
               title="연습 단위"
               tabs={[
                 { key: 'attempts', label: '시도', data: stats.byLevel.map(l => ({ name: SC_LEVEL_LABELS[l.level] ?? l.level, value: l.attempts })) },
                 { key: 'passed', label: '통과', data: stats.byLevel.map(l => ({ name: SC_LEVEL_LABELS[l.level] ?? l.level, value: l.passed })) },
               ]}
-              palette={['#6366f1', '#f97316', '#10b981', '#ec4899']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="회"
             />
             <DistributionPie
@@ -578,7 +656,7 @@ export function ScriptaBlock({
                 { key: 'credits', label: '크레딧', data: stats.credits.byReason.map(r => ({ name: SC_CREDIT_REASON_LABELS[r.reason] ?? r.reason, value: r.credits })) },
                 { key: 'calls', label: '호출', data: stats.credits.byReason.map(r => ({ name: SC_CREDIT_REASON_LABELS[r.reason] ?? r.reason, value: r.calls })) },
               ]}
-              palette={['#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16', '#ec4899']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               topN={4}
             />
             <DistributionPie
@@ -587,7 +665,7 @@ export function ScriptaBlock({
                 key: 'cortex', label: 'Cortex',
                 data: stats.languages.map(l => ({ name: SC_LANGUAGE_LABELS[l.language] ?? l.language, value: l.n })),
               }]}
-              palette={['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#ec4899']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="개"
               topN={4}
             />
@@ -610,84 +688,6 @@ export function ScriptaBlock({
         />
       )}
     </LCard>
-
-    {/* 카드2: 콘텐츠 계층 (Cortex → 글 → 문단 → 문장 → 청크) */}
-    <LCard pad={0}>
-      {loading && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead
-            eyebrow="CONTENT"
-            title="학습 구조"
-            mb={10}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
-          />
-          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 6)} />
-        </div>
-      )}
-      {!loading && stats && (() => {
-        const win = buildWindow(stats)
-        const c = stats.content
-        // 크레딧 소진은 퍼널이 아니라 여기 있다 — 결제 전 단계가 아니라 학습을 얼마나 돌렸는지의
-        // 결과값이고, 옆의 Cortex·글·문장 카운트와 같은 "무엇을 얼마나 만들고 썼나" 묶음이다.
-        const spent = stats.credits.dailySpent
-        const todayKey = kstToday()
-        const sevenAgoKey = kstDaysAgo(6)
-        const card = (label: string, m: ScMetric, unit: string, title?: string) => (
-          <LStat
-            label={label}
-            title={title}
-            value={m.total.toLocaleString()}
-            sub={`오늘 ${m.today.toLocaleString()}${unit} · 7일 ${m.d7.toLocaleString()}${unit}`}
-            sparkline={mobile ? undefined : cumOf(m.daily, win)}
-          />
-        )
-        return (
-          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-            <LSectionHead
-              eyebrow="CONTENT"
-              title="학습 구조"
-              mb={10}
-              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
-            />
-            {/* Cortex → 글 → 문단 → 문장 → 청크 + 크레딧 소진. 와이드(1열) 한 줄, 2열 모드 3+3, 모바일 2열. */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: t.density.kpiGap }}>
-              {card('Cortex', c.cortices, '개', '하나의 쓰기 목표와 채점 기준을 공유하는 학습 컨테이너.')}
-              {card('글', c.texts, '개', '사용자가 등록한 목표 글(Text) 누적.')}
-              {card('문단', c.paragraphs, '개')}
-              {card('문장', c.sentences, '개', '반복 학습과 취약도 계산의 기본 단위.')}
-              {card('청크', c.chunks, '개', '외국어 문장의 의미와 어순을 복원하는 보조 단위.')}
-              <LStat
-                label="크레딧 소진"
-                title="구조 생성·채점·필기 인식으로 차감된 크레딧 누적 (실패 환불 전 총 차감). 판매가 아니라 사용량이라 퍼널이 아니라 이 묶음에 둔다 — 사용처 분해는 퍼널 섹션의 '크레딧 사용처' 파이."
-                value={stats.credits.spent.toLocaleString()}
-                valueExtra={stats.credits.refunded > 0 ? (
-                  <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
-                  }}>
-                    환불 {stats.credits.refunded.toLocaleString()}
-                  </span>
-                ) : undefined}
-                sub={`오늘 ${countOn(spent, todayKey).toLocaleString()} · 7일 ${countSince(spent, sevenAgoKey).toLocaleString()}`}
-                subExtra={
-                  <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                    잔액 {stats.credits.balance.toLocaleString()}
-                  </span>
-                }
-                sparkline={mobile ? undefined : cumOf(spent, win)}
-              />
-            </div>
-          </div>
-        )
-      })()}
-      {!loading && stats && (
-        <LCardFoot
-          left="AI 채점"
-          right={`${stats.aiGrades.total.toLocaleString()}회`}
-          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
-        />
-      )}
-    </LCard>
     </div>
 
     {/* 사용자 테이블 — 2열 모드에서 두 열을 모두 차지한다 (리뷰노트 사용자 테이블과 동일).
@@ -699,8 +699,8 @@ export function ScriptaBlock({
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {loading && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead title="사용자" mb={t.density.panelPadY + t.density.panelPadX} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
               <Bone key={i} h={40} />
@@ -709,11 +709,10 @@ export function ScriptaBlock({
         </div>
       )}
       {!loading && !error && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="USERS"
             title="사용자"
-            mb={8}
+            mb={t.density.panelPadY + t.density.panelPadX}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
@@ -744,7 +743,7 @@ export function ScriptaBlock({
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const active = userSort === col.key
                 return (
@@ -779,7 +778,7 @@ export function ScriptaBlock({
               // 잔액이 20 아래로 떨어지면 주황 — 소진 임박(문장 채점 1크레딧 기준 스무 번 남짓)
               const lowBalance = user.balance > 0 && user.balance < 20
               return (
-                <div key={user.userId} style={{
+                <div key={user.userId} data-table-row="" style={{
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
@@ -803,7 +802,7 @@ export function ScriptaBlock({
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                      background: t.brand[200], color: t.brand[800],
+                      background: '#E4E7EB', color: '#3A3D42',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, overflow: 'hidden',
                     }}>
@@ -822,7 +821,7 @@ export function ScriptaBlock({
                     {/* 통계에서 빠진 운영 계정 — 테이블에는 남기되 숫자와 섞이지 않음을 표시 */}
                     {isExcludedScriptaUser(user) && (
                       <span title="통계 제외 계정" style={{ display: 'inline-flex', flexShrink: 0 }}>
-                        <LTableBadge tone={tonePalettes.warn}>ADMIN</LTableBadge>
+                        <LTableBadge tone={{ bg: 'transparent', fg: t.neutrals.muted }}>ADMIN</LTableBadge>
                       </span>
                     )}
                   </div>
@@ -852,7 +851,7 @@ export function ScriptaBlock({
                     )}
                   </div>
                   {/* 크레딧 잔액 */}
-                  <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowBalance ? t.accent.warn : t.neutrals.text }}>
+                  <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowBalance ? t.neutrals.subtle : t.neutrals.text }}>
                     {user.balance.toLocaleString()}
                   </div>
                   {/* 누적 사용 */}
@@ -867,7 +866,7 @@ export function ScriptaBlock({
 
           {/* 페이지네이션 (리뷰노트 사용자 테이블과 동일 스타일) */}
           {totalUsers > 0 && (
-            <div style={{
+            <div data-panel-foot="" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
               borderTop: `1px solid ${t.neutrals.line}`,
@@ -913,6 +912,12 @@ export function ScriptaBlock({
             </div>
           )}
         </div>
+      )}
+      {!loading && !error && (
+        <LCardFoot
+          left="운영 계정은 통계에서 빼고 표에만 남긴다"
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       )}
     </LCard>
     </div>

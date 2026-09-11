@@ -383,7 +383,112 @@ export function ReviewnotesBlock({
     <>
     {/* 퍼널 · 운영 지표 — 두 섹션이 한 열로 붙어 다닌다 */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-    {/* 카드1: 헤더 + 인사이트 */}
+    {/* 카드1: 활동 지표 */}
+    <LCard pad={0}>
+      {loading && (
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+          />
+          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
+        </div>
+      )}
+      {/* 콘텐츠·학습 카운트 — 결제 지표는 위 퍼널로 갔다 */}
+      {!loading && userStats && (() => {
+        // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
+        const realUsers = userStats.users.filter(u => !isExcludedReviewNotesUser(u))
+        const toKst = (iso: string) => kstDateKey(iso) // UTC naive → KST 날짜키 (Z 명시 파싱)
+        const todayKst = kstToday()
+        const sevenAgoKst = kstDaysAgo(6) // 오늘 포함 7일
+        const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
+        const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
+        // 신규 가입자 업로드 용량
+        const storageToday = realUsers.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        const storage7 = realUsers.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
+        // 누적 스파크라인 — 트래픽 집계 시작(첫 PageView) 이후 윈도우, 이전분은 베이스라인 (인사이트와 동일 문법)
+        const winDates = (trafficStats?.daily ?? []).map(d => d.date)
+        const cumOf = (rows?: Array<{ date: string; n: number }>) => {
+          if (!rows || winDates.length === 0) return undefined
+          const byDay = new Map(rows.map(r => [r.date, r.n]))
+          let run = rows.filter(r => r.date < winDates[0]).reduce((s, r) => s + r.n, 0)
+          const spark = winDates.map(d => ({ date: d, value: (run += byDay.get(d) ?? 0) }))
+          return spark.length > 1 ? spark : undefined
+        }
+        // 용량은 파일별 타임라인이 없어 가입일 기준 누적(그 시점까지 가입한 유저들의 현재 사용량 합) 프록시
+        const storageCum = (() => {
+          if (winDates.length === 0) return undefined
+          const byDay = new Map<string, number>()
+          let base = 0
+          for (const u of realUsers) {
+            const k = toKst(u.createdAt)
+            const mb = (u.storageUsed || 0) / (1024 * 1024)
+            if (k < winDates[0]) base += mb
+            else byDay.set(k, (byDay.get(k) ?? 0) + mb)
+          }
+          let run = base
+          const spark = winDates.map(d => ({ date: d, value: Math.round((run += byDay.get(d) ?? 0) * 10) / 10 }))
+          return spark.length > 1 ? spark : undefined
+        })()
+        return (
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+            <LSectionHead
+              title="활동 지표"
+              mb={t.density.panelPadY + t.density.panelPadX}
+              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+            />
+            {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
+                와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : (dashCols === 2 ? 'repeat(3, minmax(0,1fr))' : 'repeat(5, minmax(0,1fr))')}>
+              <LStat
+                label="노트"
+                value={(contentStats?.notes.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.notes.today}개 · 7일 ${contentStats.notes.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.notes.daily)}
+              />
+              <LStat
+                label="문제"
+                value={(contentStats?.problems.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.problems.today}개 · 7일 ${contentStats.problems.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.problems.daily)}
+              />
+              <LStat
+                label="문제 세트"
+                value={(contentStats?.problemSets.total ?? 0).toLocaleString()}
+                sub={contentStats ? `오늘 ${contentStats.problemSets.today}개 · 7일 ${contentStats.problemSets.d7}개` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.problemSets.daily)}
+              />
+              <LStat
+                label="문제 풀이"
+                title="StudyResult 누적 — 문제를 실제로 풀어 제출한 횟수. 정답률 = 정답 ÷ 전체 풀이."
+                value={(contentStats?.studyResults.total ?? 0).toLocaleString()}
+                valueExtra={contentStats && contentStats.studyResults.total > 0 ? rateExtra('정답', rate(contentStats.studyResults.correct, contentStats.studyResults.total)) : undefined}
+                sub={contentStats ? `오늘 ${contentStats.studyResults.today}회 · 7일 ${contentStats.studyResults.d7}회` : undefined}
+                sparkline={mobile ? undefined : cumOf(contentStats?.studyResults.daily)}
+              />
+              {/* 학습 노트 카드는 제외 (2026-07-16 CEO) — 여섯 번째 자리는 비워둠, 데이터(studyNotes)는 RPC에 유지 */}
+              <LStat
+                label="용량"
+                title="가입일 기준 누적 프록시 — 파일별 업로드 시점 데이터가 없어, 그 날짜까지 가입한 유저들의 현재 사용량 합으로 근사."
+                value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
+                sub={`오늘 ${formatBytes(storageToday)} · 7일 ${formatBytes(storage7)}`}
+                sparkline={mobile ? undefined : storageCum}
+                sparkFormat={(v) => `${v.toLocaleString()} MB`}
+              />
+            </StatRows>
+          </div>
+        )
+      })()}
+      {!loading && userStats && (
+        <LCardFoot
+          left="운영 계정 제외 · 업로드 용량은 가입일 기준 누적 근사"
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
+    </LCard>
+
+    {/* 카드2: 결제 전환 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
@@ -670,105 +775,6 @@ export function ReviewnotesBlock({
         />
       )}
     </LCard>
-
-    {/* 카드2: 콘텐츠·학습 지표 */}
-    <LCard pad={0}>
-      {loading && (
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead
-            title="활동 지표"
-            mb={t.density.panelPadY + t.density.panelPadX}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
-          />
-          <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
-        </div>
-      )}
-      {/* 콘텐츠·학습 카운트 — 결제 지표는 위 퍼널로 갔다 */}
-      {!loading && userStats && (() => {
-        // 오늘/7일 신규 — users[].createdAt(KST) 기준 파생. 통계는 관리자 제외 (2026-07-16 CEO)
-        const realUsers = userStats.users.filter(u => !isExcludedReviewNotesUser(u))
-        const toKst = (iso: string) => kstDateKey(iso) // UTC naive → KST 날짜키 (Z 명시 파싱)
-        const todayKst = kstToday()
-        const sevenAgoKst = kstDaysAgo(6) // 오늘 포함 7일
-        const inToday = (u: typeof userStats.users[number]) => toKst(u.createdAt) === todayKst
-        const in7 = (u: typeof userStats.users[number]) => toKst(u.createdAt) >= sevenAgoKst
-        // 신규 가입자 업로드 용량
-        const storageToday = realUsers.filter(inToday).reduce((s, u) => s + (u.storageUsed || 0), 0)
-        const storage7 = realUsers.filter(in7).reduce((s, u) => s + (u.storageUsed || 0), 0)
-        // 누적 스파크라인 — 트래픽 집계 시작(첫 PageView) 이후 윈도우, 이전분은 베이스라인 (인사이트와 동일 문법)
-        const winDates = (trafficStats?.daily ?? []).map(d => d.date)
-        const cumOf = (rows?: Array<{ date: string; n: number }>) => {
-          if (!rows || winDates.length === 0) return undefined
-          const byDay = new Map(rows.map(r => [r.date, r.n]))
-          let run = rows.filter(r => r.date < winDates[0]).reduce((s, r) => s + r.n, 0)
-          const spark = winDates.map(d => ({ date: d, value: (run += byDay.get(d) ?? 0) }))
-          return spark.length > 1 ? spark : undefined
-        }
-        // 용량은 파일별 타임라인이 없어 가입일 기준 누적(그 시점까지 가입한 유저들의 현재 사용량 합) 프록시
-        const storageCum = (() => {
-          if (winDates.length === 0) return undefined
-          const byDay = new Map<string, number>()
-          let base = 0
-          for (const u of realUsers) {
-            const k = toKst(u.createdAt)
-            const mb = (u.storageUsed || 0) / (1024 * 1024)
-            if (k < winDates[0]) base += mb
-            else byDay.set(k, (byDay.get(k) ?? 0) + mb)
-          }
-          let run = base
-          const spark = winDates.map(d => ({ date: d, value: Math.round((run += byDay.get(d) ?? 0) * 10) / 10 }))
-          return spark.length > 1 ? spark : undefined
-        })()
-        return (
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-            <LSectionHead
-              title="활동 지표"
-              mb={t.density.panelPadY + t.density.panelPadX}
-              action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
-            />
-            {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
-                와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
-            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : (dashCols === 2 ? 'repeat(3, minmax(0,1fr))' : 'repeat(5, minmax(0,1fr))')}>
-              <LStat
-                label="노트"
-                value={(contentStats?.notes.total ?? 0).toLocaleString()}
-                sub={contentStats ? `오늘 ${contentStats.notes.today}개 · 7일 ${contentStats.notes.d7}개` : undefined}
-                sparkline={mobile ? undefined : cumOf(contentStats?.notes.daily)}
-              />
-              <LStat
-                label="문제"
-                value={(contentStats?.problems.total ?? 0).toLocaleString()}
-                sub={contentStats ? `오늘 ${contentStats.problems.today}개 · 7일 ${contentStats.problems.d7}개` : undefined}
-                sparkline={mobile ? undefined : cumOf(contentStats?.problems.daily)}
-              />
-              <LStat
-                label="문제 세트"
-                value={(contentStats?.problemSets.total ?? 0).toLocaleString()}
-                sub={contentStats ? `오늘 ${contentStats.problemSets.today}개 · 7일 ${contentStats.problemSets.d7}개` : undefined}
-                sparkline={mobile ? undefined : cumOf(contentStats?.problemSets.daily)}
-              />
-              <LStat
-                label="문제 풀이"
-                title="StudyResult 누적 — 문제를 실제로 풀어 제출한 횟수. 정답률 = 정답 ÷ 전체 풀이."
-                value={(contentStats?.studyResults.total ?? 0).toLocaleString()}
-                valueExtra={contentStats && contentStats.studyResults.total > 0 ? rateExtra('정답', rate(contentStats.studyResults.correct, contentStats.studyResults.total)) : undefined}
-                sub={contentStats ? `오늘 ${contentStats.studyResults.today}회 · 7일 ${contentStats.studyResults.d7}회` : undefined}
-                sparkline={mobile ? undefined : cumOf(contentStats?.studyResults.daily)}
-              />
-              {/* 학습 노트 카드는 제외 (2026-07-16 CEO) — 여섯 번째 자리는 비워둠, 데이터(studyNotes)는 RPC에 유지 */}
-              <LStat
-                label="용량"
-                title="가입일 기준 누적 프록시 — 파일별 업로드 시점 데이터가 없어, 그 날짜까지 가입한 유저들의 현재 사용량 합으로 근사."
-                value={`${(userStats.totalStorageUsed / (1024 * 1024)).toFixed(1)} MB`}
-                sub={`오늘 ${formatBytes(storageToday)} · 7일 ${formatBytes(storage7)}`}
-                sparkline={mobile ? undefined : storageCum}
-                sparkFormat={(v) => `${v.toLocaleString()} MB`}
-              />
-            </StatRows>
-          </div>
-        )
-      })()}
-    </LCard>
     </div>
 
     {/* 사용자 테이블 — 2열 모드에서 두 열을 모두 차지한다 (보이스카드 사용자 테이블과 동일).
@@ -1014,6 +1020,12 @@ export function ReviewnotesBlock({
             )}
           </div>
         </>
+      )}
+      {!loading && userStats && (
+        <LCardFoot
+          left="운영·심사 계정은 통계에서 빼고 표에만 남긴다"
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       )}
     </LCard>
     </div>
