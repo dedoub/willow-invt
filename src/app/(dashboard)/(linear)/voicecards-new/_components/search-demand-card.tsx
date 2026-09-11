@@ -949,15 +949,19 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 <RegionLanguageCard data={data} />
               </div>
 
-              <div style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
-                lineHeight: 1.6, wordBreak: 'keep-all' as const,
-              }}>
-                {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
-                {cov && cov.orphanPaths.length > 0 && (
-                  <div>· 사이트맵 밖 유입 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 2).map(fmtPathSample).join(', ')})</div>
-                )}
-              </div>
+              {/* 주석은 있을 때만 자리를 갖는다 — 빈 상자라도 놓으면 스택 간격만큼
+                  표와 푸터 선 사이가 벌어져 다른 카드와 어긋난다(2026-09-11) */}
+              {(data.notes.length > 0 || (cov && cov.orphanPaths.length > 0)) && (
+                <div style={{
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
+                  lineHeight: 1.6, wordBreak: 'keep-all' as const,
+                }}>
+                  {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
+                  {cov && cov.orphanPaths.length > 0 && (
+                    <div>· 사이트맵 밖 유입 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 2).map(fmtPathSample).join(', ')})</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
