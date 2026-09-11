@@ -870,10 +870,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-size: calc(11px * var(--fz, 1)) !important;
 }
 .theme-outline [data-panel-row]:last-child { border-bottom: none; }
-/* 푸터 선은 표 안쪽에서 시작해 끝난다. 표와 붙어 있으면 마지막 행의 선처럼 읽힌다 */
+/* 표 아래 개수·쪽 넘김 줄에는 선을 두지 않는다 — 사업관리 표와 같이,
+   마지막 행 밑에 선이 그이면 행이 하나 더 있는 것처럼 읽힌다 */
 .theme-outline [data-panel-foot] {
-  margin: 14px 8px 0 !important;
-  padding-top: 10px !important;
+  border-top: none !important;
+  margin: 10px 8px 0 !important;
+  padding-top: 0 !important;
 }
 
 .theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }
