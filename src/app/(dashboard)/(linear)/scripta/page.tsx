@@ -22,6 +22,9 @@ export default function ScriptaPage() {
   const [scSales, setScSales] = useState<CreditSalesStats | null>(null)
   const [scError, setScError] = useState<string | null>(null)
 
+  // 서버가 집계를 만든 시각(캐시 안에서 찍혀 함께 온다) — 카드 푸터가 숫자의 나이를 말한다
+  const [scGeneratedAt, setScGeneratedAt] = useState<string | null>(null)
+
   const loadScripta = useCallback(async (refresh = false) => {
     if (refresh) setScRefreshing(true)
     else setScLoading(true)
@@ -33,6 +36,7 @@ export default function ScriptaPage() {
       setScStats(data.stats)
       setScUsers(data.users || [])
       setScSales(data.sales || null)
+      setScGeneratedAt(data.generatedAt || null)
     } catch (err) {
       console.error('Scripta load error:', err)
       setScError(String(err))
@@ -89,6 +93,7 @@ export default function ScriptaPage() {
       onRefresh={() => loadScripta(true)}
       refreshing={scRefreshing}
       error={scError}
+      generatedAt={scGeneratedAt}
     />
     </div>
     </div>

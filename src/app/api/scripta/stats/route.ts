@@ -16,7 +16,8 @@ const getCachedScriptaData = unstable_cache(
         return null
       }),
     ])
-    return { ...db, sales }
+    // 집계 시각은 캐시 안에서 찍는다 — 캐시 히트면 이 값도 같이 돌아와 화면이 숫자의 나이를 말한다
+    return { ...db, sales, generatedAt: new Date().toISOString() }
   },
   ['scripta-stats'],
   { revalidate: 60, tags: ['scripta-stats'] }

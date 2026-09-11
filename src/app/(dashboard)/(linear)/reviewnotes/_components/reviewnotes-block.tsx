@@ -22,6 +22,8 @@ import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ReviewnotesBlockProps {
+  /** 서버가 집계를 만든 시각(ISO) — 카드 푸터에 적는다 */
+  generatedAt?: string | null
   loading: boolean
   sales: CreditSalesStats | null
   userStats: ReviewNotesUserStats | null
@@ -294,9 +296,19 @@ function RnDauTrendCard({ daily, days = 42 }: {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 있어 최대 그만큼 지난 값일 수 있다 */
+function generatedLabel(at?: string | null) {
+  if (!at) return undefined
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return undefined
+  const day = d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '').replace(/\. /, '-')
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `집계 ${day} ${time}`
+}
+
 export function ReviewnotesBlock({
   loading, sales, userStats, trafficStats, contentStats,
-  onRefresh, refreshing, error, cols,
+  onRefresh, refreshing, error, cols, generatedAt,
 }: ReviewnotesBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -482,7 +494,8 @@ export function ReviewnotesBlock({
       })()}
       {!loading && userStats && (
         <LCardFoot
-          left="운영 계정 제외 · 업로드 용량은 가입일 기준 누적 근사"
+          left="운영 계정 제외"
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -709,6 +722,7 @@ export function ReviewnotesBlock({
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
+              sparkColor={t.chart.mono}
               spark2Color={t.neutrals.subtle}
               sparkFormat2={(v) => `${v}%`}
               dualScale
@@ -769,8 +783,8 @@ export function ReviewnotesBlock({
       </div>
       {trafficStats?.daily[0] && (
         <LCardFoot
-          left="누적 · 봇 제외"
-          right={`${trafficStats.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작`}
+          left="봇 제외"
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -1023,7 +1037,8 @@ export function ReviewnotesBlock({
       )}
       {!loading && userStats && (
         <LCardFoot
-          left="운영·심사 계정은 통계에서 빼고 표에만 남긴다"
+          left="운영·심사 계정은 표에만"
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}

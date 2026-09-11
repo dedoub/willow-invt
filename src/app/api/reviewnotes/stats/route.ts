@@ -31,7 +31,8 @@ const getCachedReviewNotesData = unstable_cache(
       }),
     ])
 
-    return { sales, userStats, trafficStats, contentStats }
+    // 집계 시각은 캐시 안에서 찍는다 — 캐시 히트면 이 값도 같이 돌아와 화면이 숫자의 나이를 말한다
+    return { sales, userStats, trafficStats, contentStats, generatedAt: new Date().toISOString() }
   },
   ['reviewnotes-stats'],
   // 60초 캐시 — 보이스카드(events/users)와 동일 신선도로 맞춤 (2026-07-16 CEO).

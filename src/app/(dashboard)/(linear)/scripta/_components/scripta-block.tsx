@@ -22,6 +22,8 @@ import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ScriptaBlockProps {
+  /** 서버가 집계를 만든 시각(ISO) — 카드 푸터에 적는다 */
+  generatedAt?: string | null
   loading: boolean
   stats: ScriptaStats | null
   users: ScriptaUser[]
@@ -297,8 +299,18 @@ const NumCell = ({ value, muted }: { value: number; muted?: boolean }) => (
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 있어 최대 그만큼 지난 값일 수 있다 */
+function generatedLabel(at?: string | null) {
+  if (!at) return undefined
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return undefined
+  const day = d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '').replace(/\. /, '-')
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `집계 ${day} ${time}`
+}
+
 export function ScriptaBlock({
-  loading, stats, users, sales, onRefresh, refreshing, error, cols,
+  loading, stats, users, sales, onRefresh, refreshing, error, cols, generatedAt,
 }: ScriptaBlockProps) {
   const mobile = useIsMobile()
   const dashCols = cols
@@ -451,8 +463,8 @@ export function ScriptaBlock({
       })()}
       {!loading && stats && (
         <LCardFoot
-          left="AI 채점"
-          right={`${stats.aiGrades.total.toLocaleString()}회`}
+          left={`AI 채점 ${stats.aiGrades.total.toLocaleString()}회`}
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -466,8 +478,10 @@ export function ScriptaBlock({
           mb={t.density.panelPadY + t.density.panelPadX}
           action={
             <>
-              <LHeadBtn icon="externalLink" title="Scripta 앱" href="https://scripta.quest" />
-              <LHeadBtn icon="externalLink" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
+              {/* 두 곳 다 바깥으로 나가는 링크라 같은 아이콘이면 구분이 안 된다 —
+                  검색 카드의 GSC 처럼 짧은 글자로 어디로 가는지 적는다(2026-09-11) */}
+              <LHeadBtn label="앱" title="Scripta 앱" href="https://scripta.quest" />
+              <LHeadBtn label="결제" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
               <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
             </>
           }
@@ -634,6 +648,7 @@ export function ScriptaBlock({
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
+              sparkColor={t.chart.mono}
               spark2Color={t.neutrals.subtle}
               sparkFormat2={(v) => `${v}%`}
               dualScale
@@ -682,8 +697,8 @@ export function ScriptaBlock({
       </div>
       {!loading && stats && (
         <LCardFoot
-          left="운영 계정 제외 · 단건 결제라 MRR 은 없다"
-          right={stats.users.daily[0] ? `${stats.users.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작` : undefined}
+          left="운영 계정 제외"
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -915,7 +930,8 @@ export function ScriptaBlock({
       )}
       {!loading && !error && (
         <LCardFoot
-          left="운영 계정은 통계에서 빼고 표에만 남긴다"
+          left="운영 계정은 표에만"
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}

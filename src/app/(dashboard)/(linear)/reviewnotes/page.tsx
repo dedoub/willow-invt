@@ -23,6 +23,9 @@ export default function ReviewnotesPage() {
   const [rnContentStats, setRnContentStats] = useState<ReviewNotesContentStats | null>(null)
   const [rnError, setRnError] = useState<string | null>(null)
 
+  // 서버가 집계를 만든 시각(캐시 안에서 찍혀 함께 온다) — 카드 푸터가 숫자의 나이를 말한다
+  const [rnGeneratedAt, setRnGeneratedAt] = useState<string | null>(null)
+
   const loadReviewnotes = useCallback(async (refresh = false) => {
     if (refresh) setRnRefreshing(true)
     else setRnLoading(true)
@@ -38,6 +41,7 @@ export default function ReviewnotesPage() {
       setRnUserStats(data.userStats || null)
       setRnTrafficStats(data.trafficStats || null)
       setRnContentStats(data.contentStats || null)
+      setRnGeneratedAt(data.generatedAt || null)
     } catch (err) {
       console.error('ReviewNotes load error:', err)
       setRnError(String(err))
@@ -96,6 +100,7 @@ export default function ReviewnotesPage() {
       onRefresh={() => loadReviewnotes(true)}
       refreshing={rnRefreshing}
       error={rnError}
+      generatedAt={rnGeneratedAt}
     />
     </div>
     </div>
