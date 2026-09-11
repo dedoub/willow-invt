@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -169,7 +170,7 @@ const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0)
 const rateExtra = (label: string, pct: number) => (
   <span style={{
     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-    color: t.accent.warn, fontVariantNumeric: 'tabular-nums' as const,
+    color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
   }}>
     {label} {pct}%
   </span>
@@ -191,10 +192,11 @@ function RnDauTrendCard({ daily, days = 42 }: {
   const totalOf = (r: { active: number; anon: number }) => r.active + r.anon
   const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
-  const MEMBER = '#3b82f6'
-  const NEW = '#8b5cf6'
-  const ANON = '#10b981'
-  const MA_COLOR = '#f97316'
+  // 색이 아니라 짙기로 가른다 — 위로 갈수록 '새 사람'(2026-09-11 카드 문법)
+  const MEMBER = '#0A2E40'
+  const NEW = '#5B6B74'
+  const ANON = '#B4BBC1'
+  const MA_COLOR = '#17181C'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
   const ma = rows.map((_, i) => {
@@ -385,11 +387,11 @@ export function ReviewnotesBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          eyebrow="FUNNEL"
-          title="방문 → 가입 → 활성화 → 결제"
+          title="결제 전환"
+          mb={t.density.panelPadY + t.density.panelPadX}
           action={
             <>
-              <LHeadBtn icon="trending" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
+              <LHeadBtn icon="externalLink" title="LemonSqueezy" href="https://app.lemonsqueezy.com/products" />
               <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />
             </>
           }
@@ -516,10 +518,10 @@ export function ReviewnotesBlock({
 
             const splitLayout = !mobile && dashCols === 1
             return (
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
           {/* 좌: 퍼널 카드(3×2) + 파이 · 우: 일별 활동자 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom, minWidth: 0 }}>
+          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
             <LStat
               label="순 방문자"
               title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
@@ -569,7 +571,7 @@ export function ReviewnotesBlock({
               valueExtra={sales ? (
                 <span style={{
                   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-                  color: t.brand[600], fontVariantNumeric: 'tabular-nums' as const,
+                  color: t.neutrals.muted, fontVariantNumeric: 'tabular-nums' as const,
                 }}>
                   {formatCurrency(sales.revenueUsd)}
                 </span>
@@ -602,14 +604,14 @@ export function ReviewnotesBlock({
               sub={`ARPMAU ${fmtArpu(arpmau)}`}
               sparkline={mobile ? undefined : mauSpark}
               sparkline2={mobile ? undefined : stickinessSpark}
-              spark2Color={t.accent.warn}
+              spark2Color={t.neutrals.subtle}
               sparkFormat2={(v) => `${v}%`}
               dualScale
             />
-          </div>
+          </StatRows>
           {/* 유입 경로 / 국가 / 기기 — 보이스카드와 동일한 파이 + 탭 (2026-07-15 사용자 구성 파이는 제거).
               회원·유료 유입은 EventLog↔PageView 방문자 ID 조인의 first-touch 귀속이라 랜딩 미경유 유저는 빠짐. */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px` }}>
             {/* 회원/유료 귀속 탭은 데이터가 쌓이면 복원 — memberReferrers/paidReferrers가 RPC에 이미 있음.
                 지금은 랜딩 경유 가입자가 1명뿐이라 전체(방문)만 의미 있음 (2026-07-15 CEO). */}
             <DistributionPie
@@ -617,7 +619,7 @@ export function ReviewnotesBlock({
               tabs={[
                 { key: 'visit', label: '전체', data: trafficStats.topReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
               ]}
-              palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               topN={4}
             />
             <DistributionPie
@@ -627,9 +629,10 @@ export function ReviewnotesBlock({
                 { key: 'member', label: '회원', data: trafficStats.memberCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
                 { key: 'paid', label: '유료', data: trafficStats.paidCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
               ]}
-              palette={['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#84cc16']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="명"
               topN={3}
+              monoFlags
             />
             {/* 기기 — 2026-07-15부터 수집. 그 전 방문(device null)은 제외하고 실측만 표시 —
                 수집 전 데이터가 '미상 100%'로 파이를 무의미하게 만드는 것 방지. 새 방문부터 채워짐. */}
@@ -644,7 +647,7 @@ export function ReviewnotesBlock({
                     value: d.count,
                   })),
               }]}
-              palette={['#3b82f6', '#8b5cf6', '#10b981']}
+              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="명"
             />
           </div>
@@ -671,11 +674,10 @@ export function ReviewnotesBlock({
     {/* 카드2: 콘텐츠·학습 지표 */}
     <LCard pad={0}>
       {loading && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="CONTENT"
-            title="콘텐츠 사용량"
-            mb={10}
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
           <SkeletonRow count={mobile ? 2 : (dashCols === 2 ? 3 : 5)} />
@@ -718,16 +720,15 @@ export function ReviewnotesBlock({
           return spark.length > 1 ? spark : undefined
         })()
         return (
-          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
             <LSectionHead
-              eyebrow="CONTENT"
-              title="콘텐츠 사용량"
-              mb={10}
+              title="활동 지표"
+              mb={t.density.panelPadY + t.density.panelPadX}
               action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
             />
             {/* 콘텐츠·학습 카운트 (2026-07-16 CEO): 노트/문제/문제 세트/풀이/용량 5카드.
                 와이드(1열) 모드 한 줄, 2열 모드 3+2, 모바일 2열. MRR·가입·유료는 인사이트 퍼널로 이동. */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'), gap: t.density.kpiGap }}>
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : (dashCols === 2 ? 'repeat(3, minmax(0,1fr))' : 'repeat(5, minmax(0,1fr))')}>
               <LStat
                 label="노트"
                 value={(contentStats?.notes.total ?? 0).toLocaleString()}
@@ -763,7 +764,7 @@ export function ReviewnotesBlock({
                 sparkline={mobile ? undefined : storageCum}
                 sparkFormat={(v) => `${v.toLocaleString()} MB`}
               />
-            </div>
+            </StatRows>
           </div>
         )
       })()}
@@ -779,8 +780,8 @@ export function ReviewnotesBlock({
     {/* 카드3: 사용자 테이블 */}
     <LCard pad={0}>
       {loading && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead title="사용자" mb={t.density.panelPadY + t.density.panelPadX} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
               <Bone key={i} h={40} />
@@ -792,11 +793,10 @@ export function ReviewnotesBlock({
       {!loading && userStats && (
         <>
           {/* Recent users list */}
-          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
             <LSectionHead
-              eyebrow="USERS"
               title="사용자"
-              mb={8}
+              mb={t.density.panelPadY + t.density.panelPadX}
               tools={mobile ? (
                 // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
@@ -827,7 +827,7 @@ export function ReviewnotesBlock({
             <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
               {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-              <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+              <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
                 {USER_COLUMNS.map(col => {
                   const active = userSort === col.key
                   return (
@@ -861,7 +861,7 @@ export function ReviewnotesBlock({
                 const aiTotal = user.aiCallsTotal ?? 0
                 const aiTitle = formatAiFeatureBreakdown(user.aiFeaturesMonth, user.aiFeaturesTotal)
                 return (
-                  <div key={user.id} style={{
+                  <div key={user.id} data-table-row="" style={{
                     display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
                     padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                   }}>
@@ -885,7 +885,7 @@ export function ReviewnotesBlock({
                     <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                       <div style={{
                         width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                        background: t.brand[200], color: t.brand[800],
+                        background: '#E4E7EB', color: '#3A3D42',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, overflow: 'hidden',
                       }}>
@@ -910,7 +910,7 @@ export function ReviewnotesBlock({
                         const c = formatCountryBadge(user.country)
                         return c ? (
                           <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
-                            <LTableBadge tone={tonePalettes.info}>{c.flag} {c.code}</LTableBadge>
+                            <LTableBadge tone={{ bg: 'transparent', fg: t.neutrals.text }}><span className="flag-mono">{c.flag}</span> {c.code}</LTableBadge>
                           </span>
                         ) : (
                           <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
@@ -923,7 +923,7 @@ export function ReviewnotesBlock({
                     <NumDeltaCell total={user.problemSets ?? 0} delta={user.problemSetsToday ?? 0} />
                     <NumDeltaCell total={user.solves ?? 0} delta={user.solvesToday ?? 0} />
                     {/* 크레딧 잔액 — 가입 지급 100에서 쓴 만큼 줄고 팩을 사면 는다 */}
-                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowCredits ? t.accent.warn : t.neutrals.text }}>
+                    <div style={{ ...userNumCell, textAlign: 'center' as const, color: lowCredits ? t.neutrals.subtle : t.neutrals.text }}>
                       {balance.toLocaleString()}
                     </div>
                     {/* 누적 사용 — AiUsage 원장 (2026-08-11 이전 호출은 없다) */}
@@ -938,7 +938,7 @@ export function ReviewnotesBlock({
                           title={isAdmin ? '관리자 — 통계 제외' : '스토어 심사용 계정 — 통계 제외'}
                           style={{ display: 'inline-flex', minWidth: 0 }}
                         >
-                          <LTableBadge tone={tonePalettes.warn}>{isAdmin ? 'Admin' : '제외'}</LTableBadge>
+                          <LTableBadge tone={{ bg: 'transparent', fg: t.neutrals.muted }}>{isAdmin ? 'Admin' : '제외'}</LTableBadge>
                         </span>
                       ) : (
                         <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>—</span>
@@ -967,7 +967,7 @@ export function ReviewnotesBlock({
 
             {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
             {totalUsers > 0 && (
-              <div style={{
+              <div data-panel-foot="" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
                 borderTop: `1px solid ${t.neutrals.line}`,
