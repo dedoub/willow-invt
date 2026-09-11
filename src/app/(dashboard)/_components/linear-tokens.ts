@@ -55,8 +55,9 @@ export const t = {
   accent: { pos: '#107A52', neg: '#C23A3A', warn: '#B8781F' },
   // 차트 색 — 시리즈가 하나인 차트는 색 대신 회색 단색(mono)으로 그린다. 두 시리즈 이상만 dataviz 팔레트.
   // 색은 상태·부호·강조에만 남겨 화면의 색 총량을 줄인다 (2026-09-10, 레퍼런스: coderthemes Simple).
-  // 선은 사이드바와 같은 브랜드 네이비다 — 활성 칩·탭과 함께 화면에서 강조가 서는 자리를 셋으로 묶는다.
-  chart: { mono: '#0A2E40', monoSoft: '#C9D2D7', monoFill: 'rgba(10,46,64,0.08)', grid: 'rgba(15,15,20,0.09)' },
+  // 선은 활성 칩과 같은 brand 800 이다 — 흰 바닥 위의 가는 선·작은 면은 사이드바 면(#0A2E40)과
+  // 같은 값을 쓰면 더 어둡게 읽힌다(동시대비, CEO 2026-09-11). 강조가 서는 자리를 셋으로 묶는다.
+  chart: { mono: '#0E415A', monoSoft: '#C9D2D7', monoFill: 'rgba(14,65,90,0.08)', grid: 'rgba(15,15,20,0.09)' },
   radius: { sm: 4, md: 6, lg: 8, pill: 999 },
   density: {
     rowH: 34,

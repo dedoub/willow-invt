@@ -1560,7 +1560,7 @@ export function VoicecardsBlock({
                     })),
                   },
                 ]}
-                palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+                palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
                 unit="명"
               />
               <DistributionPie
@@ -1582,7 +1582,7 @@ export function VoicecardsBlock({
                     data: (anonymousStats.payingCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                 ]}
-                palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+                palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
                 unit="명"
                 topN={3}
                 monoFlags
@@ -1594,7 +1594,7 @@ export function VoicecardsBlock({
                   { key: 'ios', label: 'iOS', data: versionPieData(anonymousStats.versionsIos) },
                   { key: 'and', label: 'AND', data: versionPieData(anonymousStats.versionsAndroid) },
                 ]}
-                palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+                palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
                 unit="대"
               />
             </div>
@@ -1944,7 +1944,7 @@ function DauTrendCard({ daily, days = 42 }: {
     r.memberDeviceDevices ?? Math.max(0, r.anonDevices - devNewOf(r))
   // 로그인·기기 네 갈래를 한 색의 명도 사다리로 읽는다 — 같은 계열 안에서 신규가 밝은 쪽이라
   // 위로 갈수록 '새 사람'이고, 스택 방향과 읽는 방향이 맞는다(2026-09-11 카드 문법: 색 대신 명도).
-  const MEMBER = '#0A2E40'
+  const MEMBER = '#0E415A'
   const NEW = '#5B6B74'
   const DEV_MEMBER = '#A8B0B6'
   const DEV_NEW = '#D3D7DD'
@@ -2130,7 +2130,7 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
   days?: number
 }) {
   // 두 시리즈는 색이 아니라 짙기로 가른다 — 판매가 짙고, 사용이 옅다
-  const SOLD = '#0A2E40'
+  const SOLD = '#0E415A'
   const USED = '#A8B0B6'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 

@@ -30,7 +30,7 @@ const PERIODS = [7, 30, 90] as const
 type Period = typeof PERIODS[number]
 
 // 색은 강조 하나(네이비)와 회색 단계로만 쓴다 — 사업관리 차트와 같은 규칙(2026-09-11)
-const SEARCH_COLOR = '#0A2E40'   // 주 시리즈
+const SEARCH_COLOR = '#0E415A'   // 주 시리즈
 const OTHER_COLOR = '#C9D2D7'    // 나머지
 const PV_COLOR = '#8D959D'       // 보조 라인
 
@@ -38,7 +38,7 @@ const CHANNEL_LABEL: Record<Channel, string> = {
   search: '검색', ai: 'AI 답변', social: '소셜', referral: '추천', direct: '직접',
 }
 const CHANNEL_COLOR: Record<Channel, string> = {
-  search: '#0A2E40', ai: '#3F4A52', social: '#6B747C', referral: '#9AA3AB', direct: '#C9D2D7',
+  search: '#0E415A', ai: '#3F4A52', social: '#6B747C', referral: '#9AA3AB', direct: '#C9D2D7',
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -297,7 +297,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
 // ─── Search Console: 노출/클릭 추이 ───────────────────────────────────────────
 
 const IMPRESSION_COLOR = '#C9D2D7'
-const CLICK_COLOR = '#0A2E40'
+const CLICK_COLOR = '#0E415A'
 
 function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
@@ -387,7 +387,7 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
 // 상태별 색: 색인됨만 브랜드색, 나머지는 원인 성격에 맞춰 경고/중립
 // 색인 상태도 회색 명도로만 나눈다 — 색인된 쪽이 가장 진하고 모르는 쪽이 가장 옅다
 const BUCKET_COLOR: Record<IndexBucket, string> = {
-  indexed: '#0A2E40',
+  indexed: '#0E415A',
   crawled: '#3F4A52',    // 콘텐츠 판단 문제
   discovered: '#6B747C', // 대기 중
   unseen: '#9AA3AB',     // 발견 자체가 안 된 것

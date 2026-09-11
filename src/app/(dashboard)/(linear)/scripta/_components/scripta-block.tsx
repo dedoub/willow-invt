@@ -134,7 +134,7 @@ function ScDauTrendCard({ daily, days = 42 }: {
   const max = rows.reduce((m, r) => Math.max(m, r.active), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
   // 색이 아니라 짙기로 가른다 — 위로 갈수록 '새 사람'(2026-09-11 카드 문법)
-  const MEMBER = '#0A2E40'
+  const MEMBER = '#0E415A'
   const NEW = '#8D959D'
   const MA_COLOR = '#17181C'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
@@ -662,7 +662,7 @@ export function ScriptaBlock({
                 { key: 'attempts', label: '시도', data: stats.byLevel.map(l => ({ name: SC_LEVEL_LABELS[l.level] ?? l.level, value: l.attempts })) },
                 { key: 'passed', label: '통과', data: stats.byLevel.map(l => ({ name: SC_LEVEL_LABELS[l.level] ?? l.level, value: l.passed })) },
               ]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="회"
             />
             <DistributionPie
@@ -671,7 +671,7 @@ export function ScriptaBlock({
                 { key: 'credits', label: '크레딧', data: stats.credits.byReason.map(r => ({ name: SC_CREDIT_REASON_LABELS[r.reason] ?? r.reason, value: r.credits })) },
                 { key: 'calls', label: '호출', data: stats.credits.byReason.map(r => ({ name: SC_CREDIT_REASON_LABELS[r.reason] ?? r.reason, value: r.calls })) },
               ]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               topN={4}
             />
             <DistributionPie
@@ -680,7 +680,7 @@ export function ScriptaBlock({
                 key: 'cortex', label: 'Cortex',
                 data: stats.languages.map(l => ({ name: SC_LANGUAGE_LABELS[l.language] ?? l.language, value: l.n })),
               }]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="개"
               topN={4}
             />

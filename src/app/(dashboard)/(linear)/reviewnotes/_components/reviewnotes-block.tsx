@@ -195,7 +195,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
   const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
   // 색이 아니라 짙기로 가른다 — 위로 갈수록 '새 사람'(2026-09-11 카드 문법)
-  const MEMBER = '#0A2E40'
+  const MEMBER = '#0E415A'
   const NEW = '#5B6B74'
   const ANON = '#B4BBC1'
   const MA_COLOR = '#17181C'
@@ -738,7 +738,7 @@ export function ReviewnotesBlock({
               tabs={[
                 { key: 'visit', label: '전체', data: trafficStats.topReferrers.map(r => ({ name: r.referrer === 'direct' ? '직접 유입' : r.referrer, value: r.count })) },
               ]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               topN={4}
             />
             <DistributionPie
@@ -748,7 +748,7 @@ export function ReviewnotesBlock({
                 { key: 'member', label: '회원', data: trafficStats.memberCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
                 { key: 'paid', label: '유료', data: trafficStats.paidCountries.map(c => ({ name: formatCountryName(c.country), value: c.count })) },
               ]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="명"
               topN={3}
               monoFlags
@@ -766,7 +766,7 @@ export function ReviewnotesBlock({
                     value: d.count,
                   })),
               }]}
-              palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
+              palette={['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
               unit="명"
             />
           </div>

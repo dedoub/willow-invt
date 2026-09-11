@@ -69,7 +69,7 @@ function PortleAiTrendCard({ daily, days = 42 }: {
   const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
   // 색이 아니라 짙기로 가른다 — 성공이 짙고 실패가 옅다(2026-09-11 카드 문법)
-  const OK = '#0A2E40'
+  const OK = '#0E415A'
   const EMPTY = '#8D959D'
   const FAIL = '#C7CCD3'
   const MA_COLOR = '#17181C'
@@ -580,7 +580,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 성공률 바 — 낮을수록 문제 기능이 한눈에 보이도록 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{ flex: 1, height: 4, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
-                      <div style={{ width: `${okPct}%`, height: '100%', borderRadius: 2, background: okPct >= 80 ? '#0A2E40' : okPct >= 50 ? '#8D959D' : '#C7CCD3' }} />
+                      <div style={{ width: `${okPct}%`, height: '100%', borderRadius: 2, background: okPct >= 80 ? '#0E415A' : okPct >= 50 ? '#8D959D' : '#C7CCD3' }} />
                     </div>
                     <span style={{ ...userNumCell, width: 34, textAlign: 'right' }}>{okPct}%</span>
                   </div>
