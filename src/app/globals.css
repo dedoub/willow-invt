@@ -704,6 +704,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 }
 .theme-outline [data-card-foot] {
   border-top-color: #E5E7EB;
+  /* 선은 카드 안쪽 글자 줄에서 시작해 끝난다 — 카드 벽에 닿으면 카드를 자르는 선으로 읽힌다.
+     카드들이 좌우 여백을 padding 으로 주고 있어 여기서 margin 으로 바꿔 준다 */
+  margin-left: 16px !important;
+  margin-right: 16px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 /* 카드 제목 위 영어 눈썹은 쓰지 않는다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10) */
 .theme-outline [data-eyebrow] {
