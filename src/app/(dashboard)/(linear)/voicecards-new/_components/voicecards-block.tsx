@@ -1059,8 +1059,8 @@ export function VoicecardsBlock({
             <>
 
               {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가 파이 · 우: 일별 활동자 전체 높이 (와이드 모드 전용, CEO 레이아웃) */}
-              <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom, minWidth: 0 }}>
               <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
                 <LStat
                   label="스토어 방문"
@@ -1210,7 +1210,7 @@ export function VoicecardsBlock({
               </StatRows>
 
             {/* 플랫폼 / 국가 / 앱버전 */}
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px` }}>
               <DistributionPie
                 title="플랫폼"
                 tabs={[
