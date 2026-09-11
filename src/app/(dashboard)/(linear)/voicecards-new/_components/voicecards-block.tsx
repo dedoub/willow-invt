@@ -329,22 +329,23 @@ function IntentCell({ u }: { u: UserStats['users'][number] }) {
 // 타겟 오퍼 단계 셀. 퍼널: 발송 → 열람 → 스누즈 → 전환. 종료: 닫음/만료.
 // 사용자 표 셀 배지 색. 규격(크기·패딩·굵기)은 LTableBadge가 t.badge로 통일하고 여기선 색만 둔다.
 const CELL_TONES = {
-  hotLead: { bg: '#FEE2E2', fg: '#B91C1C' },
-  ios:     { bg: '#E0F2FE', fg: '#0369A1' },
-  android: { bg: '#DCFCE7', fg: '#15803D' },
+  hotLead: { bg: '#C7CCD3', fg: '#3A3D42' },
+  ios:     { bg: '#DCE0E5', fg: '#3A3D42' },
+  android: { bg: '#E4E7EB', fg: '#3A3D42' },
   plain:   { bg: t.neutrals.card, fg: t.neutrals.muted },
-  locale:  { bg: '#F3E8FF', fg: '#6B21A8' },
-  country: { bg: '#DBEAFE', fg: '#1E40AF' },
-  paid:    { bg: '#DCFCE7', fg: '#166534' },
+  locale:  { bg: '#EDEFF2', fg: '#3A3D42' },
+  country: { bg: '#EAECEF', fg: '#3A3D42' },
+  paid:    { bg: '#D3D7DD', fg: '#3A3D42' },
 } as const
 
+// 단계가 앞설수록 짙다 — 색이 아니라 짙기로 퍼널을 읽는다
 const OFFER_STAGE_STYLE: Record<string, { label: string; fg: string; bg: string; title: string }> = {
-  sent:     { label: '발송',  fg: '#4B5563', bg: '#F3F4F6', title: '오퍼 발송됨 (아직 열람 전)' },
-  seen:     { label: '열람',  fg: '#1E40AF', bg: '#DBEAFE', title: '오퍼 모달을 봄' },
-  snoozed:  { label: '스누즈', fg: '#92400E', bg: '#FEF3C7', title: '“나중에” — 배너로 스누즈' },
-  redeemed: { label: '전환',  fg: '#166534', bg: '#DCFCE7', title: '구매하여 보너스 지급됨 (전환)' },
-  dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F3F4F6', title: '배너 X — 영구 닫음' },
-  expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F9FAFB', title: '만료됨 (미전환)' },
+  sent:     { label: '발송',  fg: '#3A3D42', bg: '#EAECEF', title: '오퍼 발송됨 (아직 열람 전)' },
+  seen:     { label: '열람',  fg: '#3A3D42', bg: '#DCE0E5', title: '오퍼 모달을 봄' },
+  snoozed:  { label: '스누즈', fg: '#3A3D42', bg: '#E4E7EB', title: '“나중에” — 배너로 스누즈' },
+  redeemed: { label: '전환',  fg: '#3A3D42', bg: '#C7CCD3', title: '구매하여 보너스 지급됨 (전환)' },
+  dismissed:{ label: '닫음',  fg: '#6B7280', bg: '#F5F6F8', title: '배너 X — 영구 닫음' },
+  expired:  { label: '만료',  fg: '#9CA3AF', bg: '#F5F6F8', title: '만료됨 (미전환)' },
 }
 // 백그라운드 재생 보장(기간권) 셀. 남은 기간이 있는 사람과 지나간 사람은 읽는 방식이 다르다 —
 // 살아 있으면 "언제까지"가, 끝났으면 "언제 끝났는지"가 다음 행동을 정한다.
@@ -359,7 +360,7 @@ function GuaranteeCell({ until, daysLeft = 0 }: { until?: string | null; daysLef
       title={active ? `기간권 ${daysLeft}일 남음 (${formatDateShort(until)} 만료)` : `기간권 만료 (${formatDateShort(until)})`}
       style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}
     >
-      <span style={{ color: active ? '#166534' : t.neutrals.subtle, fontWeight: active ? 600 : 400 }}>
+      <span style={{ color: active ? t.neutrals.text : t.neutrals.subtle, fontWeight: active ? 600 : 400 }}>
         {formatDateShort(until)}
       </span>
       <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
@@ -1091,6 +1092,7 @@ export function VoicecardsBlock({
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           title="결제 전환"
+          mb={t.density.panelPadY + t.density.panelPadX}
           action={
             <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingFunnel} />
           }
@@ -1622,26 +1624,25 @@ export function VoicecardsBlock({
     <LCard pad={0}>
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
       {usersLoading && !userStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <LSectionHead eyebrow="USERS" title="사용자" mb={8} />
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead title="사용자" mb={t.density.panelPadY + t.density.panelPadX} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>
         </div>
       )}
       {userStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="USERS"
             title="사용자"
-            mb={8}
+            mb={t.density.panelPadY + t.density.panelPadX}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
                 여러 컬럼이 활성이면 우선순위 번호 표시. */}
-            <div style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const sIdx = userSorts.findIndex(s => s.key === col.key)
                 const active = sIdx >= 0
@@ -1682,7 +1683,7 @@ export function VoicecardsBlock({
               const initial = (initialSrc.charAt(0) || '?').toUpperCase()
               const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
               return (
-                <div key={user.id} style={{
+                <div key={user.id} data-table-row="" style={{
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
@@ -1716,7 +1717,7 @@ export function VoicecardsBlock({
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                      background: t.brand[200], color: t.brand[800],
+                      background: '#E4E7EB', color: '#3A3D42',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
@@ -1781,7 +1782,7 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: user.hasFolder ? t.neutrals.muted : '#B45309',
+                    color: user.hasFolder ? t.neutrals.text : t.neutrals.subtle,
                   }}>
                     {user.hasFolder ? '완료' : '미완료'}
                   </div>
@@ -1790,7 +1791,7 @@ export function VoicecardsBlock({
                   <div style={{
                     fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.sans, fontWeight: t.weight.medium,
                     whiteSpace: 'nowrap', textAlign: 'center',
-                    color: isVoicecardsLearningActivated(user) ? t.neutrals.muted : '#B45309',
+                    color: isVoicecardsLearningActivated(user) ? t.neutrals.text : t.neutrals.subtle,
                   }}>
                     {isVoicecardsLearningActivated(user) ? '완료' : user.hasFolder ? '대기' : '미완료'}
                   </div>
@@ -1843,7 +1844,7 @@ export function VoicecardsBlock({
 
           {/* 페이지네이션 (주식투자 페이지 섹션과 동일 스타일) */}
           {sortedUsers.length > 0 && (
-            <div style={{
+            <div data-panel-foot="" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
               borderTop: `1px solid ${t.neutrals.line}`,
