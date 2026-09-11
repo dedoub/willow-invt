@@ -112,8 +112,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '컨설팅',
     orderKey: 'sidebar-project-order',
     items: [
-      { id: 'akros', href: '/akros', label: '아크로스', tag: 'Indexing',     dot: '#5FAFDF', mark: '/akros-icon.png' },
-      { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETF Platform', dot: '#8FB6D8' },
+      { id: 'akros', href: '/akros', label: '아크로스', tag: 'Akros',        dot: '#5FAFDF', mark: '/akros-icon.png' },
+      { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'Exchange Traded Concepts', dot: '#8FB6D8' },
     ],
   },
   {
