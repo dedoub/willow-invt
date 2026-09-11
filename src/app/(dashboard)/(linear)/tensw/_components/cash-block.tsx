@@ -126,6 +126,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>('tensw-cash', COLUMNS)
@@ -182,6 +183,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   }
 
   useEffect(() => { setPage(0) }, [typeFilter, periodMode, baseDate, searchQuery])
+  const searchOpen = searchFocused || searchQuery.length > 0
 
   const latestBalanceDate = bankBalances.reduce((latest, b) => {
     if (!b.balance_date) return latest
@@ -234,9 +236,8 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
     const dates = Array.from(byDate.keys()).sort()
     if (dates.length === 0) return []
 
-    const start = new Date(rangeEnd)
-    start.setFullYear(start.getFullYear() - 1)
-    const sparkStart = start.toISOString().slice(0, 10)
+    // 선택한 기간을 그대로 따른다 — 숫자와 추이가 다른 구간을 말하면 카드가 갈린다(윌로우와 같은 규칙)
+    const sparkStart = rangeStart
 
     const last: Record<string, number> = {}
     const lastDateByAccount: Record<string, string> = {}
@@ -371,42 +372,53 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           </div>
         )}
 
-        {/* Type filter chips */}
-        <div style={{ marginTop: t.density.blockGap }}>
-          <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapSm} />
-        </div>
-
-        {/* Search */}
-        <div style={{ position: 'relative', marginTop: t.density.gapMd }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+        {/* 필터 · 검색을 한 줄로 (윌로우 현금관리와 동일) */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+          marginTop: t.density.pagePadBottom, flexWrap: mobile ? 'wrap' : 'nowrap',
+        }}>
+          {/* 검색에 들어가면 칩은 접혀 자리를 내준다 — 폭·투명도만 바뀌므로 레이아웃이 튀지 않는다 */}
+          <div style={{
+            maxWidth: searchOpen ? 0 : 520,
+            opacity: searchOpen ? 0 : 1,
+            overflow: 'hidden', flexShrink: 0,
+            transition: 'max-width .26s ease, opacity .16s ease',
+          }}>
+            <LFilterChip options={TYPE_FILTERS} value={typeFilter} onChange={setTypeFilter} gap={t.density.gapXs} />
           </div>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="거래처 · 적요 검색"
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '7px 10px 7px 30px', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              background: t.neutrals.inner, border: 'none',
-              borderRadius: t.radius.sm, outline: 'none',
-            }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{
-              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
-            }}>
-              <LIcon name="x" size={12} stroke={2} />
-            </button>
-          )}
+          <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140, transition: 'flex-basis .26s ease' }}>
+            <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+              <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+            </div>
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="거래처 · 적요 검색"
+              style={{
+                width: '100%', boxSizing: 'border-box', height: t.density.controlHSm,
+                padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                fontFamily: t.font.sans, color: t.neutrals.text,
+                background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                borderRadius: t.radius.md, outline: 'none',
+              }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{
+                position: 'absolute', right: t.density.gapSm, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={12} stroke={2} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Transactions */}
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
         <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {paged.length === 0 && <LTableEmpty>해당 기간 거래 내역이 없습니다</LTableEmpty>}
