@@ -51,6 +51,7 @@ const paths: Record<string, string> = {
   panelLeft: 'M3 4h18v16H3zM9 4v16',
   info: 'M12 16v-4M12 8h.01M12 3a9 9 0 100 18 9 9 0 000-18z',
   externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
+  link: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
 }
 
 interface LIconProps {

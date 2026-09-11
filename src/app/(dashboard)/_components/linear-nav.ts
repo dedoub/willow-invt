@@ -87,7 +87,7 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-app-finance-order',
     items: [
       { id: 'portle',     href: '/portle',     label: '포틀',       tag: 'Portle',     dot: '#E8927C', mark: '/portle-mark.png' },
-      { id: 'valuechain', href: '/valuechain', label: '밸류체인',   tag: 'ValueChain',       dot: '#A392EC' },
+      { id: 'valuechain', href: '/valuechain', label: '밸류체인',   tag: 'ValueChain',       icon: 'link' },
     ],
   },
   {
