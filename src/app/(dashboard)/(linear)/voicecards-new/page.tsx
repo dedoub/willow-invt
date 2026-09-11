@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { VoicecardsBlock } from '@/app/(dashboard)/(linear)/voicecards/_components/voicecards-block'
+import { VoicecardsBlock } from './_components/voicecards-block'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'

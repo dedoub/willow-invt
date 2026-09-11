@@ -43,7 +43,7 @@ export function DistributionPie({
   colorByName.set(OTHER_LABEL, OTHER_COLOR)
 
   return (
-    <div style={{
+    <div data-panel="" style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm,
       padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, height: '100%', boxSizing: 'border-box' as const,
       display: 'flex', flexDirection: 'column' as const,
@@ -52,7 +52,7 @@ export function DistributionPie({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap' as const, gap: t.density.gapXs, marginBottom: t.density.gapSm,
       }}>
-        <div style={{
+        <div data-panel-title="" style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle,
           whiteSpace: 'nowrap' as const,
@@ -65,6 +65,8 @@ export function DistributionPie({
             return (
               <button
                 key={tb.key}
+                data-filter-chip=""
+                data-active={active ? '' : undefined}
                 onClick={() => setActiveTab(tb.key)}
                 style={{
                   padding: `2px ${t.density.gapSm}px`, borderRadius: t.radius.sm, border: 'none', cursor: 'pointer',

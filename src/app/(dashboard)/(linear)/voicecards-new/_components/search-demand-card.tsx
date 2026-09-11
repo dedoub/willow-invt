@@ -7,7 +7,7 @@
 //
 // 방문자 수를 세는 카드가 아니라 "발행한 페이지가 검색 수요를 잡고 있는가"를 보는 카드다.
 
-import { Children, useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
@@ -16,6 +16,7 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from '@/app/(dashboard)/_components/linear-data-table'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
@@ -968,26 +969,5 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
         )}
       </LCard>
     </>
-  )
-}
-
-/**
- * 지표 줄 — 카드 지표 격자와 같은 리듬. 첫 줄을 뺀 나머지 줄 위에만 가로줄을 둔다.
- * LStat 은 스파크라인까지 들고 있어 그대로 두고, 줄만 여기서 그린다(2026-09-11).
- */
-function StatRows({ cols, children }: { cols: string; children: React.ReactNode }) {
-  const perRow = Number(/repeat\((\d+)/.exec(cols)?.[1] ?? '1')
-  const items = Children.toArray(children)
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: cols, alignContent: 'start' }}>
-      {items.map((child, i) => (
-        <div key={i} style={{
-          minWidth: 0,
-          borderTop: i >= perRow ? `1px solid ${t.neutrals.line}` : undefined,
-        }}>
-          {child}
-        </div>
-      ))}
-    </div>
   )
 }

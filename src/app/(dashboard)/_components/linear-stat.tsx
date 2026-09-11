@@ -17,6 +17,8 @@ interface LStatProps {
   subExtra?: React.ReactNode // sub(오늘·7일) 아래 보조라벨 줄 — 카드 간 위치 통일용
   tone?: 'pos' | 'neg' | 'warn' | 'info' | 'default'
   sparkline?: number[] | SparkPoint[]
+  /** 실선 색을 직접 정한다. 색을 쓰지 않는 화면에서 두 시리즈 타일의 등락색을 끈다. */
+  sparkColor?: string
   sparkline2?: number[] | SparkPoint[]
   spark2Color?: string
   sparkFormat?: (v: number) => string
@@ -155,7 +157,7 @@ function Sparkline({
   )
 }
 
-export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtra, tone = 'default', sparkline, sparkline2, spark2Color, sparkFormat, sparkFormat2, spark2Domain, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
+export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtra, tone = 'default', sparkline, sparkColor: sparkColorProp, sparkline2, spark2Color, sparkFormat, sparkFormat2, spark2Domain, dualScale, title, wrap }: LStatProps & { wrap?: boolean }) {
   const [showTip, setShowTip] = useState(false)
   const color = tone === 'pos' ? t.accent.pos
     : tone === 'neg' ? t.accent.neg
@@ -169,9 +171,9 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
   const sparkData2: SparkPoint[] = (sparkline2 ?? []).map((p, i) =>
     typeof p === 'number' ? { date: String(i), value: p } : p
   )
-  const sparkColor = sparkData2.length > 1
+  const sparkColor = sparkColorProp ?? (sparkData2.length > 1
     ? (sparkData[sparkData.length - 1].value >= sparkData[0].value ? t.accent.pos : t.accent.neg)
-    : t.chart.mono
+    : t.chart.mono)
   const hasSpark = sparkData.length > 1
   return (
     <div
