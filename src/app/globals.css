@@ -835,8 +835,8 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: revert-layer;
 }
 
-/* 카드 안 작은 표(검색·GEO 패널) — 회색 판을 벗고 카드의 표와 같은 문법으로 읽는다.
-   제목은 지표 라벨 급 평서, 행은 배경 대신 아래 선 하나(2026-09-11). */
+/* 카드 안 작은 표(검색·GEO 패널) — 사업관리 표와 같은 규격으로 읽는다.
+   회색 판을 벗고, 머리 아래 선 한 겹, 행 사이 얇은 선, 글자는 표 본문 급(11)(2026-09-11). */
 .theme-outline [data-panel] {
   background: transparent !important;
   padding: 0 !important;
@@ -848,20 +848,26 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-weight: 420 !important;
   font-size: calc(9px * var(--fz, 1)) !important;
 }
-.theme-outline [data-panel-head] {
-  border-bottom: 1px solid #E5E7EB;
-  margin-bottom: 2px;
-}
+/* 정렬 머리는 버튼이라 테마의 칩 테두리가 붙는다 — 표 머리에서는 벗긴다 */
 .theme-outline [data-panel-head] button {
   border: none !important;
   border-radius: 0 !important;
   padding: 0 !important;
   background: transparent !important;
 }
+.theme-outline [data-panel-head] {
+  border-bottom: 1px solid #E5E7EB;
+  padding-bottom: 8px !important;
+  margin-bottom: 2px;
+}
 .theme-outline [data-panel-row] {
   background: transparent !important;
   border-radius: 0 !important;
   border-bottom: 1px solid #F1F2F4;
+  font-size: calc(11px * var(--fz, 1));
+}
+.theme-outline [data-panel-row] > * {
+  font-size: calc(11px * var(--fz, 1)) !important;
 }
 .theme-outline [data-panel-row]:last-child { border-bottom: none; }
 .theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }

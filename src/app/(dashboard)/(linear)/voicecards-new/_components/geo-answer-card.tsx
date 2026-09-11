@@ -174,7 +174,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 title="질문별 현황"
                 hideTitle
                 columns={[
-                  { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
+                  { key: 'q', label: '질문별 현황', width: 'minmax(140px,1fr)' },
                   // 가장 긴 배지 '추천 Top3'가 56px다. 더 줄이면 잘린다
                   { key: 's', label: '단계', width: '58px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
@@ -203,7 +203,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 hideTitle
                 minWidth={220}
                 columns={[
-                  { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
+                  { key: 'c', label: '실패 원인', width: 'minmax(80px,1fr)' },
                   { key: 'n', label: '질문', width: '46px', align: 'right' as const },
                 ]}
                 rows={data.causes.map(c => ({
@@ -222,7 +222,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 hideTitle
                 minWidth={240}
                 columns={[
-                  { key: 'name', label: '서비스', width: 'minmax(90px,1fr)' },
+                  { key: 'name', label: '우리가 빠진 자리의 경쟁사', width: 'minmax(120px,1fr)' },
                   { key: 'n', label: '답변 수', width: '56px', align: 'right' as const },
                 ]}
                 rows={data.competitors.map(c => ({
@@ -239,7 +239,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 hideTitle
                 minWidth={260}
                 columns={[
-                  { key: 'e', label: '엔진', width: 'minmax(64px,1fr)' },
+                  { key: 'e', label: '엔진별', width: 'minmax(64px,1fr)' },
                   { key: 'm', label: '언급', width: '46px', align: 'right' as const },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
                   { key: 'c', label: '인용', width: '46px', align: 'right' as const },
