@@ -216,7 +216,7 @@ export function DataTable({
         </div>
       )}
       {sortedRows.length > 0 && (
-        <div style={{
+        <div data-panel-foot="" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: t.density.gapSm, paddingTop: t.density.gapSm, borderTop: `1px solid ${t.neutrals.line}`,
         }}>

@@ -760,7 +760,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start' }}>
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
@@ -903,7 +903,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
               {!splitLayout && <TrafficTrendCard daily={data.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start' }}>
                 <DataTable
                   title="검색 진입 페이지"
                   minWidth={300}

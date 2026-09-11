@@ -870,6 +870,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-size: calc(11px * var(--fz, 1)) !important;
 }
 .theme-outline [data-panel-row]:last-child { border-bottom: none; }
+/* 푸터 선은 표 안쪽에서 시작해 끝난다. 표와 붙어 있으면 마지막 행의 선처럼 읽힌다 */
+.theme-outline [data-panel-foot] {
+  margin: 14px 8px 0 !important;
+  padding-top: 10px !important;
+}
+
 .theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }
 
 /* 삭제만 붉은 선과 붉은 글자를 쓴다 — 되돌릴 수 없는 동작은 눌리기 전에 보여야 한다 */

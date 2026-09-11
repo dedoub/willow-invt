@@ -169,7 +169,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               return <FigureGrid items={figures} cols={mobile ? 2 : 3} />
             })()}
 
-            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: t.density.blockGap, alignItems: 'start', marginTop: t.density.blockGap }}>
+            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start', marginTop: t.density.blockGap }}>
               <DataTable
                 title="질문별 현황"
                 hideTitle
