@@ -41,12 +41,13 @@ export const NAV_GROUPS: NavGroup[] = [
     // 회사 이름이 섹션 제목과 항목에 두 번 나오고, 실제로는 늘 같이 열어 본다(CEO 2026-09-11).
     key: 'willow',
     label: '사업관리',
-    orderKey: 'sidebar-willow-order',
+    // v2 — 항목 순서를 바꿨다. 앞선 키에 저장된 옛 순서가 새 기본값을 덮지 않게 키를 올린다
+    orderKey: 'sidebar-willow-order-v2',
     items: [
-      { id: 'mgmt',       href: '/mgmt',       label: '윌로우인베스트먼트', icon: 'briefcase' },
+      { id: 'mgmt',       href: '/mgmt',       label: '윌로우인베스트먼트', dot: '#85CCE9', mark: '/leaf-icon.png' },
+      { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
-      { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
       { id: 'b2b',        href: '/b2b',        label: '관계사간거래', icon: 'coin' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
