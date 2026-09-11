@@ -910,11 +910,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 }
 .theme-outline [data-panel-row]:last-child { border-bottom: none; }
 /* 표 아래 개수·쪽 넘김 줄에는 선을 두지 않는다 — 사업관리 표와 같이,
-   마지막 행 밑에 선이 그이면 행이 하나 더 있는 것처럼 읽힌다 */
+   마지막 행 밑에 선이 그이면 행이 하나 더 있는 것처럼 읽힌다.
+   좌우는 표 상자의 끝에 맞춘다(행 글자보다 8px 바깥) — 사업관리 실측값이다 */
 .theme-outline [data-panel-foot] {
   border-top: none !important;
-  margin: 10px 8px 0 !important;
-  padding-top: 0 !important;
+  margin: 10px 0 0 !important;
+  padding: 0 !important;
 }
 
 .theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }

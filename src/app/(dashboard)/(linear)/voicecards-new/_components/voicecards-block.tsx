@@ -1717,9 +1717,11 @@ export function VoicecardsBlock({
                   </div>
                   {/* 닉네임 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
+                    {/* 아바타 — 칩이 아니라 사람 자리다. 구글 프로필 사진이 들어올 자리라
+                        원과 바탕을 남겨 둔다(CEO 2026-09-11). 지금은 머릿글자로 채운다 */}
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                      background: 'transparent', color: t.neutrals.muted,
+                      background: '#E4E7EB', color: '#3A3D42',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
@@ -1899,7 +1901,13 @@ export function VoicecardsBlock({
           )}
         </div>
       )}
-
+      {userStats && (
+        <LCardFoot
+          left="봇 제외 · 카드 수는 데모 포함 · 기기 행은 로컬 덱이 서버에 없어 활성화를 확인할 수 없다"
+          right={generatedLabel(generatedAt)}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
     </LCard>
     </div>
 
