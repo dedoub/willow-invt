@@ -680,10 +680,10 @@ export function ScriptaBlock({
         )
       })()}
       </div>
-      {stats?.users.daily[0] && (
+      {!loading && stats && (
         <LCardFoot
-          left="누적 집계"
-          right={`${stats.users.daily[0].date.slice(2).replace(/-/g, '.')} 시작`}
+          left="운영 계정 제외 · 단건 결제라 MRR 은 없다"
+          right={stats.users.daily[0] ? `${stats.users.daily[0].date.slice(2).replace(/-/g, '.')} 집계 시작` : undefined}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
