@@ -24,7 +24,7 @@ import { resolveLocalProjectContext, getLocalProjectByKey } from './lib/local-pr
 import { createMessageBatcher } from './lib/message-batcher'
 import { randomUUID } from 'node:crypto'
 import { getRuntimeLogContext, installRuntimeConsoleCapture, installRuntimeProcessMonitor, recordRuntimeEvent } from './lib/runtime-logs'
-import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsActivationDateFromEvidence, voicecardsDeviceDisplayName, voicecardsLocalActivationOwnerId } from '../src/lib/voicecards-device-journey'
+import { countVoicecardsDailyActivations, diffVoicecardsActivationIds, expandVoicecardsKnownActivationIds, voicecardsActivationDateFromEvidence, voicecardsActivationEventOwnerId, voicecardsDeviceDisplayName } from '../src/lib/voicecards-device-journey'
 import { mergeVoicecardsPurchaseSignals, summarizeVoicecardsMonthlyPurchases, type VoicecardsPurchaseReceipt } from '../src/lib/voicecards-purchase-alert'
 import {
   aggregateVoicecardsStoreRevenue,
@@ -2524,11 +2524,11 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
         .not('sheet_id', 'like', 'demo-%')
         .range(from, to)
     ),
-    fetchAllVoicecardsRows<{ device_id: string | null; user_id: string | null; created_at: string }>(async (from, to) =>
+    fetchAllVoicecardsRows<{ device_id: string | null; user_id: string | null; event_name: string | null; created_at: string; properties: Record<string, unknown> | null }>(async (from, to) =>
       voicecardsSupabase!
         .from('anonymous_events')
-        .select('device_id, user_id, created_at')
-        .eq('event_name', 'pending_local_sheet_created')
+        .select('device_id, user_id, event_name, created_at, properties')
+        .in('event_name', ['pending_local_sheet_created', 'card_flipped_manual'])
         .eq('is_likely_bot', false)
         .range(from, to)
     ),
@@ -2563,7 +2563,7 @@ async function fetchVoicecardsActivationSnapshot(excludedUserIds: Set<string>) {
     addActivation(ownerId, row.created_at)
   }
   for (const row of localActivations) {
-    const ownerId = voicecardsLocalActivationOwnerId(row, mergedDeviceOwners)
+    const ownerId = voicecardsActivationEventOwnerId(row, mergedDeviceOwners)
     if (ownerId) addActivation(ownerId, row.created_at)
   }
   for (const user of visibleUsers) {

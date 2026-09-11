@@ -123,6 +123,40 @@ test('local deck activation resolves to a live device account or its merged Goog
   )
 })
 
+test('activation alert includes non-demo card flips but excludes demo flips', async () => {
+  const helpers = await loadJourneyHelpers()
+  assert.equal(typeof helpers.voicecardsActivationEventOwnerId, 'function')
+
+  const ownerId = helpers.voicecardsActivationEventOwnerId as (
+    event: {
+      device_id: string | null
+      user_id: string | null
+      event_name: string | null
+      properties: Record<string, unknown> | null
+    },
+    mergedOwners: Map<string, string>,
+  ) => string | null
+
+  assert.equal(ownerId({
+    device_id: 'device-1',
+    user_id: 'google-user',
+    event_name: 'card_flipped_manual',
+    properties: { sheet_id: 'my-sheet' },
+  }, new Map()), 'google-user')
+  assert.equal(ownerId({
+    device_id: 'device-1',
+    user_id: 'google-user',
+    event_name: 'card_flipped_manual',
+    properties: { sheet_id: 'demo-en-de' },
+  }, new Map()), null)
+  assert.equal(ownerId({
+    device_id: 'device-1',
+    user_id: null,
+    event_name: 'pending_local_sheet_created',
+    properties: null,
+  }, new Map()), 'device:device-1')
+})
+
 test('activation alert migration baselines all newly surfaced activations but alerts future ones', async () => {
   const helpers = await loadJourneyHelpers()
   assert.equal(typeof helpers.diffVoicecardsActivationIds, 'function')

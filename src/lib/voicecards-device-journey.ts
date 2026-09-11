@@ -147,6 +147,18 @@ export function voicecardsLocalActivationOwnerId(
   return mergedDeviceOwners.get(deviceAccountId) || deviceAccountId
 }
 
+export function voicecardsActivationEventOwnerId(
+  event: VoicecardsAnonymousLearningRow,
+  mergedDeviceOwners: ReadonlyMap<string, string>,
+) {
+  const isLocalSheet = event.event_name === 'pending_local_sheet_created'
+  const isOwnCardFlip = event.event_name === 'card_flipped_manual'
+    && !String(event.properties?.sheet_id || '').startsWith('demo-')
+
+  if (!isLocalSheet && !isOwnCardFlip) return null
+  return voicecardsLocalActivationOwnerId(event, mergedDeviceOwners)
+}
+
 export function diffVoicecardsActivationIds(
   knownIds: string[],
   activeIds: string[],
