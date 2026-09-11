@@ -171,7 +171,9 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
   const sparkData2: SparkPoint[] = (sparkline2 ?? []).map((p, i) =>
     typeof p === 'number' ? { date: String(i), value: p } : p
   )
-  const sparkColor = sparkColorProp ?? (sparkData2.length > 1
+  // 보조 시리즈만 있고 본 시리즈가 비어 있으면 등락을 물을 대상이 없다 — 빈 배열의 첫 점을
+  // 읽다 카드가 통째로 죽었다(2026-09-11 포틀). 그럴 땐 먹색으로 둔다.
+  const sparkColor = sparkColorProp ?? (sparkData2.length > 1 && sparkData.length > 0
     ? (sparkData[sparkData.length - 1].value >= sparkData[0].value ? t.accent.pos : t.accent.neg)
     : t.chart.mono)
   const hasSpark = sparkData.length > 1

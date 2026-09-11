@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "rm -rf .next .turbo node_modules/.cache && node scripts/copy-pretendard.mjs && next dev",
+    "dev": "rm -rf .next .turbo node_modules/.cache 2>/dev/null; node scripts/copy-pretendard.mjs && next dev",
     "build": "node scripts/copy-pretendard.mjs && next build",
     "start": "next start",
     "lint": "eslint",
