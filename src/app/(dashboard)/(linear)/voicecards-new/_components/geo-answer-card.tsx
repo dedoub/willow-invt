@@ -1,6 +1,6 @@
 'use client'
 
-// AI 답변 점유 — 검색 수요 포착 섹션의 GEO판.
+// LLM 노출 — 검색 수요 포착 섹션의 GEO판.
 //
 // 검색이 "우리 페이지가 결과에 뜨는가"를 묻는다면 여기는 "답변에 우리가 추천되는가"를 묻는다.
 // 지표 순서도 퍼널이다: 언급 → 추천 Top3 → 인용.
@@ -110,7 +110,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          title="AI 답변 점유"
+          title="LLM 노출"
           action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}
           mb={t.density.panelPadY + t.density.panelPadX}
         />

@@ -144,7 +144,7 @@ export function LHeadBtn({ icon, label, title, onClick, href, busy }: LHeadBtnPr
     </>
   )
   if (href) {
-    return <a href={href} target="_blank" rel="noopener noreferrer" title={title} style={style}>{inner}</a>
+    return <a data-head-btn="" href={href} target="_blank" rel="noopener noreferrer" title={title} style={style}>{inner}</a>
   }
-  return <button onClick={onClick} disabled={busy} title={title} style={style}>{inner}</button>
+  return <button data-head-btn="" onClick={onClick} disabled={busy} title={title} style={style}>{inner}</button>
 }

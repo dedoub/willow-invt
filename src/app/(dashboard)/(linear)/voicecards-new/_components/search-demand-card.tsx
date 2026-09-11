@@ -826,14 +826,14 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
         )}
       </LCard>
 
-      {/* ── 섹션 2: 진입 후 행동 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
+      {/* ── 섹션 2: 웹 트래픽 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            title="진입 후 행동"
+            title="웹 트래픽"
             action={
               <>
-                {data && <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} />}
+                {data && <LHeadBtn icon="externalLink" title="Umami" href={data.site.umamiUrl} />}
                 <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
               </>
             }

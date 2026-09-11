@@ -762,6 +762,15 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: #FFFFFF !important;
   border-color: #0A2E40 !important;
 }
+/* 카드 머리의 새로고침·외부링크 버튼은 회색 판을 깔지 않는다 — 제목 줄에 판이 뜨면
+   그 줄만 컨트롤 바처럼 읽힌다. 링크는 <a> 라서 위의 button 규칙이 닿지 않는다(2026-09-11) */
+.theme-outline [data-head-btn] {
+  background: transparent !important;
+}
+.theme-outline [data-head-btn]:has(> svg:only-child) {
+  border: none !important;
+}
+
 /* 아이콘만 있는 버튼(기간 이동 쉐브론, 페이지 이동, 행 액션)은 테두리를 두지 않는다.
    글자가 없으니 눌리는 자리는 아이콘 자체로 충분하고, 테두리가 붙으면 화면이 조각난다(CEO 2026-09-10). */
 .theme-outline button:has(> svg:only-child),
