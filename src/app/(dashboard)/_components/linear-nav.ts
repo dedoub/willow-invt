@@ -113,7 +113,7 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-project-order',
     items: [
       { id: 'akros', href: '/akros', label: '아크로스', tag: 'Akros',        dot: '#5FAFDF', mark: '/akros-icon.png' },
-      { id: 'etc',   href: '/etc',   label: 'Exchange Traded Concepts', tag: 'ETC', dot: '#8FB6D8' },
+      { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETC', dot: '#8FB6D8' },
     ],
   },
   {
