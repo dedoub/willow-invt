@@ -1290,15 +1290,14 @@ export function VoicecardsBlock({
       </div>
     </LCard>
 
-    {/* 카드2: 가입 후 활동 · 매출 동인 */}
+    {/* 카드2: 활동 지표 */}
     <LCard pad={0}>
-      {/* 가입 후 활동 · 매출 동인 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
+      {/* 활동 지표 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
       {usersLoading && !userStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="ENGAGEMENT"
-            title="가입 후 활동 · 매출 동인"
-            mb={10}
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
           {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
@@ -1308,11 +1307,10 @@ export function VoicecardsBlock({
         </div>
       )}
       {userStats && (
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="ENGAGEMENT"
-            title="가입 후 활동 · 매출 동인"
-            mb={10}
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
 
@@ -1449,8 +1447,8 @@ export function VoicecardsBlock({
           <>
           {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
               2열 모드와 모바일은 카드 아래 전폭 차트. 모바일에서도 보인다 — 스파크라인은 장식이지만 이 차트는 그 자체가 지표다(CEO). */}
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: t.density.kpiGap, alignContent: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
+          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
             <LStat
               label="보유 덱"
               value={formatNumber(userStats.totalSheets)}
@@ -1566,7 +1564,7 @@ export function VoicecardsBlock({
                 />
               )
             })()}
-          </div>
+          </StatRows>
             {/* 누적 크레딧: 사용 vs 판매 — 쓴 만큼 팔리는지(판매 ÷ 사용)를 본다. 두 시리즈가 같은 단위(크레딧)라 한 축.
                 우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
@@ -2090,8 +2088,9 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
   soldLoading?: boolean
   days?: number
 }) {
-  const SOLD = '#2563eb'
-  const USED = '#ea580c'
+  // 두 시리즈는 색이 아니라 짙기로 가른다 — 판매가 짙고, 사용이 옅다
+  const SOLD = '#0A2E40'
+  const USED = '#A8B0B6'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   // 두 시리즈는 활동이 있는 날만 행이 있다. 날짜축은 둘의 합집합(최근 days일)으로 만들고,
@@ -2136,13 +2135,14 @@ function CreditFlowChart({ sold, used, loading, soldLoading, days = 90 }: {
   }
 
   return (
-    <div style={{
+    <div data-panel="" style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px ${t.density.controlPadXLg}px`, boxSizing: 'border-box',
       height: '100%', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs }}>
         <div
-          title="누적 크레딧 사용(주황, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(파랑, 구매 이벤트·영수증). 판매/사용 = 판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율. 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다."
+          title="누적 크레딧 사용(옅은 선, credit_transactions 원장·환불 차감 후, 무료 지급분 소진 포함) vs 누적 판매(짙은 선, 구매 이벤트·영수증). 판매/사용 = 판매 ÷ 사용 — 쓴 크레딧 중 결제로 채워진 비율. 사용이 판매를 앞서는 폭이 아직 결제로 이어지지 않은 소진량이다."
+          data-panel-title=""
           style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const }}
         >
           누적 크레딧 사용 vs 판매
