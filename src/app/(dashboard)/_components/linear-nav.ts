@@ -44,7 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
     // v2 — 항목 순서를 바꿨다. 앞선 키에 저장된 옛 순서가 새 기본값을 덮지 않게 키를 올린다
     orderKey: 'sidebar-willow-order-v2',
     items: [
-      { id: 'mgmt',       href: '/mgmt',       label: '윌로우인베스트먼트', dot: '#85CCE9', mark: '/leaf-icon.png' },
+      { id: 'mgmt',       href: '/mgmt',       label: '윌로우인베스트먼트', tag: 'Willow', dot: '#85CCE9', mark: '/leaf-icon.png' },
       { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
