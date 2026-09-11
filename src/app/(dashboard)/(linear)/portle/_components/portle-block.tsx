@@ -614,7 +614,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             title="사용자"
-            mb={t.density.panelPadY + t.density.panelPadX}
+            mb={t.density.pagePadBottom}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
@@ -628,7 +628,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             title="사용자"
-            mb={t.density.panelPadY + t.density.panelPadX}
+            mb={t.density.pagePadBottom}
             tools={mobile ? (
               // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>

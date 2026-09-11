@@ -736,6 +736,14 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 .theme-outline [data-table-row]:hover {
   background: #FAFAFB !important;
 }
+/* 손으로 짠 표(사용자 표)의 본문도 사업관리 표와 같은 급(11)으로 읽는다 — 셀 안쪽의
+   작은 둘째 줄은 자기 크기를 그대로 쓴다(직계 자식만 덮는다) */
+.theme-outline [data-table-row] {
+  font-size: calc(11px * var(--fz, 1)) !important;
+}
+.theme-outline [data-table-row] > * {
+  font-size: calc(11px * var(--fz, 1)) !important;
+}
 
 /* 컨트롤 — 버튼·칩·세그먼트·셀렉트를 한 가지 모양으로 통일한다(CEO 2026-09-10: 종류마다 달라 산만하다).
    기본은 투명 배경 + 1px #E7E9EB + 반경 6px, 선택·강조만 검정 채움. 레퍼런스 실측값이다. */

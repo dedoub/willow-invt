@@ -1627,7 +1627,7 @@ export function VoicecardsBlock({
       {/* 사용자 목록 (맨 아래) — userStats만 필요 */}
       {usersLoading && !userStats && (
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead title="사용자" mb={t.density.panelPadY + t.density.panelPadX} />
+          <LSectionHead title="사용자" mb={t.density.pagePadBottom} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <SkelUserRow key={i} />)}
           </div>
@@ -1637,7 +1637,7 @@ export function VoicecardsBlock({
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             title="사용자"
-            mb={t.density.panelPadY + t.density.panelPadX}
+            mb={t.density.pagePadBottom}
             action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
           />
           <div style={{ overflowX: 'auto' }}>

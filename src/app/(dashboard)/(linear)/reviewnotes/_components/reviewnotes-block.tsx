@@ -801,7 +801,7 @@ export function ReviewnotesBlock({
     <LCard pad={0}>
       {loading && (
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead title="사용자" mb={t.density.panelPadY + t.density.panelPadX} />
+          <LSectionHead title="사용자" mb={t.density.pagePadBottom} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
               <Bone key={i} h={40} />
@@ -816,7 +816,7 @@ export function ReviewnotesBlock({
           <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
             <LSectionHead
               title="사용자"
-              mb={t.density.panelPadY + t.density.panelPadX}
+              mb={t.density.pagePadBottom}
               tools={mobile ? (
                 // 모바일은 헤더 클릭 정렬이 좁아서 안 되므로 드롭다운을 둔다.
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
