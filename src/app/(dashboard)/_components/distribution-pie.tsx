@@ -9,13 +9,15 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { t, useIsMobile } from './linear-tokens'
 
 export function DistributionPie({
-  title, tabs, palette, unit, topN,
+  title, tabs, palette, unit, topN, monoFlags,
 }: {
   title: string
   tabs: Array<{ key: string; label: string; data: Array<{ name: string; value: number }> }>
   palette: string[]
   unit?: string
   topN?: number  // 상위 N개만 표시하고 나머지는 "기타"로 합침
+  /** 범례 이름에 국기가 섞여 있을 때 색을 빼고 모양만 남긴다 */
+  monoFlags?: boolean
 }) {
   const [activeTab, setActiveTab] = useState(tabs[0].key)
   const current = tabs.find(t => t.key === activeTab) ?? tabs[0]
@@ -127,7 +129,7 @@ export function DistributionPie({
                     width: 8, height: 8, borderRadius: 2,
                     background: colorByName.get(d.name) ?? t.neutrals.subtle, flexShrink: 0,
                   }} />
-                  <span style={{
+                  <span className={monoFlags ? 'flag-mono' : undefined} style={{
                     fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.text,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     flex: 1, minWidth: 0,

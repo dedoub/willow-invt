@@ -18,7 +18,7 @@ import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from '@/a
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
-import { countryName } from '@/lib/country-format'
+import { formatCountryName } from '@/lib/country-format'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import type { SearchDemandStats, Channel, UmamiSiteKey } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
@@ -271,7 +271,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
     return {
       key: `${c?.code ?? '-'}:${l?.name ?? '-'}:${i}`,
       cells: [
-        c ? countryName(c.code) : '', c ? c.visits.toLocaleString() : '',
+        c ? <span key="c" className="flag-mono">{formatCountryName(c.code)}</span> : '', c ? c.visits.toLocaleString() : '',
         l?.name ?? '', l ? l.visits.toLocaleString() : '',
       ],
       sort: [c?.code ?? '', c?.visits ?? 0, l?.name ?? '', l?.visits ?? 0],
@@ -666,8 +666,6 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
   return (
     <>
-      {leadSlot}
-
       {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
@@ -825,6 +823,8 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           />
         )}
       </LCard>
+
+      {leadSlot}
 
       {/* ── 섹션 2: 웹 트래픽 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
       <LCard pad={0}>

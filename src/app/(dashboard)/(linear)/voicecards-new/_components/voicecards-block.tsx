@@ -9,7 +9,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/linear-page-size'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
-import { COUNTRY_NAMES, countryName } from '@/lib/country-format'
+import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
 import {
   voicecardsDeviceDisplayName,
   voicecardsLearningActivationDate,
@@ -200,8 +200,8 @@ export interface VoicecardsBlockProps {
   refreshingUsers: boolean
   refreshingEvents: boolean
   refreshingRevenue: boolean
-  /** 이 화면이 세 API 를 받아 온 시각 — 카드 푸터에 적는다 */
-  loadedAt?: Date | null
+  /** 세 API 중 가장 오래된 집계 시각(ISO) — 카드 푸터에 적는다 */
+  generatedAt?: string | null
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
 }
 
@@ -414,10 +414,10 @@ function versionPieData(rows?: Array<{ version: string; devices: number }>): Arr
 }
 
 // 국가코드(백필된 anonymous_events.country) 우선, 없으면 로케일 지역 폴백.
-function formatCountry(country: string | null, locale?: string | null): { code: string; name: string } | null {
+function formatCountry(country: string | null, locale?: string | null): { flag: string; code: string; name: string } | null {
   const code = (country || regionOf(locale ?? null)).toUpperCase()
   if (!code || !/^[A-Z]{2}$/.test(code)) return null
-  return { code, name: COUNTRY_NAMES[code] || code }
+  return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -560,16 +560,20 @@ function SkelUserRow() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-/** 카드 푸터 우측 — 이 화면이 숫자를 받아 온 시각. 서버 캐시가 1시간이라 데이터 생성 시각과는 다르다 */
-function loadedLabel(at?: Date | null) {
+/** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 1시간이라 최대 그만큼 지난 값일 수 있다 */
+function generatedLabel(at?: string | null) {
   if (!at) return undefined
-  return `불러온 시각 ${at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return undefined
+  const day = d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '').replace(/\. /, '-')
+  const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `집계 ${day} ${time}`
 }
 
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, loadedAt,
+  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, generatedAt,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   // 퍼널은 세 소스를 모두 그린다(스토어·설치=events, 로그인·연동·활성화=users, 판매크레딧=revenue).
@@ -779,7 +783,310 @@ export function VoicecardsBlock({
     <>
     {/* 퍼널 · 가입 후 활동 — 두 섹션이 한 열로 붙어 다닌다 */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-    {/* 카드1: 헤더 + 인사이트 */}
+    {/* 카드1: 활동 지표 */}
+    <LCard pad={0}>
+      {/* 활동 지표 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
+      {usersLoading && !userStats && (
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
+          />
+          {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: t.density.kpiGap }}>
+            {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
+          </div>
+        </div>
+      )}
+      {userStats && (
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead
+            title="활동 지표"
+            mb={t.density.panelPadY + t.density.panelPadX}
+            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
+          />
+
+          {(() => {
+            // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
+            const toKst = (d: Date | string): string => {
+              const date = typeof d === 'string' ? new Date(d) : d
+              return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+            }
+            const sevenDaysAgo = new Date()
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
+            const sevenDaysAgoStr = toKst(sevenDaysAgo)
+
+            // 보유 덱 추이: 일별 스냅샷(daily_inventory_snapshots.total_sheets)을 헤더 값에 맞춰 재척도.
+            // 예전엔 '가입일에 그 사람의 현재 덱 수를 얹는' 코호트 누적이라, 어제 만든 덱도 작년 가입일에
+            // 꽂혀서 선이 실제 증가 시점과 무관했다(끝점만 우연히 헤더와 같았다). 보유 카드와 같은 소스로.
+            // 오늘 시트 증가분 = 사용자 테이블 per-user 델타(sheetsDeltaToday) 합 — 헤더 '오늘'과
+            // 테이블 diff 열이 항상 일치하도록 같은 소스로 계산(신규유저 시트만 세던 옛 정의는 기존 유저의
+            // 시트 추가를 놓쳐 테이블 합과 어긋났음, 2026-07-19).
+            const todaySheets = userStats.users.reduce((sum, u) => sum + (u.sheetsDeltaToday || 0), 0)
+            // 7일도 같은 뜻(증가분)으로 낸다. 예전엔 '최근 7일 가입자가 지금 들고 있는 덱 수'라
+            // 오늘 옆에 서로 다른 뜻의 두 수가 붙어 있었다(2026-08-30 실측 오늘 11 vs 7일 92 —
+            // 92는 증가분이 아니라 신규 가입자의 보유량이었다). 보유 카드와 같은 방식으로
+            // live − 7일 전 스냅샷을 쓴다. 스냅샷 스케일 보정은 아래 invScale 과 같은 이유.
+            const rawInv = userStats.dailyCardInventory ?? []
+            const latestSnapSheets = rawInv.length ? rawInv[rawInv.length - 1].totalSheets : 0
+            const sheetScale = latestSnapSheets > 0 ? userStats.totalSheets / latestSnapSheets : 1
+            const sheetTrajectory = rawInv.map(d => ({ date: d.date, value: Math.round(d.totalSheets * sheetScale) }))
+            const sheetsBeforeSeven = rawInv.filter(d => d.date <= sevenDaysAgoStr)
+            const sevenAgoSheets = Math.round(
+              ((sheetsBeforeSeven.length ? sheetsBeforeSeven[sheetsBeforeSeven.length - 1].totalSheets : rawInv[0]?.totalSheets) ?? latestSnapSheets) * sheetScale
+            )
+            const last7Sheets = latestSnapSheets > 0 ? userStats.totalSheets - sevenAgoSheets : 0
+
+            // 말하기 학습: time_series_analytics 일별 → running sum.
+            // 헤드라인은 user_analytics.total_attempts 합(=사용자 테이블 '말하기' 열 합)이고
+            // 이 시리즈는 time_series_analytics 라 총량이 다르다(2026-08-30 실측 4,233 vs 4,088).
+            // 차이는 일별 행이 안 남은 옛 시도·삭제된 시트의 시도라 시작 시점의 기준선으로 본다.
+            // 그만큼을 시리즈 전체에 더해 실선이 헤드라인에서 끝나게 한다.
+            const activity = userStats.dailyLearnActivity ?? []
+            const attemptSeriesTotal = activity.reduce((s, d) => s + d.attempts, 0)
+            const attemptBaseline = Math.max(0, userStats.totalAttempts - attemptSeriesTotal)
+            let runningAttempts = attemptBaseline
+            const attemptTrajectory = activity.map(d => {
+              runningAttempts += d.attempts
+              return { date: d.date, value: runningAttempts }
+            })
+            // 오늘 = 테이블 per-user 델타 합 (헤더·테이블 항상 일치, 2026-07-19 CEO). 7일은 대응열 없어 집계 유지.
+            const todayAttempts = userStats.users.reduce((s, u) => s + (u.attemptsToday || 0), 0)
+            const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
+
+            // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
+            // 오늘 = live 합계 − 오늘 00:05 스냅샷 = 자정 이후 실제 증가분.
+            // (스냅샷은 KST 자정에 찍혀서 '오늘 스냅샷 − 어제 스냅샷'은 전날 증가분을 오늘로 표기하던 문제.
+            //  live와 오늘 스냅샷을 비교해야 '오늘 실제로 늘어난 카드'가 나온다. 오늘 스냅샷 없으면 0.)
+            const liveCards = userStats.totalCards
+            // 스냅샷 시리즈를 헤더의 live 값에 맞춰 재척도한다.
+            // record_daily_inventory_snapshot()은 user_analytics 전체 합(삭제된 시트 포함)에 닉네임 2개만
+            // 제외하는 반면, live 보유 카드는 현재 sheet_ids에 남은 시트만 세고 봇/내부 계정을 더 걸러내며
+            // 기기 로컬 자산까지 더한다. 2026-08-30 실측 24,716 vs 18,094 — 스냅샷이 36% 부풀어 있어
+            // 카드 스파크라인 끝점·7일 증감·배수 점선이 전부 헤더와 어긋났다(듣기 배지 3.1x, 점선 끝 2.3x).
+            // 같은 날 두 정의를 재서 나온 비율로 과거를 맞추면 끝점이 항상 헤더와 일치한다.
+            // (과거를 정확히 복원할 수는 없다 — 어느 시트가 언제 지워졌는지 기록이 없다. 시계열이 내부적으로
+            //  일관되므로 읽는 쪽에서 맞춘다. DB 함수를 고치면 그날부터 정의가 섞이니 과거 행 재작성까지 같이 할 것.)
+            const latestSnapCards = rawInv.length ? rawInv[rawInv.length - 1].totalCards : 0
+            const invScale = latestSnapCards > 0 ? liveCards / latestSnapCards : 1
+            const inventory = rawInv.map(d => ({ date: d.date, totalCards: Math.round(d.totalCards * invScale) }))
+            const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
+            // 오늘 카드 증가분 = 사용자 테이블 per-user 델타(cardsToday) 합 — 헤더 '오늘'과 테이블 diff 열이
+            // 항상 일치. (live − 오늘 스냅샷 집계는 user_analytics orphan 행(users 테이블에 없는 계정)을
+            // 포함해 매일 수십장 부풀던 문제, 2026-07-19.) 7일은 테이블 대응열이 없어 스냅샷 집계 유지.
+            const todayCardsDelta = userStats.users.reduce((sum, u) => sum + (u.cardsToday || 0), 0)
+            // 7일 = live − (7일전 이하 중 가장 최근 스냅샷). find는 오름차순에서 가장 오래된 걸 반환하던 버그라 filter 후 마지막 사용.
+            const beforeSeven = inventory.filter(d => d.date <= sevenDaysAgoStr)
+            const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
+            const last7CardsDelta = liveCards - sevenAgoCards
+
+            // 일별 이벤트 시리즈를 사용자표 열 합계에 맞춘다 (2026-08-30 CEO: 사용자표 중심).
+            // 카드 헤드라인은 사용자표의 열 합이고, 이벤트 시리즈에는 표에 없는 계정(봇으로 뺀 기기 등)이나
+            // 표에서 빼는 데모 학습이 섞여 총량이 다르다 — 실측 뒤집기 13,238 vs 12,466(데모 772),
+            // 듣기 57,065 vs 56,891, 크레딧 8,942(이벤트) vs 8,695(원장). 같은 날 두 총량의 비로
+            // 시리즈를 맞추면 실선 끝점·7일·배수 점선이 전부 표 기준 위에 선다.
+            // (일별 배분까지 바로잡으려면 이벤트 쪽 정의를 표와 같게 고쳐야 한다 — 데모 제외, 원장 기준.
+            //  지금은 총량만 맞추고 하루하루의 모양은 이벤트 시리즈를 그대로 쓴다.)
+            const alignToTable = (daily: Array<{ date: string; value: number }>, tableTotal: number) => {
+              const seriesTotal = daily.reduce((sum, d) => sum + d.value, 0)
+              const k = seriesTotal > 0 ? tableTotal / seriesTotal : 1
+              let running = 0
+              const cumulative = daily.map(d => {
+                running += d.value * k
+                return { date: d.date, value: Math.round(running) }
+              })
+              const last7 = Math.round(daily.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.value, 0) * k)
+              return { cumulative, last7, k }
+            }
+
+            // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
+            const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
+              <span style={{
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
+                fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+              }}>
+                {(n / userStats.totalCards).toFixed(1)}x
+              </span>
+            ) : undefined
+
+            // 배수(누적 학습량 ÷ 그 시점 보유 카드) 점선 시리즈 — 인사이트 카드의 비율 점선과 동일 문법.
+            // 끝점 = valueExtra 배수 라벨과 일치. 카드 0인 초기 날은 0으로 둬 발산 방지.
+            const invSorted = [...inventory].sort((a, b) => a.date.localeCompare(b.date))
+            const cardsAt = (date: string): number => {
+              let c = invSorted[0]?.totalCards ?? liveCards
+              for (const inv of invSorted) { if (inv.date <= date) c = inv.totalCards; else break }
+              return c
+            }
+            const ratioSpark = (cum: Array<{ date: string; value: number }>) =>
+              cum.map(p => { const c = cardsAt(p.date); return { date: p.date, value: c > 0 ? p.value / c : 0 } })
+
+            // 누적 크레딧 사용(원장 기준, '크레딧 사용' 카드와 같은 시리즈) vs 누적 판매(구매 이벤트·영수증).
+            // 사용에는 무료 지급분 소진도 들어가므로 판매보다 클 수 있다 — 그 차이가 '아직 팔리지 않은 소진'이다.
+            const spendRows = anonymousStats?.dailyCreditSpend ?? []
+            const spendTotal = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
+            const usedCumulative = alignToTable(
+              spendRows.map(d => ({ date: d.date, value: (d.tts || 0) + (d.ai || 0) })), spendTotal
+            ).cumulative
+            const soldByDate = new Map<string, number>()
+            for (const row of (chartData ?? [])) soldByDate.set(row.date, (soldByDate.get(row.date) ?? 0) + (row.credits ?? 0))
+            let soldRunning = 0
+            const soldCumulative = [...soldByDate.keys()].sort().map(date => {
+              soldRunning += soldByDate.get(date) ?? 0
+              return { date, value: soldRunning }
+            })
+
+            return (
+          <>
+          {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
+              2열 모드와 모바일은 카드 아래 전폭 차트. 모바일에서도 보인다 — 스파크라인은 장식이지만 이 차트는 그 자체가 지표다(CEO). */}
+          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
+          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
+            <LStat
+              label="보유 덱"
+              value={formatNumber(userStats.totalSheets)}
+              sub={`오늘 ${formatNumber(todaySheets)}개 · 7일 ${formatNumber(last7Sheets)}개`}
+              sparkline={compact ? undefined : (sheetTrajectory.length > 1 ? sheetTrajectory : undefined)}
+            />
+            <LStat
+              label="보유 카드"
+              value={formatNumber(userStats.totalCards)}
+              sub={inventory.length > 0 ? `오늘 ${formatNumber(todayCardsDelta)}개 · 7일 ${formatNumber(last7CardsDelta)}개` : undefined}
+              sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
+            />
+            {/* 카드 뒤집기 — 말하기/듣기 없이 눈으로만 넘기는 학습 볼륨 (card_flipped_manual) */}
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
+              // 헤드라인 = 사용자표 '뒤집기' 열 합. 이벤트 시리즈는 데모 덱 뒤집기를 포함하는데
+              // 표의 열은 2026-08-10 결정대로 데모를 뺀다 — 그 차이(실측 772회)만큼 카드가 표보다 컸다.
+              const totalFlips = userStats.users.reduce((s, u) => s + (u.flips || 0), 0)
+              const flips = anonymousStats?.dailyFlips ?? []
+              const todayFlips = userStats.users.reduce((s, u) => s + (u.flipsToday || 0), 0)
+              const { cumulative: flipSpark, last7: last7Flips } = alignToTable(
+                flips.map(d => ({ date: d.date, value: d.flips })), totalFlips
+              )
+              return (
+                <LStat
+                  label="카드 뒤집기"
+                  title="카드를 수동으로 앞뒤 전환한 횟수(데모 덱 제외 — 사용자표 '뒤집기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+                  value={formatNumber(totalFlips)}
+                  valueExtra={cardRatioExtra(totalFlips)}
+                  sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
+                  sparkline={compact ? undefined : (flipSpark.length > 1 ? flipSpark : undefined)}
+                  sparkline2={compact ? undefined : (flipSpark.length > 1 ? ratioSpark(flipSpark) : undefined)}
+                  sparkColor={t.chart.mono}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.subtle}
+                  dualScale
+                />
+              )
+            })()}
+            <LStat
+              label="말하기 학습"
+              title="채점까지 성사된 말하기 시도 누적. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+              value={formatNumber(userStats.totalAttempts)}
+              valueExtra={cardRatioExtra(userStats.totalAttempts)}
+              sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
+              sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
+              sparkline2={compact ? undefined : (attemptTrajectory.length > 1 ? ratioSpark(attemptTrajectory) : undefined)}
+              sparkColor={t.chart.mono}
+              sparkFormat2={(v) => `${v.toFixed(1)}x`}
+              spark2Color={t.neutrals.subtle}
+              dualScale
+            />
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
+              // 헤드라인 = 사용자표 '듣기' 열 합. 이벤트 시리즈에는 표에서 봇으로 뺀 기기의 재생이
+              // 남아 있어 총량이 조금 크다(실측 57,065 vs 56,891).
+              const totalUsed = userStats.users.reduce((s, u) => s + (u.creditsUsed || 0), 0)
+              const usage = anonymousStats?.dailyCreditUsage ?? []
+              // 오늘은 사용자표 per-user 델타 합. dailyCreditUsage 는 활동 있는 날만 행이 있어
+              // 배열 마지막 원소가 '오늘'이 아닐 수 있으므로 7일도 날짜 매칭으로 낸다(slice(-7) 금지).
+              const todayUsage = userStats.users.reduce((s, u) => s + (u.listenToday || 0), 0)
+              const { cumulative: sparkData, last7: last7Sum } = alignToTable(
+                usage.map(d => ({ date: d.date, value: d.credits })), totalUsed
+              )
+              return (
+                <LStat
+                  label="듣기 학습"
+                  title="TTS·미리듣기·기기음성 재생 횟수 누적 (재생 엔진 무관, 사용자표 '듣기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
+                  value={formatNumber(totalUsed)}
+                  valueExtra={cardRatioExtra(totalUsed)}
+                  sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
+                  sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
+                  sparkline2={compact ? undefined : (sparkData.length > 1 ? ratioSpark(sparkData) : undefined)}
+                  sparkColor={t.chart.mono}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.subtle}
+                  dualScale
+                />
+              )
+            })()}
+            {/* 실제 크레딧 소진 (TTS 차감 + AI 생성) */}
+            {eventsLoading && !anonymousStats ? (
+              <SkelStat compact={!!mobile} />
+            ) : (() => {
+              // 헤드라인 = 사용자표 '사용' 열 합 = credit_transactions 원장(환불 차감 후).
+              // 이벤트 집계(credits_changed/tts_premium + ai_generation_success)는 환불을 되돌리지
+              // 않고 표에 없는 계정도 섞여 조금 크다(실측 8,942 vs 8,695). 원장이 정본이다.
+              const totalSpent = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
+              const spend = anonymousStats?.dailyCreditSpend ?? []
+              const dayTotal = (d: { tts: number; ai: number }) => (d.tts || 0) + (d.ai || 0)
+              const todaySpend = userStats.users.reduce((s, u) => s + (u.spentToday || 0), 0)
+              const { cumulative: spendSpark, last7: last7Spend, k: spendK } = alignToTable(
+                spend.map(d => ({ date: d.date, value: dayTotal(d) })), totalSpent
+              )
+              // TTS/AI 내역도 같은 비율로 맞춰 둘의 합이 헤드라인과 같게 한다.
+              const totalTts = Math.round(spend.reduce((sum, d) => sum + (d.tts || 0), 0) * spendK)
+              const totalAi = totalSpent - totalTts
+              return (
+                <LStat
+                  label="크레딧 사용"
+                  title={`실제 소진된 크레딧 누적 — credit_transactions 원장 기준(환불 차감 후), 사용자표 '사용' 열과 같은 기준. 대략 TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}. 유저의 크레딧 소진 속도 = 구매 압력. 점선 = 보유 카드 대비 배수 — 카드가 늘수록 소진도 빨라진다.`}
+                  value={formatNumber(totalSpent)}
+                  valueExtra={cardRatioExtra(totalSpent)}
+                  sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
+                  sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
+                  sparkline2={compact ? undefined : (spendSpark.length > 1 ? ratioSpark(spendSpark) : undefined)}
+                  sparkColor={t.chart.mono}
+                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
+                  spark2Color={t.neutrals.subtle}
+                  dualScale
+                />
+              )
+            })()}
+          </StatRows>
+            {/* 누적 크레딧: 사용 vs 판매 — 쓴 만큼 팔리는지(판매 ÷ 사용)를 본다. 두 시리즈가 같은 단위(크레딧)라 한 축.
+                우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
+            {/* 이 차트만 바닥에 날짜 축이 있다. 테마가 판의 패딩을 걷어내므로 축 글자가 카드
+                푸터 선에 닿는다 — 여백은 바깥 상자가 갖는다(2026-09-11) */}
+            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170, paddingBottom: t.density.blockGap }}>
+              <CreditFlowChart
+                sold={soldCumulative} used={usedCumulative}
+                loading={eventsLoading && !anonymousStats}
+                // 매출 API(/api/voicecards/stats)는 캐시가 비면(배포 직후) 10초 넘게 걸린다. 그동안 판매 0으로
+                // 그리면 "판매가 안 로드된다"로 보이므로(2026-09-09) 판매 시리즈만 로딩 상태를 따로 표시한다.
+                soldLoading={revenueLoading && !stats}
+              />
+            </div>
+          </div>
+          </>
+            )
+          })()}
+        </div>
+      )}
+      {userStats && (
+        <LCardFoot
+          left="크레딧은 환불 차감 후 원장 기준 · 데모 덱 제외"
+          right={generatedLabel(generatedAt)}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
+      )}
+    </LCard>
+
+    {/* 카드2: 결제 전환 — 헤더 + 인사이트 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
@@ -875,7 +1182,7 @@ export function VoicecardsBlock({
             return Array.from(m, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
           }
           const activePlatforms = distOf(u => u.platform === 'ios' ? 'iOS' : u.platform === 'android' ? 'Android' : (u.platform || 'unknown'))
-          const activeCountries = distOf(u => countryName(u.country || 'unknown'))
+          const activeCountries = distOf(u => formatCountryName(u.country || 'unknown'))
 
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
@@ -1258,7 +1565,7 @@ export function VoicecardsBlock({
                   {
                     key: 'devices',
                     label: '기기',
-                    data: (anonymousStats.countries ?? []).map(c => ({ name: countryName(c.country), value: c.devices })),
+                    data: (anonymousStats.countries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'active',
@@ -1268,12 +1575,13 @@ export function VoicecardsBlock({
                   {
                     key: 'paying',
                     label: '결제',
-                    data: (anonymousStats.payingCountries ?? []).map(c => ({ name: countryName(c.country), value: c.devices })),
+                    data: (anonymousStats.payingCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
                   },
                 ]}
                 palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
                 unit="명"
                 topN={3}
+                monoFlags
               />
               <DistributionPie
                 title="앱버전"
@@ -1300,308 +1608,7 @@ export function VoicecardsBlock({
       {userStats && anonymousStats?.summary && (
         <LCardFoot
           left="봇·데모 덱 제외 · 스토어 방문은 리포트 특성상 ~1주 지연"
-          right={loadedLabel(loadedAt)}
-          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
-        />
-      )}
-    </LCard>
-
-    {/* 카드2: 활동 지표 */}
-    <LCard pad={0}>
-      {/* 활동 지표 — userStats 필요 (뒤집기/듣기 카드는 anonymousStats) */}
-      {usersLoading && !userStats && (
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead
-            title="활동 지표"
-            mb={t.density.panelPadY + t.density.panelPadX}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
-          />
-          {/* 6카드: 와이드(1열) 모드 한 줄, 2열 모드 3+3 (인사이트 6카드와 동일 규칙), 모바일 2×3 */}
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : (dashCols === 2 ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'), gap: t.density.kpiGap }}>
-            {[0, 1, 2, 3, 4, 5].map(i => <SkelStat key={i} compact={!!mobile} />)}
-          </div>
-        </div>
-      )}
-      {userStats && (
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead
-            title="활동 지표"
-            mb={t.density.panelPadY + t.density.panelPadX}
-            action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingAccounts} />}
-          />
-
-          {(() => {
-            // 날짜 기준 — KST 기준 오늘 / 최근 7일 컷오프 계산
-            const toKst = (d: Date | string): string => {
-              const date = typeof d === 'string' ? new Date(d) : d
-              return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-            }
-            const sevenDaysAgo = new Date()
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // 오늘 포함 7일
-            const sevenDaysAgoStr = toKst(sevenDaysAgo)
-
-            // 보유 덱 추이: 일별 스냅샷(daily_inventory_snapshots.total_sheets)을 헤더 값에 맞춰 재척도.
-            // 예전엔 '가입일에 그 사람의 현재 덱 수를 얹는' 코호트 누적이라, 어제 만든 덱도 작년 가입일에
-            // 꽂혀서 선이 실제 증가 시점과 무관했다(끝점만 우연히 헤더와 같았다). 보유 카드와 같은 소스로.
-            // 오늘 시트 증가분 = 사용자 테이블 per-user 델타(sheetsDeltaToday) 합 — 헤더 '오늘'과
-            // 테이블 diff 열이 항상 일치하도록 같은 소스로 계산(신규유저 시트만 세던 옛 정의는 기존 유저의
-            // 시트 추가를 놓쳐 테이블 합과 어긋났음, 2026-07-19).
-            const todaySheets = userStats.users.reduce((sum, u) => sum + (u.sheetsDeltaToday || 0), 0)
-            // 7일도 같은 뜻(증가분)으로 낸다. 예전엔 '최근 7일 가입자가 지금 들고 있는 덱 수'라
-            // 오늘 옆에 서로 다른 뜻의 두 수가 붙어 있었다(2026-08-30 실측 오늘 11 vs 7일 92 —
-            // 92는 증가분이 아니라 신규 가입자의 보유량이었다). 보유 카드와 같은 방식으로
-            // live − 7일 전 스냅샷을 쓴다. 스냅샷 스케일 보정은 아래 invScale 과 같은 이유.
-            const rawInv = userStats.dailyCardInventory ?? []
-            const latestSnapSheets = rawInv.length ? rawInv[rawInv.length - 1].totalSheets : 0
-            const sheetScale = latestSnapSheets > 0 ? userStats.totalSheets / latestSnapSheets : 1
-            const sheetTrajectory = rawInv.map(d => ({ date: d.date, value: Math.round(d.totalSheets * sheetScale) }))
-            const sheetsBeforeSeven = rawInv.filter(d => d.date <= sevenDaysAgoStr)
-            const sevenAgoSheets = Math.round(
-              ((sheetsBeforeSeven.length ? sheetsBeforeSeven[sheetsBeforeSeven.length - 1].totalSheets : rawInv[0]?.totalSheets) ?? latestSnapSheets) * sheetScale
-            )
-            const last7Sheets = latestSnapSheets > 0 ? userStats.totalSheets - sevenAgoSheets : 0
-
-            // 말하기 학습: time_series_analytics 일별 → running sum.
-            // 헤드라인은 user_analytics.total_attempts 합(=사용자 테이블 '말하기' 열 합)이고
-            // 이 시리즈는 time_series_analytics 라 총량이 다르다(2026-08-30 실측 4,233 vs 4,088).
-            // 차이는 일별 행이 안 남은 옛 시도·삭제된 시트의 시도라 시작 시점의 기준선으로 본다.
-            // 그만큼을 시리즈 전체에 더해 실선이 헤드라인에서 끝나게 한다.
-            const activity = userStats.dailyLearnActivity ?? []
-            const attemptSeriesTotal = activity.reduce((s, d) => s + d.attempts, 0)
-            const attemptBaseline = Math.max(0, userStats.totalAttempts - attemptSeriesTotal)
-            let runningAttempts = attemptBaseline
-            const attemptTrajectory = activity.map(d => {
-              runningAttempts += d.attempts
-              return { date: d.date, value: runningAttempts }
-            })
-            // 오늘 = 테이블 per-user 델타 합 (헤더·테이블 항상 일치, 2026-07-19 CEO). 7일은 대응열 없어 집계 유지.
-            const todayAttempts = userStats.users.reduce((s, u) => s + (u.attemptsToday || 0), 0)
-            const last7Attempts = activity.filter(d => d.date >= sevenDaysAgoStr).reduce((s, d) => s + d.attempts, 0)
-
-            // 보유 카드: daily_inventory_snapshots 일별 스냅샷 → 일별 증감(diff)으로 추세 표시
-            // 오늘 = live 합계 − 오늘 00:05 스냅샷 = 자정 이후 실제 증가분.
-            // (스냅샷은 KST 자정에 찍혀서 '오늘 스냅샷 − 어제 스냅샷'은 전날 증가분을 오늘로 표기하던 문제.
-            //  live와 오늘 스냅샷을 비교해야 '오늘 실제로 늘어난 카드'가 나온다. 오늘 스냅샷 없으면 0.)
-            const liveCards = userStats.totalCards
-            // 스냅샷 시리즈를 헤더의 live 값에 맞춰 재척도한다.
-            // record_daily_inventory_snapshot()은 user_analytics 전체 합(삭제된 시트 포함)에 닉네임 2개만
-            // 제외하는 반면, live 보유 카드는 현재 sheet_ids에 남은 시트만 세고 봇/내부 계정을 더 걸러내며
-            // 기기 로컬 자산까지 더한다. 2026-08-30 실측 24,716 vs 18,094 — 스냅샷이 36% 부풀어 있어
-            // 카드 스파크라인 끝점·7일 증감·배수 점선이 전부 헤더와 어긋났다(듣기 배지 3.1x, 점선 끝 2.3x).
-            // 같은 날 두 정의를 재서 나온 비율로 과거를 맞추면 끝점이 항상 헤더와 일치한다.
-            // (과거를 정확히 복원할 수는 없다 — 어느 시트가 언제 지워졌는지 기록이 없다. 시계열이 내부적으로
-            //  일관되므로 읽는 쪽에서 맞춘다. DB 함수를 고치면 그날부터 정의가 섞이니 과거 행 재작성까지 같이 할 것.)
-            const latestSnapCards = rawInv.length ? rawInv[rawInv.length - 1].totalCards : 0
-            const invScale = latestSnapCards > 0 ? liveCards / latestSnapCards : 1
-            const inventory = rawInv.map(d => ({ date: d.date, totalCards: Math.round(d.totalCards * invScale) }))
-            const cardTrajectory = inventory.map(d => ({ date: d.date, value: d.totalCards }))
-            // 오늘 카드 증가분 = 사용자 테이블 per-user 델타(cardsToday) 합 — 헤더 '오늘'과 테이블 diff 열이
-            // 항상 일치. (live − 오늘 스냅샷 집계는 user_analytics orphan 행(users 테이블에 없는 계정)을
-            // 포함해 매일 수십장 부풀던 문제, 2026-07-19.) 7일은 테이블 대응열이 없어 스냅샷 집계 유지.
-            const todayCardsDelta = userStats.users.reduce((sum, u) => sum + (u.cardsToday || 0), 0)
-            // 7일 = live − (7일전 이하 중 가장 최근 스냅샷). find는 오름차순에서 가장 오래된 걸 반환하던 버그라 filter 후 마지막 사용.
-            const beforeSeven = inventory.filter(d => d.date <= sevenDaysAgoStr)
-            const sevenAgoCards = (beforeSeven.length ? beforeSeven[beforeSeven.length - 1].totalCards : inventory[0]?.totalCards) ?? liveCards
-            const last7CardsDelta = liveCards - sevenAgoCards
-
-            // 일별 이벤트 시리즈를 사용자표 열 합계에 맞춘다 (2026-08-30 CEO: 사용자표 중심).
-            // 카드 헤드라인은 사용자표의 열 합이고, 이벤트 시리즈에는 표에 없는 계정(봇으로 뺀 기기 등)이나
-            // 표에서 빼는 데모 학습이 섞여 총량이 다르다 — 실측 뒤집기 13,238 vs 12,466(데모 772),
-            // 듣기 57,065 vs 56,891, 크레딧 8,942(이벤트) vs 8,695(원장). 같은 날 두 총량의 비로
-            // 시리즈를 맞추면 실선 끝점·7일·배수 점선이 전부 표 기준 위에 선다.
-            // (일별 배분까지 바로잡으려면 이벤트 쪽 정의를 표와 같게 고쳐야 한다 — 데모 제외, 원장 기준.
-            //  지금은 총량만 맞추고 하루하루의 모양은 이벤트 시리즈를 그대로 쓴다.)
-            const alignToTable = (daily: Array<{ date: string; value: number }>, tableTotal: number) => {
-              const seriesTotal = daily.reduce((sum, d) => sum + d.value, 0)
-              const k = seriesTotal > 0 ? tableTotal / seriesTotal : 1
-              let running = 0
-              const cumulative = daily.map(d => {
-                running += d.value * k
-                return { date: d.date, value: Math.round(running) }
-              })
-              const last7 = Math.round(daily.filter(d => d.date >= sevenDaysAgoStr).reduce((sum, d) => sum + d.value, 0) * k)
-              return { cumulative, last7, k }
-            }
-
-            // 학습량(뒤집기/말하기/듣기)이 보유 카드의 몇 배수인지 — 카드당 반복 학습 강도
-            const cardRatioExtra = (n: number) => userStats.totalCards > 0 ? (
-              <span style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-                fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
-              }}>
-                {(n / userStats.totalCards).toFixed(1)}x
-              </span>
-            ) : undefined
-
-            // 배수(누적 학습량 ÷ 그 시점 보유 카드) 점선 시리즈 — 인사이트 카드의 비율 점선과 동일 문법.
-            // 끝점 = valueExtra 배수 라벨과 일치. 카드 0인 초기 날은 0으로 둬 발산 방지.
-            const invSorted = [...inventory].sort((a, b) => a.date.localeCompare(b.date))
-            const cardsAt = (date: string): number => {
-              let c = invSorted[0]?.totalCards ?? liveCards
-              for (const inv of invSorted) { if (inv.date <= date) c = inv.totalCards; else break }
-              return c
-            }
-            const ratioSpark = (cum: Array<{ date: string; value: number }>) =>
-              cum.map(p => { const c = cardsAt(p.date); return { date: p.date, value: c > 0 ? p.value / c : 0 } })
-
-            // 누적 크레딧 사용(원장 기준, '크레딧 사용' 카드와 같은 시리즈) vs 누적 판매(구매 이벤트·영수증).
-            // 사용에는 무료 지급분 소진도 들어가므로 판매보다 클 수 있다 — 그 차이가 '아직 팔리지 않은 소진'이다.
-            const spendRows = anonymousStats?.dailyCreditSpend ?? []
-            const spendTotal = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
-            const usedCumulative = alignToTable(
-              spendRows.map(d => ({ date: d.date, value: (d.tts || 0) + (d.ai || 0) })), spendTotal
-            ).cumulative
-            const soldByDate = new Map<string, number>()
-            for (const row of (chartData ?? [])) soldByDate.set(row.date, (soldByDate.get(row.date) ?? 0) + (row.credits ?? 0))
-            let soldRunning = 0
-            const soldCumulative = [...soldByDate.keys()].sort().map(date => {
-              soldRunning += soldByDate.get(date) ?? 0
-              return { date, value: soldRunning }
-            })
-
-            return (
-          <>
-          {/* 와이드(1열) 모드: 좌 6카드(3×2) · 우 누적 크레딧 차트 전체 높이 (CEO 2026-09-09, 퍼널 섹션과 같은 배치).
-              2열 모드와 모바일은 카드 아래 전폭 차트. 모바일에서도 보인다 — 스파크라인은 장식이지만 이 차트는 그 자체가 지표다(CEO). */}
-          <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
-          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
-            <LStat
-              label="보유 덱"
-              value={formatNumber(userStats.totalSheets)}
-              sub={`오늘 ${formatNumber(todaySheets)}개 · 7일 ${formatNumber(last7Sheets)}개`}
-              sparkline={compact ? undefined : (sheetTrajectory.length > 1 ? sheetTrajectory : undefined)}
-            />
-            <LStat
-              label="보유 카드"
-              value={formatNumber(userStats.totalCards)}
-              sub={inventory.length > 0 ? `오늘 ${formatNumber(todayCardsDelta)}개 · 7일 ${formatNumber(last7CardsDelta)}개` : undefined}
-              sparkline={compact ? undefined : (cardTrajectory.length > 1 ? cardTrajectory : undefined)}
-            />
-            {/* 카드 뒤집기 — 말하기/듣기 없이 눈으로만 넘기는 학습 볼륨 (card_flipped_manual) */}
-            {eventsLoading && !anonymousStats ? (
-              <SkelStat compact={!!mobile} />
-            ) : (() => {
-              // 헤드라인 = 사용자표 '뒤집기' 열 합. 이벤트 시리즈는 데모 덱 뒤집기를 포함하는데
-              // 표의 열은 2026-08-10 결정대로 데모를 뺀다 — 그 차이(실측 772회)만큼 카드가 표보다 컸다.
-              const totalFlips = userStats.users.reduce((s, u) => s + (u.flips || 0), 0)
-              const flips = anonymousStats?.dailyFlips ?? []
-              const todayFlips = userStats.users.reduce((s, u) => s + (u.flipsToday || 0), 0)
-              const { cumulative: flipSpark, last7: last7Flips } = alignToTable(
-                flips.map(d => ({ date: d.date, value: d.flips })), totalFlips
-              )
-              return (
-                <LStat
-                  label="카드 뒤집기"
-                  title="카드를 수동으로 앞뒤 전환한 횟수(데모 덱 제외 — 사용자표 '뒤집기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
-                  value={formatNumber(totalFlips)}
-                  valueExtra={cardRatioExtra(totalFlips)}
-                  sub={`오늘 ${formatNumber(todayFlips)}회 · 7일 ${formatNumber(last7Flips)}회`}
-                  sparkline={compact ? undefined : (flipSpark.length > 1 ? flipSpark : undefined)}
-                  sparkline2={compact ? undefined : (flipSpark.length > 1 ? ratioSpark(flipSpark) : undefined)}
-                  sparkColor={t.chart.mono}
-                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.subtle}
-                  dualScale
-                />
-              )
-            })()}
-            <LStat
-              label="말하기 학습"
-              title="채점까지 성사된 말하기 시도 누적. 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
-              value={formatNumber(userStats.totalAttempts)}
-              valueExtra={cardRatioExtra(userStats.totalAttempts)}
-              sub={`오늘 ${formatNumber(todayAttempts)}회 · 7일 ${formatNumber(last7Attempts)}회`}
-              sparkline={compact ? undefined : (attemptTrajectory.length > 1 ? attemptTrajectory : undefined)}
-              sparkline2={compact ? undefined : (attemptTrajectory.length > 1 ? ratioSpark(attemptTrajectory) : undefined)}
-              sparkColor={t.chart.mono}
-              sparkFormat2={(v) => `${v.toFixed(1)}x`}
-              spark2Color={t.neutrals.subtle}
-              dualScale
-            />
-            {eventsLoading && !anonymousStats ? (
-              <SkelStat compact={!!mobile} />
-            ) : (() => {
-              // 헤드라인 = 사용자표 '듣기' 열 합. 이벤트 시리즈에는 표에서 봇으로 뺀 기기의 재생이
-              // 남아 있어 총량이 조금 크다(실측 57,065 vs 56,891).
-              const totalUsed = userStats.users.reduce((s, u) => s + (u.creditsUsed || 0), 0)
-              const usage = anonymousStats?.dailyCreditUsage ?? []
-              // 오늘은 사용자표 per-user 델타 합. dailyCreditUsage 는 활동 있는 날만 행이 있어
-              // 배열 마지막 원소가 '오늘'이 아닐 수 있으므로 7일도 날짜 매칭으로 낸다(slice(-7) 금지).
-              const todayUsage = userStats.users.reduce((s, u) => s + (u.listenToday || 0), 0)
-              const { cumulative: sparkData, last7: last7Sum } = alignToTable(
-                usage.map(d => ({ date: d.date, value: d.credits })), totalUsed
-              )
-              return (
-                <LStat
-                  label="듣기 학습"
-                  title="TTS·미리듣기·기기음성 재생 횟수 누적 (재생 엔진 무관, 사용자표 '듣기' 열과 같은 기준). 점선 = 보유 카드 대비 배수 (카드당 반복 강도)."
-                  value={formatNumber(totalUsed)}
-                  valueExtra={cardRatioExtra(totalUsed)}
-                  sub={`오늘 ${formatNumber(todayUsage)}회 · 7일 ${formatNumber(last7Sum)}회`}
-                  sparkline={compact ? undefined : (sparkData.length > 1 ? sparkData : undefined)}
-                  sparkline2={compact ? undefined : (sparkData.length > 1 ? ratioSpark(sparkData) : undefined)}
-                  sparkColor={t.chart.mono}
-                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.subtle}
-                  dualScale
-                />
-              )
-            })()}
-            {/* 실제 크레딧 소진 (TTS 차감 + AI 생성) */}
-            {eventsLoading && !anonymousStats ? (
-              <SkelStat compact={!!mobile} />
-            ) : (() => {
-              // 헤드라인 = 사용자표 '사용' 열 합 = credit_transactions 원장(환불 차감 후).
-              // 이벤트 집계(credits_changed/tts_premium + ai_generation_success)는 환불을 되돌리지
-              // 않고 표에 없는 계정도 섞여 조금 크다(실측 8,942 vs 8,695). 원장이 정본이다.
-              const totalSpent = userStats.users.reduce((s, u) => s + (u.creditsSpent || 0), 0)
-              const spend = anonymousStats?.dailyCreditSpend ?? []
-              const dayTotal = (d: { tts: number; ai: number }) => (d.tts || 0) + (d.ai || 0)
-              const todaySpend = userStats.users.reduce((s, u) => s + (u.spentToday || 0), 0)
-              const { cumulative: spendSpark, last7: last7Spend, k: spendK } = alignToTable(
-                spend.map(d => ({ date: d.date, value: dayTotal(d) })), totalSpent
-              )
-              // TTS/AI 내역도 같은 비율로 맞춰 둘의 합이 헤드라인과 같게 한다.
-              const totalTts = Math.round(spend.reduce((sum, d) => sum + (d.tts || 0), 0) * spendK)
-              const totalAi = totalSpent - totalTts
-              return (
-                <LStat
-                  label="크레딧 사용"
-                  title={`실제 소진된 크레딧 누적 — credit_transactions 원장 기준(환불 차감 후), 사용자표 '사용' 열과 같은 기준. 대략 TTS 차감 ${formatNumber(totalTts)} + AI 생성 ${formatNumber(totalAi)}. 유저의 크레딧 소진 속도 = 구매 압력. 점선 = 보유 카드 대비 배수 — 카드가 늘수록 소진도 빨라진다.`}
-                  value={formatNumber(totalSpent)}
-                  valueExtra={cardRatioExtra(totalSpent)}
-                  sub={`오늘 ${formatNumber(todaySpend)} · 7일 ${formatNumber(last7Spend)}`}
-                  sparkline={compact ? undefined : (spendSpark.length > 1 ? spendSpark : undefined)}
-                  sparkline2={compact ? undefined : (spendSpark.length > 1 ? ratioSpark(spendSpark) : undefined)}
-                  sparkColor={t.chart.mono}
-                  sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.subtle}
-                  dualScale
-                />
-              )
-            })()}
-          </StatRows>
-            {/* 누적 크레딧: 사용 vs 판매 — 쓴 만큼 팔리는지(판매 ÷ 사용)를 본다. 두 시리즈가 같은 단위(크레딧)라 한 축.
-                우측(와이드): 좌측 카드 두 줄 높이로 stretch · 스택 모드: 아래 전폭. */}
-            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 170 }}>
-              <CreditFlowChart
-                sold={soldCumulative} used={usedCumulative}
-                loading={eventsLoading && !anonymousStats}
-                // 매출 API(/api/voicecards/stats)는 캐시가 비면(배포 직후) 10초 넘게 걸린다. 그동안 판매 0으로
-                // 그리면 "판매가 안 로드된다"로 보이므로(2026-09-09) 판매 시리즈만 로딩 상태를 따로 표시한다.
-                soldLoading={revenueLoading && !stats}
-              />
-            </div>
-          </div>
-          </>
-            )
-          })()}
-        </div>
-      )}
-      {userStats && (
-        <LCardFoot
-          left="크레딧은 환불 차감 후 원장 기준 · 데모 덱 제외"
-          right={loadedLabel(loadedAt)}
+          right={generatedLabel(generatedAt)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -1761,7 +1768,7 @@ export function VoicecardsBlock({
                       return c ? (
                         <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
                           <LTableBadge tone={CELL_TONES.country}>
-                            {c.code}
+                            <span className="flag-mono">{c.flag}</span> {c.code}
                           </LTableBadge>
                         </span>
                       ) : (

@@ -47,7 +47,7 @@ const buildStatsPayload = async (startDate: string, endDate: string) => {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, values]) => ({ date, ...values }))
 
-    return { stats, chartData }
+    return { stats, chartData, generatedAt: new Date().toISOString() }
 }
 
 const getCachedStatsPayload = unstable_cache(
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     const refresh = searchParams.get('refresh') === '1'
     if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
     // 연결 상태(가벼움, 매요청) + 통합 통계(1시간 캐시)를 병렬 조회
-    const [connectionStatus, { stats, chartData }] = await Promise.all([
+    const [connectionStatus, { stats, chartData, generatedAt }] = await Promise.all([
       getConnectionStatus(),
       refresh ? buildStatsPayload(startDate, endDate) : getCachedStatsPayload(startDate, endDate),
     ])
@@ -78,6 +78,7 @@ export async function GET(request: Request) {
       connection: connectionStatus,
       stats,
       chartData,
+      generatedAt,
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',

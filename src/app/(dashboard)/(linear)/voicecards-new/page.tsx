@@ -167,9 +167,11 @@ export default function VoicecardsNewPage() {
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
-  // 세 API 가 모두 도착한 시각 — 카드 푸터가 "언제 본 숫자인지"를 말한다. 서버 캐시(1시간)가
-  // 있으므로 데이터 생성 시각이 아니라 이 화면이 받아 온 시각이다.
-  const [vcLoadedAt, setVcLoadedAt] = useState<Date | null>(null)
+  // 각 API 가 집계를 만든 시각(캐시 안에서 찍혀 함께 돌아온다). 카드 푸터는 이 중 가장 오래된
+  // 값을 적는다 — 세 소스를 함께 읽는 카드라 가장 뒤처진 쪽이 그 숫자의 나이다.
+  const [vcStatsAt, setVcStatsAt] = useState<string | null>(null)
+  const [vcUsersAt, setVcUsersAt] = useState<string | null>(null)
+  const [vcEventsAt, setVcEventsAt] = useState<string | null>(null)
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -192,7 +194,7 @@ export default function VoicecardsNewPage() {
     const usersP = fetch(`/api/voicecards/stats/users${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setVcUserStats(data.userStats || null)
+        if (data) { setVcUserStats(data.userStats || null); setVcUsersAt(data.generatedAt || null) }
       })
       .catch(err => console.error('VoiceCards users load error:', err))
       .finally(() => { setVcUsersLoading(false); setVcRefreshUsers(false) })
@@ -200,7 +202,7 @@ export default function VoicecardsNewPage() {
     const eventsP = fetch(`/api/voicecards/stats/events${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setVcAnonStats(data.anonymousStats || null)
+        if (data) { setVcAnonStats(data.anonymousStats || null); setVcEventsAt(data.generatedAt || null) }
       })
       .catch(err => console.error('VoiceCards events load error:', err))
       .finally(() => { setVcEventsLoading(false); setVcRefreshEvents(false) })
@@ -211,13 +213,13 @@ export default function VoicecardsNewPage() {
         if (data) {
           setVcStats(data.stats)
           setVcChartData(data.chartData || [])
+          setVcStatsAt(data.generatedAt || null)
         }
       })
       .catch(err => console.error('VoiceCards revenue load error:', err))
       .finally(() => { setVcRevenueLoading(false); setVcRefreshRevenue(false) })
 
     await Promise.all([usersP, eventsP, revenueP])
-    setVcLoadedAt(new Date())
   }, [])
 
   useEffect(() => {
@@ -277,7 +279,7 @@ export default function VoicecardsNewPage() {
         refreshingUsers={vcRefreshUsers}
         refreshingEvents={vcRefreshEvents}
         refreshingRevenue={vcRefreshRevenue}
-        loadedAt={vcLoadedAt}
+        generatedAt={[vcStatsAt, vcUsersAt, vcEventsAt].filter(Boolean).sort()[0] ?? null}
       />
       </div>
     </div>
