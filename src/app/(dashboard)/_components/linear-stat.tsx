@@ -202,6 +202,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
           ? { minWidth: 0, flexShrink: 0, maxWidth: 'calc(100% - 40px)' } // 텍스트 우선: 자연 폭 유지, 스파크라인이 남는 폭만
           : { minWidth: 0, flex: 1 }}>
           <div
+            data-stat-label=""
             onMouseEnter={title ? () => setShowTip(true) : undefined}
             onMouseLeave={title ? () => setShowTip(false) : undefined}
             style={{
@@ -227,7 +228,7 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             {valueExtra}
           </div>
           {sub && (
-            <div style={wrap ? {
+            <div data-stat-sub="" style={wrap ? {
               fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.muted, marginTop: t.density.gapXs,
               wordBreak: 'break-word' as const, lineHeight: 1.4,
             } : {

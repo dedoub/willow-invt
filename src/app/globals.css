@@ -843,6 +843,21 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   color: revert-layer;
 }
 
+/* 지표 타일은 카드 지표 격자(FigureGrid)와 한 줄씩 같은 자리에 선다 — 스파크라인이 붙은
+   타일만 라벨이 모노 대문자에 자간이 벌어져 있고 보조줄이 2px 더 내려가 있었다(2026-09-11) */
+.theme-outline [data-stat-label] {
+  font-family: inherit !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.theme-outline [data-stat-value] {
+  letter-spacing: 0 !important;
+  line-height: 1.3 !important;
+}
+.theme-outline [data-stat-sub] {
+  margin-top: 2px !important;
+}
+
 /* 카드 안 작은 표(검색·GEO 패널) — 사업관리 표와 같은 규격으로 읽는다.
    회색 판을 벗고, 머리 아래 선 한 겹, 행 사이 얇은 선, 글자는 표 본문 급(11)(2026-09-11). */
 .theme-outline [data-panel] {

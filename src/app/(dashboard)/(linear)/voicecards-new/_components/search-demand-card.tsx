@@ -112,9 +112,9 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
   const latest = rows.length ? rows[rows.length - 1] : null
 
   return (
-    <div style={{ ...panelStyle, minHeight: 132 }}>
+    <div data-panel="" style={{ ...panelStyle, minHeight: 132 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
-        <div style={panelTitle}>일별 유입</div>
+        <div data-panel-title="" style={panelTitle}>일별 유입</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: SEARCH_COLOR }} />검색 {latest?.searchSessions ?? 0}
@@ -236,10 +236,10 @@ function ChannelMixCard({ data }: { data: SearchDemandStats }) {
   return (
     <DataTable
       title="유입 채널"
-      meta={total > 0 ? `세션 ${total.toLocaleString()}` : undefined}
+      hideTitle
       minWidth={240}
       columns={[
-        { key: 'channel', label: '채널', width: 'minmax(90px,1fr)' },
+        { key: 'channel', label: '유입 채널', width: 'minmax(90px,1fr)' },
         { key: 'visits', label: '세션', width: '48px', align: 'right' as const },
         { key: 'share', label: '비중', width: '48px', align: 'right' as const },
       ]}
@@ -279,6 +279,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
   return (
     <DataTable
       title="지역 · 언어"
+      hideTitle
       minWidth={252}
       columns={[
         { key: 'country', label: '국가', width: 'minmax(52px,1fr)' },
@@ -910,9 +911,10 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
               <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start' }}>
                 <DataTable
                   title="검색 진입 페이지"
-                  minWidth={300}
+                  hideTitle
+                  minWidth={322}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '검색 진입 페이지', width: 'minmax(142px,1fr)' },
                     { key: 'in', label: '진입', width: '46px', align: 'right' as const },
                     { key: 'all', label: '전체', width: '46px', align: 'right' as const },
                   ]}
@@ -927,9 +929,10 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 <ChannelMixCard data={data} />
                 <DataTable
                   title="조회 상위 페이지"
-                  minWidth={320}
+                  hideTitle
+                  minWidth={342}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '조회 상위 페이지', width: 'minmax(142px,1fr)' },
                     { key: 'pv', label: '페이지뷰', width: '58px', align: 'right' as const },
                     { key: 'last', label: '마지막', width: '58px', align: 'right' as const },
                   ]}
