@@ -108,7 +108,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.gapSm }}>
         <LSectionHead
           title="LLM 노출"
           action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}

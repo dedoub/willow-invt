@@ -9,7 +9,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/linear-page-size'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
-import { COUNTRY_NAMES, codeToFlag, formatCountryName } from '@/lib/country-format'
+import { COUNTRY_NAMES, countryName } from '@/lib/country-format'
 import {
   voicecardsDeviceDisplayName,
   voicecardsLearningActivationDate,
@@ -411,10 +411,10 @@ function versionPieData(rows?: Array<{ version: string; devices: number }>): Arr
 }
 
 // 국가코드(백필된 anonymous_events.country) 우선, 없으면 로케일 지역 폴백.
-function formatCountry(country: string | null, locale?: string | null): { flag: string; code: string; name: string } | null {
+function formatCountry(country: string | null, locale?: string | null): { code: string; name: string } | null {
   const code = (country || regionOf(locale ?? null)).toUpperCase()
   if (!code || !/^[A-Z]{2}$/.test(code)) return null
-  return { flag: codeToFlag(code), code, name: COUNTRY_NAMES[code] || code }
+  return { code, name: COUNTRY_NAMES[code] || code }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -772,7 +772,7 @@ export function VoicecardsBlock({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.gapSm }}>
         <LSectionHead
           title="스토어 → 설치 → 가입 → 결제"
           action={
@@ -866,7 +866,7 @@ export function VoicecardsBlock({
             return Array.from(m, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
           }
           const activePlatforms = distOf(u => u.platform === 'ios' ? 'iOS' : u.platform === 'android' ? 'Android' : (u.platform || 'unknown'))
-          const activeCountries = distOf(u => formatCountryName(u.country || 'unknown'))
+          const activeCountries = distOf(u => countryName(u.country || 'unknown'))
 
           // 누적 trajectories
           const cumulative = anonymousStats.cumulativeDistinct ?? []
@@ -1245,7 +1245,7 @@ export function VoicecardsBlock({
                   {
                     key: 'devices',
                     label: '기기',
-                    data: (anonymousStats.countries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    data: (anonymousStats.countries ?? []).map(c => ({ name: countryName(c.country), value: c.devices })),
                   },
                   {
                     key: 'active',
@@ -1255,7 +1255,7 @@ export function VoicecardsBlock({
                   {
                     key: 'paying',
                     label: '결제',
-                    data: (anonymousStats.payingCountries ?? []).map(c => ({ name: formatCountryName(c.country), value: c.devices })),
+                    data: (anonymousStats.payingCountries ?? []).map(c => ({ name: countryName(c.country), value: c.devices })),
                   },
                 ]}
                 palette={['#0A2E40', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']}
@@ -1736,7 +1736,7 @@ export function VoicecardsBlock({
                       return c ? (
                         <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
                           <LTableBadge tone={CELL_TONES.country}>
-                            {c.flag} {c.code}
+                            {c.code}
                           </LTableBadge>
                         </span>
                       ) : (

@@ -20,6 +20,14 @@ export function codeToFlag(code: string): string {
 }
 
 // 분포 차트 라벨용: "🇺🇸 미국" / 미상
+/** 국기 없이 이름만 — 색을 쓰지 않는 카드에서는 국기가 화면의 유일한 색이 된다(2026-09-11) */
+export function countryName(code: string): string {
+  if (!code || code === 'unknown' || code === 'Unknown') return '미상'
+  const cc = code.toUpperCase()
+  if (!/^[A-Z]{2}$/.test(cc)) return code
+  return COUNTRY_NAMES[cc] || cc
+}
+
 export function formatCountryName(code: string): string {
   if (!code || code === 'unknown' || code === 'Unknown') return '미상'
   const cc = code.toUpperCase()
