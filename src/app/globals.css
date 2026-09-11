@@ -762,13 +762,15 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-color: #D6D9DD !important;
   color: #111827 !important;
 }
-/* 활성 상태 = 브랜드 네이비. 사이드바 면(#0A2E40)과 같은 색이라 좌측 메뉴와 본문 컨트롤이 한 덩어리로 읽힌다.
+/* 활성 상태 = 사이드바가 활성 메뉴에 쓰는 그 하늘색(brand 300). 면(#0A2E40)이 아니라
+   면 위의 강조색과 맞춰야 좌측 메뉴와 본문 컨트롤이 같은 톤으로 읽힌다(CEO 2026-09-11).
+   글자는 네이비다 — 이 하늘색 위에서 흰 글자는 대비가 2:1 로 읽히지 않는다.
    강조색은 여기(활성 칩·탭)에만 쓰고 나머지는 회색으로 둔다(CEO 2026-09-10). */
 .theme-outline [data-filter-chip][data-active],
 .theme-outline [data-segment][data-active] {
-  background: #0A2E40 !important;
-  color: #FFFFFF !important;
-  border-color: #0A2E40 !important;
+  background: #75B9DB !important;
+  color: #0A2E40 !important;
+  border-color: #75B9DB !important;
 }
 /* 이모지(국기·아이콘)는 색을 빼고 모양만 남긴다 — 회색 표 안에서 유일한 색이 되면
    계열색처럼 읽힌다. 글자는 이미 단색이라 이 필터에 영향받지 않는다(2026-09-11) */
@@ -940,9 +942,9 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 
 /* 폼의 주 동작(저장)만 활성 칩과 같은 강조색을 쓴다 — 나머지 버튼은 선 한 겹 그대로 */
 .theme-outline [data-primary-action] button {
-  background: #0A2E40 !important;
-  color: #FFFFFF !important;
-  border-color: #0A2E40 !important;
+  background: #75B9DB !important;
+  color: #0A2E40 !important;
+  border-color: #75B9DB !important;
 }
 .theme-outline [data-primary-action] button:disabled {
   background: #E7E9EB !important;
