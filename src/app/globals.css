@@ -710,6 +710,8 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   margin-right: 16px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+  /* 카드 바닥까지 8px 은 글자가 모서리에 닿아 보인다 */
+  padding-bottom: 12px !important;
 }
 /* 카드 제목 위 영어 눈썹은 쓰지 않는다 — 한글 제목이 이미 무엇인지 말한다(CEO 2026-09-10) */
 .theme-outline [data-eyebrow] {
