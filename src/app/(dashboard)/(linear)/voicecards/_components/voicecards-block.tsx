@@ -235,7 +235,7 @@ function formatTimeShort(dateString?: string | null): string {
 // 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 덱 | 카드 | …
 // 설치가 맨 앞인 이유: 로그인 없이 쓰는 기기 계정이 생기면서 로그인일이 더 이상
 // 여정의 시작점이 아니다. 설치 → (구글 로그인) → (드라이브) 순으로 읽힌다.
-const USER_TABLE_COLS = '64px 64px 64px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 64px 64px 48px 52px 44px 48px 44px'
+const USER_TABLE_COLS = '72px 72px 72px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 72px 72px 48px 52px 44px 48px 44px'
 // 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
 // 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
 // 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
@@ -245,7 +245,7 @@ const USER_TABLE_MIN_WIDTH = (() => {
     const m = c.match(/minmax\((\d+)px/) || c.match(/^(\d+)px$/)
     return sum + (m ? Number(m[1]) : 0)
   }, 0)
-  return px + (cols.length - 1) * 6 /* grid gap */ + 16 /* 행 좌우 padding */
+  return px + (cols.length - 1) * 10 /* grid gap */ + 16 /* 행 좌우 padding */
 })()
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
@@ -1644,7 +1644,7 @@ export function VoicecardsBlock({
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 다중 정렬. 미포함→추가, 재클릭→방향전환, 또 클릭→해제.
                 여러 컬럼이 활성이면 우선순위 번호 표시. */}
-            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const sIdx = userSorts.findIndex(s => s.key === col.key)
                 const active = sIdx >= 0
@@ -1686,7 +1686,7 @@ export function VoicecardsBlock({
               const titleParts = [user.appVersion ? `v${user.appVersion}` : null, user.locale].filter(Boolean).join(' · ')
               return (
                 <div key={user.id} data-table-row="" style={{
-                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   {/* 설치 — 앱을 처음 연 날. 로그인보다 앞선다. 뷰 이전 가입자는 '—' */}

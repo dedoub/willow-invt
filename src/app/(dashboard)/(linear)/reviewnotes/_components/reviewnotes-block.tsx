@@ -129,9 +129,9 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'reviewnotes.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 52px 48px 48px 44px 58px'
+const USER_TABLE_COLS = '72px 72px minmax(72px,1fr) minmax(84px,1.1fr) 52px 40px 44px 40px 40px 52px 48px 48px 44px 58px'
 // 컬럼 폭 합(768) + gap 6px×13(78) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 862
+const USER_TABLE_MIN_WIDTH = 930
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -847,7 +847,7 @@ export function ReviewnotesBlock({
             <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
               {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-              <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+              <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
                 {USER_COLUMNS.map(col => {
                   const active = userSort === col.key
                   return (
@@ -882,7 +882,7 @@ export function ReviewnotesBlock({
                 const aiTitle = formatAiFeatureBreakdown(user.aiFeaturesMonth, user.aiFeaturesTotal)
                 return (
                   <div key={user.id} data-table-row="" style={{
-                    display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                    display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center',
                     padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                   }}>
                     {/* 가입 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}

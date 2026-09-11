@@ -194,9 +194,9 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'portle.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '64px 64px minmax(120px,1.4fr) 44px 52px 44px 44px 44px 52px 48px 40px 56px'
+const USER_TABLE_COLS = '72px 72px minmax(120px,1.4fr) 44px 52px 44px 44px 44px 52px 48px 40px 56px'
 // 컬럼 폭 합(672) + gap 6px×11(66) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 754
+const USER_TABLE_MIN_WIDTH = 814
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -659,7 +659,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: USER_TABLE_MIN_WIDTH, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
             {/* 테이블 헤더 — 클릭하여 정렬, 같은 컬럼 재클릭 시 방향 토글 */}
-            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
+            <div data-table-head="" style={{ display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center', padding: `0 ${t.density.panelPadY}px ${t.density.gapSm}px` }}>
               {USER_COLUMNS.map(col => {
                 const active = userSort === col.key
                 return (
@@ -688,7 +688,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               const ent = user.entitlement
               return (
                 <div key={user.subject} data-table-row="" style={{
-                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapSm, alignItems: 'center',
+                  display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
                   {/* 첫 사용 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
