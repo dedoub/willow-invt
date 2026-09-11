@@ -206,12 +206,12 @@ function RnDauTrendCard({ daily, days = 42 }: {
     return win.reduce((sum, r) => sum + totalOf(r), 0) / win.length
   })
   return (
-    <div style={{
+    <div data-panel="" style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm }}>
-        <div style={{
+        <div data-panel-title="" style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
