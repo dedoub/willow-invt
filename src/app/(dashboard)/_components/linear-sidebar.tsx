@@ -319,7 +319,6 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const admin = navGroup('admin')
   const appsFinance = navGroup('apps-finance')
   const appsEdu = navGroup('apps-edu')
-  const investees = navGroup('investees')
   const clients = navGroup('clients')
   const inquiries = navGroup('inquiries')
   // 섹션 접기 — rail(아이콘 전용)에서는 머리글이 없으므로 접기도 없다.
@@ -329,9 +328,9 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
     <GroupLabel label={label} collapsed={collapsedGroups.has(key)} onToggle={() => toggleGroup(key)} />
   )
 
+  const willowOrder = useOrderedGroup(willow.items.filter(i => !i.hidden), willow.orderKey!)
   const appsFinanceOrder = useOrderedGroup(appsFinance.items, appsFinance.orderKey!)
   const appsEduOrder = useOrderedGroup(appsEdu.items, appsEdu.orderKey!)
-  const investeesOrder = useOrderedGroup(investees.items, investees.orderKey!)
   const clientsOrder = useOrderedGroup(clients.items, clients.orderKey!)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -389,11 +388,8 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, overflowY: 'auto', overflowX: 'hidden' }}>
-        {!rail && groupHead(willow.key, willow.label)}
-        {!isFolded(willow.key) && willow.items.filter(i => !i.hidden).map(navLink)}
-
-        {/* 관계회사 — 회사 자체 다음에 바로. 관계사간 거래 원장도 여기 */}
-        {sortableGroup(investees.key, investees.label, investeesOrder)}
+        {/* 사업관리 — 윌로우 본체와 관계회사를 한 묶음으로 본다(CEO 2026-09-11) */}
+        {sortableGroup(willow.key, willow.label, willowOrder)}
 
         {/* 자산관리 — 윌로우 명의 투자자산 */}
         {!rail && groupHead(assets.key, assets.label)}

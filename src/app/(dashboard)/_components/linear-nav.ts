@@ -37,27 +37,21 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
+    // 사업관리 — 윌로우 본체와 관계회사를 한 묶음으로 본다. 두 섹션으로 갈라 두니
+    // 회사 이름이 섹션 제목과 항목에 두 번 나오고, 실제로는 늘 같이 열어 본다(CEO 2026-09-11).
     key: 'willow',
-    label: '윌로우인베스트먼트',
+    label: '사업관리',
+    orderKey: 'sidebar-willow-order',
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '사업관리',  icon: 'briefcase' },
-      // 새 디자인을 한 페이지씩 잡아 보는 자리 — 확정되면 /mgmt를 대체한다(2026-09-10).
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
+      { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
+      { id: 'b2b',        href: '/b2b',        label: '관계사간거래', icon: 'coin' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book', hidden: true },
       { id: 'corp',       href: '/corp',       label: '법인서류함', icon: 'file', hidden: true },
-    ],
-  },
-  {
-    // 관계회사 — 투자·지분 관계로 관리하는 회사와, 그 회사들과 윌로우 사이의 거래 원장
-    key: 'investees',
-    label: '관계회사',
-    orderKey: 'sidebar-investee-order',
-    items: [
-      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
-      { id: 'b2b',   href: '/b2b',   label: '관계사간거래', icon: 'coin' },
     ],
   },
   {
