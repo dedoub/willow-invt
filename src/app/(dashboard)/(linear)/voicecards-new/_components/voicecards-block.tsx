@@ -772,7 +772,7 @@ export function VoicecardsBlock({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드1: 헤더 + 인사이트 */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.gapSm }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
           title="스토어 → 설치 → 가입 → 결제"
           action={

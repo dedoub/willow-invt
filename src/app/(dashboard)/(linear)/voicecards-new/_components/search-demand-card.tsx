@@ -670,7 +670,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
       {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.gapSm }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             mb={t.density.panelPadY + t.density.panelPadX}
             title="검색 노출"
@@ -828,7 +828,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
       {/* ── 섹션 2: 웹 트래픽 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.gapSm }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             title="웹 트래픽"
             action={
