@@ -852,6 +852,12 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   border-bottom: 1px solid #E5E7EB;
   margin-bottom: 2px;
 }
+.theme-outline [data-panel-head] button {
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
 .theme-outline [data-panel-row] {
   background: transparent !important;
   border-radius: 0 !important;

@@ -25,20 +25,13 @@ const mono = (size: number): React.CSSProperties => ({
   fontVariantNumeric: 'tabular-nums' as const,
 })
 
-// 칩은 색조 대신 회색 명도로 나눈다 — 사업관리 표와 같은 문법(2026-09-11).
-// 단계는 나쁜 쪽이 진하고, 원인도 같은 순서로 읽는다.
+// 단계·원인은 표의 한 칸일 뿐이라 색도 배경도 두지 않는다(CEO 2026-09-11).
+const PLAIN = { bg: 'transparent', fg: t.neutrals.muted }
 const CAUSE_TONE: Record<Exclude<GeoCause, null>, { bg: string; fg: string }> = {
-  index:      { bg: '#C7CCD3', fg: '#171B21' },
-  authority:  { bg: '#D3D7DD', fg: '#1F242B' },
-  content:    { bg: '#E4E7EB', fg: '#2C323A' },
-  competitor: { bg: '#EDEFF2', fg: '#3A4048' },
+  index: PLAIN, authority: PLAIN, content: PLAIN, competitor: PLAIN,
 }
-
 const STAGE_TONE: Record<GeoStage, { bg: string; fg: string }> = {
-  absent:      { bg: '#C7CCD3', fg: '#171B21' },
-  cited:       { bg: '#DCE0E5', fg: '#262C33' },
-  mentioned:   { bg: '#E4E7EB', fg: '#2C323A' },
-  recommended: { bg: '#F5F6F8', fg: '#4B525A' },
+  absent: PLAIN, cited: PLAIN, mentioned: PLAIN, recommended: PLAIN,
 }
 
 // 배경 없이 글자만 — 표가 카드 안으로 들어온 것뿐이라 칩으로 부풀리지 않는다(CEO 2026-09-11).
@@ -181,7 +174,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 title="질문별 현황"
                 hideTitle
                 columns={[
-                  { key: 'q', label: '질문별 현황', width: 'minmax(140px,1fr)' },
+                  { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
                   // 가장 긴 배지 '추천 Top3'가 56px다. 더 줄이면 잘린다
                   { key: 's', label: '단계', width: '58px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
@@ -210,7 +203,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 hideTitle
                 minWidth={220}
                 columns={[
-                  { key: 'c', label: '실패 원인', width: 'minmax(80px,1fr)' },
+                  { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
                   { key: 'n', label: '질문', width: '46px', align: 'right' as const },
                 ]}
                 rows={data.causes.map(c => ({
@@ -229,7 +222,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 hideTitle
                 minWidth={240}
                 columns={[
-                  { key: 'name', label: '우리가 빠진 자리의 경쟁사', width: 'minmax(120px,1fr)' },
+                  { key: 'name', label: '서비스', width: 'minmax(90px,1fr)' },
                   { key: 'n', label: '답변 수', width: '56px', align: 'right' as const },
                 ]}
                 rows={data.competitors.map(c => ({
@@ -244,10 +237,9 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               <DataTable
                 title="엔진별"
                 hideTitle
-                meta={data.daily.length > 1 ? `Top3 추이 ${data.daily.map(d => `${d.top3}%`).join(' → ')}` : undefined}
                 minWidth={260}
                 columns={[
-                  { key: 'e', label: '엔진별', width: 'minmax(64px,1fr)' },
+                  { key: 'e', label: '엔진', width: 'minmax(64px,1fr)' },
                   { key: 'm', label: '언급', width: '46px', align: 'right' as const },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
                   { key: 'c', label: '인용', width: '46px', align: 'right' as const },
