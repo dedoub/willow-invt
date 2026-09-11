@@ -307,9 +307,9 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   const showLabels = rows.length > 0 && rows.length <= 31
 
   return (
-    <div style={{ ...panelStyle, minHeight: 132 }}>
+    <div data-panel="" style={{ ...panelStyle, minHeight: 132 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
-        <div style={panelTitle}>일별 노출 · 클릭</div>
+        <div data-panel-title="" style={panelTitle}>일별 노출 · 클릭</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: IMPRESSION_COLOR }} />노출 {latest?.impressions ?? 0}
@@ -414,9 +414,10 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="색인 상태"
+      hideTitle
       minWidth={260}
       columns={[
-        { key: 'status', label: '상태', width: 'minmax(90px,1fr)' },
+        { key: 'status', label: '색인 상태', width: 'minmax(90px,1fr)' },
         { key: 'n', label: '원본', width: '48px', align: 'right' as const },
         { key: 'pct', label: '비율', width: '52px', align: 'right' as const },
         ...(hasLocale ? [{ key: 'locale', label: '로케일', width: '56px', align: 'right' as const }] : []),
@@ -449,9 +450,10 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="버티컬별 색인률"
-      minWidth={260}
+      hideTitle
+      minWidth={278}
       columns={[
-        { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
+        { key: 'label', label: '버티컬별 색인률', width: 'minmax(92px,1fr)' },
         { key: 'indexed', label: '색인', width: '44px', align: 'right' as const },
         { key: 'total', label: '전체', width: '44px', align: 'right' as const },
         { key: 'pct', label: '색인률', width: '52px', align: 'right' as const },
@@ -669,7 +671,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
             mb={t.density.panelPadY + t.density.panelPadX}
-            title="검색 노출 → 클릭"
+            title="검색 노출"
             tools={periodToggle}
             toolsInline
             action={
@@ -766,6 +768,7 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 {index && <IndexGroupsCard data={index} />}
                 <DataTable
                   title="검색어"
+                  hideTitle
                   minWidth={330}
                   columns={[
                     { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
@@ -783,9 +786,10 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 />
                 <DataTable
                   title="노출 상위 페이지"
-                  minWidth={366}
+                  hideTitle
+                  minWidth={384}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '노출 상위 페이지', width: 'minmax(138px,1fr)' },
                     { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
                     { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
                     { key: 'in', label: '진입', width: '40px', align: 'right' as const },
