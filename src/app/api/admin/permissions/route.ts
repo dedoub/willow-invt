@@ -4,7 +4,7 @@ import { getServiceSupabase } from '@/lib/supabase'
 
 // Available pages for permission settings
 export const AVAILABLE_PAGES = [
-  { path: '/mgmt',       section: 'willowInvest', name: '사업관리' },
+  { path: '/mgmt',       section: 'willowInvest', name: '윌로우인베스트먼트' },
   { path: '/wiki',       section: 'willowInvest', name: '업무위키' },
   { path: '/invest',     section: 'willowInvest', name: '주식' },
   { path: '/realestate', section: 'willowInvest', name: '부동산리서치' },
