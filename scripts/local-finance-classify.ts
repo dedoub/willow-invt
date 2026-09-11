@@ -105,6 +105,7 @@ const COMPANIES = {
       { re: /대출이자/, counterparty: '우리은행', description: '대출이자' },
       { re: /한국전력|전기요금/, counterparty: '한국전력', description: '전기요금' },
       { re: /지에스네오텍|GS네오텍/i, counterparty: 'GS네오텍', description: 'AWS·Google Workspace 월 이용료' },
+      { re: /SMS수수료/, counterparty: '우리은행', description: '이체 알림 수수료' },
       { re: /발급수수료|타행수수료|송금수수료/, counterparty: '우리은행', description: '은행 수수료' },
       { re: /윌로우대여상환/, counterparty: '윌로우인베스트먼트', description: '윌로우 대여금 상환', type: 'liability', direction: 'out', amountMultiplier: -1 },
       { re: /APPLE INC/, counterparty: 'Apple', description: 'Apple App Store 매출 정산', type: 'revenue', direction: 'in' },
