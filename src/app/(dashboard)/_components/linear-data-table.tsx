@@ -88,7 +88,7 @@ const colMinPx = (width: string): number => {
 }
 
 export function DataTable({
-  title, meta, columns, rows, empty, minWidth,
+  title, meta, columns, rows, empty, minWidth, hideTitle,
 }: {
   title: string
   /** 제목 우측 보조 정보 — 검사일·총계처럼 표 전체에 걸리는 값 */
@@ -97,6 +97,8 @@ export function DataTable({
   rows: TableRow[]
   empty: React.ReactNode
   minWidth?: number
+  /** 제목 줄을 그리지 않는다 — 제목을 1열 머리로 올린 표(2026-09-11). 저장 키로는 계속 쓴다. */
+  hideTitle?: boolean
 }) {
   const template = columns.map(c => c.width).join(' ')
 
@@ -158,15 +160,17 @@ export function DataTable({
   return (
     // data-panel/-title/-row: 화면별 테마 실험이 판과 행만 CSS로 덮을 수 있게 하는 표식이다.
     <div data-panel="" style={panelStyle}>
-      <div style={{
-        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        gap: t.density.gapSm, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const,
-      }}>
-        <div data-panel-title="" style={panelTitle}>{title}</div>
-        {meta && (
-          <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>{meta}</div>
-        )}
-      </div>
+      {(!hideTitle || meta) && (
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          gap: t.density.gapSm, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const,
+        }}>
+          {!hideTitle && <div data-panel-title="" style={panelTitle}>{title}</div>}
+          {meta && (
+            <div style={{ ...mono(9), color: t.neutrals.subtle, lineHeight: 1.5 }}>{meta}</div>
+          )}
+        </div>
+      )}
       {rows.length === 0 ? <EmptyLine>{empty}</EmptyLine> : (
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: tableMin, display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>

@@ -25,26 +25,29 @@ const mono = (size: number): React.CSSProperties => ({
   fontVariantNumeric: 'tabular-nums' as const,
 })
 
-// 원인별 색: 처방이 다른 만큼 눈으로도 갈라야 한다
+// 칩은 색조 대신 회색 명도로 나눈다 — 사업관리 표와 같은 문법(2026-09-11).
+// 단계는 나쁜 쪽이 진하고, 원인도 같은 순서로 읽는다.
 const CAUSE_TONE: Record<Exclude<GeoCause, null>, { bg: string; fg: string }> = {
-  index: tonePalettes.neg,
-  authority: tonePalettes.warn,
-  content: tonePalettes.info,
-  competitor: tonePalettes.pending,
+  index:      { bg: '#C7CCD3', fg: '#171B21' },
+  authority:  { bg: '#D3D7DD', fg: '#1F242B' },
+  content:    { bg: '#E4E7EB', fg: '#2C323A' },
+  competitor: { bg: '#EDEFF2', fg: '#3A4048' },
 }
 
 const STAGE_TONE: Record<GeoStage, { bg: string; fg: string }> = {
-  absent: tonePalettes.neg,
-  cited: tonePalettes.warn,
-  mentioned: tonePalettes.info,
-  recommended: tonePalettes.pos,
+  absent:      { bg: '#C7CCD3', fg: '#171B21' },
+  cited:       { bg: '#DCE0E5', fg: '#262C33' },
+  mentioned:   { bg: '#E4E7EB', fg: '#2C323A' },
+  recommended: { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
+// 배경 없이 글자만 — 표가 카드 안으로 들어온 것뿐이라 칩으로 부풀리지 않는다(CEO 2026-09-11).
+// 단계·원인의 무게는 글자 색 한 단계로만 남긴다.
 function Pill({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
     <span style={{
-      ...mono(8.5), padding: `1px ${t.density.gapSm}px`, borderRadius: 3, whiteSpace: 'nowrap' as const,
-      background: tone.bg, color: tone.fg,
+      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, whiteSpace: 'nowrap' as const,
+      color: tone.fg,
     }}>{children}</span>
   )
 }
@@ -176,8 +179,9 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
             <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: t.density.blockGap, alignItems: 'start', marginTop: t.density.blockGap }}>
               <DataTable
                 title="질문별 현황"
+                hideTitle
                 columns={[
-                  { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
+                  { key: 'q', label: '질문별 현황', width: 'minmax(140px,1fr)' },
                   // 가장 긴 배지 '추천 Top3'가 56px다. 더 줄이면 잘린다
                   { key: 's', label: '단계', width: '58px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
@@ -192,7 +196,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
-                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{q.top3}%</span>,
+                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.neutrals.subtle, fontWeight: t.weight.semibold }}>{q.top3}%</span>,
                   ],
                   sort: [q.question, q.stage, q.top3],
                 }))}
@@ -203,9 +207,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                   몇 질문을 막고 있는지만 본다 */}
               <DataTable
                 title="실패 원인"
+                hideTitle
                 minWidth={220}
                 columns={[
-                  { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
+                  { key: 'c', label: '실패 원인', width: 'minmax(80px,1fr)' },
                   { key: 'n', label: '질문', width: '46px', align: 'right' as const },
                 ]}
                 rows={data.causes.map(c => ({
@@ -221,9 +226,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
               <DataTable
                 title="우리가 빠진 자리의 경쟁사"
+                hideTitle
                 minWidth={240}
                 columns={[
-                  { key: 'name', label: '서비스', width: 'minmax(90px,1fr)' },
+                  { key: 'name', label: '우리가 빠진 자리의 경쟁사', width: 'minmax(120px,1fr)' },
                   { key: 'n', label: '답변 수', width: '56px', align: 'right' as const },
                 ]}
                 rows={data.competitors.map(c => ({
@@ -237,10 +243,11 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               {/* 엔진마다 우리를 보는 방식이 달라서(한쪽은 인용까지, 한쪽은 브랜드만) 세 지표를 다 편다 */}
               <DataTable
                 title="엔진별"
+                hideTitle
                 meta={data.daily.length > 1 ? `Top3 추이 ${data.daily.map(d => `${d.top3}%`).join(' → ')}` : undefined}
                 minWidth={260}
                 columns={[
-                  { key: 'e', label: '엔진', width: 'minmax(64px,1fr)' },
+                  { key: 'e', label: '엔진별', width: 'minmax(64px,1fr)' },
                   { key: 'm', label: '언급', width: '46px', align: 'right' as const },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
                   { key: 'c', label: '인용', width: '46px', align: 'right' as const },
@@ -251,7 +258,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                   cells: [
                     e.engine,
                     `${e.mentioned}%`,
-                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{e.top3}%</span>,
+                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.neutrals.subtle, fontWeight: t.weight.semibold }}>{e.top3}%</span>,
                     `${e.cited}%`,
                     String(e.runs),
                   ],

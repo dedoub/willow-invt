@@ -826,6 +826,15 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
   font-size: calc(9px * var(--fz, 1));
 }
 
+/* 지표 숫자는 검정 한 색 — 좋고 나쁨은 옆에 붙는 증감(+·−)에서만 읽는다(CEO 2026-09-11).
+   증감은 자기 색을 그대로 쓰므로 값 안의 자식 요소는 건드리지 않는다. */
+.theme-outline [data-stat-value] {
+  color: #17181C !important;
+}
+.theme-outline [data-stat-value] > * {
+  color: revert-layer;
+}
+
 /* 카드 안 작은 표(검색·GEO 패널) — 회색 판을 벗고 카드의 표와 같은 문법으로 읽는다.
    제목은 지표 라벨 급 평서, 행은 배경 대신 아래 선 하나(2026-09-11). */
 .theme-outline [data-panel] {

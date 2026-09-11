@@ -215,7 +215,8 @@ export function LStat({ label, labelExtra, value, valueExtra, unit, sub, subExtr
             {title && <LIcon name="info" size={10} stroke={2} className="shrink-0 opacity-75" />}
             {labelExtra}
           </div>
-          <div style={{
+          {/* data-stat-value: 테마가 숫자 색만 따로 덮을 수 있게 하는 표식 */}
+          <div data-stat-value="" style={{
             fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums' as const,
             whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
