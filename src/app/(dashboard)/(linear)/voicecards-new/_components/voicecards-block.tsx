@@ -774,7 +774,7 @@ export function VoicecardsBlock({
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          title="스토어 → 설치 → 가입 → 결제"
+          title="결제 전환"
           action={
             <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshingFunnel} />
           }
@@ -1092,6 +1092,7 @@ export function VoicecardsBlock({
                   sub={`오늘 ${devToday.toLocaleString()}명 · 7일 ${dev7.toLocaleString()}명`}
                   sparkline={compact ? undefined : devicesData}
                   sparkline2={compact || svTotal === 0 ? undefined : installRateData}
+                  spark2Color={t.neutrals.subtle}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v}%`}
                   spark2Domain={[0, 100]}
@@ -1115,6 +1116,7 @@ export function VoicecardsBlock({
                   tone={devices > 0 && userStats.totalUsers / devices >= 0.2 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : allUsersData}
                   sparkline2={compact ? undefined : loginRateData}
+                  spark2Color={t.neutrals.subtle}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v}%`}
                   spark2Domain={[0, 100]}
@@ -1136,6 +1138,7 @@ export function VoicecardsBlock({
                   tone={userStats.totalUsers > 0 && linkedUsers / userStats.totalUsers >= 0.5 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : linkedData}
                   sparkline2={compact ? undefined : linkedRateData}
+                  spark2Color={t.neutrals.subtle}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v}%`}
                   spark2Domain={[0, 100]}
@@ -1167,6 +1170,7 @@ export function VoicecardsBlock({
                   tone={linkedUsers > 0 && activeRate >= 50 ? 'pos' : 'warn'}
                   sparkline={compact ? undefined : signupData}
                   sparkline2={compact ? undefined : activeRateData}
+                  spark2Color={t.neutrals.subtle}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v}%`}
                   spark2Domain={[0, 100]}
@@ -1197,7 +1201,7 @@ export function VoicecardsBlock({
                     sparkline={compact ? undefined : creditsData}
                     sparkline2={compact ? undefined : cpmauData}
                     sparkColor={t.chart.mono}
-                    spark2Color={t.neutrals.muted}
+                    spark2Color={t.neutrals.subtle}
                     sparkFormat={(v) => fmtK(v)}
                     sparkFormat2={(v) => fmtPerMau(v)}
                     // 점선은 배지와 같은 CPMAU 다 — 값과 그 값이 걸어온 길을 한 카드에서
@@ -1482,7 +1486,7 @@ export function VoicecardsBlock({
                   sparkline2={compact ? undefined : (flipSpark.length > 1 ? ratioSpark(flipSpark) : undefined)}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.muted}
+                  spark2Color={t.neutrals.subtle}
                   dualScale
                 />
               )
@@ -1497,7 +1501,7 @@ export function VoicecardsBlock({
               sparkline2={compact ? undefined : (attemptTrajectory.length > 1 ? ratioSpark(attemptTrajectory) : undefined)}
               sparkColor={t.chart.mono}
               sparkFormat2={(v) => `${v.toFixed(1)}x`}
-              spark2Color={t.neutrals.muted}
+              spark2Color={t.neutrals.subtle}
               dualScale
             />
             {eventsLoading && !anonymousStats ? (
@@ -1524,7 +1528,7 @@ export function VoicecardsBlock({
                   sparkline2={compact ? undefined : (sparkData.length > 1 ? ratioSpark(sparkData) : undefined)}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.muted}
+                  spark2Color={t.neutrals.subtle}
                   dualScale
                 />
               )
@@ -1557,7 +1561,7 @@ export function VoicecardsBlock({
                   sparkline2={compact ? undefined : (spendSpark.length > 1 ? ratioSpark(spendSpark) : undefined)}
                   sparkColor={t.chart.mono}
                   sparkFormat2={(v) => `${v.toFixed(1)}x`}
-                  spark2Color={t.neutrals.muted}
+                  spark2Color={t.neutrals.subtle}
                   dualScale
                 />
               )
@@ -1934,7 +1938,7 @@ function DauTrendCard({ daily, days = 42 }: {
   const maxLoginRate = loginRateMA.reduce((m, v) => Math.max(m, v), 0)
 
   return (
-    <div style={{
+    <div data-panel="" style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
@@ -1942,7 +1946,7 @@ function DauTrendCard({ daily, days = 42 }: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs,
       }}>
-        <div style={{
+        <div data-panel-title="" style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
