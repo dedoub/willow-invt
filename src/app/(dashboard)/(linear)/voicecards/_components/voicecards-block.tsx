@@ -746,11 +746,6 @@ export function VoicecardsBlock({
     (safeUserPage - 1) * userPerPage,
     safeUserPage * userPerPage
   )
-  const googleRows = (userStats?.users ?? []).filter(u => isVoicecardsGoogleUserRow(u.id))
-  const idleGoogle = googleRows.filter(u => !isVoicecardsLearningActivated(u)).length
-  const deviceRowCount = ((userStats?.users.length ?? 0) - googleRows.length) + deviceRows.length
-  const activatedRowCount = sortedUsers.filter(isVoicecardsLearningActivated).length
-
   const persistSorts = (next: SortCrit[]) => {
     setUserSorts(next)
     setUserPage(1)
@@ -1855,16 +1850,9 @@ export function VoicecardsBlock({
             }}>
               {/* Page size input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+                {/* 구글·기기·활성화·미활성 건수는 위 퍼널 카드가 이미 세고 있다 — 표 밑에서
+                    한 번 더 적으면 같은 숫자가 화면에 두 번 나온다(CEO 2026-09-11) */}
                 <LPageSize value={userPerPage} onChange={applyUserPerPage} />
-                <span
-                  title={'구글 = 구글 로그인 사용자. 기기 = 로그인 없이 쓰는 행(기기 계정 + 계정 없는 익명 기기).\n'
-                    + "활성화는 표 전체에서 '활성화' 열이 완료인 행 수 — 퍼널 '학습 활성화' 카드와 같은 값이다.\n"
-                    + '미활성은 구글 사용자만 센다 — 기기 행은 로컬 덱이 서버에 남지 않아 활성화를 확인할 길이 '
-                    + '없는 행이 섞여 있고, 그걸 미활성에 넣으면 활성화율이 사용자 행동과 무관하게 떨어진다.'}
-                  style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}
-                >
-                  구글 {googleRows.length} · 기기 {deviceRowCount} · 활성화 {activatedRowCount} · 미활성 {idleGoogle}
-                </span>
               </div>
 
               {/* Page navigation */}
