@@ -45,7 +45,7 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-willow-order-v2',
     items: [
       { id: 'mgmt',       href: '/mgmt',       label: '윌로우인베스트먼트', tag: 'Willow', dot: '#85CCE9', mark: '/leaf-icon.png' },
-      { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
+      { id: 'tensw',      href: '/tensw',      label: '텐소프트웍스', tag: 'Tensw', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
       { id: 'b2b',        href: '/b2b',        label: '관계사간거래', icon: 'coin' },
