@@ -1,6 +1,6 @@
 'use client'
 
-// AI 답변 점유 — 검색 수요 포착 섹션의 GEO판.
+// LLM 노출 — 검색 수요 포착 섹션의 GEO판.
 //
 // 검색이 "우리 페이지가 결과에 뜨는가"를 묻는다면 여기는 "답변에 우리가 추천되는가"를 묻는다.
 // 지표 순서도 퍼널이다: 언급 → 추천 Top3 → 인용.
@@ -8,16 +8,16 @@
 // 인용률만 보면 나아지는 것처럼 착각한다.
 
 import { useCallback, useEffect, useState } from 'react'
-import { t, tonePalettes } from './linear-tokens'
-import { LCard } from './linear-card'
-import { LCardFoot } from './linear-card-foot'
-import { LSectionHead, LHeadBtn } from './linear-section-head'
-import { LStat } from './linear-stat'
-import { useDashCols } from './cols-toggle'
-import { useIsMobile } from './linear-tokens'
-import { DataTable, panelStyle, EmptyLine } from './linear-data-table'
-import { Bone } from './linear-skeleton'
-import { LNotice } from './linear-notice'
+import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { DataTable, panelStyle, EmptyLine } from '@/app/(dashboard)/_components/linear-data-table'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { CAUSE_LABEL, STAGE_LABEL, type GeoAnswerStats, type GeoCause, type GeoStage } from '@/lib/geo-types'
 
 const mono = (size: number): React.CSSProperties => ({
@@ -25,26 +25,22 @@ const mono = (size: number): React.CSSProperties => ({
   fontVariantNumeric: 'tabular-nums' as const,
 })
 
-// 원인별 색: 처방이 다른 만큼 눈으로도 갈라야 한다
+// 단계·원인은 표의 한 칸일 뿐이라 색도 배경도 두지 않는다(CEO 2026-09-11).
+const PLAIN = { bg: 'transparent', fg: t.neutrals.muted }
 const CAUSE_TONE: Record<Exclude<GeoCause, null>, { bg: string; fg: string }> = {
-  index: tonePalettes.neg,
-  authority: tonePalettes.warn,
-  content: tonePalettes.info,
-  competitor: tonePalettes.pending,
+  index: PLAIN, authority: PLAIN, content: PLAIN, competitor: PLAIN,
 }
-
 const STAGE_TONE: Record<GeoStage, { bg: string; fg: string }> = {
-  absent: tonePalettes.neg,
-  cited: tonePalettes.warn,
-  mentioned: tonePalettes.info,
-  recommended: tonePalettes.pos,
+  absent: PLAIN, cited: PLAIN, mentioned: PLAIN, recommended: PLAIN,
 }
 
+// 배경 없이 글자만 — 표가 카드 안으로 들어온 것뿐이라 칩으로 부풀리지 않는다(CEO 2026-09-11).
+// 단계·원인의 무게는 글자 색 한 단계로만 남긴다.
 function Pill({ tone, children }: { tone: { bg: string; fg: string }; children: React.ReactNode }) {
   return (
     <span style={{
-      ...mono(8.5), padding: `1px ${t.density.gapSm}px`, borderRadius: 3, whiteSpace: 'nowrap' as const,
-      background: tone.bg, color: tone.fg,
+      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, whiteSpace: 'nowrap' as const,
+      color: tone.fg,
     }}>{children}</span>
   )
 }
@@ -114,9 +110,9 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          eyebrow="AI ANSWERS"
-          title="AI 답변 점유"
+          title="LLM 노출"
           action={<LHeadBtn icon="refresh" title="다시 조회" onClick={load} busy={loading} />}
+          mb={t.density.panelPadY + t.density.panelPadX}
         />
 
         {error && <LNotice tone="warn" text={`AI 답변 측정 조회 실패 — ${error}`} />}
@@ -137,52 +133,48 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
         {data && data.latest.runs > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
-            <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap }}>
-              <LStat
-                label="추천 Top3"
-                value={`${data.latest.top3}%`}
-                valueExtra={<Delta now={data.latest.top3} base={hasBaseline ? data.baseline.top3 : null} />}
-                sub="답변의 추천 상위 3개 안에 든 비율"
-                tone={data.latest.top3 >= 30 ? 'pos' : data.latest.top3 > 0 ? 'warn' : 'default'}
-                title="이 섹션의 핵심 지표. 링크만 인용되고 경쟁사가 추천되는 경우가 많아, 인용률보다 이쪽이 실제 점유를 나타낸다."
-              />
-              <LStat
-                label="언급률"
-                value={`${data.latest.mentioned}%`}
-                valueExtra={<Delta now={data.latest.mentioned} base={hasBaseline ? data.baseline.mentioned : null} />}
-                sub="답변 본문에 브랜드가 등장한 비율"
-                title="답변이 우리를 알기는 하는가. 언급은 되는데 Top3가 낮으면 인지도가 아니라 설득력 문제다."
-              />
-              <LStat
-                label="인용률"
-                value={`${data.latest.cited}%`}
-                valueExtra={<Delta now={data.latest.cited} base={hasBaseline ? data.baseline.cited : null} />}
-                sub="우리 URL이 출처로 붙은 비율"
-                title="출처 목록에 우리 도메인이 들어간 비율. 인용돼도 추천은 경쟁사일 수 있으니 단독으로 읽지 말 것."
-              />
-              <LStat
-                label="AI 유입 클릭"
-                value={data.aiClicks.total.toLocaleString()}
-                sub={`오늘 ${data.aiClicks.today.toLocaleString()}회 · 7일 ${data.aiClicks.last7d.toLocaleString()}회`}
-                tone={data.aiClicks.last7d > 0 ? 'pos' : 'default'}
-                title="답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다."
-              />
-              <LStat
-                label="색인된 페이지 (원본)"
-                value={data.indexedPages.toLocaleString()}
-                sub={`오늘 ${data.indexedPagesDelta.today.toLocaleString()}쪽 · 7일 ${data.indexedPagesDelta.last7d.toLocaleString()}쪽`}
-                tone={data.indexedPages > 0 ? 'default' : 'warn'}
-                title={data.indexedPagesLocale > 0
-                  ? `영어 원본 기준. 로케일 변형 ${data.indexedPagesLocale.toLocaleString()}쪽이 더 색인돼 있다. 색인이 없으면 답변엔진이 인용할 대상 자체가 없다 — 실패 원인 '색인' 판정의 근거.`
-                  : "색인이 없으면 답변엔진이 인용할 대상 자체가 없다. 실패 원인 '색인' 판정의 근거."}
-              />
-            </div>
+            {(() => {
+              const figures: FigureItem[] = [
+                {
+                  label: '추천 Top3', value: `${data.latest.top3}%`, mono: true,
+                  valueExtra: <Delta now={data.latest.top3} base={hasBaseline ? data.baseline.top3 : null} />,
+                  sub: '답변의 추천 상위 3개 안에 든 비율',
+                  title: '이 섹션의 핵심 지표. 링크만 인용되고 경쟁사가 추천되는 경우가 많아, 인용률보다 이쪽이 실제 점유를 나타낸다.',
+                },
+                {
+                  label: '언급률', value: `${data.latest.mentioned}%`, mono: true,
+                  valueExtra: <Delta now={data.latest.mentioned} base={hasBaseline ? data.baseline.mentioned : null} />,
+                  sub: '답변 본문에 브랜드가 등장한 비율',
+                  title: '답변이 우리를 알기는 하는가. 언급은 되는데 Top3가 낮으면 인지도가 아니라 설득력 문제다.',
+                },
+                {
+                  label: '인용률', value: `${data.latest.cited}%`, mono: true,
+                  valueExtra: <Delta now={data.latest.cited} base={hasBaseline ? data.baseline.cited : null} />,
+                  sub: '우리 URL이 출처로 붙은 비율',
+                  title: '출처 목록에 우리 도메인이 들어간 비율. 인용돼도 추천은 경쟁사일 수 있으니 단독으로 읽지 말 것.',
+                },
+                {
+                  label: 'AI 유입 클릭', value: data.aiClicks.total.toLocaleString(), mono: true,
+                  sub: `오늘 ${data.aiClicks.today.toLocaleString()}회 · 7일 ${data.aiClicks.last7d.toLocaleString()}회`,
+                  title: '답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다.',
+                },
+                {
+                  label: '색인된 페이지 (원본)', value: data.indexedPages.toLocaleString(), mono: true,
+                  sub: `오늘 ${data.indexedPagesDelta.today.toLocaleString()}쪽 · 7일 ${data.indexedPagesDelta.last7d.toLocaleString()}쪽`,
+                  title: data.indexedPagesLocale > 0
+                    ? `영어 원본 기준. 로케일 변형 ${data.indexedPagesLocale.toLocaleString()}쪽이 더 색인돼 있다.`
+                    : '색인이 없으면 답변엔진이 인용할 대상 자체가 없다.',
+                },
+              ]
+              return <FigureGrid items={figures} cols={mobile ? 2 : 3} />
+            })()}
 
-            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: panelCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start', marginTop: t.density.blockGap }}>
               <DataTable
                 title="질문별 현황"
+                hideTitle
                 columns={[
-                  { key: 'q', label: '질문', width: 'minmax(140px,1fr)' },
+                  { key: 'q', label: '질문별 현황', width: 'minmax(140px,1fr)' },
                   // 가장 긴 배지 '추천 Top3'가 56px다. 더 줄이면 잘린다
                   { key: 's', label: '단계', width: '58px' },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
@@ -197,7 +189,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                       {q.question}
                     </span>,
                     <Pill key="s" tone={STAGE_TONE[q.stage]}>{STAGE_LABEL[q.stage]}</Pill>,
-                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{q.top3}%</span>,
+                    <span key="t" style={{ color: q.top3 > 0 ? t.neutrals.text : t.neutrals.subtle, fontWeight: t.weight.semibold }}>{q.top3}%</span>,
                   ],
                   sort: [q.question, q.stage, q.top3],
                 }))}
@@ -208,9 +200,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                   몇 질문을 막고 있는지만 본다 */}
               <DataTable
                 title="실패 원인"
+                hideTitle
                 minWidth={220}
                 columns={[
-                  { key: 'c', label: '원인', width: 'minmax(80px,1fr)' },
+                  { key: 'c', label: '실패 원인', width: 'minmax(80px,1fr)' },
                   { key: 'n', label: '질문', width: '46px', align: 'right' as const },
                 ]}
                 rows={data.causes.map(c => ({
@@ -226,9 +219,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
 
               <DataTable
                 title="우리가 빠진 자리의 경쟁사"
+                hideTitle
                 minWidth={240}
                 columns={[
-                  { key: 'name', label: '서비스', width: 'minmax(90px,1fr)' },
+                  { key: 'name', label: '우리가 빠진 자리의 경쟁사', width: 'minmax(120px,1fr)' },
                   { key: 'n', label: '답변 수', width: '56px', align: 'right' as const },
                 ]}
                 rows={data.competitors.map(c => ({
@@ -242,10 +236,10 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
               {/* 엔진마다 우리를 보는 방식이 달라서(한쪽은 인용까지, 한쪽은 브랜드만) 세 지표를 다 편다 */}
               <DataTable
                 title="엔진별"
-                meta={data.daily.length > 1 ? `Top3 추이 ${data.daily.map(d => `${d.top3}%`).join(' → ')}` : undefined}
+                hideTitle
                 minWidth={260}
                 columns={[
-                  { key: 'e', label: '엔진', width: 'minmax(64px,1fr)' },
+                  { key: 'e', label: '엔진별', width: 'minmax(64px,1fr)' },
                   { key: 'm', label: '언급', width: '46px', align: 'right' as const },
                   { key: 't', label: 'Top3', width: '46px', align: 'right' as const },
                   { key: 'c', label: '인용', width: '46px', align: 'right' as const },
@@ -256,7 +250,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                   cells: [
                     e.engine,
                     `${e.mentioned}%`,
-                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{e.top3}%</span>,
+                    <span key="t" style={{ color: e.top3 > 0 ? t.neutrals.text : t.neutrals.subtle, fontWeight: t.weight.semibold }}>{e.top3}%</span>,
                     `${e.cited}%`,
                     String(e.runs),
                   ],

@@ -8,17 +8,18 @@
 // 방문자 수를 세는 카드가 아니라 "발행한 페이지가 검색 수요를 잡고 있는가"를 보는 카드다.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { t, useIsMobile } from './linear-tokens'
-import { LCard } from './linear-card'
-import { LCardFoot } from './linear-card-foot'
-import { LSectionHead, LHeadBtn } from './linear-section-head'
-import { LSegmented } from './linear-segmented'
-import { LStat } from './linear-stat'
-import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from './linear-data-table'
-import { Bone } from './linear-skeleton'
-import { LNotice } from './linear-notice'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { DataTable, type TableRow, panelStyle, panelTitle, EmptyLine } from '@/app/(dashboard)/_components/linear-data-table'
+import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
+import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { formatCountryName } from '@/lib/country-format'
-import { useDashCols } from './cols-toggle'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import type { SearchDemandStats, Channel, UmamiSiteKey } from '@/lib/umami'
 import type { SearchConsoleStats } from '@/lib/gsc'
 import type { IndexStatusSummary, IndexBucket } from '@/lib/gsc-index'
@@ -28,15 +29,16 @@ import type { IndexStatusSummary, IndexBucket } from '@/lib/gsc-index'
 const PERIODS = [7, 30, 90] as const
 type Period = typeof PERIODS[number]
 
-const SEARCH_COLOR = '#166A97'   // 검색 유입 (brand 600)
-const OTHER_COLOR = '#C9CDD4'    // 그 외 유입
-const PV_COLOR = '#B8781F'       // 페이지뷰 라인 (warn)
+// 색은 강조 하나(네이비)와 회색 단계로만 쓴다 — 사업관리 차트와 같은 규칙(2026-09-11)
+const SEARCH_COLOR = '#0A2E40'   // 주 시리즈
+const OTHER_COLOR = '#C9D2D7'    // 나머지
+const PV_COLOR = '#8D959D'       // 보조 라인
 
 const CHANNEL_LABEL: Record<Channel, string> = {
   search: '검색', ai: 'AI 답변', social: '소셜', referral: '추천', direct: '직접',
 }
 const CHANNEL_COLOR: Record<Channel, string> = {
-  search: SEARCH_COLOR, ai: '#4A9EC9', social: '#8b5cf6', referral: '#B8781F', direct: '#C9CDD4',
+  search: '#0A2E40', ai: '#3F4A52', social: '#6B747C', referral: '#9AA3AB', direct: '#C9D2D7',
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -111,9 +113,9 @@ function TrafficTrendCard({ daily }: { daily: SearchDemandStats['daily'] }) {
   const latest = rows.length ? rows[rows.length - 1] : null
 
   return (
-    <div style={{ ...panelStyle, minHeight: 132 }}>
+    <div data-panel="" style={{ ...panelStyle, minHeight: 132 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
-        <div style={panelTitle}>일별 유입</div>
+        <div data-panel-title="" style={panelTitle}>일별 유입</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: SEARCH_COLOR }} />검색 {latest?.searchSessions ?? 0}
@@ -235,10 +237,10 @@ function ChannelMixCard({ data }: { data: SearchDemandStats }) {
   return (
     <DataTable
       title="유입 채널"
-      meta={total > 0 ? `세션 ${total.toLocaleString()}` : undefined}
+      hideTitle
       minWidth={240}
       columns={[
-        { key: 'channel', label: '채널', width: 'minmax(90px,1fr)' },
+        { key: 'channel', label: '유입 채널', width: 'minmax(90px,1fr)' },
         { key: 'visits', label: '세션', width: '48px', align: 'right' as const },
         { key: 'share', label: '비중', width: '48px', align: 'right' as const },
       ]}
@@ -269,7 +271,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
     return {
       key: `${c?.code ?? '-'}:${l?.name ?? '-'}:${i}`,
       cells: [
-        c ? formatCountryName(c.code) : '', c ? c.visits.toLocaleString() : '',
+        c ? <span key="c" className="flag-mono">{formatCountryName(c.code)}</span> : '', c ? c.visits.toLocaleString() : '',
         l?.name ?? '', l ? l.visits.toLocaleString() : '',
       ],
       sort: [c?.code ?? '', c?.visits ?? 0, l?.name ?? '', l?.visits ?? 0],
@@ -278,6 +280,7 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
   return (
     <DataTable
       title="지역 · 언어"
+      hideTitle
       minWidth={252}
       columns={[
         { key: 'country', label: '국가', width: 'minmax(52px,1fr)' },
@@ -293,8 +296,8 @@ function RegionLanguageCard({ data }: { data: SearchDemandStats }) {
 
 // ─── Search Console: 노출/클릭 추이 ───────────────────────────────────────────
 
-const IMPRESSION_COLOR = '#C9CDD4'
-const CLICK_COLOR = '#166A97'
+const IMPRESSION_COLOR = '#C9D2D7'
+const CLICK_COLOR = '#0A2E40'
 
 function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
@@ -306,9 +309,9 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
   const showLabels = rows.length > 0 && rows.length <= 31
 
   return (
-    <div style={{ ...panelStyle, minHeight: 132 }}>
+    <div data-panel="" style={{ ...panelStyle, minHeight: 132 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
-        <div style={panelTitle}>일별 노출 · 클릭</div>
+        <div data-panel-title="" style={panelTitle}>일별 노출 · 클릭</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, ...mono(9), whiteSpace: 'nowrap' as const }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 6, height: 6, borderRadius: 1, background: IMPRESSION_COLOR }} />노출 {latest?.impressions ?? 0}
@@ -382,13 +385,14 @@ function GscTrendCard({ daily }: { daily: SearchConsoleStats['daily'] }) {
 // ─── 색인 상태 ────────────────────────────────────────────────────────────────
 
 // 상태별 색: 색인됨만 브랜드색, 나머지는 원인 성격에 맞춰 경고/중립
+// 색인 상태도 회색 명도로만 나눈다 — 색인된 쪽이 가장 진하고 모르는 쪽이 가장 옅다
 const BUCKET_COLOR: Record<IndexBucket, string> = {
-  indexed: '#166A97',
-  crawled: '#B8781F',    // 콘텐츠 판단 문제
-  discovered: '#4A9EC9', // 대기 중
-  unseen: '#C23A3A',     // 발견 자체가 안 된 것 — 가장 기본적인 실패
-  excluded: '#9398A0',
-  unknown: '#C9CDD4',
+  indexed: '#0A2E40',
+  crawled: '#3F4A52',    // 콘텐츠 판단 문제
+  discovered: '#6B747C', // 대기 중
+  unseen: '#9AA3AB',     // 발견 자체가 안 된 것
+  excluded: '#B9C0C7',
+  unknown: '#D6DBE0',
 }
 const BUCKET_LABEL_UI: Record<IndexBucket, string> = {
   indexed: '색인됨',
@@ -412,9 +416,10 @@ function IndexStatusCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="색인 상태"
+      hideTitle
       minWidth={260}
       columns={[
-        { key: 'status', label: '상태', width: 'minmax(90px,1fr)' },
+        { key: 'status', label: '색인 상태', width: 'minmax(90px,1fr)' },
         { key: 'n', label: '원본', width: '48px', align: 'right' as const },
         { key: 'pct', label: '비율', width: '52px', align: 'right' as const },
         ...(hasLocale ? [{ key: 'locale', label: '로케일', width: '56px', align: 'right' as const }] : []),
@@ -447,9 +452,10 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
   return (
     <DataTable
       title="버티컬별 색인률"
-      minWidth={260}
+      hideTitle
+      minWidth={278}
       columns={[
-        { key: 'label', label: '버티컬', width: 'minmax(70px,1fr)' },
+        { key: 'label', label: '버티컬별 색인률', width: 'minmax(92px,1fr)' },
         { key: 'indexed', label: '색인', width: '44px', align: 'right' as const },
         { key: 'total', label: '전체', width: '44px', align: 'right' as const },
         { key: 'pct', label: '색인률', width: '52px', align: 'right' as const },
@@ -462,7 +468,7 @@ function IndexGroupsCard({ data }: { data: IndexStatusSummary }) {
           g.indexed.toLocaleString(),
           g.total.toLocaleString(),
           // 0%는 막힌 클러스터라 눈에 걸리게 둔다
-          <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.accent.neg, fontWeight: t.weight.semibold }}>{g.pct}%</span>,
+          <span key="pct" style={{ color: g.pct > 0 ? t.neutrals.text : t.neutrals.subtle, fontWeight: t.weight.semibold }}>{g.pct}%</span>,
           ...(hasLocale ? [
             <span key="loc" style={{ color: t.neutrals.muted }}>
               {g.localeTotal > 0 ? `${g.localeIndexed}/${g.localeTotal}` : '—'}
@@ -496,7 +502,7 @@ function Delta({ now, prev }: { now: number; prev: number }) {
 
 function Skeleton({ mobile }: { mobile: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
         {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
       </div>
@@ -660,14 +666,12 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
 
   return (
     <>
-      {leadSlot}
-
       {/* ── 섹션 1: 검색 노출 → 클릭 (Search Console) — 수요가 있는지, 그중 얼마를 잡는지 ── */}
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="SEARCH CONSOLE"
-            title="검색 노출 → 클릭"
+            mb={t.density.panelPadY + t.density.panelPadX}
+            title="검색 노출"
             tools={periodToggle}
             toolsInline
             action={
@@ -683,14 +687,14 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && gsc && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
               {/* 1열 모드: 좌 차트(전체 높이) · 우 지표 6장(3열). 그 외에는 지표 먼저, 차트는 아래 전폭. */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
                 gap: t.density.kpiGap, alignItems: 'stretch',
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap, alignContent: 'start' }}>
+                <StatRows cols={statCols}>
                   <LStat
                     label="노출"
                     value={gsc.totals.impressions.toLocaleString()}
@@ -752,18 +756,19 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                     tone={gsc.capture.clickedPct > 0 ? 'default' : 'warn'}
                     title="발행 콘텐츠 중 실제 클릭을 받아본 비율. 노출 비율과의 간격이 곧 '보여는 주는데 안 눌리는' 구간."
                   />
-                </div>
+                </StatRows>
                 {splitLayout && <GscTrendCard daily={gsc.daily} />}
               </div>
 
               {!splitLayout && <GscTrendCard daily={gsc.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start' }}>
                 {/* 색인 → 노출 → 클릭 순서로 읽히게 배치 */}
                 {index && <IndexStatusCard data={index} />}
                 {index && <IndexGroupsCard data={index} />}
                 <DataTable
                   title="검색어"
+                  hideTitle
                   minWidth={330}
                   columns={[
                     { key: 'q', label: '검색어', width: 'minmax(110px,1fr)' },
@@ -781,9 +786,10 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 />
                 <DataTable
                   title="노출 상위 페이지"
-                  minWidth={366}
+                  hideTitle
+                  minWidth={384}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '노출 상위 페이지', width: 'minmax(138px,1fr)' },
                     { key: 'imp', label: '노출', width: '46px', align: 'right' as const },
                     { key: 'clk', label: '클릭', width: '40px', align: 'right' as const },
                     { key: 'in', label: '진입', width: '40px', align: 'right' as const },
@@ -818,15 +824,16 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
         )}
       </LCard>
 
-      {/* ── 섹션 2: 진입 후 행동 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
+      {leadSlot}
+
+      {/* ── 섹션 2: 웹 트래픽 (Umami) — 잡은 수요가 사이트 안에서 어떻게 되는지 ── */}
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
           <LSectionHead
-            eyebrow="UMAMI"
-            title="진입 후 행동"
+            title="웹 트래픽"
             action={
               <>
-                {data && <LHeadBtn icon="trending" title="Umami" href={data.site.umamiUrl} />}
+                {data && <LHeadBtn icon="externalLink" title="Umami" href={data.site.umamiUrl} />}
                 <LHeadBtn icon="refresh" title="데이터 새로고침" onClick={() => load(days, true)} busy={refreshing} />
               </>
             }
@@ -837,13 +844,13 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
           {loading && <Skeleton mobile={mobile} />}
 
           {!loading && data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : '1fr',
                 gap: t.density.kpiGap, alignItems: 'stretch',
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: t.density.kpiGap, alignContent: 'start' }}>
+                <StatRows cols={statCols}>
                   <LStat
                     label="검색 유입"
                     value={data.search.visits.toLocaleString()}
@@ -896,18 +903,19 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                     sub={`평균 체류 ${fmtDuration(data.totals.avgSeconds)}`}
                     title="세션당 평균 페이지뷰. 진입 후 사이트 안에서 다음 수요로 이어지는지를 본다."
                   />
-                </div>
+                </StatRows>
                 {splitLayout && <TrafficTrendCard daily={data.daily} />}
               </div>
 
               {!splitLayout && <TrafficTrendCard daily={data.daily} />}
 
-              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: wideCols, gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'start' }}>
                 <DataTable
                   title="검색 진입 페이지"
-                  minWidth={300}
+                  hideTitle
+                  minWidth={322}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '검색 진입 페이지', width: 'minmax(142px,1fr)' },
                     { key: 'in', label: '진입', width: '46px', align: 'right' as const },
                     { key: 'all', label: '전체', width: '46px', align: 'right' as const },
                   ]}
@@ -922,9 +930,10 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 <ChannelMixCard data={data} />
                 <DataTable
                   title="조회 상위 페이지"
-                  minWidth={320}
+                  hideTitle
+                  minWidth={342}
                   columns={[
-                    { key: 'path', label: '경로', width: 'minmax(120px,1fr)' },
+                    { key: 'path', label: '조회 상위 페이지', width: 'minmax(142px,1fr)' },
                     { key: 'pv', label: '페이지뷰', width: '58px', align: 'right' as const },
                     { key: 'last', label: '마지막', width: '58px', align: 'right' as const },
                   ]}
@@ -940,15 +949,19 @@ export function SearchDemandCard({ site, showGscLink = true, leadSlot }: SearchD
                 <RegionLanguageCard data={data} />
               </div>
 
-              <div style={{
-                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
-                lineHeight: 1.6, wordBreak: 'keep-all' as const,
-              }}>
-                {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
-                {cov && cov.orphanPaths.length > 0 && (
-                  <div>· 사이트맵 밖 유입 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 2).map(fmtPathSample).join(', ')})</div>
-                )}
-              </div>
+              {/* 주석은 있을 때만 자리를 갖는다 — 빈 상자라도 놓으면 스택 간격만큼
+                  표와 푸터 선 사이가 벌어져 다른 카드와 어긋난다(2026-09-11) */}
+              {(data.notes.length > 0 || (cov && cov.orphanPaths.length > 0)) && (
+                <div style={{
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
+                  lineHeight: 1.6, wordBreak: 'keep-all' as const,
+                }}>
+                  {data.notes.map((n, i) => <div key={i}>· {n}</div>)}
+                  {cov && cov.orphanPaths.length > 0 && (
+                    <div>· 사이트맵 밖 유입 경로 {cov.orphanPaths.length}개 (예: {cov.orphanPaths.slice(0, 2).map(fmtPathSample).join(', ')})</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

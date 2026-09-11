@@ -68,7 +68,8 @@ export default function ReviewnotesPage() {
   }, [refresh])
 
   return (
-    <>
+    /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리와 같은 카드 문법(2026-09-11). */
+    <div className="theme-outline">
     {/*
       페이지 전체가 한 그리드다. 섹션들이 여러 컴포넌트에 나뉘어 있어도 같은 줄에 서야 해서,
       각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
@@ -97,6 +98,6 @@ export default function ReviewnotesPage() {
       error={rnError}
     />
     </div>
-    </>
+    </div>
   )
 }

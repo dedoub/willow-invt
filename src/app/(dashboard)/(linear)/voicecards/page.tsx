@@ -1,5 +1,10 @@
 'use client'
 
+/**
+ * 보이스카드 — LLM 노출 · 검색 노출 · 웹 트래픽 · 결제 전환 · 활동 지표 · 사용자.
+ * 카드 문법은 사업관리와 같다(2026-09-11).
+ */
+
 import { useState, useEffect, useCallback } from 'react'
 import { VoicecardsBlock } from './_components/voicecards-block'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
@@ -146,7 +151,7 @@ interface AnonymousEventStats {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function VoicecardsPage() {
+export default function VoicecardsNewPage() {
   const cols = useDashCols()
   const mobile = useIsMobile()
   // 3개 파트 독립 로딩 (사용자/이벤트/매출)
@@ -162,6 +167,11 @@ export default function VoicecardsPage() {
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
+  // 각 API 가 집계를 만든 시각(캐시 안에서 찍혀 함께 돌아온다). 카드 푸터는 이 중 가장 오래된
+  // 값을 적는다 — 세 소스를 함께 읽는 카드라 가장 뒤처진 쪽이 그 숫자의 나이다.
+  const [vcStatsAt, setVcStatsAt] = useState<string | null>(null)
+  const [vcUsersAt, setVcUsersAt] = useState<string | null>(null)
+  const [vcEventsAt, setVcEventsAt] = useState<string | null>(null)
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -184,7 +194,7 @@ export default function VoicecardsPage() {
     const usersP = fetch(`/api/voicecards/stats/users${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setVcUserStats(data.userStats || null)
+        if (data) { setVcUserStats(data.userStats || null); setVcUsersAt(data.generatedAt || null) }
       })
       .catch(err => console.error('VoiceCards users load error:', err))
       .finally(() => { setVcUsersLoading(false); setVcRefreshUsers(false) })
@@ -192,7 +202,7 @@ export default function VoicecardsPage() {
     const eventsP = fetch(`/api/voicecards/stats/events${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setVcAnonStats(data.anonymousStats || null)
+        if (data) { setVcAnonStats(data.anonymousStats || null); setVcEventsAt(data.generatedAt || null) }
       })
       .catch(err => console.error('VoiceCards events load error:', err))
       .finally(() => { setVcEventsLoading(false); setVcRefreshEvents(false) })
@@ -203,6 +213,7 @@ export default function VoicecardsPage() {
         if (data) {
           setVcStats(data.stats)
           setVcChartData(data.chartData || [])
+          setVcStatsAt(data.generatedAt || null)
         }
       })
       .catch(err => console.error('VoiceCards revenue load error:', err))
@@ -236,13 +247,14 @@ export default function VoicecardsPage() {
   }, [refresh])
 
   return (
-    <>
+    /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리와 같은 카드 문법(2026-09-11). */
+    <div className="theme-outline">
       {/*
         페이지 전체가 한 그리드다. 섹션들이 여러 컴포넌트에 나뉘어 있어도 같은 줄에 서야 해서,
         각 컴포넌트는 그리드 없이 조각만 내놓고 배치는 여기서 DOM 순서로 결정된다.
 
         2열에서 채워지는 순서:
-          AI 답변 점유 | 검색 노출      ← 어떻게 발견되는가
+          LLM 노출 | 검색 노출      ← 어떻게 발견되는가
           진입 후 행동 | 퍼널 · 가입 후 활동  ← 들어와서 무엇을 하는가
           사용자 (2열을 모두 차지)            ← 누가 쓰는가
       */}
@@ -266,8 +278,9 @@ export default function VoicecardsPage() {
         refreshingUsers={vcRefreshUsers}
         refreshingEvents={vcRefreshEvents}
         refreshingRevenue={vcRefreshRevenue}
+        generatedAt={[vcStatsAt, vcUsersAt, vcEventsAt].filter(Boolean).sort()[0] ?? null}
       />
       </div>
-    </>
+    </div>
   )
 }
