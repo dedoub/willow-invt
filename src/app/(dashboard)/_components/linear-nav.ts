@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: '관계회사',
     orderKey: 'sidebar-investee-order',
     items: [
-      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'AI Search', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
+      { id: 'tensw', href: '/tensw', label: '텐소프트웍스', tag: 'TENSW', dot: '#D9A63F', mark: '/tensw-icon-white.png' },
       { id: 'b2b',   href: '/b2b',   label: '관계사간거래', icon: 'coin' },
     ],
   },
@@ -113,7 +113,7 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-project-order',
     items: [
       { id: 'akros', href: '/akros', label: '아크로스', tag: 'Akros',        dot: '#5FAFDF', mark: '/akros-icon.png' },
-      { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'Exchange Traded Concepts', dot: '#8FB6D8' },
+      { id: 'etc',   href: '/etc',   label: 'Exchange Traded Concepts', tag: 'ETC', dot: '#8FB6D8' },
     ],
   },
   {
