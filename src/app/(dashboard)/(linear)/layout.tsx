@@ -109,8 +109,11 @@ export default function LinearRouteLayout({
           <main style={{
             flex: 1,
             overflow: mobile && menuOpen ? 'hidden' : 'auto',
-            // 위아래 여백은 같다 — 위만 16 이면 첫 카드가 헤더에 붙어, 페이지가 그 여백만큼
-            // 이미 스크롤된 것처럼 보인다(모바일에서 특히, CEO 2026-09-11)
+            // 스크롤 통은 window 가 아니라 이 main 이다. 라우터가 새 페이지를 scrollIntoView 로
+            // 들여올 때 기준이 패딩 상자라, 위 패딩만큼 이미 스크롤된 채로 열렸다 —
+            // scroll-padding-top 으로 그만큼 여유를 두면 맨 위에서 시작한다(CEO 2026-09-11).
+            scrollPaddingTop: t.density.pagePadBottom,
+            // 위아래 여백은 같다 — 위만 16 이면 첫 카드가 헤더에 붙는다
             padding: mobile
               ? `${t.density.pagePadBottom}px 12px ${t.density.pagePadBottom}px`
               : `${t.density.pagePadBottom}px ${t.density.pagePadX}px ${t.density.pagePadBottom}px`,
