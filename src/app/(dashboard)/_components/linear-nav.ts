@@ -62,6 +62,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'invest',     href: '/invest',     label: '주식',      icon: 'trending' },
       { id: 'realestate', href: '/realestate', label: '부동산',    icon: 'building' },
+      // 부동산을 카드 하나씩 새 문법으로 옮겨 보는 자리. 다 옮기면 /realestate 로 합치고 지운다.
+      { id: 'realestate-new', href: '/realestate-new', label: '부동산 NEW', icon: 'building' },
     ],
   },
   {
