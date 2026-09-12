@@ -515,47 +515,70 @@ function ListingTable({
   )
 }
 
-function KpiSkeleton({ mobile }: { mobile: boolean }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} data-panel="" style={innerCard}>
-          <Bone w={60} h={8} style={{ marginBottom: t.density.gapSm }} />
-          <Bone w={80} h={14} />
-        </div>
-      ))}
-    </div>
-  )
-}
+// 로딩 골격은 실제로 들어설 모양을 그대로 흉내 낸다 — 판을 벗은 뒤에도 회색 상자를
+// 그리고 있으면, 데이터가 도착하는 순간 있던 상자가 사라지며 화면이 한 번 출렁인다.
 
-function ChartSkeleton() {
+// 지표 자리 — FigureGrid 와 같은 격자·같은 패딩. 라벨/값/보조 세 줄도 같은 자리에 둔다.
+function KpiSkeleton({ mobile }: { mobile: boolean }) {
+  const cols = mobile ? 2 : 5
   return (
-    <div data-panel="" style={innerCard}>
-      <Bone w={140} h={10} style={{ marginBottom: t.density.kpiGap }} />
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.gapXs, height: 180 }}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <Bone key={i} h={40 + Math.random() * 120} style={{ flex: 1, borderRadius: 2 }} />
+    <div style={{ margin: `0 -${t.density.panelPadX}px` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{
+            padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
+            display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap, minWidth: 0,
+            borderTop: i >= cols ? `1px solid ${t.neutrals.line}` : undefined,
+          }}>
+            <Bone w={48} h={8} />
+            <Bone w={76} h={14} />
+            <Bone w={56} h={8} />
+          </div>
         ))}
       </div>
     </div>
   )
 }
 
+// 막대 높이는 고정 배열이다. Math.random() 을 렌더 중에 부르면 리렌더마다 막대가 튀고,
+// 리액트 컴파일러도 순수하지 않은 렌더로 본다.
+const CHART_SKEL_BARS = [58, 92, 71, 120, 86, 104, 63, 133, 97, 78, 112, 68]
+
+function ChartSkeleton() {
+  return (
+    <div>
+      <Bone w={110} h={9} style={{ marginBottom: t.density.kpiGap }} />
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.gapXs, height: 180 }}>
+        {CHART_SKEL_BARS.map((h, i) => (
+          <Bone key={i} h={h} style={{ flex: 1, borderRadius: 2 }} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// 표 자리 — 제목, 머리줄, 본문 다섯 줄, 그리고 행수·페이지 이동 줄까지.
 function TableSkeleton() {
   return (
-    <div data-panel="" style={innerCard}>
-      <Bone w={160} h={10} style={{ marginBottom: t.density.gapMd }} />
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', gap: t.density.kpiGap, marginBottom: t.density.kpiGap }}>
-          <Bone w={70} h={10} />
-          <Bone w={40} h={10} />
-          <Bone w={50} h={10} />
-          <Bone w={50} h={10} />
-          <Bone w={50} h={10} />
-          <Bone w={40} h={10} />
-          <Bone w={30} h={10} />
+    <div>
+      <Bone w={130} h={9} style={{ marginBottom: t.density.kpiGap }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
+        <div style={{ display: 'flex', gap: t.density.tableColGap, padding: `0 ${t.density.tableRowPadX}px ${t.density.gapSm}px` }}>
+          {[70, 40, 56, 56, 56, 44, 30].map((w, i) => <Bone key={i} w={w} h={8} />)}
         </div>
-      ))}
+        {Array.from({ length: 5 }).map((_, r) => (
+          <div key={r} style={{ display: 'flex', gap: t.density.tableColGap, padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px` }}>
+            {[70, 40, 56, 56, 56, 44, 30].map((w, i) => <Bone key={i} w={w} h={10} />)}
+          </div>
+        ))}
+      </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: t.density.kpiGap,
+      }}>
+        <Bone w={64} h={t.density.controlHSm} />
+        <Bone w={72} h={12} />
+      </div>
     </div>
   )
 }
@@ -903,32 +926,48 @@ export function RealEstateBlock() {
   /* ── Initial load: full skeleton ── */
   if (initialLoad) {
     return (
+      // 실제 화면과 같은 뼈대 — 전체 현황 한 장, 그 아래 매매·전세 두 장(2열에서 나란히).
+      // 카드 수와 제목 자리가 다르면 데이터가 도착할 때 레이아웃이 통째로 갈아엎힌다.
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      <LCard>
-        <LSectionHead title="부동산 리서치" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-          <div style={{ display: 'flex', gap: t.density.gapSm }}>
-            <Bone w={50} h={22} r={t.radius.pill} />
-            <Bone w={50} h={22} r={t.radius.pill} />
-            <Bone w={50} h={22} r={t.radius.pill} />
-          </div>
-          <KpiSkeleton mobile={mobile} />
-        </div>
-      </LCard>
-      <LCard>
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-            <ChartSkeleton />
-            <ChartSkeleton />
-            <TableSkeleton />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-            <ChartSkeleton />
-            <ChartSkeleton />
-            <TableSkeleton />
+      <LCard pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+          <LSectionHead title="전체 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
+            <div style={{ display: 'flex', gap: t.density.kpiGap, alignItems: 'center' }}>
+              <Bone w={44} h={t.density.controlHSm} r={t.radius.pill} />
+              <Bone w={44} h={t.density.controlHSm} r={t.radius.pill} />
+              <Bone w={44} h={t.density.controlHSm} r={t.radius.pill} />
+              <Bone w={84} h={t.density.controlHSm} r={t.radius.pill} />
+              <Bone w={180} h={t.density.controlHSm} r={t.radius.pill} />
+            </div>
+            <KpiSkeleton mobile={mobile} />
           </div>
         </div>
+        <LCardFoot
+          left={<Bone w={180} h={8} />}
+          right={<Bone w={120} h={8} />}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       </LCard>
+
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
+        {(['매매 현황', '전세 현황'] as const).map(title => (
+          <LCard key={title} pad={0}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+              <LSectionHead title={title} mb={t.density.panelPadY + t.density.panelPadX} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+                <ChartSkeleton />
+                <ChartSkeleton />
+                <TableSkeleton />
+              </div>
+            </div>
+            <LCardFoot
+              left={<Bone w={200} h={8} />}
+              style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+            />
+          </LCard>
+        ))}
+      </div>
       </div>
     )
   }
@@ -936,8 +975,9 @@ export function RealEstateBlock() {
   /* ── Empty state (only after summary loaded) ── */
   if (!loadingSummary && (!reSummary || reSummary.trackedComplexes === 0)) {
     return (
+      // 빈 상태도 제목은 실제 카드와 같게 — '부동산 리서치' 는 카드를 쪼개기 전 이름이었다.
       <LCard>
-        <LSectionHead title="부동산 리서치" />
+        <LSectionHead title="전체 현황" mb={t.density.panelPadY + t.density.panelPadX} />
         <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추적 중인 단지가 없습니다
         </div>
