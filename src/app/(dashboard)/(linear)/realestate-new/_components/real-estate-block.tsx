@@ -229,6 +229,33 @@ function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: num
   )
 }
 
+// 차트 범례 — 같은 markup 이 단지 라인 차트 둘과 시가총액에 반복됐다. 하나로 모은다.
+// 오른쪽 note 는 그 차트를 무엇으로 만들었는지 적는 자리(예: 세대수 가중 근거).
+function ChartLegend({ items, note }: { items: { label: string; color: string }[]; note?: string }) {
+  if (!items.length && !note) return null
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+      gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs,
+    }}>
+      {items.map(it => (
+        <span key={it.label} style={{
+          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted,
+          display: 'flex', alignItems: 'center', gap: t.density.gapXs,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: it.color, display: 'inline-block' }} />
+          {it.label}
+        </span>
+      ))}
+      {note && (
+        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginLeft: 'auto' }}>
+          {note}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function PriceChart({ data, complexes, height = 200 }: {
   data: Record<string, string | number | null>[]
   complexes: { name: string }[]
@@ -1114,8 +1141,11 @@ export function RealEstateBlock() {
     {/* 2열 모드에서는 매매가 왼쪽, 전세가 오른쪽. 1열 모드와 모바일에서는 위아래로 쌓인다.
         열 안에서 패널은 세로로 쌓는다 — 카드 하나가 곧 한 열이다. */}
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
-    {/* 카드 2 · 매매 현황 */}
-    <LCard>
+    {/* 카드 2 · 매매 현황 — 실거래·호가·괴리율·시가총액을 한 판단 단위로 묶는다.
+        껍데기는 전체 현황과 같다: pad={0} 위에 안쪽이 제 패딩을 주고, 하단 메타 바는
+        테마가 좌우를 글자 줄에 맞춘다. */}
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
       <LSectionHead title="매매 현황" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 매매 실거래가 추이 */}
@@ -1124,14 +1154,7 @@ export function RealEstateBlock() {
           <ChartHeader title="매매 실거래가 추이" momPct={tradeMom} />
           <PriceChart data={tradeChartData} complexes={reTrades?.complexes || []} />
           {reTrades && reTrades.complexes.length > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
-              {reTrades.complexes.map((c, i) => (
-                <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
-                  {c.name}
-                </span>
-              ))}
-            </div>
+            <ChartLegend items={reTrades.complexes.map((c, i) => ({ label: c.name, color: COMPLEX_COLORS[i % COMPLEX_COLORS.length] }))} />
           )}
         </div>
         )}
@@ -1142,14 +1165,7 @@ export function RealEstateBlock() {
           <ChartHeader title="매도 호가 추이" />
           <ListingPriceChart data={reListingTrend?.complexTrend || []} complexes={reListingTrend?.complexes || []} />
           {(reListingTrend?.complexes?.length ?? 0) > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
-              {reListingTrend?.complexes?.map((name, i) => (
-                <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
-                  {name}
-                </span>
-              ))}
-            </div>
+            <ChartLegend items={(reListingTrend?.complexes ?? []).map((name, i) => ({ label: name, color: COMPLEX_COLORS[i % COMPLEX_COLORS.length] }))} />
           )}
         </div>
         )}
@@ -1165,9 +1181,7 @@ export function RealEstateBlock() {
         {/* 매도 호가 vs 실거래가 */}
         {loadingListingsTrade ? <TableSkeleton /> : (
         <div data-panel="" style={innerCard}>
-          <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
-            매도 호가 vs 실거래가
-          </div>
+          <ChartHeader title="매도 호가 vs 실거래가" />
           <ListingTable
             rows={tradePageRows}
             sortKey={tradeSortKey}
@@ -1187,27 +1201,30 @@ export function RealEstateBlock() {
           <ChartHeader title="합산 시가총액 추이" />
           <MarketCapChart data={reMarketCap?.trend || []} />
           {(reMarketCap?.trend?.length ?? 0) > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
-              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.chart.mono, display: 'inline-block' }} />
-                실거래 기준
-              </span>
-              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.brand[300], display: 'inline-block' }} />
-                최저호가 기준
-              </span>
-              <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginLeft: 'auto' }}>
-                {reMarketCap?.complexCount}개 단지 · 평형별 세대수 × 공급면적
-              </span>
-            </div>
+            <ChartLegend
+              items={[
+                { label: '실거래 기준', color: t.chart.mono },
+                { label: '최저호가 기준', color: t.brand[300] },
+              ]}
+              note="평형별 세대수 × 공급면적"
+            />
           )}
         </div>
         )}
       </div>
+      </div>
+
+      <LCardFoot
+        left="실거래는 MOLIT 신고일 기준 · 호가는 네이버 최저"
+        right={reMarketCap?.complexCount ? `${reMarketCap.complexCount}개 단지` : undefined}
+        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
 
-    {/* 카드 3 · 전세 현황 */}
-    <LCard>
+    {/* 카드 3 · 전세 현황 — 매매 현황과 쌍이다. 2열에서 나란히 서므로 껍데기·제목·하단 바를
+        같은 문법으로 맞춘다. 오른쪽 값은 두지 않는다 — 전세에는 시가총액 같은 합산 대상이 없다. */}
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
       <LSectionHead title="전세 현황" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 전세 실거래가 추이 */}
@@ -1216,14 +1233,7 @@ export function RealEstateBlock() {
           <ChartHeader title="전세 실거래가 추이" momPct={rentalMom} />
           <PriceChart data={rentalChartData} complexes={reRentals?.complexes || []} />
           {reRentals && reRentals.complexes.length > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
-              {reRentals.complexes.map((c, i) => (
-                <span key={c.name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
-                  {c.name}
-                </span>
-              ))}
-            </div>
+            <ChartLegend items={reRentals.complexes.map((c, i) => ({ label: c.name, color: COMPLEX_COLORS[i % COMPLEX_COLORS.length] }))} />
           )}
         </div>
         )}
@@ -1234,14 +1244,7 @@ export function RealEstateBlock() {
           <ChartHeader title="전세 호가 추이" />
           <ListingPriceChart data={reListingTrendJeonse?.complexTrend || []} complexes={reListingTrendJeonse?.complexes || []} />
           {(reListingTrendJeonse?.complexes?.length ?? 0) > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
-              {reListingTrendJeonse?.complexes?.map((name, i) => (
-                <span key={name} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: COMPLEX_COLORS[i % COMPLEX_COLORS.length], display: 'inline-block' }} />
-                  {name}
-                </span>
-              ))}
-            </div>
+            <ChartLegend items={(reListingTrendJeonse?.complexes ?? []).map((name, i) => ({ label: name, color: COMPLEX_COLORS[i % COMPLEX_COLORS.length] }))} />
           )}
         </div>
         )}
@@ -1257,9 +1260,7 @@ export function RealEstateBlock() {
         {/* 전세 호가 vs 실거래가 */}
         {loadingListingsJeonse ? <TableSkeleton /> : (
         <div data-panel="" style={innerCard}>
-          <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
-            전세 호가 vs 실거래가
-          </div>
+          <ChartHeader title="전세 호가 vs 실거래가" />
           <ListingTable
             rows={jeonsePageRows}
             sortKey={jeonseSortKey}
@@ -1340,6 +1341,12 @@ export function RealEstateBlock() {
         </div>
         )}
       </div>
+      </div>
+
+      <LCardFoot
+        left="실거래는 MOLIT 신고일 기준 · 호가는 네이버 최저"
+        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
     </div>
 
