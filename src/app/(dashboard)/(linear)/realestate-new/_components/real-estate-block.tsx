@@ -9,6 +9,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
@@ -155,6 +156,11 @@ function fmtDate(d: string) {
   return `${d.slice(5, 7)}/${d.slice(8, 10)}`
 }
 
+// 카드 하단 메타 바용. 호가 기준일(ListingFreshness)이 쓰는 MM.DD 와 같은 표기로 맞춘다.
+function fmtDateDot(d: string) {
+  return `${d.slice(5, 7)}.${d.slice(8, 10)}`
+}
+
 function fmtPpp(v: number | null) {
   if (v === null || v === 0) return '-'
   return Math.round(v).toLocaleString()
@@ -165,6 +171,20 @@ function gapColor(gap: number | null): string {
   if (gap > 0) return '#EF4444'
   if (gap < 0) return '#3B82F6'
   return t.neutrals.text
+}
+
+// 괴리율은 부호가 있는 변동이라 카드 문법이 색을 허용하는 자리다. 다만 색은 토큰에서
+// 읽는다 — gapColor 의 생 hex 는 차트가 아직 쓰고 있어 남겨 두고, KPI 는 tone 으로 간다.
+// 위(+)는 호가가 실거래보다 비싸다는 뜻이라 기존 화면의 빨강을 accent.neg 로 잇는다.
+function gapTone(gap: number | null): 'neg' | 'info' | 'default' {
+  if (gap === null) return 'default'
+  if (gap > 0) return 'neg'
+  if (gap < 0) return 'info'
+  return 'default'
+}
+
+function fmtGap(gap: number | null): string {
+  return gap === null ? '-' : `${gap > 0 ? '+' : ''}${gap.toFixed(1)}%`
 }
 
 /* ── Sub-components (module scope — stable identity across re-renders) ── */
@@ -811,41 +831,41 @@ export function RealEstateBlock() {
   /* ── Initial load: full skeleton ── */
   if (initialLoad) {
     return (
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
-        </div>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <LCard>
+        <LSectionHead title="부동산 리서치" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <div style={{ display: 'flex', gap: t.density.gapSm }}>
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
             <Bone w={50} h={22} r={t.radius.pill} />
           </div>
           <KpiSkeleton mobile={mobile} />
-          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-              <ChartSkeleton />
-              <ChartSkeleton />
-              <TableSkeleton />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-              <ChartSkeleton />
-              <ChartSkeleton />
-              <TableSkeleton />
-            </div>
+        </div>
+      </LCard>
+      <LCard>
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+            <ChartSkeleton />
+            <ChartSkeleton />
+            <TableSkeleton />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+            <ChartSkeleton />
+            <ChartSkeleton />
+            <TableSkeleton />
           </div>
         </div>
       </LCard>
+      </div>
     )
   }
 
   /* ── Empty state (only after summary loaded) ── */
   if (!loadingSummary && (!reSummary || reSummary.trackedComplexes === 0)) {
     return (
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead eyebrow="REAL ESTATE" title="부동산 리서치" />
-        </div>
+      <LCard>
+        <LSectionHead title="부동산 리서치" />
         <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추적 중인 단지가 없습니다
         </div>
@@ -877,24 +897,30 @@ export function RealEstateBlock() {
 
   /* ── Render ── */
   return (
-    <LCard pad={0}>
-      {/* Header */}
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead
-          eyebrow="REAL ESTATE"
-          title="부동산 리서치"
-          tools={
-            <LFilterChip
-              multi
-              options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}
-              value={districts}
-              onChange={toggleDistrict}
-            />
-          }
-        />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+    {/* ─────────────────────────────────────────────────────────────────────
+        카드 1 · 요약 — 필터와 핵심 숫자. (2026-09-13 카드 문법으로 옮김)
+        · 한 덩어리 카드를 판단 단위로 쪼갠 첫 조각이다. eyebrow 는 뺐다 —
+          블록이 하나였을 때만 필요한 분류 라벨이었다.
+        · KPI 는 손으로 그리던 타일 대신 LStat. 값 크기·보조 설명·색 규칙이
+          다른 화면과 같은 자리에 온다.
+        · 기준일(호가·실거래)은 필터 줄 오른쪽 끝에 떠 있던 것을 카드 하단
+          메타 바로 내렸다.
+        ───────────────────────────────────────────────────────────────────── */}
+    <LCard>
+      <LSectionHead
+        title="부동산 리서치"
+        tools={
+          <LFilterChip
+            multi
+            options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}
+            value={districts}
+            onChange={toggleDistrict}
+          />
+        }
+      />
 
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         {/* Filter bar */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.density.kpiGap,
@@ -977,77 +1003,68 @@ export function RealEstateBlock() {
 
           {/* Area chips */}
           <LFilterChip options={AREA_OPTIONS} value={areaRange} onChange={setAreaRange} />
-
-
-          {/* Right-aligned date info */}
-          {reSummary && (
-          <div style={{ marginLeft: 'auto', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>
-            {reSummary.lastListingDate && <>호가 {fmtDate(reSummary.lastListingDate)}</>}
-            {reSummary.lastListingDate && reSummary.lastTradeDate && ' · '}
-            {reSummary.lastTradeDate && <>실거래 {fmtDate(reSummary.lastTradeDate)}</>}
-          </div>
-          )}
+          {/* 기준일은 카드 하단 메타 바로 내렸다 — 필터 줄에 두면 조작 컨트롤과
+              읽기 전용 사실이 같은 줄에서 섞인다. */}
         </div>
 
-        {/* KPI row */}
+        {/* KPI row — LStat 단일 축. 괴리율만 부호가 있는 변동이라 색을 쓴다. */}
         {loadingSummary ? <KpiSkeleton mobile={mobile} /> : reSummary && (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
-          <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              추적 단지
-            </div>
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
-              {reSummary.trackedComplexes}개
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted, fontWeight: t.weight.regular, marginLeft: t.density.gapXs }}>
-                ({reSummary.districtCount}개구)
-              </span>
-            </div>
-          </div>
-
-          <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              매매가 (만/평)
-            </div>
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
-              {currentTradeAvg ? currentTradeAvg.toLocaleString() : '-'}
-            </div>
-          </div>
-
-          <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              매도 괴리율
-            </div>
-            <div style={{
-              fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono,
-              color: gapColor(lastTradeGap),
-            }}>
-              {lastTradeGap !== null ? `${lastTradeGap > 0 ? '+' : ''}${lastTradeGap.toFixed(1)}%` : '-'}
-            </div>
-          </div>
-
-          <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              전세가 (만/평)
-            </div>
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono }}>
-              {currentRentalAvg ? currentRentalAvg.toLocaleString() : '-'}
-            </div>
-          </div>
-
-          <div style={innerCard}>
-            <div style={{ fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              전세 괴리율
-            </div>
-            <div style={{
-              fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.mono,
-              color: gapColor(lastJeonseGap),
-            }}>
-              {lastJeonseGap !== null ? `${lastJeonseGap > 0 ? '+' : ''}${lastJeonseGap.toFixed(1)}%` : '-'}
-            </div>
-          </div>
+          <LStat
+            label="추적 단지"
+            value={`${reSummary.trackedComplexes}개`}
+            sub={`${reSummary.districtCount}개구`}
+          />
+          <LStat
+            label="매매가"
+            value={currentTradeAvg ? currentTradeAvg.toLocaleString() : '-'}
+            unit="만/평"
+            sub="선택 단지 평균"
+          />
+          <LStat
+            label="매도 괴리율"
+            value={fmtGap(lastTradeGap)}
+            tone={gapTone(lastTradeGap)}
+            sub="호가 대비 실거래"
+            title="지금 호가(그날 최저 평당호가)가 최근 신고된 실거래보다 얼마나 위/아래인지. 같은 단지·같은 평형밴드끼리 평당가로 견주고, 기준선은 신고일 기준 최근 90일이다."
+          />
+          <LStat
+            label="전세가"
+            value={currentRentalAvg ? currentRentalAvg.toLocaleString() : '-'}
+            unit="만/평"
+            sub="선택 단지 평균"
+          />
+          <LStat
+            label="전세 괴리율"
+            value={fmtGap(lastJeonseGap)}
+            tone={gapTone(lastJeonseGap)}
+            sub="호가 대비 실거래"
+            title="지금 호가(그날 최저 평당호가)가 최근 신고된 전세 실거래보다 얼마나 위/아래인지. 기준선은 신고일 기준 최근 90일이다."
+          />
         </div>
         )}
+      </div>
 
+      <LCardFoot
+        left="네이버 호가 스냅샷 · MOLIT 실거래"
+        right={
+          // 두 기준일은 같은 표기(MM.DD)로 읽고 가운뎃점으로 끊는다 — ListingFreshness 는
+          // 정체되면 경고색으로 바뀌므로 그 판단만 그쪽에 맡긴다.
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
+            <ListingFreshness date={listingSnapshotDate} staleDays={listingStaleDays} />
+            {listingSnapshotDate && reSummary?.lastTradeDate && <span>·</span>}
+            {reSummary?.lastTradeDate && <span>실거래 {fmtDateDot(reSummary.lastTradeDate)}</span>}
+          </span>
+        }
+      />
+    </LCard>
+
+    {/* ─────────────────────────────────────────────────────────────────────
+        카드 2 · 추이와 호가 — 아직 옛 문법 그대로다. 다음 차례로 매매/전세/
+        호가대조 카드로 쪼갠다. 여기 있는 innerCard 들이 각각 카드가 된다.
+        ───────────────────────────────────────────────────────────────────── */}
+    <LCard>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         {/* 2-column grid: 매매 (left) / 전세 (right) */}
         <div style={{
           display: 'grid',
@@ -1278,19 +1295,15 @@ export function RealEstateBlock() {
         </div>
       </div>
 
-      <LCardFoot
-        left="네이버 호가 스냅샷"
-        right={<ListingFreshness date={listingSnapshotDate} staleDays={listingStaleDays} />}
-        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
-      />
-
-      {/* Click outside to close dropdown */}
-      {complexDropdownOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 19 }}
-          onClick={() => setComplexDropdownOpen(false)}
-        />
-      )}
     </LCard>
+
+    {/* Click outside to close dropdown */}
+    {complexDropdownOpen && (
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 19 }}
+        onClick={() => setComplexDropdownOpen(false)}
+      />
+    )}
+    </div>
   )
 }
