@@ -9,6 +9,8 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -113,8 +115,23 @@ const AREA_OPTIONS = [
   { value: '50', label: '50평' },
   { value: '60+', label: '60+' },
 ]
-const COMPLEX_COLORS = ['#6366f1', '#f97316', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#84cc16', '#64748b']
+// 단지별 선 색 — 보이스카드와 같은 절제. 무지개 10색(indigo·orange·emerald…)은 카드 문법의
+// "색은 상태·부호·강조에만" 을 정면으로 어겼다. 브랜드 네이비 계열 명도차 + 중성 회색으로
+// 구분한다. 단지를 여럿 겹쳐 보는 일은 드물고(보통 1~3개), 그 범위에서 충분히 갈린다.
+const COMPLEX_COLORS = [
+  t.chart.mono,     // 800 네이비 — 단일 선일 때와 같은 색
+  t.brand[300],     // 밝은 하늘
+  t.brand[600],     // 중간
+  '#A8B0B6',        // 중성 회색 — 보이스카드 2시리즈 차트의 보조선과 같은 값
+  t.brand[400],
+  t.brand[700],
+  t.chart.monoSoft,
+  t.brand[500],
+]
 const PAGE_SIZE = 5
+// useAgentRefresh 의 prefixes 는 의존성 배열에 들어간다 — 매 렌더 새 배열을 넘기면
+// 구독이 끊겼다 붙기를 반복한다. 모듈 상수로 고정한다.
+const RE_TABLE_PREFIXES = ['re_']
 
 type SortKey = 'complexName' | 'areaBand' | 'actualAvgPpp' | 'listingMinPpp' | 'listingMaxPpp' | 'gap' | 'listingCount'
 type SortDir = 'asc' | 'desc'
@@ -142,8 +159,9 @@ const LISTING_COLUMNS: LColumn<ReListingRow>[] = [
 ]
 
 // 전월비 배지 — 국내 시세 관례(상승=적, 하락=청)라 tonePalettes 의 pos/neg 와 방향이 반대다.
-const MOM_UP = { bg: '#FEE2E2', fg: '#EF4444' }
-const MOM_DOWN = { bg: '#DBEAFE', fg: '#3B82F6' }
+// 색은 토큰에서 읽되 방향 관례는 유지한다 — tonePalettes 의 pos/neg 와 반대다.
+const MOM_UP = { bg: '#F7E7E7', fg: t.accent.neg }
+const MOM_DOWN = { bg: t.brand[50], fg: t.brand[600] }
 
 /* ── Helpers ── */
 
@@ -168,14 +186,13 @@ function fmtPpp(v: number | null) {
 
 function gapColor(gap: number | null): string {
   if (gap === null) return t.neutrals.muted
-  if (gap > 0) return '#EF4444'
-  if (gap < 0) return '#3B82F6'
+  if (gap > 0) return t.accent.neg
+  if (gap < 0) return t.brand[600]
   return t.neutrals.text
 }
 
-// 괴리율은 부호가 있는 변동이라 카드 문법이 색을 허용하는 자리다. 다만 색은 토큰에서
-// 읽는다 — gapColor 의 생 hex 는 차트가 아직 쓰고 있어 남겨 두고, KPI 는 tone 으로 간다.
-// 위(+)는 호가가 실거래보다 비싸다는 뜻이라 기존 화면의 빨강을 accent.neg 로 잇는다.
+// 괴리율은 부호가 있는 변동이라 카드 문법이 색을 허용하는 자리다. 위(+)는 호가가 실거래보다
+// 비싸다는 뜻이라 국내 시세 관례대로 빨강(accent.neg), 아래(−)는 파랑(brand)으로 잇는다.
 function gapTone(gap: number | null): 'neg' | 'info' | undefined {
   if (gap === null) return undefined
   if (gap > 0) return 'neg'
@@ -193,6 +210,7 @@ function ChartHeader({ title, momPct, titleHint }: { title: string; momPct?: num
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
       <span
+        data-panel-title=""
         title={titleHint}
         style={{
           fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted,
@@ -332,11 +350,11 @@ function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; heig
         />
         <Line
           type="monotone" dataKey="actualValue" name="실거래 기준"
-          stroke="#6366f1" strokeWidth={1.5} dot={false} connectNulls
+          stroke={t.chart.mono} strokeWidth={1.5} dot={false} connectNulls
         />
         <Line
           type="monotone" dataKey="listingValue" name="최저호가 기준"
-          stroke="#f97316" strokeWidth={1.5} dot={false} connectNulls
+          stroke={t.brand[300]} strokeWidth={1.5} dot={false} connectNulls
         />
       </ComposedChart>
     </ResponsiveContainer>
@@ -464,7 +482,7 @@ function KpiSkeleton({ mobile }: { mobile: boolean }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={innerCard}>
+        <div key={i} data-panel="" style={innerCard}>
           <Bone w={60} h={8} style={{ marginBottom: t.density.gapSm }} />
           <Bone w={80} h={14} />
         </div>
@@ -475,7 +493,7 @@ function KpiSkeleton({ mobile }: { mobile: boolean }) {
 
 function ChartSkeleton() {
   return (
-    <div style={innerCard}>
+    <div data-panel="" style={innerCard}>
       <Bone w={140} h={10} style={{ marginBottom: t.density.kpiGap }} />
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: t.density.gapXs, height: 180 }}>
         {Array.from({ length: 12 }).map((_, i) => (
@@ -488,7 +506,7 @@ function ChartSkeleton() {
 
 function TableSkeleton() {
   return (
-    <div style={innerCard}>
+    <div data-panel="" style={innerCard}>
       <Bone w={160} h={10} style={{ marginBottom: t.density.gapMd }} />
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} style={{ display: 'flex', gap: t.density.kpiGap, marginBottom: t.density.kpiGap }}>
@@ -565,6 +583,12 @@ export function RealEstateBlock() {
   const [loadingTrendJeonse, setLoadingTrendJeonse] = useState(true)
   const [loadingJeonseRatio, setLoadingJeonseRatio] = useState(true)
   const [loadingMarketCap, setLoadingMarketCap] = useState(true)
+
+  // 새로고침 버튼은 전체 현황 카드에만 두고, 아직 돌고 있는 조회가 하나라도 있으면 돈다
+  // (카드 문법: 데이터를 읽는 블록마다 첫 섹션 헤드에 하나).
+  const refreshing = loadingSummary || loadingTrades || loadingRentals
+    || loadingListingsTrade || loadingListingsJeonse || loadingTrendTrade
+    || loadingTrendJeonse || loadingJeonseRatio || loadingMarketCap
 
   /* ── Table sort/page state ── */
   const [tradeSortKey, setTradeSortKey] = useState<SortKey>('listingMinPpp')
@@ -672,6 +696,10 @@ export function RealEstateBlock() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // 상단바 새로고침 버튼과 에이전트 데이터 변경을 이 블록도 듣는다 — 다른 페이지와 같은 배선.
+  // 없는 동안 헤더 버튼을 눌러도 부동산만 옛 숫자를 그대로 들고 있었다.
+  useAgentRefresh(RE_TABLE_PREFIXES, loadData)
 
   // Reset pagination when filters change
   useEffect(() => { setTradePage(0) }, [baseParams])
@@ -908,18 +936,13 @@ export function RealEstateBlock() {
         · 기준일(호가·실거래)은 필터 줄 오른쪽 끝에 떠 있던 것을 카드 하단
           메타 바로 내렸다.
         ───────────────────────────────────────────────────────────────────── */}
-    <LCard>
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
+      {/* 헤더는 제목과 새로고침만. 자치구·단지·평형은 셋 다 같은 범위를 정하는 조건이라
+          헤더와 아래 줄로 흩어 놓지 않고 필터 한 줄에 모은다. */}
       <LSectionHead
         title="전체 현황"
-        tools={
-          <LFilterChip
-            multi
-            options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}
-            value={districts}
-            onChange={toggleDistrict}
-            gap={t.density.gapXs}
-          />
-        }
+        action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={loadData} busy={refreshing} />}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
@@ -927,6 +950,18 @@ export function RealEstateBlock() {
         <div style={{
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.density.kpiGap,
         }}>
+          {/* 자치구 — 넓은 범위부터 좁은 범위(단지·평형) 순으로 읽는다 */}
+          <LFilterChip
+            multi
+            options={ALL_DISTRICTS.map(d => ({ value: d, label: d.replace('구', '') }))}
+            value={districts}
+            onChange={toggleDistrict}
+            gap={t.density.gapXs}
+          />
+
+          {/* Separator */}
+          <div style={{ width: 1, height: 16, background: t.neutrals.line }} />
+
           {/* Complex selector */}
           <div style={{ position: 'relative' }}>
             <LBtn
@@ -1059,6 +1094,8 @@ export function RealEstateBlock() {
         })()}
       </div>
 
+      </div>
+
       <LCardFoot
         left="네이버 호가 스냅샷 · MOLIT 실거래"
         right={
@@ -1070,16 +1107,20 @@ export function RealEstateBlock() {
             {reSummary?.lastTradeDate && <span>실거래 {fmtDateDot(reSummary.lastTradeDate)}</span>}
           </span>
         }
+        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
     </LCard>
 
+    {/* 2열 모드에서는 매매가 왼쪽, 전세가 오른쪽. 1열 모드와 모바일에서는 위아래로 쌓인다.
+        열 안에서 패널은 세로로 쌓는다 — 카드 하나가 곧 한 열이다. */}
+    <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
     {/* 카드 2 · 매매 현황 */}
     <LCard>
       <LSectionHead title="매매 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 매매 실거래가 추이 */}
         {loadingTrades ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="매매 실거래가 추이" momPct={tradeMom} />
           <PriceChart data={tradeChartData} complexes={reTrades?.complexes || []} />
           {reTrades && reTrades.complexes.length > 1 && (
@@ -1097,7 +1138,7 @@ export function RealEstateBlock() {
 
         {/* 매도 호가 추이 — 실거래가와 같은 단지 라인, 최저 호가 기준 */}
         {loadingTrendTrade ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="매도 호가 추이" />
           <ListingPriceChart data={reListingTrend?.complexTrend || []} complexes={reListingTrend?.complexes || []} />
           {(reListingTrend?.complexes?.length ?? 0) > 1 && (
@@ -1115,7 +1156,7 @@ export function RealEstateBlock() {
 
         {/* 매매 괴리율 추이 */}
         {loadingTrendTrade ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="매매 괴리율 추이" titleHint="지금 호가(그날 최저 평당호가)가 최근 신고된 실거래보다 얼마나 위/아래인지 — 같은 단지·같은 평형밴드끼리 평당가로 견주고, 짝의 무게는 실거래 건수. 기준선은 계약일이 아니라 신고일 기준 최근 90일이라 새 실거래가 신고되는 날 바로 반영된다. 계약일로 자르면 신고지연 때문에 창 뒤쪽이 비어 최근 며칠일수록 기준선이 무너진다(전체 평형 실측 짝 37→15개, 매매 92→18건)." />
           <GapChart data={reListingTrend?.trend || []} />
         </div>
@@ -1123,7 +1164,7 @@ export function RealEstateBlock() {
 
         {/* 매도 호가 vs 실거래가 */}
         {loadingListingsTrade ? <TableSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
             매도 호가 vs 실거래가
           </div>
@@ -1142,17 +1183,17 @@ export function RealEstateBlock() {
 
         {/* 합산 시가총액 추이 — 실거래 vs 최저호가, 평형별 세대수 가중 */}
         {loadingMarketCap ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="합산 시가총액 추이" />
           <MarketCapChart data={reMarketCap?.trend || []} />
           {(reMarketCap?.trend?.length ?? 0) > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.gapXs }}>
               <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.chart.mono, display: 'inline-block' }} />
                 실거래 기준
               </span>
               <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.brand[300], display: 'inline-block' }} />
                 최저호가 기준
               </span>
               <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, marginLeft: 'auto' }}>
@@ -1168,10 +1209,10 @@ export function RealEstateBlock() {
     {/* 카드 3 · 전세 현황 */}
     <LCard>
       <LSectionHead title="전세 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 전세 실거래가 추이 */}
         {loadingRentals ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="전세 실거래가 추이" momPct={rentalMom} />
           <PriceChart data={rentalChartData} complexes={reRentals?.complexes || []} />
           {reRentals && reRentals.complexes.length > 1 && (
@@ -1189,7 +1230,7 @@ export function RealEstateBlock() {
 
         {/* 전세 호가 추이 — 실거래가와 같은 단지 라인, 최저 호가 기준 */}
         {loadingTrendJeonse ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="전세 호가 추이" />
           <ListingPriceChart data={reListingTrendJeonse?.complexTrend || []} complexes={reListingTrendJeonse?.complexes || []} />
           {(reListingTrendJeonse?.complexes?.length ?? 0) > 1 && (
@@ -1207,7 +1248,7 @@ export function RealEstateBlock() {
 
         {/* 전세 괴리율 추이 */}
         {loadingTrendJeonse ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader title="전세 괴리율 추이" titleHint="지금 호가(그날 최저 평당호가)가 최근 신고된 실거래보다 얼마나 위/아래인지 — 같은 단지·같은 평형밴드끼리 평당가로 견주고, 짝의 무게는 실거래 건수. 기준선은 계약일이 아니라 신고일 기준 최근 90일이라 새 실거래가 신고되는 날 바로 반영된다. 계약일로 자르면 신고지연 때문에 창 뒤쪽이 비어 최근 며칠일수록 기준선이 무너진다(전체 평형 실측 짝 37→15개, 매매 92→18건)." />
           <GapChart data={reListingTrendJeonse?.trend || []} />
         </div>
@@ -1215,7 +1256,7 @@ export function RealEstateBlock() {
 
         {/* 전세 호가 vs 실거래가 */}
         {loadingListingsJeonse ? <TableSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted, marginBottom: t.density.gapXs }}>
             전세 호가 vs 실거래가
           </div>
@@ -1234,7 +1275,7 @@ export function RealEstateBlock() {
 
         {/* 전세가율 추이 */}
         {loadingJeonseRatio ? <ChartSkeleton /> : (
-        <div style={innerCard}>
+        <div data-panel="" style={innerCard}>
           <ChartHeader
             title="전세가율 추이"
             titleHint="같은 단지·같은 평형밴드 안에서 전세 평당보증금 ÷ 매매 평당가. 짝의 무게는 매매·전세 중 건수가 적은 쪽. 국토부 실거래는 신고까지 평균 17~19일 걸려서, 세로 점선 오른쪽은 표본이 아직 채워지는 중이다 — 확정치로 읽지 말 것."
@@ -1300,6 +1341,7 @@ export function RealEstateBlock() {
         )}
       </div>
     </LCard>
+    </div>
 
     {/* Click outside to close dropdown */}
     {complexDropdownOpen && (
