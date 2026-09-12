@@ -10,6 +10,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { XMLParser } from 'fast-xml-parser'
+import { DISTRICTS } from '../src/lib/real-estate/districts'
 
 // ============================================================
 // Config
@@ -23,12 +24,6 @@ const API_KEY = process.env.MOLIT_API_KEY!
 const TRADE_API = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev'
 const RENT_API = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptRent/getRTMSDataSvcAptRent'
 
-// 추적 대상 지역
-const DISTRICTS: Record<string, string> = {
-  '11680': '강남구',
-  '11650': '서초구',
-  '11710': '송파구',
-}
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -272,20 +267,35 @@ async function logSync(syncType: string, districtCode: string, dealYm: string, f
 // ============================================================
 // Auto-populate complexes from trade/rental data
 // ============================================================
+// PostgREST 는 한 번에 1,000행만 준다. 페이지를 넘기지 않으면 거래 테이블 앞부분만 읽고
+// 단지 마스터가 거기서 잘린다 — 2026-09-13 실측으로 실제 2,235개 중 563개만 들어와 있었다.
+// 구를 늘리면 새 구가 통째로 빠지므로 여기서 끝까지 넘긴다.
+async function fetchAllRows(table: 're_trades' | 're_rentals') {
+  const rows: Array<{ complex_name: string; district_code: string; dong_name: string; build_year: number | null; jibun: string | null }> = []
+  const pageSize = 1000
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('complex_name, district_code, dong_name, build_year, jibun')
+      .order('id')
+      .range(from, from + pageSize - 1)
+    if (error) { console.error(`  ❌ ${table} 조회 오류:`, error.message); break }
+    if (!data || data.length === 0) break
+    rows.push(...data)
+    if (data.length < pageSize) break
+  }
+  return rows
+}
+
 async function syncComplexes() {
   console.log('\n🏢 단지 마스터 동기화...')
 
-  // Get distinct complexes from trades
-  const { data: tradeCplx } = await supabase
-    .from('re_trades')
-    .select('complex_name, district_code, dong_name, build_year, jibun')
+  const [tradeCplx, rentalCplx] = await Promise.all([
+    fetchAllRows('re_trades'),
+    fetchAllRows('re_rentals'),
+  ])
 
-  // Get distinct complexes from rentals
-  const { data: rentalCplx } = await supabase
-    .from('re_rentals')
-    .select('complex_name, district_code, dong_name, build_year, jibun')
-
-  const all = [...(tradeCplx || []), ...(rentalCplx || [])]
+  const all = [...tradeCplx, ...rentalCplx]
   const seen = new Map<string, any>()
 
   for (const r of all) {

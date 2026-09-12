@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { XMLParser } from 'fast-xml-parser'
+import { DISTRICTS } from '@/lib/real-estate/districts'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -8,11 +9,6 @@ export const dynamic = 'force-dynamic'
 const TRADE_API = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev'
 const RENT_API = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptRent/getRTMSDataSvcAptRent'
 
-const DISTRICTS: Record<string, string> = {
-  '11680': '강남구',
-  '11650': '서초구',
-  '11710': '송파구',
-}
 
 const xmlParser = new XMLParser({ ignoreAttributes: false, trimValues: true })
 
@@ -187,6 +183,27 @@ async function upsertBatch(supabase: any, table: string, records: any[], onConfl
 }
 
 // --- Main ---
+// PostgREST 는 한 번에 1,000행만 준다. 페이지를 넘기지 않으면 거래 테이블 앞부분만 읽고
+// 단지 마스터가 거기서 잘린다 — 2026-09-13 실측으로 실제 2,235개 중 563개만 들어와 있었다.
+// 구를 늘리면 새 구가 통째로 빠지므로 여기서 끝까지 넘긴다.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchComplexRows(supabase: any, table: 're_trades' | 're_rentals') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = []
+  const pageSize = 1000
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('complex_name, district_code, dong_name, build_year, jibun')
+      .order('id')
+      .range(from, from + pageSize - 1)
+    if (error || !data || data.length === 0) break
+    rows.push(...data)
+    if (data.length < pageSize) break
+  }
+  return rows
+}
+
 export async function GET(request: Request) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')
@@ -261,9 +278,11 @@ export async function GET(request: Request) {
   }
 
   // Sync complexes
-  const { data: tradeCplx } = await supabase.from('re_trades').select('complex_name, district_code, dong_name, build_year, jibun')
-  const { data: rentalCplx } = await supabase.from('re_rentals').select('complex_name, district_code, dong_name, build_year, jibun')
-  const all = [...(tradeCplx || []), ...(rentalCplx || [])]
+  const [tradeCplx, rentalCplx] = await Promise.all([
+    fetchComplexRows(supabase, 're_trades'),
+    fetchComplexRows(supabase, 're_rentals'),
+  ])
+  const all = [...tradeCplx, ...rentalCplx]
   const seen = new Map<string, any>()
   for (const r of all) {
     const key = `${r.complex_name}|${r.district_code}|${r.dong_name}`
