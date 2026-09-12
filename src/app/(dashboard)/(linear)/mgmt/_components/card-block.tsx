@@ -9,7 +9,7 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LPageSize, useTableSort, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { CardApproval, CardBilling } from '@/types/finance-card'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { CardDetailDialog } from './card-detail-dialog'
 import { RecordEditDialog, type EditField } from './record-edit-dialog'
 

@@ -9,7 +9,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { TaxDetailDialog } from './tax-detail-dialog'
 import { RecordEditDialog, type EditField } from './record-edit-dialog'
 

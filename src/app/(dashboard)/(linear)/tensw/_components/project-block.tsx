@@ -5,7 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'

@@ -4,7 +4,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 
 /** 표 행이 그대로 들어온다 — sales-block의 SalesRow가 이 모양을 만족한다 */
 export interface SalesDetailRow {

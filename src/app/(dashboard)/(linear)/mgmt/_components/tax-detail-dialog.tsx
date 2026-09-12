@@ -4,7 +4,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import type { FinanceTaxObligation } from '@/types/finance-tax'
 
 const SOURCES: Record<string, string> = { hometax: '홈택스', wetax: '위택스', nhis: '4대보험' }

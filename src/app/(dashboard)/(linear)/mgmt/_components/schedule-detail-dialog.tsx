@@ -5,7 +5,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { WillowMgmtSchedule } from '@/types/willow-mgmt'
 
 const CATEGORY_LABELS: Record<string, string> = {

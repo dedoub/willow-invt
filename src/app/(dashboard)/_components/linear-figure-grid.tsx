@@ -16,7 +16,12 @@ export type FigureItem = {
   value: string
   /** 값 아래 보조 한 줄 (예: "2026-09-10 기준") */
   sub?: string
-  tone?: 'pos' | 'neg'
+  /**
+   * 부호가 있는 값에만 쓴다. pos/neg 는 손익처럼 좋고 나쁨이 분명할 때,
+   * info 는 방향만 말하는 값(부동산 괴리율의 상승·하락 관례색)에 쓴다.
+   * 어휘는 LStat 과 같게 유지한다 — 한 화면에서 두 지표 격자가 만나기 때문이다.
+   */
+  tone?: 'pos' | 'neg' | 'info'
   /** 숫자·날짜는 mono + tabular */
   mono?: boolean
   /** 산문(적요·설명) — 굵기를 빼고 줄바꿈을 허용한다 */
@@ -56,7 +61,10 @@ export function FigureGrid({ items, cols }: { items: FigureItem[]; cols: number 
             fontWeight: f.prose ? t.weight.regular : t.weight.semibold,
             fontFamily: f.mono ? t.font.mono : t.font.sans,
             fontVariantNumeric: f.mono ? 'tabular-nums' : undefined,
-            color: f.tone === 'pos' ? t.accent.pos : f.tone === 'neg' ? t.accent.neg : t.neutrals.text,
+            color: f.tone === 'pos' ? t.accent.pos
+              : f.tone === 'neg' ? t.accent.neg
+              : f.tone === 'info' ? t.brand[600]
+              : t.neutrals.text,
             lineHeight: f.prose ? 1.6 : 1.3,
             whiteSpace: f.prose ? 'pre-wrap' : f.wrap ? 'normal' : 'nowrap',
             wordBreak: f.wrap ? 'break-word' : undefined,

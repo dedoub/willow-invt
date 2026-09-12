@@ -7,7 +7,7 @@ import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LTableBadge } from '@/app/(dashboard)/_components/linear-table'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { FigureGrid, type FigureItem } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import {
   CORP_DOC_TYPE_LABEL, CORP_VERSION_KIND_LABEL, type CorpCompany, type CorpDocument, type CorpEvent,
 } from '@/types/willow-corp'

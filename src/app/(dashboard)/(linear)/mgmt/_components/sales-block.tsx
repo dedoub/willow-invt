@@ -11,7 +11,7 @@ import {
   LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber,
   LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import type { WillowInvoice, WillowTaxInvoice } from '@/types/willow-mgmt'
-import { FigureGrid, type FigureItem } from './figure-grid'
+import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { SalesDetailDialog } from './sales-detail-dialog'
 import { RecordEditDialog, type EditField } from './record-edit-dialog'
 

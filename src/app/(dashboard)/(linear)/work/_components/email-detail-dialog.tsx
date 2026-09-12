@@ -4,7 +4,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
-import { FigureGrid } from '@/app/(dashboard)/(linear)/mgmt/_components/figure-grid'
+import { FigureGrid } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 
