@@ -883,6 +883,43 @@ export async function GET(request: Request) {
       return NextResponse.json({ trend, complexCount, unit: '조원' })
     }
 
+    // ── 권역 지수 — 강남3구 vs 서울 외곽 추세 비교 ──
+    // 다른 타입과 달리 추적 단지(is_tracked)와 무관하다. 구 전체 실거래로 만든 지수라
+    // complexNames 필터를 타지 않는다. 계산은 re_zone_index 매트뷰가 이미 끝냈다
+    // (정의·방법은 supabase/migrations/20260913010000_re_zone_index.sql).
+    if (type === 'zone-index') {
+      const { data, error } = await supabase
+        .from('re_zone_index')
+        .select('month_start, zone, cells, trades, idx')
+        .order('month_start', { ascending: true })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+      const rows = (data ?? []) as Array<{ month_start: string; zone: string; cells: number; trades: number; idx: number }>
+
+      // 신고지연 — 최근 두 달은 계속 채워진다. 화면이 잠정으로 표시할 수 있게 알려준다.
+      const today = new Date()
+      const provisionalFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        .toISOString().slice(0, 10)
+
+      const byMonth = new Map<string, { month: string; provisional: boolean; zones: Record<string, { idx: number; cells: number; trades: number }> }>()
+      for (const r of rows) {
+        const month = String(r.month_start).slice(0, 7)
+        if (!byMonth.has(month)) {
+          byMonth.set(month, { month, provisional: String(r.month_start) >= provisionalFrom, zones: {} })
+        }
+        byMonth.get(month)!.zones[r.zone] = { idx: Number(r.idx), cells: r.cells, trades: r.trades }
+      }
+      const series = Array.from(byMonth.values())
+
+      return NextResponse.json({
+        series,
+        zones: ['강남3구', '노도강', '금관구'],
+        baseLabel: '2025년 상반기 = 100',
+        // 지수는 전용 평당가 기준이라 화면의 '만/평'(공급 기준)과 같은 축에 놓으면 안 된다.
+        basis: '전용면적 기준 · 같은 단지·같은 평형끼리만 비교',
+      })
+    }
+
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

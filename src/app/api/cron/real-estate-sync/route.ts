@@ -299,8 +299,20 @@ export async function GET(request: Request) {
     await supabase.from('re_complexes').upsert(complexes.slice(i, i + 500), { onConflict: 'name,district_code,dong_name', ignoreDuplicates: true })
   }
 
+  // 권역 지수 갱신 — 원자료가 방금 바뀌었으니 여기서 다시 굳힌다.
+  // 실패해도 수집 자체는 성공으로 둔다. 지수는 하루 늦어도 되지만 거래 적재는 아니다.
+  let zoneIndex: 'ok' | string = 'ok'
+  try {
+    const { error } = await supabase.rpc('refresh_re_zone_index')
+    if (error) throw new Error(error.message)
+  } catch (e) {
+    zoneIndex = e instanceof Error ? e.message : String(e)
+    console.error('re_zone_index refresh failed:', zoneIndex)
+  }
+
   const result = {
     success: true,
+    zoneIndex,
     trades: { fetched: totalTrades, inserted: totalTradesInserted },
     rentals: { fetched: totalRentals, inserted: totalRentalsInserted },
     complexes: complexes.length,

@@ -478,9 +478,12 @@ function ListingTable({
       </LTableScroll>
       {/* 표 바로 아래 줄 — 행수(왼쪽)와 페이지 이동(오른쪽). 사업관리 표와 같은 배치다.
           가운데 정렬 화살표만 두던 때는 행수를 바꿀 길이 아예 없었다. */}
+      {/* 행수·페이지 줄은 28px 컨트롤이라 무겁게 읽힌다. 차트 패널은 축 눈금 아래로
+          여백이 자연히 생기는데 표는 이 줄에서 딱 끊겨, 다음 패널 제목이 붙어 보였다
+          (2026-09-13 CEO). 패널 간격은 그대로 두고 이 줄 아래만 조금 띄운다. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: t.density.gapSm, marginTop: t.density.kpiGap,
+        gap: t.density.gapSm, marginTop: t.density.kpiGap, marginBottom: t.density.gapSm,
       }}>
         <LPageSize value={pageSize} onChange={onPageSizeChange} />
         {pageCount > 1 ? (
