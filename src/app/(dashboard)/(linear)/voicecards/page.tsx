@@ -169,6 +169,8 @@ export default function VoicecardsNewPage() {
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
   // 각 API 가 집계를 만든 시각(캐시 안에서 찍혀 함께 돌아온다). 카드 푸터는 이 중 가장 오래된
   // 값을 적는다 — 세 소스를 함께 읽는 카드라 가장 뒤처진 쪽이 그 숫자의 나이다.
+  // 각 API 가 반영한 원천 데이터 기준 시각(MV 워터마크). 계산 시각(generatedAt)이 아니다 —
+  // 그건 새로고침을 누르면 곧 누른 시각이 되어 아무것도 말해주지 않았다(2026-09-12 CEO).
   const [vcStatsAt, setVcStatsAt] = useState<string | null>(null)
   const [vcUsersAt, setVcUsersAt] = useState<string | null>(null)
   const [vcEventsAt, setVcEventsAt] = useState<string | null>(null)
@@ -194,7 +196,7 @@ export default function VoicecardsNewPage() {
     const usersP = fetch(`/api/voicecards/stats/users${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) { setVcUserStats(data.userStats || null); setVcUsersAt(data.generatedAt || null) }
+        if (data) { setVcUserStats(data.userStats || null); setVcUsersAt(data.dataAsOf || null) }
       })
       .catch(err => console.error('VoiceCards users load error:', err))
       .finally(() => { setVcUsersLoading(false); setVcRefreshUsers(false) })
@@ -202,7 +204,7 @@ export default function VoicecardsNewPage() {
     const eventsP = fetch(`/api/voicecards/stats/events${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) { setVcAnonStats(data.anonymousStats || null); setVcEventsAt(data.generatedAt || null) }
+        if (data) { setVcAnonStats(data.anonymousStats || null); setVcEventsAt(data.dataAsOf || null) }
       })
       .catch(err => console.error('VoiceCards events load error:', err))
       .finally(() => { setVcEventsLoading(false); setVcRefreshEvents(false) })
@@ -213,7 +215,7 @@ export default function VoicecardsNewPage() {
         if (data) {
           setVcStats(data.stats)
           setVcChartData(data.chartData || [])
-          setVcStatsAt(data.generatedAt || null)
+          setVcStatsAt(data.dataAsOf || null)
         }
       })
       .catch(err => console.error('VoiceCards revenue load error:', err))
@@ -278,7 +280,7 @@ export default function VoicecardsNewPage() {
         refreshingUsers={vcRefreshUsers}
         refreshingEvents={vcRefreshEvents}
         refreshingRevenue={vcRefreshRevenue}
-        generatedAt={[vcStatsAt, vcUsersAt, vcEventsAt].filter(Boolean).sort()[0] ?? null}
+        dataAsOf={[vcStatsAt, vcUsersAt, vcEventsAt].filter(Boolean).sort()[0] ?? null}
       />
       </div>
     </div>

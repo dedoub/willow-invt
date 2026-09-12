@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag, unstable_cache } from 'next/cache'
-import { getVoicecardsUserStats } from '@/lib/voicecards-server'
+import { getVoicecardsUserStats, getVoicecardsDataAsOf } from '@/lib/voicecards-server'
 import { VOICECARDS_USER_STATS_CACHE_KEY } from '@/lib/voicecards-device-journey'
 
 export const maxDuration = 300
@@ -10,11 +10,12 @@ export const maxDuration = 300
 // 조회 실패 시 반환되는 empty(유저 0명)를 캐싱하면 그동안 0으로 표시 — throw로 캐시를 막는다.
 // 집계 시각을 캐시 안에서 찍는다 — 캐시 히트면 이 값도 같이 돌아와, 화면이 "언제 만들어진
 // 숫자인지"를 말할 수 있다. 바깥에서 찍으면 매번 지금 시각이 되어 캐시 나이를 숨긴다(2026-09-11).
+// dataAsOf 는 그 숫자가 반영한 원천(MV 워터마크)의 시각 — 카드 푸터는 이걸 적는다(2026-09-12).
 const getCachedUserStats = unstable_cache(
   async () => {
-    const stats = await getVoicecardsUserStats()
+    const [stats, dataAsOf] = await Promise.all([getVoicecardsUserStats(), getVoicecardsDataAsOf()])
     if (!stats?.users?.length) throw new Error('voicecards user stats empty (transient fetch failure)')
-    return { stats, generatedAt: new Date().toISOString() }
+    return { stats, generatedAt: new Date().toISOString(), dataAsOf }
   },
   [VOICECARDS_USER_STATS_CACHE_KEY],
   { revalidate: 3600, tags: ['voicecards-stats'] }
@@ -27,9 +28,11 @@ export async function GET(request: Request) {
   try {
     if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
     const cached = refresh ? null : await getCachedUserStats()
-    const userStats = cached ? cached.stats : await getVoicecardsUserStats()
+    const [userStats, dataAsOf] = cached
+      ? [cached.stats, cached.dataAsOf]
+      : await Promise.all([getVoicecardsUserStats(), getVoicecardsDataAsOf()])
     const generatedAt = cached ? cached.generatedAt : new Date().toISOString()
-    return NextResponse.json({ success: true, userStats, generatedAt })
+    return NextResponse.json({ success: true, userStats, generatedAt, dataAsOf })
   } catch (error) {
     console.error('Error fetching voicecards user stats:', error)
     return NextResponse.json({ error: 'Failed to fetch user stats' }, { status: 500 })

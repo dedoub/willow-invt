@@ -1700,6 +1700,20 @@ export interface AnonymousEventStats {
   }
 }
 
+// 대시보드 숫자의 "데이터 기준 시각" — mv_real_users 증분 워터마크와 집계 MV 5개가 반영한
+// 원천 범위 중 가장 이른 값(vc_data_as_of, supabase/voicecards/mv_data_as_of.sql).
+// API 가 계산을 돌린 시각(generatedAt)과 다르다: 그건 새로고침을 누르면 곧 지금 시각이 된다.
+// 실패하면 null — 카드는 표시를 생략한다.
+export async function getVoicecardsDataAsOf(): Promise<string | null> {
+  if (!voicecardsSupabase) return null
+  const { data, error } = await voicecardsSupabase.rpc('vc_data_as_of')
+  if (error) {
+    console.error('[VoiceCards] vc_data_as_of RPC failed:', error)
+    return null
+  }
+  return typeof data === 'string' && data ? new Date(data).toISOString() : null
+}
+
 // 마지막 정상 집계 (프로세스 메모리) — RPC가 일시적으로 느려지거나(mv_real_users 리프레시 창)
 // 실패할 때 인사이트 블록이 통째로 빠지는 대신 직전 값을 서빙한다.
 let lastGoodAnonStats: AnonymousEventStats | null = null

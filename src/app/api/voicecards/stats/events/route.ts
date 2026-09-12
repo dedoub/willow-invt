@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag, unstable_cache } from 'next/cache'
-import { getAnonymousEventStats } from '@/lib/voicecards-server'
+import { getAnonymousEventStats, getVoicecardsDataAsOf } from '@/lib/voicecards-server'
 
 export const maxDuration = 300
 
 // anonymous_events 집계(vc_event_stats)는 운영 분석 지표라 실시간성이 필요하지 않다.
 // Disk IO 예산 보호를 위해 5분→1시간 캐싱 (2026-08-20).
 // 일시 실패(null)를 캐싱하면 그동안 '다시 시도'까지 전부 실패 — throw로 캐시를 막는다.
-// 집계 시각도 캐시에 함께 담는다 — users 라우트와 같은 규칙.
+// 집계 시각과 데이터 기준 시각(MV 워터마크)도 캐시에 함께 담는다 — users 라우트와 같은 규칙.
 const getCachedAnonStats = unstable_cache(
   async () => {
-    const stats = await getAnonymousEventStats()
+    const [stats, dataAsOf] = await Promise.all([getAnonymousEventStats(), getVoicecardsDataAsOf()])
     if (!stats) throw new Error('vc_event_stats returned null (transient RPC failure)')
-    return { stats, generatedAt: new Date().toISOString() }
+    return { stats, generatedAt: new Date().toISOString(), dataAsOf }
   },
   ['voicecards-anon-stats'],
   { revalidate: 3600, tags: ['voicecards-stats'] }
@@ -24,10 +24,12 @@ export async function GET(request: Request) {
   try {
     if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
     const cached = refresh ? null : await getCachedAnonStats()
-    const anonymousStats = cached ? cached.stats : await getAnonymousEventStats()
+    const [anonymousStats, dataAsOf] = cached
+      ? [cached.stats, cached.dataAsOf]
+      : await Promise.all([getAnonymousEventStats(), getVoicecardsDataAsOf()])
     if (!anonymousStats) throw new Error('vc_event_stats returned null (transient RPC failure)')
     const generatedAt = cached ? cached.generatedAt : new Date().toISOString()
-    return NextResponse.json({ success: true, anonymousStats, generatedAt })
+    return NextResponse.json({ success: true, anonymousStats, generatedAt, dataAsOf })
   } catch (error) {
     console.error('Error fetching voicecards anonymous events:', error)
     return NextResponse.json({ error: 'Failed to fetch anonymous events' }, { status: 500 })

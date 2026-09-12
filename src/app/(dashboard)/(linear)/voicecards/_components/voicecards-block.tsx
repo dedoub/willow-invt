@@ -200,8 +200,8 @@ export interface VoicecardsBlockProps {
   refreshingUsers: boolean
   refreshingEvents: boolean
   refreshingRevenue: boolean
-  /** 세 API 중 가장 오래된 집계 시각(ISO) — 카드 푸터에 적는다 */
-  generatedAt?: string | null
+  /** 세 API 가 반영한 원천 데이터 기준 시각(MV 워터마크, ISO) 중 가장 이른 것 — 카드 푸터에 적는다 */
+  dataAsOf?: string | null
   cols: 1 | 2 // 레이아웃 열 수 (1=wide: 인사이트 분할·KPI 6/row). 단일 앱 페이지는 1 고정.
 }
 
@@ -564,19 +564,26 @@ function SkelUserRow() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 1시간이라 최대 그만큼 지난 값일 수 있다 */
-function generatedLabel(at?: string | null) {
+// 푸터 우측: 이 숫자들이 반영한 원천 데이터의 시각. 이벤트가 mv_real_users 로 넘어온 워터마크라
+// 매시 07분에 한 번 앞으로 간다. API 계산 시각을 적던 때는 새로고침을 누르면
+// 곧 누른 시각이 찍혀 신선도를 말해주지 못했다(2026-09-12 CEO).
+function dataAsOfLabel(at?: string | null) {
   if (!at) return undefined
   const d = new Date(at)
   if (Number.isNaN(d.getTime())) return undefined
   const day = d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '').replace(/\. /, '-')
   const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return `집계 ${day} ${time}`
+  return (
+    <span title="원천 이벤트가 집계에 반영된 시각. 매시 07분 동기화 뒤 10~14분에 집계가 갱신된다. 새로고침은 이 시각을 앞당기지 않는다.">
+      데이터 기준 {day} {time}
+    </span>
+  )
 }
 
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
   stats, userStats, anonymousStats, chartData,
-  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, generatedAt,
+  onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, dataAsOf,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
   // 퍼널은 세 소스를 모두 그린다(스토어·설치=events, 로그인·연동·활성화=users, 판매크레딧=revenue).
@@ -1078,7 +1085,7 @@ export function VoicecardsBlock({
       {userStats && (
         <LCardFoot
           left="크레딧은 환불 차감 후 원장 기준 · 데모 덱 제외"
-          right={generatedLabel(generatedAt)}
+          right={dataAsOfLabel(dataAsOf)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -1607,7 +1614,7 @@ export function VoicecardsBlock({
       {userStats && anonymousStats?.summary && (
         <LCardFoot
           left="봇·데모 덱 제외 · 스토어 방문은 리포트 특성상 ~1주 지연"
-          right={generatedLabel(generatedAt)}
+          right={dataAsOfLabel(dataAsOf)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
@@ -1892,7 +1899,7 @@ export function VoicecardsBlock({
       {userStats && (
         <LCardFoot
           left="봇 제외 · 카드 수는 데모 포함 · 기기 행은 로컬 덱이 서버에 없어 활성화를 확인할 수 없다"
-          right={generatedLabel(generatedAt)}
+          right={dataAsOfLabel(dataAsOf)}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}

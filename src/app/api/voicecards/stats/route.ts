@@ -3,6 +3,7 @@ import { revalidateTag, unstable_cache } from 'next/cache'
 import {
   getCombinedStats,
   getConnectionStatus,
+  getVoicecardsDataAsOf,
 } from '@/lib/voicecards-server'
 import { kstToday } from '@/lib/kst'
 
@@ -16,7 +17,8 @@ export const revalidate = 0
 //    캐시 함수 '안'에서 끝내 배열로 반환. 캐시-히트 시 stats.appRevenue Map 은 비지만 클라이언트는
 //    chartData(배열)로 자체 집계하므로 무관.
 const buildStatsPayload = async (startDate: string, endDate: string) => {
-    const stats = await getCombinedStats(startDate, endDate)
+    // dataAsOf: 이 숫자가 반영한 원천(mv_real_users 워터마크)의 시각. 캐시와 함께 굳는다.
+    const [stats, dataAsOf] = await Promise.all([getCombinedStats(startDate, endDate), getVoicecardsDataAsOf()])
     const appRevenue = stats.appRevenue
     const dateMap = new Map<string, { ios: number; android: number; total: number; credits: number; paidUsers?: number }>()
 
@@ -47,7 +49,7 @@ const buildStatsPayload = async (startDate: string, endDate: string) => {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, values]) => ({ date, ...values }))
 
-    return { stats, chartData, generatedAt: new Date().toISOString() }
+    return { stats, chartData, generatedAt: new Date().toISOString(), dataAsOf }
 }
 
 const getCachedStatsPayload = unstable_cache(
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
     const refresh = searchParams.get('refresh') === '1'
     if (refresh) revalidateTag('voicecards-stats', { expire: 0 })
     // 연결 상태(가벼움, 매요청) + 통합 통계(1시간 캐시)를 병렬 조회
-    const [connectionStatus, { stats, chartData, generatedAt }] = await Promise.all([
+    const [connectionStatus, { stats, chartData, generatedAt, dataAsOf }] = await Promise.all([
       getConnectionStatus(),
       refresh ? buildStatsPayload(startDate, endDate) : getCachedStatsPayload(startDate, endDate),
     ])
@@ -79,6 +81,7 @@ export async function GET(request: Request) {
       stats,
       chartData,
       generatedAt,
+      dataAsOf,
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
