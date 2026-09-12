@@ -14,7 +14,8 @@ import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
-import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, LPageSize, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { getStoredPageSize, savePageSize } from '@/app/(dashboard)/_components/linear-page-size'
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, AreaChart, Area,
@@ -115,20 +116,19 @@ const AREA_OPTIONS = [
   { value: '50', label: '50평' },
   { value: '60+', label: '60+' },
 ]
-// 단지별 선 색 — 보이스카드와 같은 절제. 무지개 10색(indigo·orange·emerald…)은 카드 문법의
-// "색은 상태·부호·강조에만" 을 정면으로 어겼다. 브랜드 네이비 계열 명도차 + 중성 회색으로
-// 구분한다. 단지를 여럿 겹쳐 보는 일은 드물고(보통 1~3개), 그 범위에서 충분히 갈린다.
-const COMPLEX_COLORS = [
-  t.chart.mono,     // 800 네이비 — 단일 선일 때와 같은 색
-  t.brand[300],     // 밝은 하늘
-  t.brand[600],     // 중간
-  '#A8B0B6',        // 중성 회색 — 보이스카드 2시리즈 차트의 보조선과 같은 값
-  t.brand[400],
-  t.brand[700],
-  t.chart.monoSoft,
-  t.brand[500],
-]
+// 단지별 선 색 — 보이스카드가 쓰는 바로 그 램프다(분포 차트 palette·MEMBER/NEW/SOLD/USED).
+// 네이비 하나에서 시작해 회색으로 내려간다. 색상환을 도는 무지개 10색은 카드 문법의
+// "색은 상태·부호·강조에만" 을 정면으로 어겼다. 단지를 여럿 겹쳐 보는 일은 드물고
+// (보통 1~3개), 명도차만으로 그 범위는 충분히 갈린다.
+const COMPLEX_COLORS = ['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']
+
+// 두 시리즈 짝 — 보이스카드의 SOLD/USED 와 같은 값.
+const SERIES_PRIMARY = '#0E415A'
+const SERIES_SECONDARY = '#A8B0B6'
+
 const PAGE_SIZE = 5
+const TRADE_PAGE_KEY = 'realestate-listings-trade'
+const JEONSE_PAGE_KEY = 'realestate-listings-jeonse'
 // useAgentRefresh 의 prefixes 는 의존성 배열에 들어간다 — 매 렌더 새 배열을 넘기면
 // 구독이 끊겼다 붙기를 반복한다. 모듈 상수로 고정한다.
 const RE_TABLE_PREFIXES = ['re_']
@@ -377,11 +377,11 @@ function MarketCapChart({ data, height = 200 }: { data: ReMarketCapPoint[]; heig
         />
         <Line
           type="monotone" dataKey="actualValue" name="실거래 기준"
-          stroke={t.chart.mono} strokeWidth={1.5} dot={false} connectNulls
+          stroke={SERIES_PRIMARY} strokeWidth={1.5} dot={false} connectNulls
         />
         <Line
           type="monotone" dataKey="listingValue" name="최저호가 기준"
-          stroke={t.brand[300]} strokeWidth={1.5} dot={false} connectNulls
+          stroke={SERIES_SECONDARY} strokeWidth={1.5} dot={false} connectNulls
         />
       </ComposedChart>
     </ResponsiveContainer>
@@ -426,16 +426,18 @@ function GapChart({ data, height = 200 }: { data: ReTrendPoint[]; height?: numbe
 }
 
 function ListingTable({
-  rows, sortKey, sortDir, page, pageCount,
-  onSort, onPageChange, tradeType,
+  rows, sortKey, sortDir, page, pageCount, pageSize,
+  onSort, onPageChange, onPageSizeChange, tradeType,
 }: {
   rows: ReListingRow[]
   sortKey: SortKey
   sortDir: SortDir
   page: number
   pageCount: number
+  pageSize: number
   onSort: (key: SortKey) => void
   onPageChange: (p: number) => void
+  onPageSizeChange: (n: number) => void
   tradeType: '매매' | '전세'
 }) {
   if (rows.length === 0) return <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: t.density.blockGap }}>데이터 없음</div>
@@ -474,8 +476,15 @@ function ListingTable({
           ))}
         </LTableBody>
       </LTableScroll>
-      {pageCount > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.kpiGap }}>
+      {/* 표 바로 아래 줄 — 행수(왼쪽)와 페이지 이동(오른쪽). 사업관리 표와 같은 배치다.
+          가운데 정렬 화살표만 두던 때는 행수를 바꿀 길이 아예 없었다. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: t.density.gapSm, marginTop: t.density.kpiGap,
+      }}>
+        <LPageSize value={pageSize} onChange={onPageSizeChange} />
+        {pageCount > 1 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap }}>
           <button
             onClick={() => onPageChange(Math.max(0, page - 1))}
             disabled={page === 0}
@@ -500,7 +509,8 @@ function ListingTable({
             <LIcon name="chevronRight" size={14} color={t.neutrals.muted} />
           </button>
         </div>
-      )}
+        ) : <span />}
+      </div>
     </div>
   )
 }
@@ -621,6 +631,8 @@ export function RealEstateBlock() {
   const [tradeSortKey, setTradeSortKey] = useState<SortKey>('listingMinPpp')
   const [tradeSortDir, setTradeSortDir] = useState<SortDir>('desc')
   const [tradePage, setTradePage] = useState(0)
+  const [tradePageSize, setTradePageSize] = useState(() => getStoredPageSize(TRADE_PAGE_KEY, PAGE_SIZE))
+  const [jeonsePageSize, setJeonsePageSize] = useState(() => getStoredPageSize(JEONSE_PAGE_KEY, PAGE_SIZE))
   const [jeonseSortKey, setJeonseSortKey] = useState<SortKey>('listingMinPpp')
   const [jeonseSortDir, setJeonseSortDir] = useState<SortDir>('desc')
   const [jeonsePage, setJeonsePage] = useState(0)
@@ -723,6 +735,7 @@ export function RealEstateBlock() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
 
   // 상단바 새로고침 버튼과 에이전트 데이터 변경을 이 블록도 듣는다 — 다른 페이지와 같은 배선.
   // 없는 동안 헤더 버튼을 눌러도 부동산만 옛 숫자를 그대로 들고 있었다.
@@ -850,10 +863,14 @@ export function RealEstateBlock() {
   const sortedTradeListings = useMemo(() => sortRows(reListingsTrade, tradeSortKey, tradeSortDir), [reListingsTrade, tradeSortKey, tradeSortDir])
   const sortedJeonseListings = useMemo(() => sortRows(reListingsJeonse, jeonseSortKey, jeonseSortDir), [reListingsJeonse, jeonseSortKey, jeonseSortDir])
 
-  const tradePageCount = Math.ceil(sortedTradeListings.length / PAGE_SIZE)
-  const jeonsePageCount = Math.ceil(sortedJeonseListings.length / PAGE_SIZE)
-  const tradePageRows = sortedTradeListings.slice(tradePage * PAGE_SIZE, (tradePage + 1) * PAGE_SIZE)
-  const jeonsePageRows = sortedJeonseListings.slice(jeonsePage * PAGE_SIZE, (jeonsePage + 1) * PAGE_SIZE)
+  const tradePageCount = Math.ceil(sortedTradeListings.length / tradePageSize)
+  const jeonsePageCount = Math.ceil(sortedJeonseListings.length / jeonsePageSize)
+  const tradePageRows = sortedTradeListings.slice(tradePage * tradePageSize, (tradePage + 1) * tradePageSize)
+  const jeonsePageRows = sortedJeonseListings.slice(jeonsePage * jeonsePageSize, (jeonsePage + 1) * jeonsePageSize)
+
+  // 행수를 바꾸면 보던 페이지 번호가 범위를 넘길 수 있다 — 첫 쪽으로 돌린다.
+  const applyTradePageSize = (n: number) => { setTradePageSize(n); savePageSize(TRADE_PAGE_KEY, n); setTradePage(0) }
+  const applyJeonsePageSize = (n: number) => { setJeonsePageSize(n); savePageSize(JEONSE_PAGE_KEY, n); setJeonsePage(0) }
 
   // 같은 컬럼은 asc → desc → 기본 정렬(호가(저) desc)로 순환. 기본 컬럼 자신은 toggle만 한다.
   function nextSort(key: SortKey, curKey: SortKey, curDir: SortDir): { key: SortKey; dir: SortDir } {
@@ -964,15 +981,16 @@ export function RealEstateBlock() {
           메타 바로 내렸다.
         ───────────────────────────────────────────────────────────────────── */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
       {/* 헤더는 제목과 새로고침만. 자치구·단지·평형은 셋 다 같은 범위를 정하는 조건이라
           헤더와 아래 줄로 흩어 놓지 않고 필터 한 줄에 모은다. */}
       <LSectionHead
         title="전체 현황"
+        mb={t.density.panelPadY + t.density.panelPadX}
         action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={loadData} busy={refreshing} />}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
         {/* Filter bar */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.density.kpiGap,
@@ -1134,7 +1152,7 @@ export function RealEstateBlock() {
             {reSummary?.lastTradeDate && <span>실거래 {fmtDateDot(reSummary.lastTradeDate)}</span>}
           </span>
         }
-        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
     </LCard>
 
@@ -1145,8 +1163,10 @@ export function RealEstateBlock() {
         껍데기는 전체 현황과 같다: pad={0} 위에 안쪽이 제 패딩을 주고, 하단 메타 바는
         테마가 좌우를 글자 줄에 맞춘다. */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
-      <LSectionHead title="매매 현황" />
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+      <LSectionHead title="매매 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+      {/* 패널 사이는 blockGap(12). 보이스카드의 카드 안 리듬인 kpiGap(8)은 KPI 타일처럼
+          작은 요소끼리의 값이라, 판을 벗은 차트가 연달아 서면 축 눈금이 다음 제목에 붙는다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 매매 실거래가 추이 */}
         {loadingTrades ? <ChartSkeleton /> : (
@@ -1188,6 +1208,8 @@ export function RealEstateBlock() {
             sortDir={tradeSortDir}
             page={tradePage}
             pageCount={tradePageCount}
+            pageSize={tradePageSize}
+            onPageSizeChange={applyTradePageSize}
             onSort={handleTradeSort}
             onPageChange={setTradePage}
             tradeType="매매"
@@ -1203,8 +1225,8 @@ export function RealEstateBlock() {
           {(reMarketCap?.trend?.length ?? 0) > 0 && (
             <ChartLegend
               items={[
-                { label: '실거래 기준', color: t.chart.mono },
-                { label: '최저호가 기준', color: t.brand[300] },
+                { label: '실거래 기준', color: SERIES_PRIMARY },
+                { label: '최저호가 기준', color: SERIES_SECONDARY },
               ]}
               note="평형별 세대수 × 공급면적"
             />
@@ -1217,15 +1239,17 @@ export function RealEstateBlock() {
       <LCardFoot
         left="실거래는 MOLIT 신고일 기준 · 호가는 네이버 최저"
         right={reMarketCap?.complexCount ? `${reMarketCap.complexCount}개 단지` : undefined}
-        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
     </LCard>
 
     {/* 카드 3 · 전세 현황 — 매매 현황과 쌍이다. 2열에서 나란히 서므로 껍데기·제목·하단 바를
         같은 문법으로 맞춘다. 오른쪽 값은 두지 않는다 — 전세에는 시가총액 같은 합산 대상이 없다. */}
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: 0 }}>
-      <LSectionHead title="전세 현황" />
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+      <LSectionHead title="전세 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+      {/* 패널 사이는 blockGap(12). 보이스카드의 카드 안 리듬인 kpiGap(8)은 KPI 타일처럼
+          작은 요소끼리의 값이라, 판을 벗은 차트가 연달아 서면 축 눈금이 다음 제목에 붙는다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
         {/* 전세 실거래가 추이 */}
         {loadingRentals ? <ChartSkeleton /> : (
@@ -1267,6 +1291,8 @@ export function RealEstateBlock() {
             sortDir={jeonseSortDir}
             page={jeonsePage}
             pageCount={jeonsePageCount}
+            pageSize={jeonsePageSize}
+            onPageSizeChange={applyJeonsePageSize}
             onSort={handleJeonseSort}
             onPageChange={setJeonsePage}
             tradeType="전세"
@@ -1345,7 +1371,7 @@ export function RealEstateBlock() {
 
       <LCardFoot
         left="실거래는 MOLIT 신고일 기준 · 호가는 네이버 최저"
-        style={{ marginTop: t.density.gapMd, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
     </LCard>
     </div>
