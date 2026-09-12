@@ -50,7 +50,7 @@ function metricLine(label, sample) {
   return `· ${label} ${signed(sample.gap)}${change} — ${direction(sample.gap)}`
 }
 
-export function buildRealEstateReport({ date, overall, fifty, listing, sync }) {
+export function buildRealEstateReport({ date, overall, fifty, listing, sync, zone }) {
   const fiftyWarnings = []
   if (isUnreliable(fifty.trade)) fiftyWarnings.push('매매')
   if (isUnreliable(fifty.jeonse)) fiftyWarnings.push('전세')
@@ -81,6 +81,25 @@ export function buildRealEstateReport({ date, overall, fifty, listing, sync }) {
     lines.push('· 50평대는 합계 숫자만으로 방향을 확정하지 않고 단지 분포와 신규 실거래 누적을 함께 볼게요.')
   } else {
     lines.push(`· 50평대는 매매 ${headline(fifty.trade.gap)}·전세 ${headline(fifty.jeonse.gap)} 흐름이에요.`)
+  }
+
+  // 권역 비교 — 강남3구와 외곽의 거리, 그리고 그 거리가 어느 쪽으로 움직였는지.
+  // 지수를 못 읽은 날은 문단을 통째로 뺀다. 빈 칸으로 남기면 수집이 실패한 것처럼 읽힌다.
+  if (zone) {
+    const idx = Object.entries(zone.index)
+      .map(([name, v]) => `${name} ${v.toFixed(1)}`)
+      .join(' · ')
+    lines.push('', '[권역]', `· ${idx} (${zone.month} 기준, 2025 상반기=100)`)
+
+    if (typeof zone.spread === 'number') {
+      const moved = typeof zone.spreadPrev === 'number' ? zone.spread - zone.spreadPrev : null
+      // 격차가 줄면 외곽이 따라붙는 중이고, 늘면 강남3구가 더 달아난 것이다.
+      const tail = moved === null ? ''
+        : Math.abs(moved) < 0.5 ? ' · 3개월 전과 거의 같아요.'
+        : moved < 0 ? ` · 3개월 전 ${zone.spreadPrev.toFixed(1)}p 대비 좁혀졌어요.`
+        : ` · 3개월 전 ${zone.spreadPrev.toFixed(1)}p 대비 벌어졌어요.`
+      lines.push(`· 강남3구와 외곽 격차 ${signed(zone.spread, 1, 'p')}${tail}`)
+    }
   }
 
   const listingDelta = listing.previousCount == null ? '' : ` · 직전 대비 ${signed(listing.count - listing.previousCount, 0, '건')}`

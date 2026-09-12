@@ -164,11 +164,45 @@ async function marketState() {
   }
 }
 
+// 권역 지수 — 강남3구 vs 외곽. 추적 단지와 무관한 구 전량 실거래 지수라 districts·period 를
+// 붙이지 않는다. 격차는 확정된 달만 쓴다 — 최근 두 달은 신고가 아직 들어오는 중이다.
+async function zoneState() {
+  const secret = process.env.CRON_SECRET
+  const res = await fetch(`${SITE}/api/willow-mgmt/real-estate?type=zone-index`, {
+    headers: secret ? { Authorization: `Bearer ${secret}` } : {},
+  }).then(r => (r.ok ? r.json() : null)).catch(() => null)
+
+  const finals = (res?.series ?? []).filter(r => !r.provisional)
+  const last = finals[finals.length - 1]
+  if (!last) return null
+
+  const spreadOf = row => {
+    const core = row?.zones?.['강남3구']?.idx
+    const outer = ['노도강', '금관구'].map(z => row?.zones?.[z]?.idx).filter(v => typeof v === 'number')
+    if (typeof core !== 'number' || outer.length === 0) return null
+    return Math.round((core - outer.reduce((a, b) => a + b, 0) / outer.length) * 10) / 10
+  }
+
+  const index = {}
+  for (const z of res.zones ?? []) {
+    const v = last.zones?.[z]?.idx
+    if (typeof v === 'number') index[z] = v
+  }
+  if (Object.keys(index).length === 0) return null
+
+  return {
+    month: last.month,
+    index,
+    spread: spreadOf(last),
+    spreadPrev: spreadOf(finals[finals.length - 4]),
+  }
+}
+
 function line(label, value) {
   return `· ${label} ${value}`
 }
 
-function buildMessage({ status, listing, trade, market, tail }) {
+function buildMessage({ status, listing, trade, market, zone, tail }) {
   const ok = status === 'ok'
   const today = kstDate()
   if (ok && listing && trade && market) {
@@ -183,6 +217,7 @@ function buildMessage({ status, listing, trade, market, tail }) {
         previousCount: listing.prevCount,
       },
       sync: { trades: trade.trades, rentals: trade.rentals },
+      zone,
     })
   }
 
@@ -326,13 +361,14 @@ async function run() {
   const status = argument('status') || 'ok'
 
   // 한쪽 조회가 깨져도 알림 자체는 나가야 한다.
-  const [listing, trade, market, tail] = await Promise.all([
+  const [listing, trade, market, zone, tail] = await Promise.all([
     listingState().catch(() => null),
     tradeState().catch(() => null),
     marketState().catch(() => null),
+    zoneState().catch(() => null),
     logTail(argument('log')),
   ])
-  const facts = buildMessage({ status, listing, trade, market, tail })
+  const facts = buildMessage({ status, listing, trade, market, zone, tail })
 
   // 수집이 실패했으면 해석하지 않는다. 그땐 "돌았나?"가 질문이라 원문 알림이 정답이다.
   // --raw 는 재료만 보고 싶을 때.
