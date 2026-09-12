@@ -13,7 +13,11 @@ export type AgentBackendKind = 'codex-cli' | 'codex-sdk'
 
 export interface AgentThreadEvent {
   threadId: string
-  mode: 'started' | 'resumed'
+  /**
+   * `resume_failed` 는 <b>저장하라는 뜻이 아니다</b> — 그 id 는 죽었다. 이어받기가
+   * 깨져 새 스레드로 물러섰다는 알림이고, 살아 있는 id 는 바로 뒤 `started` 로 온다.
+   */
+  mode: 'started' | 'resumed' | 'resume_failed'
 }
 
 export interface AgentOptions {

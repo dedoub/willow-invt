@@ -71,10 +71,33 @@ function mapThreadEvent(event: ThreadEvent): CodexProgress | null {
   return null
 }
 
-export const codexSdkRunner: AgentRunner = {
-  kind: 'sdk',
-  async run(prompt: string, opts?: AgentOptions): Promise<AgentRunResult> {
-    const sdkClient = await getSdkClient()
+/**
+ * <b>이어받기가 깨진 오류인가.</b>
+ *
+ * 2026-09-12 실측: 6월에 만든 스레드를 이어받으려다
+ * `thread/resume failed: paginated_threads is not supported yet (code -32601)` 로
+ * 죽었다. 새로 만든 스레드는 멀쩡히 이어받아진다 — 오래된 스레드가 지금 깔린
+ * codex 로는 열리지 않는 것이다.
+ *
+ * <b>이 오류만 골라낸다.</b> 아무 실패에나 물러서서 새 스레드로 다시 돌리면,
+ * 이미 절반쯤 일한 턴을 한 번 더 시키게 된다(값도 두 번 나간다).
+ */
+export function isResumeFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
+  return message.includes('thread/resume')
+}
+
+type SdkClient = InstanceType<CodexSdkModule['Codex']>
+
+/**
+ * 클라이언트를 <b>받아서</b> 돈다 — 시험이 가짜를 끼울 자리가 여기다.
+ * 실제 실행은 아래 `codexSdkRunner.run` 이 진짜 클라이언트를 넘긴다.
+ */
+export async function runWithClient(
+  sdkClient: SdkClient,
+  prompt: string,
+  opts?: AgentOptions,
+): Promise<AgentRunResult> {
     const threadOptions: ThreadOptions = {
       workingDirectory: opts?.cwd || process.cwd(),
       sandboxMode: mapSandboxMode(opts?.sandbox),
@@ -85,7 +108,7 @@ export const codexSdkRunner: AgentRunner = {
       ...(opts?.effort ? { modelReasoningEffort: opts.effort } : {}),
     }
 
-    const thread = opts?.threadId
+    let thread = opts?.threadId
       ? sdkClient.resumeThread(opts.threadId, threadOptions)
       : sdkClient.startThread(threadOptions)
 
@@ -93,28 +116,64 @@ export const codexSdkRunner: AgentRunner = {
       try { opts.onThreadEvent?.({ threadId: opts.threadId, mode: 'resumed' }) } catch { /* ignore */ }
     }
 
-    const streamed = await thread.runStreamed(prompt, { signal: opts?.signal })
-    let finalResponse = ''
-    let usage: AgentRunResult['usage'] = null
-    let announcedThread = Boolean(opts?.threadId)
-    let failureMessage: string | null = null
+    /**
+     * <b>이어받기가 깨지면 새 스레드로 한 번 물러선다.</b>
+     *
+     * 죽은 thread id 는 파일에 적혀 있어서(`willy-agent-threads.json`), 물러설
+     * 자리가 없으면 프로세스를 다시 띄워도 같은 id 를 또 집어 든다 — 그
+     * 워크스페이스의 대화가 <b>영원히</b> 실패한다. 실제로 그랬다.
+     *
+     * <b>이벤트를 읽는 중에도 터진다.</b> 실측에서 이어받기 실패는 `runStreamed`
+     * 가 무사히 반환한 <b>뒤</b> 첫 이벤트를 꺼낼 때 났다. `await` 만 감싸면
+     * 고쳐 놓고도 안 걸린다.
+     *
+     * 맥락은 잃지만 대화는 산다. 새 id 를 돌려주므로 호출부가 죽은 id 를
+     * 갈아 끼운다(`upsertAgentThread`).
+     */
+    const drain = async (target: typeof thread, announceStarted: boolean, counter: { count: number }) => {
+      const streamed = await target.runStreamed(prompt, { signal: opts?.signal })
+      let announced = announceStarted
+      let text = ''
+      let turnUsage: AgentRunResult['usage'] = null
+      let failure: string | null = null
+      let consumed = 0
 
-    for await (const event of streamed.events) {
-      if (event.type === 'thread.started') {
-        if (!announcedThread) {
-          announcedThread = true
-          try { opts?.onThreadEvent?.({ threadId: event.thread_id, mode: 'started' }) } catch { /* ignore */ }
+      for await (const event of streamed.events) {
+        consumed += 1
+        counter.count += 1
+        if (event.type === 'thread.started') {
+          if (!announced) {
+            announced = true
+            try { opts?.onThreadEvent?.({ threadId: event.thread_id, mode: 'started' }) } catch { /* ignore */ }
+          }
+          continue
         }
-        continue
+
+        if (event.type === 'turn.failed') failure = event.error.message
+        if (event.type === 'item.completed' && event.item.type === 'agent_message') text = event.item.text
+        if (event.type === 'turn.completed') turnUsage = event.usage
+
+        const mapped = mapThreadEvent(event)
+        if (mapped) emitProgress(opts, mapped)
       }
-
-      if (event.type === 'turn.failed') failureMessage = event.error.message
-      if (event.type === 'item.completed' && event.item.type === 'agent_message') finalResponse = event.item.text
-      if (event.type === 'turn.completed') usage = event.usage
-
-      const mapped = mapThreadEvent(event)
-      if (mapped) emitProgress(opts, mapped)
+      return { text, usage: turnUsage, failure, consumed }
     }
+
+    /** 이미 이벤트를 받은 뒤에 깨졌다면 물러서지 않는다 — 일한 턴을 두 번 시킨다. */
+    const consumedByFailedRun = { count: 0 }
+    let outcome
+    try {
+      outcome = await drain(thread, Boolean(opts?.threadId), consumedByFailedRun)
+    } catch (error) {
+      if (!opts?.threadId || !isResumeFailure(error) || consumedByFailedRun.count > 0) throw error
+      try { opts.onThreadEvent?.({ threadId: opts.threadId, mode: 'resume_failed' }) } catch { /* ignore */ }
+      thread = sdkClient.startThread(threadOptions)
+      outcome = await drain(thread, false, { count: 0 })
+    }
+
+    const finalResponse = outcome.text
+    const usage = outcome.usage
+    const failureMessage = outcome.failure
 
     if (failureMessage) throw new Error(failureMessage)
 
@@ -124,5 +183,11 @@ export const codexSdkRunner: AgentRunner = {
       threadId: thread.id,
       usage,
     }
+}
+
+export const codexSdkRunner: AgentRunner = {
+  kind: 'sdk',
+  async run(prompt: string, opts?: AgentOptions): Promise<AgentRunResult> {
+    return runWithClient(await getSdkClient(), prompt, opts)
   },
 }

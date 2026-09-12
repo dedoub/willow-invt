@@ -6807,6 +6807,17 @@ ${text}
         signal: abortSignal,
         threadId: activeThreadId,
         onThreadEvent: (event) => {
+          // 이어받기가 깨진 알림이면 그 id 는 죽은 것이다 — 다시 'active' 로
+          // 적으면 다음 메시지가 또 그 id 를 집어 든다. 살아 있는 id 는 곧이어
+          // 'started' 로 온다.
+          if (event.mode === 'resume_failed') {
+            void addProgress('이전 대화 흐름을 이어받지 못해 새로 시작해요.', {
+              percent: 55,
+              stage: '맥락 정리',
+              current: '예전 스레드가 열리지 않아 새 스레드로 이어서 답해요.',
+            })
+            return
+          }
           activeThreadId = event.threadId
           upsertAgentThread(BOT_THREAD_REGISTRY_FILE, {
             botKey: 'willy-bot',
