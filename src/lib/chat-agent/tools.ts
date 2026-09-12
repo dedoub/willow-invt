@@ -4,7 +4,7 @@
 import { getServiceSupabase } from '@/lib/supabase'
 import {
   reListComplexes, reGetTradeTrends, reGetRentalTrends,
-  reGetListingGap, reGetListingGapTrend, reGetJeonseRatio, reGetSummary,
+  reGetListingGap, reGetListingGapTrend, reGetJeonseRatio, reGetSummary, reGetZoneIndex,
 } from '@/lib/real-estate/queries'
 import {
   willowListClients, willowCreateClient, willowUpdateClient, willowDeleteClient,
@@ -295,6 +295,16 @@ export const agentTools = [
       type: 'object' as const,
       properties: {
         months: { type: 'string', description: '조회 기간 개월수 (기본: 12)' },
+      },
+    },
+  },
+  {
+    name: 're_get_zone_index',
+    description: '강남3구와 서울 외곽(노도강·금관구)의 매매가 지수와 격차 추이를 조회합니다. "강남이랑 외곽 격차", "외곽 따라잡았나" 같은 질문에 씁니다. 추적 단지가 아니라 아홉 개 구의 실거래 전량으로 만든 지수입니다.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        months: { type: 'string', description: '조회 기간 개월수 (미지정 시 전체)' },
       },
     },
   },
@@ -1221,6 +1231,11 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
 
     case 're_get_jeonse_ratio':
       return await reGetJeonseRatio({
+        months: args.months ? Number(args.months) : undefined,
+      })
+
+    case 're_get_zone_index':
+      return await reGetZoneIndex({
         months: args.months ? Number(args.months) : undefined,
       })
 

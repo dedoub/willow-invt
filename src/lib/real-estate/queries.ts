@@ -503,3 +503,74 @@ export async function reGetSummary(params: { district?: string }) {
     unit: '만원/평',
   }
 }
+
+/**
+ * 권역 비교 지수 — 강남3구 vs 서울 외곽(노도강·금관구).
+ *
+ * 다른 re_* 질의와 대상이 다르다. 저쪽은 추적 22개 단지의 호가·실거래를 보고,
+ * 이건 아홉 개 구의 실거래 전량으로 만든 지수라 is_tracked 를 타지 않는다.
+ * 평당가도 전용면적 기준이라 화면의 '만/평'(공급면적 기준)과 같은 축이 아니다.
+ *
+ * 계산은 re_zone_index 매트뷰가 이미 끝냈다.
+ * 근거: supabase/migrations/20260913010000_re_zone_index.sql
+ */
+export async function reGetZoneIndex(params: { months?: number }) {
+  const supabase = getServiceSupabase()
+
+
+  let query = supabase
+    .from('re_zone_index')
+    .select('month_start, zone, cells, trades, idx')
+    .order('month_start', { ascending: true })
+
+  if (params.months) {
+    const now = new Date()
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - params.months + 1, 1)
+      .toISOString().slice(0, 10)
+    query = query.gte('month_start', cutoff)
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const rows = (data || []) as Array<{ month_start: string; zone: string; cells: number; trades: number; idx: number }>
+
+  // 최근 두 달은 신고가 아직 들어오는 중이다.
+  const now = new Date()
+  const provisionalFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    .toISOString().slice(0, 10)
+
+  const byMonth = new Map<string, { month: string; provisional: boolean; zones: Record<string, { idx: number; cells: number; trades: number }> }>()
+  for (const r of rows) {
+    const month = String(r.month_start).slice(0, 7)
+    if (!byMonth.has(month)) {
+      byMonth.set(month, { month, provisional: String(r.month_start) >= provisionalFrom, zones: {} })
+    }
+    byMonth.get(month)!.zones[r.zone] = { idx: Number(r.idx), cells: r.cells, trades: r.trades }
+  }
+  const series = Array.from(byMonth.values())
+
+  const spreadOf = (row?: { zones: Record<string, { idx: number }> }) => {
+    const core = row?.zones?.['강남3구']?.idx
+    const outer = ['노도강', '금관구']
+      .map(z => row?.zones?.[z]?.idx)
+      .filter((v): v is number => typeof v === 'number')
+    if (typeof core !== 'number' || outer.length === 0) return null
+    return Math.round((core - outer.reduce((a, b) => a + b, 0) / outer.length) * 10) / 10
+  }
+
+  const finals = series.filter(r => !r.provisional)
+  const latest = finals[finals.length - 1]
+
+  return {
+    base: '2025년 상반기 = 100',
+    zones: { 강남3구: '강남·서초·송파', 노도강: '노원·도봉·강북', 금관구: '금천·관악·구로' },
+    method: '(자치구 × 단지 × 전용면적㎡) 셀의 기준기간 대비 배수를 권역별 중앙값으로 묶은 값. 셀마다 자기 자신과 비교하므로 그달에 무엇이 팔렸는지가 지수를 흔들지 않는다',
+    basis: '전용면적 기준 평당가. 화면의 만/평(공급면적 기준)과 다른 축이라 같이 놓지 말 것',
+    note: 'provisional=true 인 달은 실거래 신고 지연으로 표본이 채워지는 중이라 추세로 읽지 말 것. 추적 단지와 무관하게 구 전체 실거래로 만든다',
+    latestSettled: latest
+      ? { month: latest.month, spread: spreadOf(latest), spreadUnit: 'p (강남3구 − 외곽평균)' }
+      : null,
+    series,
+  }
+}

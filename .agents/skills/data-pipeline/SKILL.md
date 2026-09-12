@@ -22,9 +22,9 @@ description: 외부 API 데이터를 Supabase로 수집하는 파이프라인 �
 | 이름 | 소스 | 테이블 | 스케줄 | 방식 |
 |------|------|--------|--------|------|
 | 13F 데이터 | SEC EDGAR | ria_firms | 수동 | Python 스크립트 |
-| 부동산 실거래가 | 국토부 API | re_trades, re_rentals | 매일 07:13 | Vercel Cron |
-| 네이버 매물 | 네이버 부동산 | re_naver_listings | 매일 08:00 | launchd |
-| 부동산 시세 | 네이버 시세 | re_naver_prices | 매일 08:30 | launchd |
+| 부동산 실거래가 | 국토부 API | re_trades, re_rentals, re_complexes | 매일 07:13 | Vercel Cron |
+| 네이버 매물 | 네이버 부동산 | re_naver_listings, re_listing_daily_summary | 매일 10:00 | launchd |
+| 권역 지수 | re_trades 파생 | re_zone_index | 실거래 수집 직후 | Vercel Cron 안에서 refresh |
 
 ## Workflow
 

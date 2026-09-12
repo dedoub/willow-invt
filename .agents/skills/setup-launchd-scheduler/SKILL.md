@@ -27,7 +27,7 @@ macOS launchd를 사용한 로컬 스케줄러 등록 워크플로우.
 | 이름 | plist | 스케줄 |
 |------|-------|--------|
 | 텔레그램 봇 | com.willow.telegram-bot.plist | 부팅 시 + 항상 실행 |
-| 네이버 매물 크롤러 | com.willow.naver-listings.plist | 매일 08:00 |
+| 네이버 매물 크롤러 | com.willow.naver-listings-sync.plist | 매일 10:00 |
 | 부동산 시세 리포트 | com.willow.real-estate-report.plist | 매일 08:30 |
 | 포트폴리오 모니터 | com.willow.portfolio-monitor.plist | 5분 간격 |
 

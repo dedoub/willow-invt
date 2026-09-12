@@ -10,6 +10,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 
 /**
  * 권역 비교 — 강남3구와 서울 외곽(노도강·금관구)의 매매 추세.
@@ -48,6 +49,9 @@ export function ZoneIndexCard() {
   const mobile = useIsMobile()
   const [data, setData] = useState<ZoneIndexResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  // 월별 지수는 강남3구에서 달마다 5포인트씩 튄다(2026-04 114.3 → 06 119.3 → 08 122.4).
+  // 방향을 보려는 화면이라 3개월 평균을 기본으로 두고, 원값은 눌러서 본다.
+  const [smooth, setSmooth] = useState<'ma3' | 'raw'>('ma3')
 
   // 첫 로드는 loading 초기값이 이미 true 라 다시 세우지 않는다 — 효과 안에서 동기로
   // setState 하면 렌더가 한 번 더 돈다(react-hooks). 버튼으로 부를 때만 다시 켠다.
@@ -64,9 +68,18 @@ export function ZoneIndexCard() {
   useEffect(() => { fetchIndex() }, [fetchIndex])
 
   const zones = data?.zones ?? []
-  const chartData = (data?.series ?? []).map(r => {
+  const series = data?.series ?? []
+  const chartData = series.map((r, i) => {
     const row: Record<string, string | number | null> = { month: r.month }
-    for (const z of zones) row[z] = r.zones[z]?.idx ?? null
+    for (const z of zones) {
+      const raw = r.zones[z]?.idx ?? null
+      if (smooth === 'raw' || raw === null) { row[z] = raw; continue }
+      // 앞이 모자라는 첫 두 달은 있는 만큼만 평균낸다 — 잘라 버리면 선이 늦게 시작한다.
+      const window = series.slice(Math.max(0, i - 2), i + 1)
+        .map(w => w.zones[z]?.idx)
+        .filter((v): v is number => typeof v === 'number')
+      row[z] = window.length ? Math.round((window.reduce((a, b) => a + b, 0) / window.length) * 10) / 10 : null
+    }
     return row
   })
 
@@ -96,6 +109,16 @@ export function ZoneIndexCard() {
           title="권역 비교"
           mb={t.density.panelPadY + t.density.panelPadX}
           meta={data?.baseLabel}
+          tools={
+            <LSegmented
+              value={smooth}
+              onChange={setSmooth}
+              options={[
+                { value: 'ma3' as const, label: '3개월 평균' },
+                { value: 'raw' as const, label: '월별' },
+              ]}
+            />
+          }
           action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={load} busy={loading} />}
         />
 
@@ -122,7 +145,7 @@ export function ZoneIndexCard() {
                   color: t.neutrals.muted, cursor: 'help',
                 }}
               >
-                매매가 지수
+                매매가 지수{smooth === 'ma3' ? ' · 3개월 평균' : ''}
               </span>
               {spread !== undefined && (
                 <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
