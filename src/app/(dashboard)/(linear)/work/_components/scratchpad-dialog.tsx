@@ -21,13 +21,17 @@ import type { WikiSection } from './wiki-list'
  */
 export function ScratchpadDialog({ onClose, onSave }: {
   onClose: () => void
-  onSave: (data: { section: WikiSection; title: string; content: string }) => Promise<void>
+  onSave: (data: { section: WikiSection; title: string; content: string; attachments?: unknown }) => Promise<void>
 }) {
   const mobile = useIsMobile()
   const padRef = useRef<DrawPadHandle | null>(null)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+  const [kind, setKind] = useState<string | null>(null)
+  // 읽고 나면 판을 지우므로, 읽은 그림은 여기 쌓아 둔다. 저장할 때 통째로 첨부한다 —
+  // 표는 열이 어긋나게 읽히고 다이어그램은 애초에 글로 옮길 수 없어서, 원본이 답이다.
+  const shotsRef = useRef<string[]>([])
   const tools = useDrawTools('work-scratchpad-tools')
 
   // 판이 바뀔 때마다 도구의 켜짐·꺼짐을 다시 읽는다. 되돌릴 게 없는데 단추가 살아
@@ -62,16 +66,19 @@ export function ScratchpadDialog({ onClose, onSave }: {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || '읽지 못했어요')
       const got = String(data.text || '')
+      setKind(String(data.kind || (got ? 'text' : 'empty')))
       // 빈 결과는 오류가 아니라 "읽을 글씨가 없다"는 답이다. 판은 그대로 둔다 —
       // 못 읽었는데 획까지 지우면 다시 시도할 방법이 없다.
       if (!got) {
-        setError('읽을 글씨를 찾지 못했어요. 더 크게 써 보세요.')
+        setError('읽을 것을 찾지 못했어요. 더 크게 써 보세요.')
         return
       }
       // 앞서 읽은 글 아래에 이어 붙인다. 한 판을 다 쓰면 지우고 이어 쓰는 식이라
       // 읽을 때마다 갈아치우면 앞 내용이 사라진다.
       setText(prev => (prev?.trim() ? `${prev.replace(/\s+$/, '')}\n\n${got}` : got))
       // 읽은 획은 지운다. 안 지우면 다음 '이어서 읽기'가 같은 글씨를 또 읽어 겹친다.
+      // 지우기 전에 그림을 챙겨 둔다.
+      shotsRef.current.push(imageBase64)
       padRef.current?.clear()
       syncTools()
     } catch (e) {
@@ -92,23 +99,56 @@ export function ScratchpadDialog({ onClose, onSave }: {
     }
   }
 
+  /** base64 PNG 를 업로드용 File 로. */
+  const toFile = (b64: string, i: number) => {
+    const bin = atob(b64)
+    const bytes = new Uint8Array(bin.length)
+    for (let n = 0; n < bin.length; n++) bytes[n] = bin.charCodeAt(n)
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    return new File([bytes], `연습장-${stamp}-${i + 1}.png`, { type: 'image/png' })
+  }
+
   const save = async () => {
     if (!text?.trim()) return
     setSaving(true)
     setError(null)
     try {
+      // 아직 안 읽은 획이 남아 있으면 그것도 챙긴다 — 읽지 않았다고 버릴 이유가 없다.
+      const pending = padRef.current?.getImage()
+      const shots = pending ? [...shotsRef.current, pending] : shotsRef.current
+
+      // 그림을 먼저 올린다. 실패해도 글은 남긴다 — 본문을 잃는 것이 더 나쁘다.
+      let attachments: unknown
+      if (shots.length > 0) {
+        try {
+          const form = new FormData()
+          shots.forEach((b64, i) => form.append('files', toFile(b64, i)))
+          const res = await fetch('/api/wiki/upload', { method: 'POST', body: form })
+          const data = await res.json()
+          if (res.ok && Array.isArray(data?.files)) attachments = data.files
+        } catch (e) {
+          console.error('scratchpad attachment upload failed:', e)
+        }
+      }
+
       // 제목은 첫 줄에서 따고 본문은 통째로 남긴다 — 첫 줄을 본문에서 빼면
       // 제목을 고쳤을 때 원문이 사라진다.
       const firstLine = text.trim().split('\n')[0].trim()
       const title = firstLine.length > 40 ? `${firstLine.slice(0, 40)}…` : firstLine
       // 손글씨는 메모다 — 도메인 위키가 아니라 '메모' 구분으로 남긴다.
-      await onSave({ section: 'memo', title: title || '손글씨 메모', content: text.trim() })
+      await onSave({ section: 'memo', title: title || '손글씨 메모', content: text.trim(), attachments })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setSaving(false)
     }
   }
+
+  // 무엇으로 읽었는지 한 줄로 말해 준다. 다이어그램인데 아무 말이 없으면
+  // 설명만 덩그러니 남은 것이 실패로 보인다 — 그림은 첨부로 간다는 걸 알려야 한다.
+  const kindNote = kind === 'table' ? '읽은 표 (저장하면 표로 보여요)'
+    : kind === 'diagram' ? '그림 설명 · 그림 자체는 저장할 때 첨부돼요'
+    : '읽은 글'
 
   const toolBar = (
     <DrawTools
@@ -172,7 +212,7 @@ export function ScratchpadDialog({ onClose, onSave }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: t.density.gapSm }}>
                 <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                  읽은 글 · 고쳐서 저장할 수 있어요 · 오른쪽 아래를 끌면 칸이 커져요
+                  {kindNote} · 고쳐서 저장할 수 있어요 · 오른쪽 아래를 끌면 칸이 커져요
                 </span>
                 <button
                   type="button"
