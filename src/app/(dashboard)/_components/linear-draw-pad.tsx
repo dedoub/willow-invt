@@ -18,6 +18,18 @@ export interface DrawPadHandle {
   canRedo: () => boolean
 }
 
+/**
+ * 손바닥 무시 — 이 판이 펜을 본 적 있으면 그 뒤로 손가락은 받지 않는다.
+ *
+ * 펜을 쥔 손은 판에 얹히기 마련이고, 그 접촉이 획이 되면 글씨 위에 손바닥 자국이 남는다.
+ * 펜이 없는 기기는 아무것도 달라지지 않는다 — 본 적이 없으니 막을 이유가 없다.
+ * 마우스는 손가락이 아니라서 막지 않는다.
+ */
+export function acceptsPointer(pointerType: string, sawPen: boolean): boolean {
+  if (pointerType === 'pen') return true
+  return !(sawPen && pointerType === 'touch')
+}
+
 type Stroke = { x: number; y: number }[]
 
 const DEFAULT_PAD_H_KEY = 'english-pad-h'
@@ -38,6 +50,18 @@ export const DrawPad = forwardRef<DrawPadHandle, {
   // 되돌린 획. 새로 그리면 버린다 — 갈라진 역사를 들고 있으면 다시하기가
   // 엉뚱한 획을 되살린다(스크립타 주석 도구와 같은 규칙).
   const undoneRef = useRef<Stroke[]>([])
+  /**
+   * 이 판에서 펜을 본 적이 있나. 손바닥 무시의 전부다.
+   *
+   * 한 번이라도 펜이 닿았으면 그 뒤로 손가락은 무시한다 — 펜을 쥔 손은 판에 얹히기
+   * 마련이고, 그 접촉이 획이 되면 글씨 위에 손바닥 자국이 남는다.
+   * 펜이 없는 기기에서는 아무것도 달라지지 않는다. 본 적이 없으니 막을 이유가 없다.
+   * 기기에 남기지 않는다 — 펜을 쓰는 사람은 어차피 첫 획에서 바로 잡힌다.
+   * 마우스는 손가락이 아니다. 막지 않는다.
+   */
+  const sawPenRef = useRef(false)
+  /** 지금 그리는 획을 시작한 포인터 종류. 손바닥이 먼저 닿은 획을 되돌리는 데 쓴다. */
+  const activeTypeRef = useRef<string | null>(null)
   const drawingRef = useRef(false)
   // 높이 — 긴 답(작문)을 쓸 수 있게 드래그로 조절, 기기별 localStorage 기억
   const [padH, setPadH] = useState<number>(() => {
@@ -124,6 +148,22 @@ export const DrawPad = forwardRef<DrawPadHandle, {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
 
+  /** 펜을 본 적 있는 판에서 온 손가락이면 참. 그 접촉은 없던 일로 친다. */
+  const isRejectedTouch = (e: React.PointerEvent) => {
+    if (e.pointerType === 'pen') {
+      // 처음 펜을 본 순간, 손바닥이 먼저 찍어 둔 획이 있으면 지운다. 펜을 대기 직전에
+      // 손이 먼저 닿는 것이 보통이라, 안 지우면 첫 글씨 옆에 점 하나가 남는다.
+      if (!sawPenRef.current && drawingRef.current && activeTypeRef.current === 'touch') {
+        strokesRef.current.pop()
+        drawingRef.current = false
+        redraw()
+      }
+      sawPenRef.current = true
+      return false
+    }
+    return !acceptsPointer(e.pointerType, sawPenRef.current)
+  }
+
   // 개체 지우개 — 커서 반경 안에 점이 있는 획을 통째로 제거
   const eraseAt = (p: { x: number; y: number }) => {
     const R = 12
@@ -153,26 +193,33 @@ export const DrawPad = forwardRef<DrawPadHandle, {
         ref={canvasRef}
         style={{ display: 'block', touchAction: 'none', cursor: disabled ? 'default' : 'crosshair' }}
         onPointerDown={(e) => {
-          if (disabled) return
+          if (disabled || isRejectedTouch(e)) return
           e.currentTarget.setPointerCapture(e.pointerId)
           drawingRef.current = true
+          activeTypeRef.current = e.pointerType
           if (tool === 'eraser') { eraseAt(pointFrom(e)); return }
           undoneRef.current = []
           strokesRef.current.push([pointFrom(e)])
         }}
         onPointerMove={(e) => {
-          if (!drawingRef.current || disabled) return
+          if (!drawingRef.current || disabled || isRejectedTouch(e)) return
           if (tool === 'eraser') { eraseAt(pointFrom(e)); return }
           const stroke = strokesRef.current[strokesRef.current.length - 1]
           stroke.push(pointFrom(e))
           redraw()
         }}
-        onPointerUp={() => {
-          if (!drawingRef.current) return
+        onPointerUp={(e) => {
+          // 무시하기로 한 손가락이 떨어지는 것으로 펜 획을 끊지 않는다.
+          if (!drawingRef.current || isRejectedTouch(e)) return
           drawingRef.current = false
+          activeTypeRef.current = null
           onInkChange?.(strokesRef.current.length > 0)
         }}
-        onPointerCancel={() => { drawingRef.current = false }}
+        onPointerCancel={(e) => {
+          if (isRejectedTouch(e)) return
+          drawingRef.current = false
+          activeTypeRef.current = null
+        }}
       />
       {/* 높이 조절 그립 — 드래그로 160~1200px, 기기별 기억 */}
       <div
