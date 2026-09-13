@@ -1,5 +1,6 @@
 import type { ThreadEvent, ThreadItem, ThreadOptions } from '@openai/codex-sdk'
 import type { AgentOptions, AgentRunResult, AgentRunner, CodexProgress } from './runner-types'
+import { installNdjsonReadlineGuard } from './codex-ndjson'
 
 type CodexSdkModule = typeof import('@openai/codex-sdk')
 
@@ -7,6 +8,9 @@ let sdkClientPromise: Promise<InstanceType<CodexSdkModule['Codex']>> | null = nu
 
 async function getSdkClient(): Promise<InstanceType<CodexSdkModule['Codex']>> {
   if (!sdkClientPromise) {
+    // SDK 를 들이기 전에 걸어 둔다. 인터페이스는 runStreamed 때 만들어지지만,
+    // 순서를 코드로 못 박아 두는 편이 나중에 헷갈리지 않는다.
+    installNdjsonReadlineGuard()
     sdkClientPromise = import('@openai/codex-sdk').then(({ Codex }) => new Codex())
   }
   return sdkClientPromise
