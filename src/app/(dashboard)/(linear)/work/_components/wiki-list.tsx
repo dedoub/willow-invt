@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
-import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { ScratchpadDialog } from './scratchpad-dialog'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
@@ -15,7 +16,7 @@ import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/componen
 import { LPageSize, LTableBadge, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableDate, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
-type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
+export type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 
 const SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -145,6 +146,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
+  const [scratchpad, setScratchpad] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
@@ -292,6 +294,9 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           }
           toolsInline
           mb={0}
+          // 손으로 갈겨 쓰고 읽어서 노트로 남기는 자리. 키보드 앞에 앉기 전에 쓰는 메모라
+          // 목록 위 컨트롤이 아니라 카드 머리에 둔다.
+          action={<LHeadBtn icon="pencil" title="손글씨 연습장" onClick={() => setScratchpad(true)} />}
         />
       </div>
 
@@ -668,6 +673,13 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         </DetailShell>
         )}
       </div>
+
+      {scratchpad && (
+        <ScratchpadDialog
+          onClose={() => setScratchpad(false)}
+          onSave={onCreate}
+        />
+      )}
     </LCard>
   )
 }
