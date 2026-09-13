@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
-import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { DrawPad, type DrawPadHandle } from '@/app/(dashboard)/_components/linear-draw-pad'
+import { DrawTools, useDrawTools } from '@/app/(dashboard)/_components/linear-draw-tools'
 import type { WikiSection } from './wiki-list'
 
 /**
@@ -27,6 +27,15 @@ export function ScratchpadDialog({ onClose, onSave }: {
   const padRef = useRef<DrawPadHandle | null>(null)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const tools = useDrawTools('work-scratchpad-tools')
+
+  // 판이 바뀔 때마다 도구의 켜짐·꺼짐을 다시 읽는다. 되돌릴 게 없는데 단추가 살아
+  // 있으면 눌러 놓고 왜 아무 일도 없는지 묻게 된다.
+  const syncTools = () => {
+    setHasInk(!padRef.current?.isEmpty())
+    setCanRedo(!!padRef.current?.canRedo())
+  }
   const [text, setText] = useState<string | null>(null)
   const [reading, setReading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -52,9 +61,19 @@ export function ScratchpadDialog({ onClose, onSave }: {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || '읽지 못했어요')
-      // 빈 결과는 오류가 아니라 "읽을 글씨가 없다"는 답이다.
-      setText(data.text || '')
-      if (!data.text) setError('읽을 글씨를 찾지 못했어요. 더 크게 써 보세요.')
+      const got = String(data.text || '')
+      // 빈 결과는 오류가 아니라 "읽을 글씨가 없다"는 답이다. 판은 그대로 둔다 —
+      // 못 읽었는데 획까지 지우면 다시 시도할 방법이 없다.
+      if (!got) {
+        setError('읽을 글씨를 찾지 못했어요. 더 크게 써 보세요.')
+        return
+      }
+      // 앞서 읽은 글 아래에 이어 붙인다. 한 판을 다 쓰면 지우고 이어 쓰는 식이라
+      // 읽을 때마다 갈아치우면 앞 내용이 사라진다.
+      setText(prev => (prev?.trim() ? `${prev.replace(/\s+$/, '')}\n\n${got}` : got))
+      // 읽은 획은 지운다. 안 지우면 다음 '이어서 읽기'가 같은 글씨를 또 읽어 겹친다.
+      padRef.current?.clear()
+      syncTools()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -91,6 +110,23 @@ export function ScratchpadDialog({ onClose, onSave }: {
     }
   }
 
+  const toolBar = (
+    <DrawTools
+      toolsRef={tools.toolsRef}
+      tool={tool}
+      onToolChange={setTool}
+      onUndo={() => { padRef.current?.undo(); syncTools() }}
+      onRedo={() => { padRef.current?.redo(); syncTools() }}
+      onClear={() => { padRef.current?.clear(); syncTools() }}
+      canUndo={hasInk}
+      canRedo={canRedo}
+      docked={tools.docked}
+      onToggleDock={tools.toggleDock}
+      place={tools.place}
+      handleProps={tools.handleProps}
+    />
+  )
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
@@ -110,47 +146,54 @@ export function ScratchpadDialog({ onClose, onSave }: {
           padding: t.density.cardPad, paddingBottom: t.density.blockGap,
           overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
         }}>
-          {/* 도구 줄 — 판 바로 위. 제목과 같은 줄에 두면 펜을 쥔 손이 멀리 간다. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>
-              연습장
-            </span>
-            <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center', flexWrap: 'wrap' }}>
-              <LSegmented<'pen' | 'eraser'>
-                value={tool}
-                onChange={setTool}
-                options={[{ value: 'pen', label: '펜' }, { value: 'eraser', label: '지우개' }]}
-              />
-              <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.undo(); setHasInk(!padRef.current?.isEmpty()) }}>
-                한 획 취소
-              </LBtn>
-              <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.clear(); setHasInk(false) }}>
-                전체 지우기
-              </LBtn>
-            </div>
-          </div>
+          <span style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>
+            연습장
+          </span>
 
-          <DrawPad
-            ref={padRef}
-            height={mobile ? 300 : 380}
-            storageKey="work-scratchpad-h"
-            tool={tool}
-            onInkChange={setHasInk}
-          />
+          {/* 도구 바 — 좁으면 판 밖 한 줄로, 넓으면 판 위에 띄운다.
+              바로 설 때 판 안에 넣으면 쓰는 면과 한 상자에 든 것처럼 보인다. */}
+          {tools.docked && toolBar}
+
+          <div ref={tools.boxRef} style={{ position: 'relative' }}>
+            {/* 띄울 때는 판 안에 겹친다 — 줄을 따로 내주면 쓰는 자리가 그만큼 밀린다. */}
+            {!tools.docked && toolBar}
+            <DrawPad
+              ref={padRef}
+              height={mobile ? 300 : 380}
+              storageKey="work-scratchpad-h"
+              tool={tool}
+              onInkChange={syncTools}
+            />
+          </div>
 
           {error && <LNotice tone="warn" text={error} />}
 
           {text !== null && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
-              <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                읽은 글 · 고쳐서 저장할 수 있어요
-              </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: t.density.gapSm }}>
+                <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                  읽은 글 · 고쳐서 저장할 수 있어요 · 오른쪽 아래를 끌면 칸이 커져요
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setText(null); setError(null) }}
+                  style={{
+                    border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
+                    fontFamily: t.font.sans,
+                  }}
+                >
+                  글 지우기
+                </button>
+              </div>
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
                 rows={mobile ? 5 : 7}
                 style={{
-                  width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                  // 세로 크기는 언제든 끌어서 바꾼다. 손글씨를 이어 붙일수록 길어지는 칸이라
+                  // 높이를 우리가 못 박으면 읽을 때마다 스크롤을 뒤져야 한다.
+                  width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: 96,
                   background: t.neutrals.inner, border: 'none', borderRadius: t.radius.md,
                   padding: `${t.density.gapMd}px ${t.density.gapLg}px`,
                   fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
@@ -178,7 +221,7 @@ export function ScratchpadDialog({ onClose, onSave }: {
             </>
           )}
           <LBtn size="sm" variant="brand" onClick={read} disabled={!hasInk || reading}>
-            {reading ? '읽는 중…' : text ? '다시 읽기' : '읽어오기'}
+            {reading ? '읽는 중…' : text ? '이어서 읽기' : '읽어오기'}
           </LBtn>
         </div>
       </LCard>

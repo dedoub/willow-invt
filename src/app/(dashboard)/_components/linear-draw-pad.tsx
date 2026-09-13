@@ -12,7 +12,10 @@ export interface DrawPadHandle {
   getImage: () => string | null
   clear: () => void
   undo: () => void
+  /** 되돌린 획을 되살린다. 되살릴 게 없으면 아무 일도 하지 않는다. */
+  redo: () => void
   isEmpty: () => boolean
+  canRedo: () => boolean
 }
 
 type Stroke = { x: number; y: number }[]
@@ -32,6 +35,9 @@ export const DrawPad = forwardRef<DrawPadHandle, {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const strokesRef = useRef<Stroke[]>([])
+  // 되돌린 획. 새로 그리면 버린다 — 갈라진 역사를 들고 있으면 다시하기가
+  // 엉뚱한 획을 되살린다(스크립타 주석 도구와 같은 규칙).
+  const undoneRef = useRef<Stroke[]>([])
   const drawingRef = useRef(false)
   // 높이 — 긴 답(작문)을 쓸 수 있게 드래그로 조절, 기기별 localStorage 기억
   const [padH, setPadH] = useState<number>(() => {
@@ -95,13 +101,22 @@ export const DrawPad = forwardRef<DrawPadHandle, {
       ctx.drawImage(canvas, 0, 0)
       return out.toDataURL('image/png').split(',')[1]
     },
-    clear: () => { strokesRef.current = []; redraw(); onInkChange?.(false) },
+    clear: () => { strokesRef.current = []; undoneRef.current = []; redraw(); onInkChange?.(false) },
     undo: () => {
-      strokesRef.current.pop()
+      const removed = strokesRef.current.pop()
+      if (removed) undoneRef.current.push(removed)
+      redraw()
+      onInkChange?.(strokesRef.current.length > 0)
+    },
+    redo: () => {
+      const restored = undoneRef.current.pop()
+      if (!restored) return
+      strokesRef.current.push(restored)
       redraw()
       onInkChange?.(strokesRef.current.length > 0)
     },
     isEmpty: () => strokesRef.current.length === 0,
+    canRedo: () => undoneRef.current.length > 0,
   }), [redraw, onInkChange])
 
   const pointFrom = (e: React.PointerEvent) => {
@@ -117,6 +132,7 @@ export const DrawPad = forwardRef<DrawPadHandle, {
       stroke => !stroke.some(q => (q.x - p.x) ** 2 + (q.y - p.y) ** 2 <= R * R),
     )
     if (strokesRef.current.length !== before) {
+      undoneRef.current = []
       redraw()
       onInkChange?.(strokesRef.current.length > 0)
     }
@@ -141,6 +157,7 @@ export const DrawPad = forwardRef<DrawPadHandle, {
           e.currentTarget.setPointerCapture(e.pointerId)
           drawingRef.current = true
           if (tool === 'eraser') { eraseAt(pointFrom(e)); return }
+          undoneRef.current = []
           strokesRef.current.push([pointFrom(e)])
         }}
         onPointerMove={(e) => {
