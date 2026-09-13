@@ -156,7 +156,7 @@ export function GeoAnswerCard({ site }: { site: 'voicecards' | 'reviewnotes' | '
                 {
                   label: 'AI 유입 클릭', value: data.aiClicks.total.toLocaleString(), mono: true,
                   sub: `오늘 ${data.aiClicks.today.toLocaleString()}회 · 7일 ${data.aiClicks.last7d.toLocaleString()}회`,
-                  title: '답변에 실린 링크를 사람이 눌러 들어온 횟수(크롤 로그 referral). 인용이 트래픽이 됐는지를 본다.',
+                  title: '답변에 실린 링크를 사람이 눌러 들어온 Umami 리퍼러 세션. 인용이 실제 트래픽이 됐는지를 본다.',
                 },
                 {
                   label: '색인된 페이지 (원본)', value: data.indexedPages.toLocaleString(), mono: true,

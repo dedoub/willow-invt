@@ -12,6 +12,7 @@
 
 import { supabase } from './supabase'
 import { getIndexedPageStats } from './gsc-index'
+import { getAiReferralStats, getUmamiSite } from './umami'
 import type { GeoStage, GeoCause, GeoRates, GeoQuestionRow, GeoAction, GeoAnswerStats } from './geo-types'
 
 export type { GeoStage, GeoCause, GeoRates, GeoQuestionRow, GeoAction, GeoAnswerStats }
@@ -74,8 +75,9 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
   // 오늘 = KST 자정 이후 (대시보드 퍼널 카드와 같은 기준)
   const kstTodayStart = new Date(`${new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)}T00:00:00+09:00`).toISOString()
+  const umamiSite = getUmamiSite(site)
 
-  const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes, clickTodayRes] = await Promise.all([
+  const [measRes, qRes, actRes, idxRes, clickRes, clickWeekRes, clickTodayRes, umamiClicks] = await Promise.all([
     supabase.from('geo_answer_measurements')
       .select('measured_on, measured_week, engine, question_id, question, mentioned, top3, cited, competitors, measured_at')
       .eq('site', site).gte('measured_on', since)
@@ -94,6 +96,7 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
       .eq('site', site).in('category', ['referral', 'referral_nav']).gte('ts', weekAgo),
     supabase.from('vc_crawl_log').select('id', { count: 'exact', head: true })
       .eq('site', site).in('category', ['referral', 'referral_nav']).gte('ts', kstTodayStart),
+    umamiSite ? getAiReferralStats(umamiSite).catch(() => null) : Promise.resolve(null),
   ])
 
   if (measRes.error) throw new Error(`GEO 측정 조회 실패: ${measRes.error.message}`)
@@ -101,7 +104,13 @@ export async function getGeoAnswerStats(site: string, days = 90): Promise<GeoAns
   const indexedPages = idxRes.total
   const indexedPagesLocale = idxRes.locale
   const indexedPagesDelta = { today: idxRes.today, last7d: idxRes.last7d }
-  const aiClicks = { total: clickRes.count ?? 0, last7d: clickWeekRes.count ?? 0, today: clickTodayRes.count ?? 0 }
+  // 사람의 AI 링크 유입은 Umami 리퍼러가 정본이다. 크롤 로그 집계는 Umami가
+  // 일시적으로 실패하거나 사이트 설정이 없을 때만 폴백으로 남긴다.
+  const aiClicks = umamiClicks ?? {
+    total: clickRes.count ?? 0,
+    last7d: clickWeekRes.count ?? 0,
+    today: clickTodayRes.count ?? 0,
+  }
 
   const actions: GeoAction[] = ((actRes.data ?? []) as Array<Record<string, unknown>>).map(a => ({
     id: Number(a.id),

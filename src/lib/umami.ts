@@ -67,7 +67,7 @@ interface UmamiStats {
   bounces: number
   totaltime: number
 }
-interface UmamiMetric { x: string | null; y: number }
+export interface UmamiMetric { x: string | null; y: number }
 interface UmamiSeries { pageviews: Array<{ x: string; y: number }>; sessions: Array<{ x: string; y: number }> }
 
 // ─── 채널 분류 ────────────────────────────────────────────────────────────────
@@ -118,6 +118,39 @@ export function classifyReferrer(referrer: string | null | undefined): Channel {
   if (SEARCH_HOSTS.some(h => r.includes(h))) return 'search'
   if (SOCIAL_HOSTS.some(h => r.includes(h))) return 'social'
   return 'referral'
+}
+
+export function sumAiReferrerVisits(rows: UmamiMetric[]): number {
+  return rows.reduce((sum, row) => sum + (classifyReferrer(row.x) === 'ai' ? row.y : 0), 0)
+}
+
+export interface AiReferralStats {
+  today: number
+  last7d: number
+  total: number
+}
+
+/** 사람의 AI 답변 링크 유입. 봇 크롤 로그가 아니라 Umami 리퍼러 세션을 정본으로 쓴다. */
+export async function getAiReferralStats(site: UmamiSiteConfig): Promise<AiReferralStats> {
+  const endAt = Date.now()
+  const kstDate = new Date(endAt + 9 * 3_600_000).toISOString().slice(0, 10)
+  const todayStartAt = new Date(`${kstDate}T00:00:00+09:00`).getTime()
+  const base = `/websites/${site.websiteId}/metrics`
+  const load = (startAt: number) => umamiFetch<UmamiMetric[]>(base, {
+    startAt, endAt, type: 'referrer', limit: 100,
+  })
+
+  const [totalRows, weekRows, todayRows] = await Promise.all([
+    load(0),
+    load(endAt - 7 * 86_400_000),
+    load(todayStartAt),
+  ])
+
+  return {
+    total: sumAiReferrerVisits(totalRows),
+    last7d: sumAiReferrerVisits(weekRows),
+    today: sumAiReferrerVisits(todayRows),
+  }
 }
 
 // ─── 경로 정규화 ──────────────────────────────────────────────────────────────
