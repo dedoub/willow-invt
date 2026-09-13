@@ -145,6 +145,10 @@ function ToolButton({ icon, label, active, disabled, onClick, ...rest }: {
   return (
     <button
       type="button"
+      // theme-outline 은 `button { background: transparent !important }` 로 배경을 전부 벗긴다.
+      // 활성 표시는 그 테마가 아는 언어로 해야 살아남는다 — 칩·세그먼트와 같은 [data-active].
+      data-draw-tool=""
+      data-active={active ? '' : undefined}
       aria-label={label}
       aria-pressed={active}
       title={label}

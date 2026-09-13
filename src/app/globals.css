@@ -767,7 +767,11 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
    둘러싸인 작은 칩이 큰 네이비 면보다 어둡게 보인다(동시대비, CEO 2026-09-11).
    강조색은 여기(활성 칩·탭)에만 쓰고 나머지는 회색으로 둔다(CEO 2026-09-10). */
 .theme-outline [data-filter-chip][data-active],
-.theme-outline [data-segment][data-active] {
+.theme-outline [data-segment][data-active],
+/* 필기 도구 바의 켜진 도구(펜·지우개)도 같은 언어로 읽힌다. 아이콘만 있는 단추라
+   위의 `button:has(> svg:only-child)` 규칙이 배경을 벗기는데, 속성 두 개짜리 이 선택자가
+   더 구체적이라 이긴다(2026-09-13). */
+.theme-outline [data-draw-tool][data-active] {
   background: #0E415A !important;
   color: #FFFFFF !important;
   border-color: #0E415A !important;
