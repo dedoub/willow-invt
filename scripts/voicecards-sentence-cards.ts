@@ -1,9 +1,11 @@
 /**
  * 보이스카드 덱에 "문장 카드"를 끼워 넣는다.
  *
- * 덱에는 청크가 한 줄에 하나씩 들어 있다. 조각만 반복하면 조각은 익는데 문장이 안 익어서,
- * 한 문장이 끝날 때마다 그 문장의 청크를 한 장으로 모아 다음 문장이 시작되기 전에 끼운다
- * (CEO 2026-09-14, 기후 스피치 CSV에서 쓴 것과 같은 방식).
+ * 한 문장에 대해 **청크를 세 바퀴 돌린 뒤 그 문장을 한 장으로 모아** 넣고, 다음 문장으로
+ * 넘어간다. 조각만 반복하면 조각은 익는데 문장이 안 익고, 한 바퀴만 돌리면 조각이 덜 익는다
+ * (CEO 2026-09-14).
+ *
+ *   c1 c2 c3 · c1 c2 c3 · c1 c2 c3 · [문장] · d1 d2 · d1 d2 · d1 d2 · [문장] · …
  *
  * 문장 경계는 **영어 청크의 끝 문장부호**로 잡는다. 마침표·물음표·느낌표·닫는 따옴표로
  * 끝나면 거기서 한 문장이 끝난 것이다. 시트에는 문장 번호가 없으므로 이것이 유일한 단서다.
@@ -23,6 +25,8 @@ import { DECKS } from '../src/lib/english'
 
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 const DECK = DECKS['ceo']
+/** 문장 카드를 놓기 전에 청크를 몇 바퀴 돌릴지. */
+const REPEATS = 3
 
 const norm = (v: string | undefined) => (v || '').replace(/\s+/g, ' ').trim()
 /** 문장이 여기서 끝나는가. 닫는 따옴표가 뒤에 붙어도 끝으로 본다. */
@@ -31,6 +35,22 @@ const endsSentence = (en: string) => /[.?!]["'”’)\]]*\s*$/.test(norm(en))
 const isCombined = (q: string, a: string) => q.includes('\n') || a.includes('\n')
 
 interface Row { q: string; a: string; rest: string[] }
+
+/**
+ * 같은 줄이 몇 바퀴 돌고 있는 구간에서 한 바퀴만 돌려준다.
+ *
+ * 반복 횟수를 바꿔도(3→5) 다시 돌릴 수 있어야 해서, 몇 바퀴인지 세지 않고 최소 주기를 찾는다.
+ * 나누어떨어지는 가장 짧은 주기를 쓴다 — 청크 여섯 개짜리 문장을 두 바퀴 돌린 열두 줄과
+ * 청크 열두 개짜리 문장 한 바퀴는 겉이 같지만, 앞쪽이 실제로 일어나는 일이다.
+ */
+function basePeriod(seg: string[][]): string[][] {
+  const key = (r: string[]) => `${norm(r[0])}\u0000${norm(r[1])}`
+  for (let k = 1; k <= seg.length; k++) {
+    if (seg.length % k !== 0) continue
+    if (seg.every((r, i) => key(r) === key(seg[i % k]))) return seg.slice(0, k)
+  }
+  return seg
+}
 
 function group(rows: Row[]): Row[][] {
   const out: Row[][] = []
@@ -69,13 +89,20 @@ async function main() {
 
   const live = all.slice(1).filter(r => norm(r[0]) || norm(r[1]))
 
-  // 이미 있는 문장 카드는 먼저 걷어낸다. 그런 다음 청크만으로 다시 묶어 카드를 새로 끼운다.
-  // 걷어내지 않고 건너뛰려 하면, 문장 카드 자체가 마침표로 끝나므로 다음 묶음의 첫 줄로
-  // 딸려 들어가 그 묶음이 한 줄짜리가 되고, 다음 문장에는 카드가 또 붙는다.
-  // 결과를 매번 같은 모양으로 다시 계산하는 편이 예외를 세는 것보다 안전하다.
-  const existingCards = live.filter(r => isCombined(r[0] ?? '', r[1] ?? '')).length
-  const rows: Row[] = live
-    .filter(r => !isCombined(r[0] ?? '', r[1] ?? ''))
+  // 매번 바닥에서 다시 세운다 — 이미 놓인 것을 세어 예외로 넘기려 하면 반복 횟수가
+  // 달라질 때마다 셈이 어긋난다. 먼저 원래의 청크 한 바퀴를 되찾는다:
+  //   ① 문장 카드로 구간을 가른다. 카드 하나가 한 문장의 끝이다.
+  //   ② 구간 안은 같은 청크가 여러 바퀴 돌고 있으므로 최소 주기만 남긴다.
+  const segments: string[][][] = []
+  let seg: string[][] = []
+  for (const r of live) {
+    if (isCombined(r[0] ?? '', r[1] ?? '')) { segments.push(seg); seg = []; continue }
+    seg.push(r)
+  }
+  if (seg.length > 0) segments.push(seg)
+
+  const rows: Row[] = segments
+    .flatMap(basePeriod)
     .map(r => ({ q: r[0] ?? '', a: r[1] ?? '', rest: r.slice(2) }))
 
   const groups = group(rows)
@@ -84,22 +111,28 @@ async function main() {
   let skippedSingles = 0
 
   for (const g of groups) {
-    for (const r of g) out.push([r.q, r.a, ...r.rest])
+    const complete = g.length >= 2 && endsSentence(g[g.length - 1].a)
+    // 아직 끝나지 않은 꼬리는 반복하지 않는다 — 모을 문장이 없으니 돌릴 이유도 없다.
+    const passes = complete ? REPEATS : 1
+    for (let i = 0; i < passes; i++) {
+      for (const r of g) out.push([r.q, r.a, ...r.rest])
+    }
     if (g.length < 2) { skippedSingles += 1; continue }
-    if (!endsSentence(g[g.length - 1].a)) continue
+    if (!complete) continue
     out.push([g.map(r => r.q).join('\n'), g.map(r => r.a).join('\n'), '', '', '', '', ''])
     cards += 1
   }
 
-  const added = cards - existingCards
-  console.log(`청크 ${rows.length}행 · 문장 ${groups.length}개 · 이미 있던 문장 카드 ${existingCards}개`)
-  console.log(`문장 카드 ${cards}개가 되도록 정리한다 (새로 ${Math.max(0, added)}개, 청크 1개짜리 ${skippedSingles}개는 모으지 않음)`)
+  console.log(`청크 ${rows.length}행(중복 제거 후) · 문장 ${groups.length}개`)
+  console.log(`청크 ${REPEATS}바퀴 + 문장 카드 1장 · 문장 카드 ${cards}개 · 총 ${out.length}행 (청크 1개짜리 ${skippedSingles}개는 모으지 않음)`)
   for (const g of groups) {
     if (g.length < 2) continue
     console.log(`  · ${g.map(r => r.a).join(' ').slice(0, 90)}…`)
   }
-  if (cards === existingCards && out.length === live.length) {
-    console.log('이미 정리돼 있다 — 쓸 것이 없다')
+  const same = out.length === live.length
+    && out.every((r, i) => norm(r[0]) === norm(live[i][0]) && norm(r[1]) === norm(live[i][1]))
+  if (same) {
+    console.log('이미 이 모양이다 — 쓸 것이 없다')
     return
   }
   if (dry) { console.log('--dry 라 쓰지 않았다'); return }
@@ -112,7 +145,7 @@ async function main() {
     valueInputOption: 'RAW',
     requestBody: { values: padded },
   })
-  console.log(`${out.length}행으로 다시 썼다 (문장 카드 ${added}개 추가)`)
+  console.log(`${out.length}행으로 다시 썼다 (청크 ${REPEATS}바퀴 · 문장 카드 ${cards}장)`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
