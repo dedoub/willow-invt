@@ -39,6 +39,11 @@ export interface PracticeTarget {
    * 되면서 아빠 에세이가 손글씨로 열렸다(2026-09-14).
    */
   defaultInput: 'type' | 'draw'
+  /**
+   * 문어 대상의 문장 길이 하한(낱말). 이보다 짧은 것은 생성 단계에서 버린다.
+   * 길이는 모델에게 부탁해서 얻어지지 않아서 코드가 바닥을 잡는다(2026-09-14).
+   */
+  minWords?: number
   /** 보이스카드 내보내기 대상 시트 */
   deck: { spreadsheetId: string; gid?: number; tabTitle?: string }
 }
@@ -66,12 +71,14 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     label: '에세이',
     learner: '아빠',
     title: '영작 연습 · 비즈니스 에세이',
-    meta: '경영학 주제 · 미국 대학 수준 분석 산문',
+    meta: '경영학 주제 · The Box 수준의 분석 산문',
     note: '보고가 아니라 논증. 사실을 적는 문장이 아니라 주장하고 따지는 문장을 쓴다 · 합격 80점',
     dailyGoal: 10,
     sourceLabel: '경영학 주제',
     register: 'written',
     source: 'general',
+    // The Box 수준을 목표로 한다 — 종속절 둘이 들어가면 스무 낱말 아래로 내려가지 않는다.
+    minWords: 20,
     defaultInput: 'type',
     deck: CEO_DECK,
   },

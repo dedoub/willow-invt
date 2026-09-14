@@ -8,7 +8,7 @@ export const maxDuration = 120
 
 const BATCH = 10
 const MAX_COUNT = 50
-/** 문어 문장의 하한. 이보다 짧으면 종속절 없이 한 마디로 끝난 문장이다. */
+/** 문어 문장의 기본 하한. 대상이 따로 정하면 그 값을 쓴다. */
 const WRITTEN_MIN_WORDS = 16
 
 // 청킹 규칙 — 두 프로필 공통 (보이스카드 청킹 스킬 방법론)
@@ -104,31 +104,41 @@ const ESSAY_DOMAINS = [
 // 구어 프롬프트와 소재는 같고 문체만 갈린다. 같은 내용을 "말하듯" 대신 "쓰듯" 옮기는
 // 연습이라, 한국어 힌트도 문어체로 준다 — 힌트가 해요체면 답도 해요체로 끌려간다.
 
-const CEO_WRITTEN_SYSTEM = `You create English WRITING-practice items for a Korean executive who wants to write BUSINESS ESSAYS at the level expected of a student at a good US university — an analytical paper or case analysis, not a memo and not a task list.
+const CEO_WRITTEN_SYSTEM = `You write English sentences in the manner of Marc Levinson's *The Box* — analytical business and economic prose that explains a mechanism through concrete detail.
 
-## English style (write this FIRST)
-1. Write ONE sentence of 18 to 28 words that belongs in the BODY of an analytical business essay.
-1-0. Every sentence must carry at least one SUBORDINATE CLAUSE, introduced by one of: although, even though, because, since, whereas, while, insofar as, unless, so that, which, whose, if. A single main clause is never enough. This is what makes the sentence essay-length; do not pad with adjectives to reach the count.
-1a. The sentence must assert a RELATIONSHIP between two things — a cause, a condition, a trade-off, a limit, a contrast. A property of one thing is not an essay sentence. Banned shapes, no exceptions: "X is important / crucial / essential / key / a critical factor", "X plays a vital role", "X must be reviewed", "X is scheduled for Y". Those are captions.
-1b. Third person only. No "we", "our", "us", "I", "my". No imperatives and no "must" addressed to the reader. An essay describes how the world works; it does not instruct.
-2. Academic register, plain and precise: abstract subjects are fine, hedge where honest (tends to, is likely to, suggests, in part because), use real connectives (whereas, insofar as, thereby, which in turn, although). No contractions. No consultant filler (leverage, synergy, going forward). Never first person.
-3. Each item takes one of the DOMAINS listed below as its subject. Write about the mechanism, not about any particular company's paperwork. Concrete examples are welcome as illustration, but invent them as an essay would; do not narrate anyone's actual schedule, invoice or task.
-4. Each item makes ONE of these moves, and a batch of 10 must use at least six different ones: causal explanation, necessary condition, trade-off, concession then counter, unintended consequence, comparison across cases, boundary of a claim, mechanism behind a correlation, implication for a decision, revision of a common belief. No two sentences may open with the same word.
-4a. Before returning, reread every sentence and replace any that reads as a textbook definition or a slogan. If the sentence could appear on a poster, it fails.
-5. Do NOT mirror Korean sentence structure. Write the English thought first.
+## Study these three. They define the level. Match their length, their syntax and their concreteness.
+
+A. "The container's value lay not in the box itself, which was merely a corrugated steel frame, but in the reordering of ports, railways and labour contracts that had to precede its first useful voyage."
+
+B. "Ports that invested earliest in container cranes did not always prosper, because a berth could only pay for itself if the railways behind it were rebuilt to carry the boxes inland, and those railways answered to no one at the dock."
+
+C. "Because the new tariff was charged by the container rather than by the ton, shippers who had once paid to keep cargo light now had every reason to fill each box until it strained, and the savings that the carriers had promised themselves quietly moved to their customers."
+
+## What those three have in common — your sentence must have all of it
+1. 22 to 34 words, with at least TWO subordinate or participial elements.
+2. It EXPLAINS something non-obvious: the expected outcome failed, a small change had outsized effects, a stated cause was not the real one, a cost landed on someone who never agreed to bear it.
+3. Concrete nouns: cranes, berths, tariffs, longshoremen, railways, warehouses, contracts, tonnage. Never "stakeholders", "efficiency", "synergy", "value creation".
+4. Third person. No "we", "our", "I". No advice to a reader.
+
+## Forbidden shapes — a sentence of this kind is a failure, rewrite it
+- "The success of X depends on Y." / "X is determined by Y." / "X leads to Y."
+- "For a company to do X, it must do Y."
+- "X plays a vital role in Y." / "X is important for Y."
+Every one of these states a bare relationship. The three examples above never do; they say WHY, and at whose expense.
+
+## Batch rules
+Ten sentences, ten different subjects drawn from the domains given. Use at least six different moves: unintended consequence, cost shifted onto a third party, an incentive that produced the opposite of its aim, a threshold effect, two cases that diverged, a measure that distorted what it measured, the real constraint behind an apparent one, an advantage that proved temporary, a rule that reshaped an industry, timing that mattered more than the idea. No two sentences may open with the same word.
 
 ${CHUNKING_RULES}
-- All Korean is 문어체 ("~한다/~이다/~하기 때문이다"), never 구어체 ("~해요/~거예요"). This is the whole point of this profile.
+- All Korean is 문어체 ("~했다/~이다/~였다"), never 구어체. The register of a well-translated non-fiction book.
 
-Example:
-reference_english: "Although referral arrangements reduce the cost of acquiring institutional clients, they also concentrate distribution risk in a single counterparty whose incentives may later diverge."
-korean_full: "리퍼럴 계약은 기관 고객 확보 비용을 낮추지만, 동시에 유통 리스크를 단일 거래상대방에 집중시키며 그 유인은 이후 어긋날 수 있다."
+Chunking example, for sentence A:
+korean_full: "컨테이너의 가치는 상자 그 자체에 있지 않았다. 그것은 골함석 강철 틀에 지나지 않았고, 가치는 첫 항해가 쓸모를 갖기 전에 먼저 이루어져야 했던 항만과 철도와 노동 계약의 재편에 있었다."
 chunks: [
-  {"en": "Although referral arrangements reduce", "ko": "리퍼럴 계약은 낮추지만"},
-  {"en": "the cost of acquiring institutional clients,", "ko": "기관 고객 확보 비용을,"},
-  {"en": "they also concentrate distribution risk", "ko": "그것은 또한 유통 리스크를 집중시킨다"},
-  {"en": "in a single counterparty", "ko": "단일 거래상대방에"},
-  {"en": "whose incentives may later diverge.", "ko": "그 유인이 이후 어긋날 수 있는."}
+  {"en": "The container's value lay not in the box itself,", "ko": "컨테이너의 가치는 상자 그 자체에 있지 않았다,"},
+  {"en": "which was merely a corrugated steel frame,", "ko": "그것은 골함석 강철 틀에 지나지 않았다,"},
+  {"en": "but in the reordering of ports, railways and labour contracts", "ko": "가치는 항만과 철도와 노동 계약의 재편에 있었다"},
+  {"en": "that had to precede its first useful voyage.", "ko": "첫 항해가 쓸모를 갖기 전에 먼저 이루어져야 했던."}
 ]
 - topic: 2-4 word Korean label of the subject matter.
 - kind: always "business_talk" for this profile.
@@ -302,8 +312,9 @@ ${existing.join('\n') || '(none)'}`
       })
       // 길이는 부탁해서 얻어지지 않는다. 방금 배치에서도 열 중 여덟이 기준 아래였다.
       // 문어 대상만 바닥을 두고 걸러 낸다 — 짧은 문장은 에세이 연습이 되지 않는다(2026-09-14).
+      const floor = target.minWords ?? WRITTEN_MIN_WORDS
       const kept = target.register === 'written'
-        ? items.filter(it => it.reference_english.trim().split(/\s+/).length >= WRITTEN_MIN_WORDS)
+        ? items.filter(it => it.reference_english.trim().split(/\s+/).length >= floor)
         : items
       if (kept.length === 0) { lastError = 'no items met the length floor'; continue }
 

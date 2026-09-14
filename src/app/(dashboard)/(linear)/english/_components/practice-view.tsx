@@ -3,7 +3,7 @@
 // 영작 연습 — 업무위키/이메일 소재의 한글 청킹(영어어순) 문제를 보고 영어로 쓰면 AI가 즉시 채점.
 // 목표: 누적 학습 문장을 늘리고, 마지막 시도 기준 정답률을 100%에 가깝게.
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { DrawPad, type DrawPadHandle } from '@/app/(dashboard)/_components/linear-draw-pad'
 import { DrawTools, useDrawTools } from '@/app/(dashboard)/_components/linear-draw-tools'
@@ -192,6 +192,37 @@ export function PracticeView({ target }: PracticeViewProps) {
   const level = easedLevel(baseLevel, stepsBack)
   // 단계를 거꾸로 읽어 연속 회수를 대강 보여 준다 — 정확한 수가 아니라 "얼마나 왔나"다.
   const streakOf = (it: QueueItem) => (it.hint_level ?? HINT_CHUNKS) >= HINT_TOPIC ? 3 : 2
+
+  // 다시 써보기 판을 왼쪽 '네이티브 버전' 글 상자와 같은 높이에서 시작시킨다.
+  //
+  // 맞추는 것은 두 구역의 머리가 아니라 **쓰는 면과 읽는 면**이다. 구역 머리를 맞추면
+  // 위쪽 선과 라벨은 나란해지지만, 정작 눈이 가는 상자와 판은 여백 차이만큼 어긋난다.
+  //
+  // 두 칸은 서로 다른 흐름이고 왼쪽 길이는 첨삭 항목 수에 따라 매번 달라져서 고정값으로는
+  // 맞출 수 없다. 잰 차이를 그대로 여백에 더한다 — 여백이 오른쪽을 그만큼 밀어 내리므로
+  // 한 번에 맞는다. 다시 재는 것은 왼쪽 크기가 바뀔 때뿐이라 서로 밀어내는 일이 없다.
+  const nativeRef = useRef<HTMLDivElement | null>(null)
+  const retryInputRef = useRef<HTMLDivElement | null>(null)
+  const [retryGap, setRetryGap] = useState(0)
+  // 의존성 배열을 두지 않는다. 그리고 나서 재고, 어긋나면 고치고, 맞으면 멈춘다.
+  // 프레임을 잡아 한 번만 재는 방식은 무엇이 언제 그려지느냐에 기대게 되어 실제로 빗나갔다 —
+  // 141px 이 어긋난 채로 여백이 0 에 머물렀다(2026-09-14 실측). 매 그림마다 재면 그럴 일이 없다.
+  // 1px 미만이면 손대지 않으므로 서로 밀어내며 도는 일도 없다.
+  useLayoutEffect(() => {
+    // 한 칸으로 접히는 좁은 화면에서는 맞출 두 칸이 없다.
+    if (!result || mobile) {
+      if (retryGap !== 0) setRetryGap(0)
+      return
+    }
+    // 라벨까지 감싼 바깥이 아니라, 테두리를 두른 글 상자 자체를 잰다.
+    const box = nativeRef.current?.firstElementChild as HTMLElement | null | undefined
+    const retry = retryInputRef.current
+    if (!box || !retry) return
+    const delta = box.getBoundingClientRect().top - retry.getBoundingClientRect().top
+    if (Math.abs(delta) < 1) return
+    setRetryGap(gap => Math.max(0, gap + delta))
+    // 여백이 바뀌면 한 번 더 재서 남은 차이를 마저 없앤다. 1px 미만이면 위에서 멈춘다.
+  }, [result, mobile, retryGap])
 
   // 채점 뒤, 조각마다 답에 실제로 썼는지. 답은 손글씨면 전사된 글이다.
   const chunkHits = result
@@ -696,7 +727,9 @@ export function PracticeView({ target }: PracticeViewProps) {
                     <div style={{ display: 'grid', gap: t.density.gapSm }}>
                       {result.transcript && <ResultLine label="인식된 손글씨" text={result.transcript} />}
                       <ResultLine label="내 문장 다듬기" text={result.corrected} against={result.transcript ?? answer} />
-                      <ResultLine label="네이티브 버전" text={result.natural} highlight />
+                      <div ref={nativeRef}>
+                        <ResultLine label="네이티브 버전" text={result.natural} highlight />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -826,7 +859,7 @@ export function PracticeView({ target }: PracticeViewProps) {
                     답을 띄운 채로 베껴 쓰는 자리여서 채점에 들어가지 않는다(CEO 2026-09-14). */}
                 {result && (
                   <div style={{
-                    marginTop: t.density.gapSm, paddingTop: t.density.blockGap,
+                    marginTop: t.density.gapSm + retryGap, paddingTop: t.density.blockGap,
                     borderTop: `1px solid ${t.neutrals.line}`,
                     display: 'flex', flexDirection: 'column', gap: t.density.gapSm,
                   }}>
@@ -853,6 +886,7 @@ export function PracticeView({ target }: PracticeViewProps) {
                         )}
                       </div>
                     </div>
+                    <div ref={retryInputRef}>
                     {againMode === 'type' ? (
                       <textarea
                         value={againText}
@@ -904,6 +938,7 @@ export function PracticeView({ target }: PracticeViewProps) {
                     </div>
                     </>
                     )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -919,8 +954,11 @@ export function PracticeView({ target }: PracticeViewProps) {
  * 채점이 돌려준 문장 한 줄.
  *
  * 예전에는 회색 판 위에 얹고 네이티브 버전만 생 하늘색(#ECF6FB)을 깔았다. 카드가 테마를
- * 두르면서 판은 벗겨지므로, 강조는 색면이 아니라 왼쪽 세로선 하나로 한다 — 이 카드에서
- * 색을 갖는 것은 점수와 '좋음' 배지뿐이어야 한다(2026-09-14).
+ * 두르면서 판은 벗겨지므로, 강조는 색면이 아니라 선으로 한다 — 이 카드에서 색을 갖는 것은
+ * 점수와 '좋음' 배지뿐이어야 한다(2026-09-14).
+ *
+ * 왼쪽만 두껍게 긋던 것을 상자 전체의 얇은 선으로 바꿨다(CEO 2026-09-14). 한쪽만 굵으면
+ * 인용처럼 읽히는데, 이건 인용이 아니라 따로 봐 둘 상자다.
  */
 function ResultLine({ label, text, highlight, against }: {
   label: string; text: string; highlight?: boolean
@@ -933,7 +971,7 @@ function ResultLine({ label, text, highlight, against }: {
     <div data-panel="" style={{
       background: t.neutrals.inner,
       borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapLg}px`,
-      ...(highlight ? { borderLeft: `2px solid ${t.chart.mono}`, paddingLeft: t.density.gapMd } : {}),
+      ...(highlight ? { border: `1px solid ${t.neutrals.line}` } : {}),
     }}>
       <div data-panel-title="" style={{
         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 0.8,
