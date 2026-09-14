@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { t, tonePalettes, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -60,14 +60,18 @@ function matchesDate(s: RyuhaSchedule, dateStr: string) {
   return s.schedule_date === dateStr
 }
 
+// 분류는 색조 대신 회색 명도로 나눈다 — 학교가 가장 진하고 기타가 가장 옅다.
+// 사업관리 일정 카드와 같은 램프다(2026-09-10 카드 문법: 단색은 유지하되 분간은 되게).
+// 강조색은 활성 칩·탭에만 쓴다.
 const CATEGORY_TONES: Record<string, { bg: string; fg: string }> = {
-  school:   { bg: '#DBEAFE', fg: '#1E40AF' },   // 파랑
-  academy:  { bg: '#FEF3C7', fg: '#92400E' },   // 주황/앰버
-  arts:     { bg: '#FCE7F3', fg: '#9D174B' },   // 로즈/핑크 (예체능)
-  homework: { bg: '#EDE9FE', fg: '#5B21B6' },   // 보라
-  etc:      tonePalettes.neutral,                // 회색
+  school:   { bg: '#D3D7DD', fg: '#1F242B' },
+  academy:  { bg: '#DCE0E5', fg: '#262C33' },
+  arts:     { bg: '#E4E7EB', fg: '#2C323A' },
+  homework: { bg: '#EAECEF', fg: '#343A42' },
+  etc:      { bg: '#F5F6F8', fg: '#4B525A' },
 }
 
+// 활성 칩 색은 다른 카드와 같이 테마가 정한다 — 여기서 따로 주지 않는다.
 const CATEGORY_FILTERS = [
   { key: 'all',      label: '전체' },
   { key: 'school',   label: '학교' },
@@ -78,7 +82,7 @@ const CATEGORY_FILTERS = [
 ] as const
 
 function getScheduleTone(s: RyuhaSchedule): { bg: string; fg: string } {
-  return CATEGORY_TONES[s.type] || tonePalettes.neutral
+  return CATEGORY_TONES[s.type] || CATEGORY_TONES.etc
 }
 
 function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
@@ -96,7 +100,7 @@ function EventChip({ s, dateStr, compact, onToggle, onSelect }: {
     <div style={{
       padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
       background: colors.bg, color: colors.fg,
-      fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
+      fontSize: `calc(${compact ? t.type.tableCell : t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
       minWidth: 0, overflow: 'hidden',
       display: 'flex', alignItems: 'flex-start', gap: t.density.gapXs,
     }}>
@@ -152,12 +156,14 @@ function MemoChip({ content, compact, onClick }: {
 }) {
   const preview = content.length > (compact ? 8 : 20) ? content.slice(0, compact ? 8 : 20) + '…' : content
   return (
+    // 메모는 일정이 아니다. 분류 램프의 한 칸을 빌려 쓰면 '기타 일정'으로 읽히므로
+    // 판을 깔지 않고 연필 그림과 옅은 글자로만 구분한다.
     <div
       onClick={(e) => { e.stopPropagation(); onClick() }}
       style={{
         padding: compact ? '2px 4px' : '3px 5px', borderRadius: 3,
-        background: tonePalettes.done.bg, color: tonePalettes.done.fg,
-        fontSize: `calc(${compact ? 9 : 10}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
+        background: 'transparent', color: t.neutrals.muted,
+        fontSize: `calc(${compact ? t.type.tableCell : t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, lineHeight: 1.3,
         minWidth: 0, overflow: 'hidden', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: t.density.gapXs,
       }}
@@ -199,7 +205,7 @@ function DayCell({
       style={{
         minHeight, padding: compact ? 6 : 8, position: 'relative',
         borderRight: borderRight ? `1px solid ${t.neutrals.line}` : 'none',
-        background: isSelected ? t.brand[100] : isToday ? t.brand[50] : 'transparent',
+        background: isSelected ? '#EDEFF2' : isToday ? '#F5F6F8' : 'transparent',
         opacity: dimmed ? 0.35 : 1,
         minWidth: 0, overflow: 'hidden',
         cursor: onClickDate ? 'pointer' : undefined,
@@ -211,8 +217,8 @@ function DayCell({
         marginBottom: compact ? 3 : 6,
       }}>
         <span style={{
-          fontSize: `calc(${compact ? 10 : 10.5}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-          color: isToday ? t.brand[700] : t.neutrals.subtle,
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
+          color: isToday ? t.chart.mono : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
           {day.getDate()}
@@ -226,9 +232,9 @@ function DayCell({
                 title="메모 추가"
                 style={{
                   width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
-                  background: tonePalettes.done.bg, color: tonePalettes.done.fg,
+                  background: 'transparent', color: t.neutrals.muted,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 0, flexShrink: 0, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
+                  padding: 0, flexShrink: 0,
                 }}
               >
                 <LIcon name="file" size={9} stroke={2} />
@@ -239,7 +245,7 @@ function DayCell({
               title="일정 추가"
               style={{
                 width: 16, height: 16, borderRadius: t.radius.sm, border: 'none',
-                background: t.brand[100], color: t.brand[700],
+                background: 'transparent', color: t.neutrals.muted,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0, flexShrink: 0,
               }}
@@ -256,13 +262,13 @@ function DayCell({
             {schedules.slice(0, 6).map(s => (
               <span key={s.id} style={{
                 width: 6, height: 6, borderRadius: '50%',
-                background: s.color || '#94A3B8',
+                background: getScheduleTone(s).fg,
               }} />
             ))}
             {schedules.length > 6 && (
               <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.muted, fontFamily: t.font.mono, lineHeight: '6px' }}>+{schedules.length - 6}</span>
             )}
-            {memo && <span style={{ width: 6, height: 6, borderRadius: 2, background: tonePalettes.done.fg }} />}
+            {memo && <span style={{ width: 6, height: 6, borderRadius: 2, background: t.neutrals.subtle }} />}
           </div>
         ) : compact ? (
           <>
@@ -363,7 +369,6 @@ export function CalendarBlock({
   const weekDays = useMemo(() => getWeekDays(baseDate), [baseDate])
   const monthGrid = useMemo(() => getMonthGrid(baseDate.getFullYear(), baseDate.getMonth()), [baseDate])
 
-  const eyebrow = viewMode === 'week' ? 'CALENDAR · 주간' : 'CALENDAR · 월간'
   const navLabel = viewMode === 'week'
     ? (() => {
         const w0 = weekDays[0], w6 = weekDays[6]
@@ -373,21 +378,33 @@ export function CalendarBlock({
     : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
   return (
-    <LCard>
-      <LSectionHead eyebrow={eyebrow} title="일정" tools={
-        <LSegmented
-          value={viewMode}
-          onChange={updateViewMode}
-          options={[
-            { value: 'week', label: '주' },
-            { value: 'month', label: '월' },
-          ]}
-        />
-      } />
+    // 카드는 빈 껍데기로 두고 안에서 구역마다 여백을 준다 — 사업관리 일정 카드와 같은 축.
+    // 푸터·구분선이 카드 벽이 아니라 글자 줄에 맞으려면 카드가 pad 0 이어야 한다.
+    <>
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <div style={{ paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title="일정"
+            tools={
+              <LSegmented
+                value={viewMode}
+                onChange={updateViewMode}
+                options={[
+                  { value: 'week', label: '주' },
+                  { value: 'month', label: '월' },
+                ]}
+              />
+            }
+            toolsInline
+            mb={0}
+          />
+        </div>
 
-      {/* Navigation */}
+      {/* 기간 — 카드 전체에 걸리는 조건이라 달력 위 가운데에 둔다 */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginBottom: t.density.gapMd,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: t.density.gapMd, padding: `${t.density.panelPadX}px 0`,
       }}>
         <button onClick={() => navigate(-1)} style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
@@ -395,7 +412,10 @@ export function CalendarBlock({
         }}>
           <LIcon name="chevronLeft" size={14} stroke={2} />
         </button>
-        <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, fontFamily: t.font.sans, minWidth: 100, textAlign: 'center' }}>
+        <span style={{
+          fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+          fontFamily: t.font.sans, minWidth: 104, textAlign: 'center', whiteSpace: 'nowrap',
+        }}>
           {navLabel}
         </span>
         <button onClick={() => navigate(1)} style={{
@@ -406,23 +426,21 @@ export function CalendarBlock({
         </button>
       </div>
 
-      {/* Category filter */}
-      <div style={{ marginBottom: t.density.gapMd }}>
+      {/* 분류 칩 — 다른 카드의 필터 줄과 같은 자리, 같은 모양 */}
+      <div style={{ marginTop: t.density.gapSm }}>
         <LFilterChip
-          options={CATEGORY_FILTERS.map(({ key, label }) => ({
-            value: key,
-            label,
-            tone: key !== 'all' ? CATEGORY_TONES[key] : undefined,
-          }))}
+          options={CATEGORY_FILTERS.map(({ key, label }) => ({ value: key, label }))}
           value={categoryFilter}
           onChange={setCategoryFilter}
+          gap={t.density.gapXs}
         />
       </div>
+      </div>
 
-      {/* Day headers */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      {/* 요일 — 표 머리와 같은 문법. 회색 판 대신 아래 선 하나 */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-        background: t.neutrals.inner, borderRadius: `${t.radius.md}px ${t.radius.md}px 0 0`,
         borderBottom: `1px solid ${t.neutrals.line}`,
       }}>
         {DAY_NAMES.map(name => (
@@ -435,12 +453,7 @@ export function CalendarBlock({
       </div>
 
       {viewMode === 'week' ? (
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {weekDays.map((day, i) => {
             const dateStr = formatDateLocal(day)
             return (
@@ -460,11 +473,7 @@ export function CalendarBlock({
           })}
         </div>
       ) : (
-        <div style={{
-          background: t.neutrals.inner,
-          borderRadius: `0 0 ${t.radius.md}px ${t.radius.md}px`,
-          overflow: 'hidden',
-        }}>
+        <div>
           {monthGrid.map((week, wi) => (
             <div key={wi} style={{
               display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -500,8 +509,8 @@ export function CalendarBlock({
         const dayMemo = memoMap[selectedDate]
         return (
           <div style={{
-            marginTop: t.density.kpiGap, padding: t.density.blockGap,
-            background: t.neutrals.inner, borderRadius: t.radius.md,
+            marginTop: t.density.blockGap, paddingTop: t.density.blockGap,
+            borderTop: `1px solid ${t.neutrals.line}`,
             display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -511,7 +520,7 @@ export function CalendarBlock({
                   {dayItems.length}개 일정
                 </span>
               </div>
-              <LBtn size="xs" variant="brand" onClick={() => onAddSchedule(selectedDate)}>+ 일정 추가</LBtn>
+              <LBtn size="sm" icon={<LIcon name="plus" size={11} stroke={2.5} />} onClick={() => onAddSchedule(selectedDate)}>일정 추가</LBtn>
             </div>
             {dayItems.length === 0 && !dayMemo && (
               <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.gapSm}px 0` }}>일정이 없습니다.</div>
@@ -521,21 +530,28 @@ export function CalendarBlock({
             ))}
             {dayMemo && <MemoChip content={dayMemo} onClick={() => setMemoDialogDate(selectedDate)} />}
             {!dayMemo && (
-              <LBtn size="xs" variant="ghost" onClick={() => setMemoDialogDate(selectedDate)}
-                style={{ alignSelf: 'flex-start', padding: 0, color: t.neutrals.subtle }}>+ 메모 작성</LBtn>
+              <LBtn size="sm" variant="ghost" icon={<LIcon name="pencil" size={11} stroke={2} />}
+                onClick={() => setMemoDialogDate(selectedDate)}
+                style={{ alignSelf: 'flex-start' }}>메모 작성</LBtn>
             )}
           </div>
         )
       })()}
 
-      {/* ── Memo Dialog ── */}
-      <MemoDialog
-        date={memoDialogDate}
-        content={memoDialogDate ? memoMap[memoDialogDate] || '' : ''}
-        onSave={onSaveMemo}
-        onClose={() => setMemoDialogDate(null)}
-      />
+      </div>
     </LCard>
+
+    {/* ── Memo Dialog ──
+        카드 밖 형제로 둔다. 카드 안에 두면 테마가 '카드 안 카드'로 보고 테두리를 지우고,
+        document.body 로 옮기면 이번엔 테마 밖으로 나가 옛 문법으로 돌아간다.
+        자리는 fixed 라 흐름에서 빠져 있어 카드 사이 간격을 벌리지 않는다. */}
+    <MemoDialog
+      date={memoDialogDate}
+      content={memoDialogDate ? memoMap[memoDialogDate] || '' : ''}
+      onSave={onSaveMemo}
+      onClose={() => setMemoDialogDate(null)}
+    />
+    </>
   )
 }
 
@@ -581,68 +597,63 @@ function MemoDialog({ date, content: initialContent, onSave, onClose }: {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
-    border: 'none', background: t.neutrals.inner,
+    border: `1px solid ${t.neutrals.line}`, background: t.neutrals.card,
     fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans, color: t.neutrals.text,
     resize: 'vertical', outline: 'none', lineHeight: 1.6,
     boxSizing: 'border-box',
   }
 
+  // 카드에서 열린 창이라 카드와 같은 껍데기를 쓴다 — 사업관리 상세 모달과 같은 축.
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.35)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: t.density.cardPad,
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.pagePadX,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: t.neutrals.card, borderRadius: t.radius.lg,
-        width: '100%', maxWidth: 440, padding: t.density.pagePadX,
-        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: t.density.blockGap,
-        }}>
-          <h3 style={{
-            margin: 0, fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-            color: t.neutrals.text, fontFamily: t.font.sans,
-          }}>
-            {dateLabel} 메모
-          </h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: t.density.gapXs, borderRadius: t.radius.sm,
-            color: t.neutrals.subtle,
-          }}>
-            <LIcon name="x" size={16} />
-          </button>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
+
+      <LCard pad={0} style={{ position: 'relative', width: 440, maxWidth: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+          <LSectionHead
+            title={`${dateLabel} 메모`}
+            action={
+              <button onClick={onClose} title="닫기" style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: t.density.gapXs, borderRadius: t.radius.sm, color: t.neutrals.muted,
+                display: 'flex', alignItems: 'center',
+              }}>
+                <LIcon name="x" size={14} stroke={2} />
+              </button>
+            }
+            mb={0}
+          />
         </div>
 
-        {/* Content */}
-        <textarea
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          placeholder="메모를 작성하세요..."
-          rows={6}
-          style={inputStyle}
-          autoFocus
-        />
+        <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="메모를 작성하세요..."
+            rows={6}
+            style={inputStyle}
+            autoFocus
+          />
+        </div>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex', justifyContent: initialContent ? 'space-between' : 'flex-end',
-          alignItems: 'center', gap: t.density.kpiGap, marginTop: 14,
+        <div data-card-foot="" style={{
+          display: 'flex', alignItems: 'center', justifyContent: initialContent ? 'space-between' : 'flex-end',
+          gap: t.density.gapSm,
+          margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingTop: t.density.panelPadY,
+          paddingBottom: t.density.cardPad,
         }}>
           {initialContent && (
-            <LBtn size="sm" variant="danger" onClick={handleDelete} disabled={saving}>삭제</LBtn>
+            <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn></span>
           )}
           <div style={{ display: 'flex', gap: t.density.gapSm }}>
-            <LBtn size="sm" variant="secondary" onClick={onClose}>취소</LBtn>
-            <LBtn size="sm" variant="primary" onClick={handleSave} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn>
+            <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
+            <span data-primary-action=""><LBtn variant="secondary" size="sm" onClick={handleSave} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn></span>
           </div>
         </div>
-      </div>
+      </LCard>
     </div>
   )
 }

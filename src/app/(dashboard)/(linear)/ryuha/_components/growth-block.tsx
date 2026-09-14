@@ -16,6 +16,11 @@ interface GrowthBlockProps {
   onDelete: (id: string) => Promise<void>
 }
 
+// 두 계열은 색조가 아니라 명도로 가른다 — 보이스카드·부동산 차트와 같은 짝이다.
+// 키가 진한 쪽(브랜드), 몸무게가 옅은 쪽. 범례가 어느 쪽인지 말해 준다.
+const SERIES_HEIGHT = t.chart.mono
+const SERIES_WEIGHT = '#A8B0B6'
+
 function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
   const sorted = [...records].sort((a, b) => a.record_date.localeCompare(b.record_date)).slice(-12)
   if (sorted.length < 2) {
@@ -27,8 +32,11 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
     )
   }
 
-  const W = 520, H = 280, PX = 40, PY = 16
-  const chartW = W - PX * 2, chartH = H - PY * 2
+  // 판을 벗으면서 차트가 패널 폭을 다 쓰게 됐다. 세로는 viewBox 비율이 정하므로
+  // 비율이 좁으면 차트만 옆 표보다 한참 길어진다 — 가로를 늘려 눕힌다(옆 표와 키를 맞춘다).
+  // PB 는 날짜 줄 몫이다. 이걸 따로 떼지 않으면 아래 축 숫자와 날짜가 같은 높이에서 겹친다.
+  const W = 680, H = 260, PX = 40, PY = 16, PB = 28
+  const chartW = W - PX * 2, chartH = H - PY - PB
 
   const heights = sorted.map(r => r.height_cm).filter((v): v is number => v !== null)
   const weights = sorted.map(r => r.weight_kg).filter((v): v is number => v !== null)
@@ -65,9 +73,9 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
           stroke={t.chart.grid} strokeWidth={1} />
       ))}
       {/* Height line */}
-      {hPoints && <polyline points={hPoints} fill="none" stroke="#6366F1" strokeWidth={2.5} />}
+      {hPoints && <polyline points={hPoints} fill="none" stroke={SERIES_HEIGHT} strokeWidth={2.5} />}
       {/* Weight line */}
-      {wPoints && <polyline points={wPoints} fill="none" stroke="#F97316" strokeWidth={2.5} />}
+      {wPoints && <polyline points={wPoints} fill="none" stroke={SERIES_WEIGHT} strokeWidth={2.5} />}
       {/* Dots */}
       {sorted.map((r, i) => {
         const x = PX + i * xStep
@@ -75,13 +83,13 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
           <g key={i}>
             {r.height_cm !== null && (
               <circle cx={x} cy={PY + chartH - ((r.height_cm - hMin) / (hMax - hMin)) * chartH}
-                r={4} fill="#6366F1" />
+                r={4} fill={SERIES_HEIGHT} />
             )}
             {r.weight_kg !== null && (
               <circle cx={x} cy={PY + chartH - ((r.weight_kg - wMin) / (wMax - wMin)) * chartH}
-                r={4} fill="#F97316" />
+                r={4} fill={SERIES_WEIGHT} />
             )}
-            <text x={x} y={H - 5} textAnchor="middle" fontSize={11} fill={t.neutrals.subtle}
+            <text x={x} y={H - 8} textAnchor="middle" fontSize={11} fill={t.neutrals.subtle}
               fontFamily={t.font.mono}>
               {r.record_date.slice(5)}
             </text>
@@ -89,10 +97,10 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
         )
       })}
       {/* Y axis labels */}
-      <text x={PX - 6} y={PY + 5} textAnchor="end" fontSize={11} fill="#6366F1">{Math.round(hMax)}</text>
-      <text x={PX - 6} y={PY + chartH + 5} textAnchor="end" fontSize={11} fill="#6366F1">{Math.round(hMin)}</text>
-      <text x={W - PX + 6} y={PY + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMax)}</text>
-      <text x={W - PX + 6} y={PY + chartH + 5} textAnchor="start" fontSize={11} fill="#F97316">{Math.round(wMin)}</text>
+      <text x={PX - 6} y={PY + 5} textAnchor="end" fontSize={11} fill={t.neutrals.subtle} fontFamily={t.font.mono}>{Math.round(hMax)}</text>
+      <text x={PX - 6} y={PY + chartH + 5} textAnchor="end" fontSize={11} fill={t.neutrals.subtle} fontFamily={t.font.mono}>{Math.round(hMin)}</text>
+      <text x={W - PX + 6} y={PY + 5} textAnchor="start" fontSize={11} fill={t.neutrals.subtle} fontFamily={t.font.mono}>{Math.round(wMax)}</text>
+      <text x={W - PX + 6} y={PY + chartH + 5} textAnchor="start" fontSize={11} fill={t.neutrals.subtle} fontFamily={t.font.mono}>{Math.round(wMin)}</text>
     </svg>
   )
 }
@@ -164,7 +172,6 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
       <LCard pad={0}>
         <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
           <LSectionHead
-            eyebrow="GROWTH"
             title="성장기록"
             mb={10}
             action={<LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />}
@@ -175,8 +182,8 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
             gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
             gap: t.density.kpiGap, alignItems: 'stretch',
           }}>
-            {/* 좌: 추이 */}
-            <div style={{
+            {/* 좌: 추이 — data-panel 표식이 테마에게 회색 판을 벗기라고 말한다 */}
+            <div data-panel="" style={{
               background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
               height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
             }}>
@@ -184,7 +191,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs,
               }}>
-                <div style={{
+                <div data-panel-title="" style={{
                   fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
                   textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
                 }}>
@@ -197,11 +204,11 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                    <span style={{ width: 10, height: 2, borderRadius: 1, background: '#6366F1' }} />
+                    <span style={{ width: 10, height: 2, borderRadius: 1, background: SERIES_HEIGHT }} />
                     키 {latest?.height_cm ?? '-'}cm
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
-                    <span style={{ width: 10, height: 2, borderRadius: 1, background: '#F97316' }} />
+                    <span style={{ width: 10, height: 2, borderRadius: 1, background: SERIES_WEIGHT }} />
                     몸무게 {latest?.weight_kg ?? '-'}kg
                   </span>
                 </div>
@@ -210,7 +217,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
             </div>
 
             {/* 우: 측정 기록 */}
-            <div style={{
+            <div data-panel="" style={{
               background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px 0 0`,
               height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
               overflow: 'hidden',
@@ -219,7 +226,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 gap: t.density.gapXs, marginBottom: t.density.gapSm, padding: `0 ${t.density.panelPadX}px`,
               }}>
-                <div style={{
+                <div data-panel-title="" style={{
                   fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
                   textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
                 }}>
@@ -229,7 +236,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
 
               {/* 헤더는 본문과 함께 가로 스크롤시켜야 좁은 화면에서 열이 어긋나지 않는다 */}
               <LTableScroll minWidth={360}>
-                <div style={{
+                <div data-panel-head="" style={{
                   display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
                   gap: t.density.kpiGap, padding: `0 ${t.density.panelPadX}px ${t.density.gapSm}px`, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                   color: t.neutrals.subtle, fontFamily: t.font.mono, textTransform: 'uppercase' as const,
@@ -238,10 +245,9 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 </div>
                 <div style={{ maxHeight: mobile ? 200 : 232, overflowY: 'auto' }}>
                   {sorted.slice(0, 20).map(r => (
-                    <div key={r.id} onClick={() => openDialog(r)} style={{
+                    <div key={r.id} data-panel-row="" onClick={() => openDialog(r)} style={{
                       display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',
                       gap: t.density.kpiGap, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, alignItems: 'center',
-                      borderTop: `1px solid ${t.neutrals.line}`,
                       fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, cursor: 'pointer',
                     }}>
                       <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted }}>

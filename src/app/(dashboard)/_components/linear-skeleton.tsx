@@ -252,36 +252,42 @@ export function InvestSkeleton() {
 export function RyuhaSkeleton() {
   const mobile = useIsMobile()
 
+  // 실제 페이지와 같은 카드 셋이다 — 일정 · 류하 수첩 · 성장기록.
+  // 골격이 카드 수를 틀리면 화면이 두 번 바뀐다: 골격에서 한 번, 데이터에서 또 한 번.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      {/* Calendar */}
+      {/* 일정 — 머리 + 기간 + 분류 칩 + 7열 달력 */}
       <CardSkel pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-          <Bone w={70} h={8} />
-          <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
+          <Bone w={60} h={8} />
+          <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: t.density.gapXs }}>
             {Array.from({ length: 7 }).map((_, i) => (
-              <Bone key={`h-${i}`} h={12} />
+              <Bone key={`dh-${i}`} h={12} />
             ))}
-            {Array.from({ length: 21 }).map((_, i) => (
-              <Bone key={`c-${i}`} h={60} r={t.radius.sm} />
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Bone key={`d-${i}`} h={mobile ? 48 : 128} r={t.radius.sm} />
             ))}
           </div>
         </div>
       </CardSkel>
 
-      {/* Notebook (2-panel horizontal on desktop, stacked on mobile) */}
+      {/* 류하 수첩 — 좌 목록 / 우 본문 */}
       <CardSkel pad={0}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <Bone w={60} h={8} />
+          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
+        </div>
         <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
           <div style={{
             width: mobile ? '100%' : '42%',
-            minWidth: mobile ? undefined : 220,
+            minWidth: mobile ? undefined : 280,
             borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
             padding: t.density.blockGap,
           }}>
-            <Bone h={30} r={t.radius.sm} />
+            <Bone h={28} r={t.radius.md} />
             {Array.from({ length: 5 }).map((_, i) => (
               <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
             ))}
@@ -294,46 +300,29 @@ export function RyuhaSkeleton() {
         </div>
       </CardSkel>
 
-      {/* Growth (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-        <CardSkel>
-          <Bone w={80} h={8} />
-          <Bone h={120} style={{ marginTop: t.density.gapMd }} r={t.radius.sm} />
-        </CardSkel>
-        <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad }}>
-            <Bone w={80} h={8} />
-            <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
-          </div>
-          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: t.density.gapSm }} />
-            ))}
-          </div>
-        </CardSkel>
-      </div>
-
-      {/* Textbook + Progress (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-        <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-            <Bone w={80} h={8} />
-            <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
-          </div>
-          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Bone key={i} h={40} style={{ marginTop: t.density.kpiGap }} r={t.radius.sm} />
-            ))}
-          </div>
-        </CardSkel>
-        <CardSkel>
-          <Bone w={80} h={8} />
+      {/* 성장기록 — 한 카드 안에 좌 차트 / 우 표, 아래 푸터 */}
+      <CardSkel pad={0}>
+        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+          <Bone w={60} h={8} />
           <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Bone key={i} h={16} style={{ marginTop: t.density.gapMd }} />
-          ))}
-        </CardSkel>
-      </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
+            gap: t.density.kpiGap, marginTop: t.density.gapMd,
+          }}>
+            <Bone h={mobile ? 180 : 240} r={t.radius.sm} />
+            <div>
+              <Bone h={12} w="40%" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Bone key={i} h={24} style={{ marginTop: t.density.gapSm }} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: `${t.density.panelPadY}px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+          <Bone w={48} h={10} />
+        </div>
+      </CardSkel>
     </div>
   )
 }

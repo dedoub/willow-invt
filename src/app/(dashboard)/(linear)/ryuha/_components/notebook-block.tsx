@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -150,15 +150,15 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
         {newFiles.map((f, i) => (
           <div key={`new-${i}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
-            background: tonePalettes.brand.bg, borderRadius: t.radius.sm,
-            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: tonePalettes.brand.fg,
+            background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
             marginRight: t.density.gapXs, marginBottom: t.density.gapXs,
           }}>
             <LIcon name="file" size={11} />
             <span>{f.name}</span>
             <button onClick={() => setNewFiles(prev => prev.filter((_, j) => j !== i))} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              color: tonePalettes.brand.fg, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+              color: t.neutrals.muted, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
             }}>
               <LIcon name="x" size={10} />
             </button>
@@ -276,7 +276,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="NOTEBOOK" title="류하 수첩" />
+        <LSectionHead title="류하 수첩" mb={0} />
       </div>
 
       <div style={{
@@ -296,7 +296,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
           <div style={{ padding: `${t.density.panelPadX}px ${t.density.blockGap}px ${t.density.panelPadY}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: t.density.gapXs, flex: 1,
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
+              background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
               padding: `${t.density.gapXs}px ${t.density.panelPadY}px`,
             }}>
               <LIcon name="search" size={13} color={t.neutrals.subtle} />
@@ -343,11 +343,12 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       borderRadius: t.radius.sm, transition: 'background 0.1s',
                     }}
                   >
+                    {/* 이모지는 회색 표 안에서 혼자 색을 갖는다 — 같은 뜻의 선 아이콘으로 바꾼다 */}
                     <span style={{
-                      fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, width: 14, textAlign: 'center', flexShrink: 0,
-                      color: note.is_pinned ? '#D97706' : 'transparent',
+                      width: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: note.is_pinned ? t.chart.mono : 'transparent',
                     }}>
-                      {note.is_pinned ? '📌' : ''}
+                      {note.is_pinned && <LIcon name="pin" size={11} stroke={2} color="currentColor" />}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
@@ -465,11 +466,14 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                     {selectedNote.title || '(제목 없음)'}
                   </h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
-                    <button onClick={handlePin} style={{
+                    <button onClick={handlePin} title={selectedNote.is_pinned ? '고정 해제' : '고정'} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-                      borderRadius: t.radius.sm, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, flexShrink: 0,
-                      color: selectedNote.is_pinned ? '#D97706' : t.neutrals.subtle,
-                    }}>📌</button>
+                      borderRadius: t.radius.sm, flexShrink: 0,
+                      display: 'flex', alignItems: 'center',
+                      color: selectedNote.is_pinned ? t.chart.mono : t.neutrals.subtle,
+                    }}>
+                      <LIcon name="pin" size={14} stroke={2} color="currentColor" />
+                    </button>
                     <LBtn size="xs" variant="ghost" onClick={() => setEditing(true)}
                       style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       편집
