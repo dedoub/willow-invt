@@ -19,9 +19,8 @@ import type { PracticeTarget } from '@/lib/english-targets'
 /**
  * 문제은행 전체와 문장별 학습 기록.
  *
- * 연습 화면에는 두지 않는다 — 거기는 한 문장만 보는 자리고, 목록이 끼면 눈이 갈린다.
- * 연습하기 아래에 따로 선다. 매일 하는 일은 연습이고 목록은 가끔 돌아보는 것이라
- * 연습 앞을 막지 않는다(CEO 2026-09-14).
+ * 연습 화면과 나란히 두지 않는다 — 거기는 한 문장만 보는 자리고, 목록이 끼면 눈이 갈린다.
+ * 통계 카드 머리의 탭으로 갈라, 연습하기와 둘 중 하나만 보인다(CEO 2026-09-14).
  */
 
 interface ListItem {
@@ -83,7 +82,7 @@ function storedPageSize(): number {
   return n >= 1 && n <= 50 ? n : 10
 }
 
-export function SentenceList({ target, reloadKey }: { target: PracticeTarget; reloadKey: number }) {
+export function SentenceList({ target }: { target: PracticeTarget }) {
   const mobile = useIsMobile()
   const [items, setItems] = useState<ListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,8 +102,8 @@ export function SentenceList({ target, reloadKey }: { target: PracticeTarget; re
     }
   }, [target.id])
 
-  // reloadKey 는 채점이 끝날 때마다 올라간다 — 방금 푼 문장이 목록에도 바로 반영돼야 한다.
-  useEffect(() => { load() }, [load, reloadKey])
+  // 탭으로 들어올 때마다 새로 붙으므로, 붙을 때 한 번 읽으면 방금 푼 문장까지 들어 있다.
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => {
     let out = items
