@@ -44,6 +44,15 @@ export interface PracticeTarget {
    * 길이는 모델에게 부탁해서 얻어지지 않아서 코드가 바닥을 잡는다(2026-09-14).
    */
   minWords?: number
+  /**
+   * 문항이 떨어질 때 자동으로 더 만들지. 기본은 만든다.
+   *
+   * 비즈니스 에세이는 끈다. 생성이 타는 llm-json 프록시가 gemini-2.5-flash 에 thinking 0
+   * 으로 고정돼 있어 이 수준의 문장이 나오지 않는다. 손으로 쓴 씨드를 넣어 두었는데
+   * 자동 보충이 돌면 그 사이로 약한 문장이 섞여 들어간다(CEO 2026-09-14).
+   * 프록시가 모델을 받게 되면 이 값을 지우면 된다.
+   */
+  autoRefill?: boolean
   /** 보이스카드 내보내기 대상 시트 */
   deck: { spreadsheetId: string; gid?: number; tabTitle?: string }
 }
@@ -79,6 +88,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     source: 'general',
     // The Box 수준을 목표로 한다 — 종속절 둘이 들어가면 스무 낱말 아래로 내려가지 않는다.
     minWords: 20,
+    autoRefill: false,
     defaultInput: 'type',
     deck: CEO_DECK,
   },

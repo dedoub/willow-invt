@@ -376,10 +376,12 @@ export function PracticeView({ target }: PracticeViewProps) {
   // 풀 게 아예 없을 때는 충전 완료 후 큐도 자동 리로드.
   useEffect(() => {
     if (loading || !stats) return
+    // 자동 보충을 끈 대상은 손으로 넣은 씨드만 쓴다. 버튼으로는 여전히 만들 수 있다.
+    if (target.autoRefill === false) return
     if (stats.freshRemaining <= 20 && !generatingRef.current && !autoRefillBlockedRef.current) {
       generate({ silent: true, reloadIfEmpty: queue.length === 0 || idx >= queue.length })
     }
-  }, [loading, stats, queue.length, idx, generate])
+  }, [loading, stats, queue.length, idx, generate, target.autoRefill])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -833,26 +835,15 @@ export function PracticeView({ target }: PracticeViewProps) {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
-                  {!result ? (
+                {!result && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
                     <LBtn variant="brand" onClick={grade}
                       disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
                       style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
                       {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
                     </LBtn>
-                  ) : (
-                    <>
-                      <LBtn variant="secondary" onClick={retry}
-                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                        다시 풀기
-                      </LBtn>
-                      <LBtn variant="brand" onClick={next}
-                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                        {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
-                      </LBtn>
-                    </>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* 채점 뒤 한 번 더 — 답을 옆에 두고 같은 문장을 손으로 다시 써 본다.
                     '다시 풀기'는 점수를 다시 받는 자리라 판을 비우고 답을 감춘다. 이 판은
@@ -939,6 +930,24 @@ export function PracticeView({ target }: PracticeViewProps) {
                     </>
                     )}
                     </div>
+                  </div>
+                )}
+
+                {/* 넘어가는 단추는 복습 판 뒤에 온다 — 한 번 더 써 보고 나서 넘어가는 차례다.
+                    판 위에 두면 아직 할 일이 남았는데 끝난 것처럼 읽힌다(CEO 2026-09-14). */}
+                {result && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapSm }}>
+                    <LBtn variant="secondary" onClick={retry}
+                      style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                      다시 풀기
+                    </LBtn>
+                    {/* 이 화면에서 다음으로 가는 길은 하나다. 강조색을 그 자리에 쓴다. */}
+                    <span data-primary-action="">
+                      <LBtn variant="brand" onClick={next}
+                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                        {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                      </LBtn>
+                    </span>
                   </div>
                 )}
               </div>
