@@ -1056,6 +1056,506 @@ const SEEDS: Seed[] = [
       { en: 'were the first to lose their funding.', ko: '가장 먼저 자금을 잃었다.' },
     ],
   },
+  {
+    topic: '도제와 이직',
+    korean_full: '숙련공을 길러 낸 회사는 그를 잃었다. 훈련이 어디서나 값어치를 가졌기 때문이고, 그리하여 아무도 훈련하지 않는 산업에서 임금은 오르되 기술은 오르지 않았다.',
+    chunks: [
+      { en: 'The firm that trained a craftsman lost him,', ko: '숙련공을 길러 낸 회사는 그를 잃었다,' },
+      { en: 'because the training was worth something anywhere,', ko: '그 훈련이 어디서나 값어치를 가졌기 때문이다,' },
+      { en: 'so in an industry where nobody trained', ko: '그리하여 아무도 훈련하지 않는 산업에서' },
+      { en: 'wages rose while skill did not.', ko: '임금은 올랐으나 기술은 오르지 않았다.' },
+    ],
+  },
+  {
+    topic: '양면 시장의 시작',
+    korean_full: '어느 쪽도 상대 없이는 오지 않는 시장에서 창업자는 한쪽에 값을 치러 데려와야 했고, 그 보조금이 시장이 되기 전까지의 진짜 비용이었다.',
+    chunks: [
+      { en: 'In a market where neither side would come without the other,', ko: '어느 쪽도 상대 없이는 오지 않는 시장에서,' },
+      { en: 'the founder had to pay one side to arrive,', ko: '창업자는 한쪽에 값을 치러 오게 해야 했다,' },
+      { en: 'and that subsidy was the real cost', ko: '그리고 그 보조금이 진짜 비용이었다' },
+      { en: 'of everything before it became a market.', ko: '시장이 되기 전 모든 것의.' },
+    ],
+  },
+  {
+    topic: '외상 거래의 금융',
+    korean_full: '공급업체가 육십 일의 외상을 준 것은 관대해서가 아니었다. 그것은 은행보다 싼 대출이었고, 그 값은 결국 단가 안에 들어가 두 번 다시 협상되지 않았다.',
+    chunks: [
+      { en: 'A supplier who gave sixty days of credit was not being generous;', ko: '육십 일 외상을 준 공급업체는 관대한 것이 아니었다;' },
+      { en: 'it was a loan cheaper than the bank\'s,', ko: '그것은 은행보다 싼 대출이었다,' },
+      { en: 'and its price entered the unit cost', ko: '그리고 그 값은 단가 안에 들어갔다' },
+      { en: 'where it was never negotiated again.', ko: '두 번 다시 협상되지 않는 자리에.' },
+    ],
+  },
+  {
+    topic: '가맹 수수료의 기준',
+    korean_full: '매출에 로열티를 매긴 본사는 가맹점이 값을 내리기를 바랐고, 이익에 매겼다면 바라지 않았을 것이다. 두 회사는 같은 간판 아래에서 서로 다른 사업을 했다.',
+    chunks: [
+      { en: 'A franchisor paid a royalty on sales wanted its outlets to cut prices,', ko: '매출에 로열티를 받는 본사는 가맹점이 값을 내리기를 바랐다,' },
+      { en: 'which it would not have wanted on profit,', ko: '이익에 받았다면 바라지 않았을 일이다,' },
+      { en: 'and the two companies ran different businesses', ko: '그리고 두 회사는 서로 다른 사업을 했다' },
+      { en: 'under one sign.', ko: '하나의 간판 아래에서.' },
+    ],
+  },
+  {
+    topic: '임대와 잔존가',
+    korean_full: '임대 회사는 임대료로 번 것이 아니라 기간이 끝났을 때 그 설비가 얼마인지로 벌었고, 그 내기가 틀린 해에 사업 전체가 틀렸다.',
+    chunks: [
+      { en: 'The leasing company earned not from the rent', ko: '임대 회사는 임대료로 번 것이 아니라' },
+      { en: 'but from what the machine was worth when the term ended,', ko: '기간이 끝났을 때 그 기계가 얼마인지로 벌었다,' },
+      { en: 'and in the year that bet was wrong', ko: '그리고 그 내기가 틀린 해에' },
+      { en: 'the whole business was wrong.', ko: '사업 전체가 틀렸다.' },
+    ],
+  },
+  {
+    topic: '방직 공장의 이주',
+    korean_full: '남부로 옮긴 방직 공장은 낮은 임금을 좇았다. 그러나 그 임금은 어디서나 낮아질 수 있었고, 이주가 가능하다는 사실이 곧 다음 이주를 불가피하게 만들었다.',
+    chunks: [
+      { en: 'The textile mill that moved south followed low wages,', ko: '남부로 옮긴 방직 공장은 낮은 임금을 좇았다,' },
+      { en: 'but those wages could be low anywhere,', ko: '그러나 그 임금은 어디서나 낮을 수 있었다,' },
+      { en: 'and the fact that moving was possible', ko: '그리고 이주가 가능하다는 사실이' },
+      { en: 'made the next move inevitable.', ko: '다음 이주를 불가피하게 만들었다.' },
+    ],
+  },
+  {
+    topic: '운하의 퇴장',
+    korean_full: '운하 회사들은 철도와 요금으로 다투다 졌다. 그들이 판 것은 저렴한 운송이었으나 철도가 판 것은 속도였고, 두 값은 같은 표에 놓인 적이 없었다.',
+    chunks: [
+      { en: 'The canal companies fought the railways on price and lost,', ko: '운하 회사들은 철도와 값으로 다투다 졌다,' },
+      { en: 'because what they sold was cheap carriage', ko: '그들이 판 것은 저렴한 운송이었기 때문이다' },
+      { en: 'while the railway sold speed,', ko: '철도가 판 것은 속도였고,' },
+      { en: 'and the two were never on one sheet.', ko: '그 둘은 한 표에 놓인 적이 없었다.' },
+    ],
+  },
+  {
+    topic: '특허 덤불',
+    korean_full: '한 제품에 수백 건의 특허가 걸리자 그것을 만드는 일보다 만들 권리를 정리하는 일이 비싸졌고, 그 비용은 변호사를 둘 여유가 있는 쪽에 유리하게 작용했다.',
+    chunks: [
+      { en: 'Once hundreds of patents covered one product,', ko: '한 제품에 수백 건의 특허가 걸리자,' },
+      { en: 'clearing the right to make it cost more than making it,', ko: '만들 권리를 정리하는 일이 만드는 일보다 비싸졌다,' },
+      { en: 'and that cost favoured whoever', ko: '그리고 그 비용은 유리하게 작용했다' },
+      { en: 'could afford the lawyers.', ko: '변호사를 둘 여유가 있는 쪽에.' },
+    ],
+  },
+  {
+    topic: '공개 소스와 지원',
+    korean_full: '소프트웨어를 거저 준 회사는 지원으로 벌었다. 그리하여 쓰기 쉬운 제품을 만들 유인이 사라졌고, 그 모순은 여러 해 동안 아무도 장부에서 보지 못했다.',
+    chunks: [
+      { en: 'The company that gave its software away earned from support,', ko: '소프트웨어를 거저 준 회사는 지원으로 벌었다,' },
+      { en: 'so the incentive to make it easy to use disappeared,', ko: '그리하여 쓰기 쉽게 만들 유인이 사라졌다,' },
+      { en: 'and that contradiction went unseen in the accounts', ko: '그리고 그 모순은 장부에서 보이지 않았다' },
+      { en: 'for years.', ko: '여러 해 동안.' },
+    ],
+  },
+  {
+    topic: '허브와 직항',
+    korean_full: '허브 방식은 좌석을 채웠으나 지연을 퍼뜨렸다. 한 공항의 아침 안개가 그날 저녁 세 대륙의 시각표에 나타났고, 직항사는 그 값을 치르지 않았다.',
+    chunks: [
+      { en: 'The hub filled seats but spread delay,', ko: '허브 방식은 좌석을 채웠으나 지연을 퍼뜨렸다,' },
+      { en: 'so that morning fog at one airport', ko: '그리하여 한 공항의 아침 안개가' },
+      { en: 'appeared that evening in timetables on three continents,', ko: '그날 저녁 세 대륙의 시각표에 나타났다,' },
+      { en: 'which the point-to-point carrier never paid for.', ko: '직항사는 결코 치르지 않은 값이다.' },
+    ],
+  },
+  {
+    topic: '객실 점유율',
+    korean_full: '호텔을 점유율로 평가하자 지배인은 값을 내려 방을 채웠고, 그 방들이 벌어들인 금액은 빈 방과 거의 다르지 않았으나 표에는 좋아 보였다.',
+    chunks: [
+      { en: 'Judging a hotel by occupancy led the manager to fill rooms by cutting rates,', ko: '호텔을 점유율로 평가하자 지배인은 값을 내려 방을 채웠다,' },
+      { en: 'and what those rooms earned', ko: '그리고 그 방들이 벌어들인 것은' },
+      { en: 'differed little from leaving them empty,', ko: '비워 두는 것과 거의 다르지 않았다,' },
+      { en: 'though the table looked better.', ko: '표는 더 좋아 보였지만.' },
+    ],
+  },
+  {
+    topic: '암표와 정가',
+    korean_full: '공연표를 시세보다 싸게 판 주최자는 되팔이에게 그 차액을 넘겼고, 그리하여 관객은 어차피 시세를 치렀으나 그 돈은 무대에 닿지 않았다.',
+    chunks: [
+      { en: 'A promoter who priced tickets below the market', ko: '공연표를 시세보다 싸게 판 주최자는' },
+      { en: 'handed the difference to resellers,', ko: '그 차액을 되팔이에게 넘겼다,' },
+      { en: 'so the audience paid the market price anyway', ko: '그리하여 관객은 어차피 시세를 치렀다' },
+      { en: 'and none of it reached the stage.', ko: '그리고 그중 아무것도 무대에 닿지 않았다.' },
+    ],
+  },
+  {
+    topic: '최저 낙찰가',
+    korean_full: '경매에 최저 낙찰가를 두자 유찰이 늘었다. 그러나 팔린 물건의 값은 올랐고, 주최자가 무엇을 극대화하려 했는지가 그 둘 중 무엇이 성공인지를 정했다.',
+    chunks: [
+      { en: 'Setting a reserve price raised the number of lots that went unsold,', ko: '경매에 최저 낙찰가를 두자 유찰이 늘었다,' },
+      { en: 'yet lifted the price of those that sold,', ko: '그러나 팔린 물건의 값은 올렸다,' },
+      { en: 'and what the seller was maximising', ko: '그리고 주최자가 무엇을 극대화했는지가' },
+      { en: 'decided which of those was success.', ko: '그 둘 중 무엇이 성공인지 정했다.' },
+    ],
+  },
+  {
+    topic: '재판매 가격 유지',
+    korean_full: '제조사가 소매가를 정하자 상점들은 값이 아니라 서비스로 다투었고, 그리하여 소비자는 원하든 원하지 않든 그 서비스의 값을 치렀다.',
+    chunks: [
+      { en: 'When the maker fixed the retail price,', ko: '제조사가 소매가를 정하자,' },
+      { en: 'shops competed on service instead of price,', ko: '상점들은 값이 아니라 서비스로 다투었다,' },
+      { en: 'so the customer paid for that service', ko: '그리하여 고객은 그 서비스의 값을 치렀다' },
+      { en: 'whether or not he wanted it.', ko: '원하든 원하지 않든.' },
+    ],
+  },
+  {
+    topic: '보증 충당금',
+    korean_full: '보증 충당금을 적게 잡은 회사는 좋은 분기를 보고했다. 청구가 들어온 것은 그 분기를 보고한 경영진이 이미 떠난 뒤였고, 아무도 그 둘을 잇지 않았다.',
+    chunks: [
+      { en: 'The firm that reserved little for warranties reported a good quarter,', ko: '보증 충당금을 적게 잡은 회사는 좋은 분기를 보고했다,' },
+      { en: 'and the claims arrived', ko: '그리고 청구는 들어왔다' },
+      { en: 'after the managers who reported it had gone,', ko: '그 분기를 보고한 경영진이 떠난 뒤에,' },
+      { en: 'so nobody joined the two.', ko: '그리하여 아무도 그 둘을 잇지 않았다.' },
+    ],
+  },
+  {
+    topic: '헤지의 성적',
+    korean_full: '원자재를 헤지한 회사는 값이 오른 해에 손실을 보고했다. 그것이 헤지가 하는 일인데도, 그 손실을 설명하라는 요구가 다음 해의 헤지를 없앴다.',
+    chunks: [
+      { en: 'The company that hedged its commodity reported a loss in the year prices rose,', ko: '원자재를 헤지한 회사는 값이 오른 해에 손실을 보고했다,' },
+      { en: 'which is what a hedge does,', ko: '그것이 헤지가 하는 일인데도,' },
+      { en: 'yet the demand to explain that loss', ko: '그러나 그 손실을 설명하라는 요구가' },
+      { en: 'abolished the hedge the following year.', ko: '다음 해의 헤지를 없앴다.' },
+    ],
+  },
+  {
+    topic: '자기자본 비율',
+    korean_full: '은행에 자기자본 비율을 요구하자 위험 가중치가 낮은 자산으로 옮겨 갔고, 그리하여 규제는 위험의 총량이 아니라 그것이 어디에 놓이는지를 바꾸었다.',
+    chunks: [
+      { en: 'Requiring banks to hold capital against assets', ko: '은행에 자산 대비 자본을 요구하자' },
+      { en: 'moved them into whatever carried a low risk weight,', ko: '위험 가중치가 낮은 쪽으로 옮겨 갔다,' },
+      { en: 'so the rule changed where the risk sat', ko: '그리하여 규칙은 위험이 어디 놓이는지를 바꾸었다' },
+      { en: 'rather than how much there was.', ko: '얼마나 있는지가 아니라.' },
+    ],
+  },
+  {
+    topic: '보편 서비스',
+    korean_full: '먼 마을까지 같은 요금으로 우편을 배달하라는 의무는 도시의 발송인이 그 값을 치르게 했고, 그 교차 보조는 경쟁자가 도시만 가져갈 때 무너졌다.',
+    chunks: [
+      { en: 'The duty to deliver to a distant village at the same rate', ko: '먼 마을까지 같은 요금으로 배달할 의무는' },
+      { en: 'made the city sender pay for it,', ko: '도시의 발송인이 그 값을 치르게 했다,' },
+      { en: 'and that cross-subsidy collapsed', ko: '그리고 그 교차 보조는 무너졌다' },
+      { en: 'when a rival took only the cities.', ko: '경쟁자가 도시만 가져갔을 때.' },
+    ],
+  },
+  {
+    topic: '시간대 요금',
+    korean_full: '시간대별 전기 요금은 수요를 옮겼을 뿐 줄이지 않았다. 그러나 옮긴 것만으로 발전소 한 기를 짓지 않아도 되었고, 그것이 요금제의 진짜 성과였다.',
+    chunks: [
+      { en: 'Time-of-use electricity pricing moved demand rather than reduced it,', ko: '시간대별 전기 요금은 수요를 줄이지 않고 옮겼다,' },
+      { en: 'yet moving it alone', ko: '그러나 옮긴 것만으로' },
+      { en: 'spared the system one power station,', ko: '발전소 한 기를 아꼈다,' },
+      { en: 'which was the tariff\'s real achievement.', ko: '그것이 그 요금제의 진짜 성과였다.' },
+    ],
+  },
+  {
+    topic: '혼잡 통행료',
+    korean_full: '혼잡 통행료는 길을 비웠다. 그러나 비워진 길은 다른 길에서 온 운전자를 끌어들였고, 그리하여 요금이 값한 것은 통행이 아니라 그것이 드러낸 수요였다.',
+    chunks: [
+      { en: 'The congestion charge emptied the road,', ko: '혼잡 통행료는 길을 비웠다,' },
+      { en: 'but the emptied road drew drivers from other roads,', ko: '그러나 비워진 길은 다른 길의 운전자를 끌어들였다,' },
+      { en: 'so what the charge priced', ko: '그리하여 요금이 값한 것은' },
+      { en: 'was the demand it revealed rather than the traffic.', ko: '통행이 아니라 그것이 드러낸 수요였다.' },
+    ],
+  },
+  {
+    topic: '컨테이너 임대',
+    korean_full: '컨테이너를 소유한 선사는 무역이 한 방향으로 기울 때 빈 상자를 되돌려야 했다. 빌려 쓴 선사는 그냥 반납했고, 그 차이는 호황이 아니라 불황에서 드러났다.',
+    chunks: [
+      { en: 'A line that owned its containers had to bring the empties back', ko: '컨테이너를 소유한 선사는 빈 상자를 되돌려야 했다' },
+      { en: 'when trade ran one way,', ko: '무역이 한 방향으로 흐를 때,' },
+      { en: 'while the line that leased simply returned them,', ko: '빌려 쓴 선사는 그냥 반납했다,' },
+      { en: 'and the difference showed in the slump.', ko: '그리고 그 차이는 불황에서 드러났다.' },
+    ],
+  },
+  {
+    topic: '팹의 감가',
+    korean_full: '반도체 공장은 팔 수 있는 것을 만들기 전에 감가가 시작되었다. 그리하여 짓기로 한 결정은 수요 예측이 아니라 삼 년 뒤의 달력에 걸린 내기였다.',
+    chunks: [
+      { en: 'A semiconductor fab began depreciating before it made anything saleable,', ko: '반도체 공장은 팔 것을 만들기 전에 감가가 시작되었다,' },
+      { en: 'so the decision to build', ko: '그리하여 짓기로 한 결정은' },
+      { en: 'was a bet on a calendar three years out', ko: '삼 년 뒤의 달력에 건 내기였다' },
+      { en: 'rather than a forecast of demand.', ko: '수요 예측이 아니라.' },
+    ],
+  },
+  {
+    topic: '영업 인력의 값',
+    korean_full: '제약사가 영업 인력을 늘리자 처방이 늘었다. 그러나 경쟁사도 같이 늘렸고, 그리하여 두 회사 모두 같은 자리에 서기 위해 값을 치렀다.',
+    chunks: [
+      { en: 'When the drug company added sales representatives, prescriptions rose,', ko: '제약사가 영업 인력을 늘리자 처방이 늘었다,' },
+      { en: 'but the rival added them too,', ko: '그러나 경쟁사도 함께 늘렸다,' },
+      { en: 'so both firms paid', ko: '그리하여 두 회사 모두 값을 치렀다' },
+      { en: 'to stand where they had stood.', ko: '서 있던 자리에 그대로 서기 위해.' },
+    ],
+  },
+  {
+    topic: '미끼 상품',
+    korean_full: '슈퍼마켓이 우유를 원가 아래로 팔았을 때 잃은 것은 우유에서였고 번 것은 그것을 사러 온 사람이 함께 담은 것에서였다. 우유만 사 간 손님은 값을 받지 않았다.',
+    chunks: [
+      { en: 'When the supermarket sold milk below cost,', ko: '슈퍼마켓이 우유를 원가 아래로 팔았을 때,' },
+      { en: 'what it lost was on the milk', ko: '잃은 것은 우유에서였고' },
+      { en: 'and what it earned was in the basket beside it,', ko: '번 것은 그 옆 장바구니에서였다,' },
+      { en: 'so whoever bought only milk was never charged.', ko: '그리하여 우유만 산 사람은 값을 치르지 않았다.' },
+    ],
+  },
+  {
+    topic: '반품되는 책',
+    korean_full: '서점이 팔리지 않은 책을 돌려보낼 수 있었기 때문에 출판사가 인쇄 부수의 위험을 졌고, 그리하여 무엇을 낼지 정한 것은 읽는 사람이 아니라 창고였다.',
+    chunks: [
+      { en: 'Because a bookshop could return what it had not sold,', ko: '서점이 팔지 못한 것을 돌려보낼 수 있었기 때문에,' },
+      { en: 'the publisher carried the risk of the print run,', ko: '출판사가 인쇄 부수의 위험을 졌다,' },
+      { en: 'and what decided which books appeared', ko: '그리고 어떤 책이 나올지 정한 것은' },
+      { en: 'was the warehouse rather than the reader.', ko: '독자가 아니라 창고였다.' },
+    ],
+  },
+  {
+    topic: '개봉 순서',
+    korean_full: '극장 개봉과 가정 판매 사이의 간격은 관객을 위한 것이 아니라 극장주를 위한 것이었고, 그 간격이 좁아졌을 때 사라진 것은 편의가 아니라 협상력이었다.',
+    chunks: [
+      { en: 'The gap between the cinema release and the home sale', ko: '극장 개봉과 가정 판매 사이의 간격은' },
+      { en: 'existed for the exhibitor rather than the audience,', ko: '관객이 아니라 극장주를 위해 있었다,' },
+      { en: 'and when it narrowed what disappeared', ko: '그리고 그것이 좁아졌을 때 사라진 것은' },
+      { en: 'was not convenience but bargaining power.', ko: '편의가 아니라 협상력이었다.' },
+    ],
+  },
+  {
+    topic: '스트리밍 인세',
+    korean_full: '재생당 인세는 곡을 만드는 비용과 아무 관계가 없었다. 그리하여 짧고 자주 듣는 곡이 유리해졌고, 길게 쓰는 일은 취미가 되었다.',
+    chunks: [
+      { en: 'A royalty paid per play bore no relation to what a song cost to make,', ko: '재생당 인세는 곡을 만드는 비용과 무관했다,' },
+      { en: 'so short and often-heard music was favoured,', ko: '그리하여 짧고 자주 듣는 음악이 유리해졌다,' },
+      { en: 'and writing at length', ko: '그리고 길게 쓰는 일은' },
+      { en: 'became a hobby.', ko: '취미가 되었다.' },
+    ],
+  },
+  {
+    topic: '종자와 비료',
+    korean_full: '종자와 비료를 묶어 판 회사는 수확량을 올렸다. 그러나 농부가 다음 해의 종자를 스스로 남길 수 없게 되면서, 그 수확량의 값은 해마다 다시 청구되었다.',
+    chunks: [
+      { en: 'The company that sold seed and fertiliser together raised yields,', ko: '종자와 비료를 묶어 판 회사는 수확량을 올렸다,' },
+      { en: 'but once the farmer could not keep his own seed for next year,', ko: '그러나 농부가 다음 해 종자를 남길 수 없게 되자,' },
+      { en: 'the price of that yield', ko: '그 수확량의 값은' },
+      { en: 'was billed again every season.', ko: '해마다 다시 청구되었다.' },
+    ],
+  },
+  {
+    topic: '어획 할당',
+    korean_full: '어획 할당을 배마다 나누자 어부들은 더 적게 잡고 더 많이 벌었다. 그러나 할당은 팔 수 있었고, 십 년 뒤 그것을 가진 이들은 배를 타지 않았다.',
+    chunks: [
+      { en: 'Dividing the catch quota among boats made fishermen take less and earn more,', ko: '어획 할당을 배마다 나누자 더 적게 잡고 더 벌었다,' },
+      { en: 'but the quota could be sold,', ko: '그러나 할당은 팔 수 있었다,' },
+      { en: 'and a decade later those who held it', ko: '그리고 십 년 뒤 그것을 쥔 이들은' },
+      { en: 'did not go to sea.', ko: '바다에 나가지 않았다.' },
+    ],
+  },
+  {
+    topic: '벌목 주기',
+    korean_full: '이자율이 오르자 벌목 회사는 나무를 더 일찍 베었다. 나무가 덜 자라서가 아니라 기다리는 값이 올랐기 때문이고, 숲의 나이는 금리가 정했다.',
+    chunks: [
+      { en: 'When interest rates rose the timber company cut its trees earlier,', ko: '이자율이 오르자 벌목 회사는 나무를 더 일찍 베었다,' },
+      { en: 'not because the trees grew less', ko: '나무가 덜 자라서가 아니라' },
+      { en: 'but because waiting had grown dearer,', ko: '기다리는 값이 올랐기 때문이다,' },
+      { en: 'and the age of the forest was set by the rate.', ko: '그리고 숲의 나이는 금리가 정했다.' },
+    ],
+  },
+  {
+    topic: '광산의 기다림',
+    korean_full: '광산 회사가 개발을 미룬 것은 광맥이 나빠서가 아니라 값이 오를 수 있었기 때문이고, 그리하여 묻어 둔 광석의 가치 대부분은 캐지 않는 데 있었다.',
+    chunks: [
+      { en: 'The mining company deferred development not because the seam was poor', ko: '광산 회사가 개발을 미룬 것은 광맥이 나빠서가 아니라' },
+      { en: 'but because the price might rise,', ko: '값이 오를 수 있었기 때문이다,' },
+      { en: 'so most of the value in buried ore', ko: '그리하여 묻힌 광석의 가치 대부분은' },
+      { en: 'lay in not digging it.', ko: '캐지 않는 데 있었다.' },
+    ],
+  },
+  {
+    topic: '연료 헤지의 비대칭',
+    korean_full: '연료를 헤지한 항공사는 값이 떨어진 해에 경쟁사보다 비싸게 날았다. 그리하여 헤지가 옳았던 해에는 아무도 칭찬하지 않았고, 틀린 해에는 모두가 기억했다.',
+    chunks: [
+      { en: 'The airline that hedged fuel flew dearer than its rivals in the year prices fell,', ko: '연료를 헤지한 항공사는 값이 떨어진 해에 더 비싸게 날았다,' },
+      { en: 'so nobody praised the hedge in the years it was right', ko: '그리하여 옳았던 해에는 아무도 칭찬하지 않았다' },
+      { en: 'and everyone remembered', ko: '그리고 모두가 기억했다' },
+      { en: 'the year it was wrong.', ko: '틀린 해를.' },
+    ],
+  },
+  {
+    topic: '고정 환율',
+    korean_full: '고정 환율 아래의 수출업자들은 환위험을 잊었다. 그리하여 고정이 풀린 날 그들이 잃은 것은 환율이 아니라 헤지하는 법을 아는 세대였다.',
+    chunks: [
+      { en: 'Exporters under a pegged currency forgot exchange risk,', ko: '고정 환율 아래의 수출업자들은 환위험을 잊었다,' },
+      { en: 'so on the day the peg broke', ko: '그리하여 고정이 풀린 날' },
+      { en: 'what they had lost was not the rate', ko: '그들이 잃은 것은 환율이 아니라' },
+      { en: 'but a generation who knew how to hedge.', ko: '헤지할 줄 아는 세대였다.' },
+    ],
+  },
+  {
+    topic: '수출 금융',
+    korean_full: '수출 금융 기관이 구매자에게 싼 돈을 빌려주자 그 나라 제조사가 이겼다. 그러나 그 승리는 제품이 아니라 금리였고, 금리는 언제든 복제될 수 있었다.',
+    chunks: [
+      { en: 'When the export agency lent the buyer cheap money,', ko: '수출 금융 기관이 구매자에게 싼 돈을 빌려주자,' },
+      { en: 'the manufacturer of that country won,', ko: '그 나라 제조사가 이겼다,' },
+      { en: 'but the victory was the rate rather than the product,', ko: '그러나 그 승리는 제품이 아니라 금리였다,' },
+      { en: 'and a rate can always be copied.', ko: '그리고 금리는 언제든 복제된다.' },
+    ],
+  },
+  {
+    topic: '항공 화물의 규격',
+    korean_full: '항공 화물은 컨테이너를 따라가지 못했다. 동체가 둥글어 사각 상자가 맞지 않았기 때문이고, 그 기하학이 육십 년 동안 두 산업의 원가를 갈라놓았다.',
+    chunks: [
+      { en: 'Air freight never followed the container,', ko: '항공 화물은 컨테이너를 따라가지 못했다,' },
+      { en: 'because a round fuselage will not take a square box,', ko: '동체가 둥글어 사각 상자가 맞지 않기 때문이다,' },
+      { en: 'and that geometry separated the costs of two industries', ko: '그리고 그 기하학이 두 산업의 원가를 갈라놓았다' },
+      { en: 'for sixty years.', ko: '육십 년 동안.' },
+    ],
+  },
+  {
+    topic: '저온 유통',
+    korean_full: '백신이 섭씨 이 도를 넘기면 버려야 했기 때문에, 그 제품의 진짜 원가는 약이 아니라 그것이 지나온 냉장고 사슬에 있었다.',
+    chunks: [
+      { en: 'Because a vaccine had to be discarded if it passed two degrees,', ko: '백신이 섭씨 이 도를 넘기면 버려야 했기 때문에,' },
+      { en: 'the real cost of that product', ko: '그 제품의 진짜 원가는' },
+      { en: 'lay not in the medicine', ko: '약에 있지 않고' },
+      { en: 'but in the chain of refrigerators it had crossed.', ko: '그것이 지나온 냉장고 사슬에 있었다.' },
+    ],
+  },
+  {
+    topic: '배달 수수료',
+    korean_full: '배달 플랫폼이 매출의 삼십 퍼센트를 가져가자 식당은 배달용 값을 따로 올렸고, 그리하여 그 편의의 값을 치른 것은 앱을 쓰지 않는 손님까지였다.',
+    chunks: [
+      { en: 'When the delivery platform took thirty percent of the bill,', ko: '배달 플랫폼이 매출의 삼십 퍼센트를 가져가자,' },
+      { en: 'restaurants raised their delivery prices separately,', ko: '식당은 배달 값을 따로 올렸다,' },
+      { en: 'so the convenience was paid for', ko: '그리하여 그 편의의 값은 치러졌다' },
+      { en: 'even by those who never opened the app.', ko: '앱을 열지 않은 이들에게까지.' },
+    ],
+  },
+  {
+    topic: '데이터센터의 전력',
+    korean_full: '데이터센터가 어디 설 것인지는 대역폭이 아니라 전력 계약이 정했고, 그리하여 세계에서 가장 빠른 연결은 가장 싼 발전소를 따라 놓였다.',
+    chunks: [
+      { en: 'Where a data centre stood was decided by the power contract', ko: '데이터센터가 어디 서는지는 전력 계약이 정했다' },
+      { en: 'rather than the bandwidth,', ko: '대역폭이 아니라,' },
+      { en: 'so the fastest connections in the world', ko: '그리하여 세계에서 가장 빠른 연결은' },
+      { en: 'were laid to follow the cheapest generators.', ko: '가장 싼 발전소를 따라 놓였다.' },
+    ],
+  },
+  {
+    topic: '수출 통제',
+    korean_full: '수출 통제는 장비를 막았으나 지식을 막지 못했다. 그리하여 금지된 쪽은 오 년을 잃었고, 금지한 쪽은 자기 장비를 살 가장 큰 고객을 잃었다.',
+    chunks: [
+      { en: 'Export controls stopped the equipment but not the knowledge,', ko: '수출 통제는 장비를 막았으나 지식은 막지 못했다,' },
+      { en: 'so the side that was barred lost five years', ko: '그리하여 금지된 쪽은 오 년을 잃었다' },
+      { en: 'while the side that barred it', ko: '금지한 쪽은' },
+      { en: 'lost the largest buyer of its machines.', ko: '자기 기계의 가장 큰 구매자를 잃었다.' },
+    ],
+  },
+  {
+    topic: '재활용의 셈',
+    korean_full: '재활용이 수지가 맞은 것은 누군가 그 재료를 사 갔기 때문이었다. 그 구매자가 문을 닫자 같은 수거 트럭이 같은 길을 돌았지만 도착지가 매립장으로 바뀌었다.',
+    chunks: [
+      { en: 'Recycling paid because somebody bought the material,', ko: '재활용이 수지가 맞은 것은 누군가 그 재료를 샀기 때문이다,' },
+      { en: 'and when that buyer closed', ko: '그 구매자가 문을 닫자' },
+      { en: 'the same trucks ran the same routes', ko: '같은 트럭이 같은 길을 돌았다' },
+      { en: 'to a different destination.', ko: '다른 도착지로.' },
+    ],
+  },
+  {
+    topic: '보증금 제도',
+    korean_full: '병 보증금은 반환율을 올렸다. 그러나 돌려받지 않은 보증금이 제도를 운영하는 돈이었고, 그리하여 완전한 성공은 그 제도를 파산시켰을 것이다.',
+    chunks: [
+      { en: 'The bottle deposit raised the return rate,', ko: '병 보증금은 반환율을 올렸다,' },
+      { en: 'yet the deposits never reclaimed', ko: '그러나 돌려받지 않은 보증금이' },
+      { en: 'were the money that ran the scheme,', ko: '그 제도를 운영하는 돈이었다,' },
+      { en: 'so complete success would have bankrupted it.', ko: '그리하여 완전한 성공은 그것을 파산시켰을 것이다.' },
+    ],
+  },
+  {
+    topic: '건축 기준',
+    korean_full: '새 건물에만 적용된 단열 기준은 오래된 건물을 그대로 두었고, 그리하여 규정이 노린 에너지의 대부분은 규정이 닿지 않는 곳에서 계속 쓰였다.',
+    chunks: [
+      { en: 'An insulation standard that applied only to new buildings', ko: '새 건물에만 적용된 단열 기준은' },
+      { en: 'left the old ones alone,', ko: '오래된 건물을 그대로 두었다,' },
+      { en: 'so most of the energy the rule aimed at', ko: '그리하여 규정이 노린 에너지의 대부분은' },
+      { en: 'went on being used where it did not reach.', ko: '그것이 닿지 않는 곳에서 계속 쓰였다.' },
+    ],
+  },
+  {
+    topic: '좁아진 의료망',
+    korean_full: '보험사가 병원 목록을 좁히자 보험료는 내려갔다. 그러나 목록 밖에서 치료받은 환자가 전액을 물게 되었고, 그 절감은 평균에는 나타났으나 그들에게는 아니었다.',
+    chunks: [
+      { en: 'When the insurer narrowed its list of hospitals, premiums fell,', ko: '보험사가 병원 목록을 좁히자 보험료는 내려갔다,' },
+      { en: 'but a patient treated outside the list paid in full,', ko: '그러나 목록 밖에서 치료받은 환자는 전액을 물었다,' },
+      { en: 'and the saving appeared in the average', ko: '그리고 그 절감은 평균에는 나타났다' },
+      { en: 'rather than to him.', ko: '그에게는 아니라.' },
+    ],
+  },
+  {
+    topic: '수가 코드',
+    korean_full: '새 의료기기가 자기 수가 코드를 받기까지 삼 년이 걸렸다. 그리하여 그 기기가 좋은지 아닌지가 아니라 언제 코드가 나오는지가 어느 회사가 살아남을지 정했다.',
+    chunks: [
+      { en: 'A new medical device waited three years for a code of its own,', ko: '새 의료기기는 자기 코드를 삼 년 기다렸다,' },
+      { en: 'so what decided which company survived', ko: '그리하여 어느 회사가 살아남을지 정한 것은' },
+      { en: 'was not whether the device was good', ko: '그 기기가 좋은지가 아니라' },
+      { en: 'but when the code arrived.', ko: '언제 코드가 나오는지였다.' },
+    ],
+  },
+  {
+    topic: '기부금과 등록금',
+    korean_full: '기금이 큰 대학일수록 등록금을 더 올렸다. 기금이 지원을 감당했기 때문이고, 그리하여 정가는 낼 수 있는 소수가 아니라 아무도 내지 않는 숫자가 되었다.',
+    chunks: [
+      { en: 'Universities with the largest endowments raised tuition the most,', ko: '기금이 큰 대학일수록 등록금을 더 올렸다,' },
+      { en: 'because the endowment paid the aid,', ko: '기금이 지원을 감당했기 때문이다,' },
+      { en: 'so the published price became a number', ko: '그리하여 정가는 어떤 숫자가 되었다' },
+      { en: 'nobody actually paid.', ko: '아무도 실제로 내지 않는.' },
+    ],
+  },
+  {
+    topic: '교과서 개정',
+    korean_full: '해마다 새 판을 낸 출판사는 중고 시장을 없앴다. 그러나 학생들이 대여로 옮겨 가면서, 그 개정이 지키려던 매출은 다른 문으로 나갔다.',
+    chunks: [
+      { en: 'The publisher that issued a new edition each year killed the second-hand market,', ko: '해마다 새 판을 낸 출판사는 중고 시장을 없앴다,' },
+      { en: 'but as students moved to renting,', ko: '그러나 학생들이 대여로 옮겨 가면서,' },
+      { en: 'the revenue those editions defended', ko: '그 개정이 지킨 매출은' },
+      { en: 'left by another door.', ko: '다른 문으로 나갔다.' },
+    ],
+  },
+  {
+    topic: '공정 노동 분류',
+    korean_full: '배달원을 개인사업자로 분류하자 회사의 인건비가 사라졌다. 그러나 차량과 보험과 노는 시간의 값은 세상에서 사라진 것이 아니라 장부에서 사라졌을 뿐이다.',
+    chunks: [
+      { en: 'Classifying couriers as contractors removed the labour cost from the company,', ko: '배달원을 개인사업자로 분류하자 인건비가 회사에서 사라졌다,' },
+      { en: 'though the cost of vehicles, insurance and idle hours', ko: '그러나 차량과 보험과 노는 시간의 값은' },
+      { en: 'did not disappear from the world', ko: '세상에서 사라진 것이 아니라' },
+      { en: 'so much as from the accounts.', ko: '장부에서 사라졌을 뿐이다.' },
+    ],
+  },
+  {
+    topic: '다크 스토어',
+    korean_full: '주문 십 분 배달을 약속한 회사는 도심에 창고를 두어야 했다. 그 임대료는 상점보다 비쌌고, 그리하여 그들이 판 것은 물건이 아니라 임대료였다.',
+    chunks: [
+      { en: 'A firm promising delivery in ten minutes had to hold stock in the city centre,', ko: '십 분 배달을 약속한 회사는 도심에 재고를 둬야 했다,' },
+      { en: 'where rent cost more than a shop,', ko: '그곳 임대료는 상점보다 비쌌다,' },
+      { en: 'so what it actually sold', ko: '그리하여 그들이 실제로 판 것은' },
+      { en: 'was rent rather than groceries.', ko: '식료품이 아니라 임대료였다.' },
+    ],
+  },
+  {
+    topic: '노선 보조금',
+    korean_full: '적자 노선에 보조금을 준 정부는 그 노선을 지켰다. 그러나 보조금이 노선당 지급되었기 때문에, 운영사는 한 노선을 둘로 나누어 두 번 받았다.',
+    chunks: [
+      { en: 'The government that subsidised a loss-making route preserved it,', ko: '적자 노선에 보조금을 준 정부는 그것을 지켰다,' },
+      { en: 'but because the subsidy was paid per route,', ko: '그러나 보조금이 노선당 지급되었기 때문에,' },
+      { en: 'the operator split one route into two', ko: '운영사는 한 노선을 둘로 나누었다' },
+      { en: 'and collected twice.', ko: '그리고 두 번 받았다.' },
+    ],
+  },
+  {
+    topic: '품질 인증',
+    korean_full: '인증 비용이 고정되어 있었기 때문에, 그것은 큰 생산자에게는 반올림 오차였고 작은 생산자에게는 진입 장벽이었으며, 그 규정을 요청한 쪽은 큰 생산자였다.',
+    chunks: [
+      { en: 'Because the cost of certification was fixed,', ko: '인증 비용이 고정되어 있었기 때문에,' },
+      { en: 'it was a rounding error for the large producer', ko: '큰 생산자에게는 반올림 오차였다' },
+      { en: 'and a barrier for the small one,', ko: '작은 생산자에게는 장벽이었고,' },
+      { en: 'and it was the large one who asked for the rule.', ko: '그 규정을 요청한 쪽은 큰 생산자였다.' },
+    ],
+  },
 ]
 
 /* ── 검증 ──────────────────────────────────────────────────── */
