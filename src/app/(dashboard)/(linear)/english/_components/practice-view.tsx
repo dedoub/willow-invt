@@ -94,10 +94,9 @@ const POINT_LABEL: Record<string, string> = {
 export function PracticeView({ target, view, onViewChange }: PracticeViewProps) {
   const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
-  // 힌트|쓰기를 나란히 둘지 위아래로 둘지 — 상단바의 1열/2열 단추가 정한다(경로별로 기억).
-  // 좁은 화면은 고를 것이 없다. 두 칸을 나란히 둘 폭이 아니다.
-  const cols = useDashCols()
-  const twoCol = !mobile && cols === 2
+  // 힌트|쓰기를 나란히 둘지 위아래로 둘지 — 1열/2열 단추가 정한다(경로별로 기억).
+  // 좁은 화면에서도 단추를 내주므로 폭으로 가로막지 않는다. 고르지 않았을 때만 폭이 정한다.
+  const twoCol = useDashCols() === 2
   const [mode, setMode] = useState<Mode>('balanced')
   const [order, setOrder] = useState('oldest')
   const [loading, setLoading] = useState(true)

@@ -90,7 +90,12 @@ function dashEvt(pathname: string) { return `dash-cols:${pathname}-change` }
 
 function readDashCols(pathname: string): 1 | 2 {
   if (typeof window === 'undefined') return 2
-  return localStorage.getItem(dashKey(pathname)) === '1' ? 1 : 2
+  const saved = localStorage.getItem(dashKey(pathname))
+  if (saved === '1') return 1
+  if (saved === '2') return 2
+  // 고른 적이 없으면 폭이 정한다. 예전에는 무조건 2였는데, 좁은 화면의 페이지들은
+  // 어차피 한 줄로 세우면서 단추만 「2열」이라고 말하고 있었다 — 사실과 다른 그림이다.
+  return window.innerWidth < 768 ? 1 : 2
 }
 
 // 페이지 그리드/헤더 버튼 공용 — 현재 경로의 값을 구독

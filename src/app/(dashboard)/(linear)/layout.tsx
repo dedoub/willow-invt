@@ -99,16 +99,23 @@ export default function LinearRouteLayout({
               </>
             )}
           />
+          {/* 좁은 화면의 상단바에는 단추를 둘 자리가 없다. 영작연습은 그 아래 한 줄을 따로 내준다 —
+              대상 토글에 더해 1열/2열과 전체화면도 여기 선다(CEO 2026-09-15). */}
           {pathname === '/english' && mobile && (
             <div style={{
               display: 'flex',
               justifyContent: 'center',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: t.density.kpiGap,
               padding: `${t.density.gapSm}px 12px`,
               background: t.neutrals.page,
               borderBottom: `1px solid ${t.neutrals.line}`,
               flexShrink: 0,
             }}>
               <EnglishProfileToggle />
+              <DashColsToggle />
+              <FullscreenToggle />
             </div>
           )}
           <main style={{
