@@ -13,6 +13,7 @@ import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import type { PracticeTarget } from '@/lib/english-targets'
 import {
   correctionDiff, chunkRecord, easedLevel, HINT_CHUNKS, HINT_SENTENCE, HINT_TOPIC, HINT_LABEL,
@@ -93,6 +94,10 @@ const POINT_LABEL: Record<string, string> = {
 export function PracticeView({ target, view, onViewChange }: PracticeViewProps) {
   const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
+  // 힌트|쓰기를 나란히 둘지 위아래로 둘지 — 상단바의 1열/2열 단추가 정한다(경로별로 기억).
+  // 좁은 화면은 고를 것이 없다. 두 칸을 나란히 둘 폭이 아니다.
+  const cols = useDashCols()
+  const twoCol = !mobile && cols === 2
   const [mode, setMode] = useState<Mode>('balanced')
   const [order, setOrder] = useState('oldest')
   const [loading, setLoading] = useState(true)
@@ -121,7 +126,8 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   // 그 값 하나로 맞는다.
   const [drawBarH, setDrawBarH] = useState(0)
   useEffect(() => {
-    if (inputMode !== 'draw' || !tools.docked) { setDrawBarH(0); return }
+    // 한 칸으로 세울 때는 맞출 상대가 없다 — 왼쪽 위에 빈자리만 남는다.
+    if (!twoCol || inputMode !== 'draw' || !tools.docked) { setDrawBarH(0); return }
     const bar = tools.toolsRef.current
     const box = tools.boxRef.current
     if (!bar || !box) return
@@ -134,7 +140,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
     observer.observe(bar)
     observer.observe(box)
     return () => observer.disconnect()
-  }, [tools.docked, tools.toolsRef, tools.boxRef, inputMode])
+  }, [tools.docked, tools.toolsRef, tools.boxRef, inputMode, twoCol])
 
   // 어느 의미조각이 뒤집혀 있나. 문항이 바뀌면 전부 덮는다.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
@@ -214,8 +220,8 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   // 141px 이 어긋난 채로 여백이 0 에 머물렀다(2026-09-14 실측). 매 그림마다 재면 그럴 일이 없다.
   // 1px 미만이면 손대지 않으므로 서로 밀어내며 도는 일도 없다.
   useLayoutEffect(() => {
-    // 한 칸으로 접히는 좁은 화면에서는 맞출 두 칸이 없다.
-    if (!result || mobile) {
+    // 한 칸으로 세울 때는 맞출 두 칸이 없다 — 좁은 화면이거나 1열을 고른 때다.
+    if (!result || !twoCol) {
       if (retryGap !== 0) setRetryGap(0)
       return
     }
@@ -227,7 +233,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
     if (Math.abs(delta) < 1) return
     setRetryGap(gap => Math.max(0, gap + delta))
     // 여백이 바뀌면 한 번 더 재서 남은 차이를 마저 없앤다. 1px 미만이면 위에서 멈춘다.
-  }, [result, mobile, retryGap])
+  }, [result, twoCol, retryGap])
 
   // 채점 뒤, 조각마다 답에 실제로 썼는지. 답은 손글씨면 전사된 글이다.
   const chunkHits = result
@@ -546,8 +552,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
 
               <div style={{
                 display: 'grid',
-                // 상단바 자리는 대상 토글이 쓰고 있어 1열/2열 토글을 둘 데가 없다. 폭으로만 가른다.
-                gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
+                gridTemplateColumns: twoCol ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)',
                 gap: t.density.blockGap,
                 padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
                 alignItems: 'start',
@@ -945,6 +950,13 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                 </div>
               </div>
             </LCard>
+
+            {/* 펜으로 쓸 때는 카드 아래로 빈 자리를 둔다. 그만큼 더 굴릴 수 있어서 판을
+                화면 위쪽까지 올려놓고 쓸 수 있다 — 화면 맨 아래에 붙은 판은 손목이 걸려
+                쓰기 나쁘다(CEO 2026-09-14). 자판일 때는 굴릴 이유가 없어 두지 않는다. */}
+            {(result ? againMode === 'draw' : inputMode === 'draw') && (
+              <div aria-hidden="true" style={{ height: 'min(50vh, 420px)', flexShrink: 0 }} />
+            )}
           </>
         )}
       </div>

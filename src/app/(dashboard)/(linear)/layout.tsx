@@ -9,6 +9,7 @@ import { breadcrumbFor } from '@/app/(dashboard)/_components/linear-nav'
 import { LinearHeader } from '@/app/(dashboard)/_components/linear-header'
 import { DashColsToggle } from '@/app/(dashboard)/_components/cols-toggle'
 import { EnglishProfileToggle } from '@/app/(dashboard)/_components/english-profile'
+import { FullscreenToggle } from '@/app/(dashboard)/_components/fullscreen-toggle'
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill'
 
 const jetbrainsMono = JetBrains_Mono({
@@ -18,9 +19,10 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 // 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
+// /english 는 카드가 한 줄로 서지만 연습하기 카드 안이 힌트|쓰기 두 칸이라, 그 칸을 가른다.
 const COLS_TOGGLE_PATHS = new Set([
   '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/valuechain', '/voicecards', '/reviewnotes', '/scripta', '/portle',
-  '/admin/rates',
+  '/english', '/admin/rates',
 ])
 
 export default function LinearRouteLayout({
@@ -88,11 +90,14 @@ export default function LinearRouteLayout({
             onMenuToggle={() => setMenuOpen(v => !v)}
             onSidebarToggle={() => setSidebarOpen(v => !v)}
             sidebarOpen={sidebarOpen}
-            actions={
-              pathname === '/english' && !mobile ? <EnglishProfileToggle />
-                : !mobile && COLS_TOGGLE_PATHS.has(pathname) ? <DashColsToggle />
-                : undefined
-            }
+            actions={mobile ? undefined : (
+              <>
+                {pathname === '/english' && <EnglishProfileToggle />}
+                {COLS_TOGGLE_PATHS.has(pathname) && <DashColsToggle />}
+                {/* 전체화면은 쓰는 화면에서만 쓸모가 있다 — 손으로 쓰는 자리를 넓히는 단추다. */}
+                {pathname === '/english' && <FullscreenToggle />}
+              </>
+            )}
           />
           {pathname === '/english' && mobile && (
             <div style={{
