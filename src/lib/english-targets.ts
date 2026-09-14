@@ -29,6 +29,12 @@ export interface PracticeTarget {
   sourceLabel: string
   register: Register
   source: SourcePool
+  /**
+   * 처음 열었을 때의 입력 방식. 류하는 손으로 쓰는 연습이 목적이고, 아빠는 실제로
+   * 타자로 쓰는 글이 목적이다. 예전에는 `profile === 'ceo'` 로 갈랐는데, 대상이 넷이
+   * 되면서 아빠 에세이가 손글씨로 열렸다(2026-09-14).
+   */
+  defaultInput: 'type' | 'draw'
   /** 보이스카드 내보내기 대상 시트 */
   deck: { spreadsheetId: string; gid?: number; tabTitle?: string }
 }
@@ -48,6 +54,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     sourceLabel: '위키·이메일',
     register: 'spoken',
     source: 'wiki',
+    defaultInput: 'type',
     deck: CEO_DECK,
   },
   {
@@ -61,6 +68,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     sourceLabel: '위키·이메일',
     register: 'written',
     source: 'wiki',
+    defaultInput: 'type',
     deck: CEO_DECK,
   },
   {
@@ -74,6 +82,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     sourceLabel: '류하 노트',
     register: 'spoken',
     source: 'ryuha_notes',
+    defaultInput: 'draw',
     deck: RYUHA_DECK,
   },
   {
@@ -87,6 +96,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     sourceLabel: '류하 노트',
     register: 'written',
     source: 'ryuha_notes',
+    defaultInput: 'draw',
     deck: RYUHA_DECK,
   },
 ]

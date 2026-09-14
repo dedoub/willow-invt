@@ -92,11 +92,33 @@ export function PracticeView({ target }: PracticeViewProps) {
   const [error, setError] = useState<string | null>(null)
   const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
   // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
-  const [inputMode, setInputMode] = useState<'type' | 'draw'>(profile === 'ceo' ? 'type' : 'draw')
+  const [inputMode, setInputMode] = useState<'type' | 'draw'>(target.defaultInput)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const tools = useDrawTools('english-practice-tools')
+
+  // 위쪽 바로 세운 도구 바가 오른쪽 판을 밀어 내린 만큼, 왼쪽에도 같은 높이를 비워 둔다.
+  //
+  // 바의 높이만 재면 6px 모자란다. 바는 제 아래 여백을 갖고 있고 칸 자체도 자식 사이를
+  // 띄우기 때문이다. 그래서 바 꼭대기에서 판 꼭대기까지를 통째로 잰다 — 여백이 몇 겹이든
+  // 그 값 하나로 맞는다.
+  const [drawBarH, setDrawBarH] = useState(0)
+  useEffect(() => {
+    if (inputMode !== 'draw' || !tools.docked) { setDrawBarH(0); return }
+    const bar = tools.toolsRef.current
+    const box = tools.boxRef.current
+    if (!bar || !box) return
+    const measure = () => {
+      const gap = Math.round(box.getBoundingClientRect().top - bar.getBoundingClientRect().top)
+      if (gap > 0) setDrawBarH(gap)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [tools.docked, tools.toolsRef, tools.boxRef, inputMode])
 
   // 어느 의미조각이 뒤집혀 있나. 문항이 바뀌면 전부 덮는다.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
@@ -497,6 +519,12 @@ export function PracticeView({ target }: PracticeViewProps) {
                   }}>
                     한글 청킹 · 영어어순
                   </div>
+
+                  {/* 펜 도구를 위쪽 바로 세우면 오른쪽 판이 그 줄만큼 내려간다. 왼쪽도 같이
+                      내려가야 두 칸이 계속 같은 선에서 시작한다. 도구 바를 띄워 놓았을 때는
+                      판 위에 겹쳐 있어 자리를 차지하지 않으므로 이 칸도 없다. */}
+                  {drawBarH > 0 && <div aria-hidden="true" style={{ height: drawBarH }} />}
+
                   {/* 조각을 누르면 그 줄만 뒤집혀 영어가 나온다. 한 줄씩 확인하려고 문장
                       전체를 열면 나머지 조각의 답까지 같이 보여 연습이 끝나 버린다. */}
                   {current.korean_chunks.map((chunk, i) => {
