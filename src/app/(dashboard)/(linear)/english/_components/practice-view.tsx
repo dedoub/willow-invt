@@ -101,6 +101,9 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
   const [result, setResult] = useState<GradeResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
+  // 서버가 시트를 먼저 읽어 이미 있는 짝은 건너뛴다. 그 수를 받아 두지 않으면
+  // 아무것도 안 담겼는데 "담김"이라고 말하게 된다(CEO 2026-09-14).
+  const [vcCount, setVcCount] = useState<{ added: number; skipped: number } | null>(null)
   // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
   const [inputMode, setInputMode] = useState<'type' | 'draw'>(target.defaultInput)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
@@ -288,6 +291,7 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
     setAnswer('')
     setResult(null)
     setVcState('idle')
+    setVcCount(null)
     padRef.current?.clear()
     setHasInk(false)
     setCanRedo(false)
@@ -341,6 +345,7 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `voicecards ${res.status}`)
+      setVcCount({ added: Number(data.added ?? 0), skipped: Number(data.skipped ?? 0) })
       setVcState('done')
     } catch (e) {
       setVcState('idle')
@@ -669,9 +674,15 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
                       {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
                       {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
                       <div style={{ marginLeft: 'auto' }}>
-                        <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
-                          {vcState === 'done' ? '보이스카드 담김 ✓' : vcState === 'sending' ? '담는 중…' : '보이스카드 담기'}
-                        </LBtn>
+                        {/* LBtn 은 title 을 받지 않는다 — 자세한 수는 감싼 자리에 붙인다 */}
+                        <span title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}>
+                          <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
+                            {vcState === 'sending' ? '담는 중…'
+                              : vcState !== 'done' ? '보이스카드 담기'
+                              : vcCount?.added === 0 ? '이미 담겨 있어요'
+                              : '보이스카드 담김 ✓'}
+                          </LBtn>
+                        </span>
                       </div>
                     </div>
 
