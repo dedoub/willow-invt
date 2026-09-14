@@ -33,6 +33,8 @@ const ORDER_OPTIONS: { value: string; label: string; title: string }[] = [
 
 export interface PracticeViewProps {
   target: PracticeTarget
+  /** 시도가 기록될 때마다 부른다 — 아래 문장 목록이 다시 읽도록. */
+  onGraded?: () => void
 }
 
 interface QueueItem {
@@ -85,7 +87,7 @@ const POINT_LABEL: Record<string, string> = {
   grammar: '문법', word: '단어', natural: '자연스러움', good: '좋음', meaning: '의미',
 }
 
-export function PracticeView({ target }: PracticeViewProps) {
+export function PracticeView({ target, onGraded }: PracticeViewProps) {
   const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
   const [mode, setMode] = useState<Mode>('balanced')
@@ -253,6 +255,8 @@ export function PracticeView({ target }: PracticeViewProps) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `grade ${res.status}`)
       setResult(data)
+      // 방금 푼 문장이 아래 목록에도 바로 반영되게 한다.
+      if (!retrying) onGraded?.()
       // 로컬 통계 갱신 — 다음 큐 로드 때 서버값으로 재동기화됨.
       // 기록하지 않은 연습 재시도는 건너뛴다. 화면 숫자만 올려두면 다음 큐를
       // 받는 순간 서버값으로 되돌아가 사용자에게는 숫자가 튀어 보인다.
@@ -279,7 +283,7 @@ export function PracticeView({ target }: PracticeViewProps) {
     } finally {
       setGrading(false)
     }
-  }, [current, answer, grading, result, profile, inputMode, dictation, retrying, usedHint])
+  }, [current, answer, grading, result, profile, inputMode, dictation, retrying, usedHint, onGraded])
 
   const next = useCallback(() => {
     dictation.stop()
@@ -739,7 +743,26 @@ export function PracticeView({ target }: PracticeViewProps) {
 
               {/* ── 오른쪽: 쓰는 자리 ────────────────────────────────── */}
               <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
+                {/* 입력 방식 선택은 늘 오른쪽 끝에 둔다 — 말하기가 있고 없고에 따라 자리가
+                    움직이면 매번 눈으로 찾게 된다. 말하기는 왼쪽으로 보낸다(CEO 2026-09-14). */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center', minWidth: 0 }}>
+                    {inputMode === 'type' && !result && dictation.supported && (
+                      <>
+                        {dictation.listening && (
+                          <span style={{ fontSize: t.type.control, color: t.accent.neg }}>● 듣는 중</span>
+                        )}
+                        <LBtn
+                          size="sm"
+                          variant={dictation.listening ? 'danger' : 'secondary'}
+                          disabled={grading}
+                          onClick={() => { setError(null); dictation.toggle() }}
+                        >
+                          {dictation.listening ? '중지' : '말하기'}
+                        </LBtn>
+                      </>
+                    )}
+                  </div>
                   <LSegmented<'draw' | 'type'>
                     value={inputMode}
                     onChange={(v) => { if (v === 'draw') dictation.stop(); setInputMode(v); setError(null) }}
@@ -748,21 +771,6 @@ export function PracticeView({ target }: PracticeViewProps) {
                       { value: 'type', label: '키보드' },
                     ]}
                   />
-                  {inputMode === 'type' && !result && dictation.supported && (
-                    <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
-                      {dictation.listening && (
-                        <span style={{ fontSize: t.type.control, color: t.accent.neg }}>● 듣는 중</span>
-                      )}
-                      <LBtn
-                        size="sm"
-                        variant={dictation.listening ? 'danger' : 'secondary'}
-                        disabled={grading}
-                        onClick={() => { setError(null); dictation.toggle() }}
-                      >
-                        {dictation.listening ? '중지' : '말하기'}
-                      </LBtn>
-                    </div>
-                  )}
                 </div>
 
                 {inputMode === 'draw' ? (
@@ -851,7 +859,6 @@ export function PracticeView({ target }: PracticeViewProps) {
                 {result && (
                   <div style={{
                     marginTop: t.density.gapSm + retryGap, paddingTop: t.density.blockGap,
-                    borderTop: `1px solid ${t.neutrals.line}`,
                     display: 'flex', flexDirection: 'column', gap: t.density.gapSm,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: t.density.gapSm }}>
