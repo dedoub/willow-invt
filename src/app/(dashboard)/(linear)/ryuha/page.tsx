@@ -144,14 +144,8 @@ export default function RyuhaPage() {
   }
 
   // ── Note handlers ─────────────────────────────────────────────
-  const handleCreateNote = async (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => {
-    await fetch('/api/ryuha/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    await loadData()
-  }
+  // 노트 생성은 화면에 두지 않는다(CEO 2026-09-14). 봇·에이전트가 ryuha_create_note
+  // MCP 툴로 넣고, 이 카드는 읽고 고치는 자리다. POST 라우트는 그대로 살아 있다.
 
   const handleUpdateNote = async (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null; memos: unknown }>) => {
     await fetch('/api/ryuha/notes', {
@@ -230,7 +224,6 @@ export default function RyuhaPage() {
             <div style={{ minWidth: 0 }}>
               <NotebookBlock
                 notes={notes}
-                onCreate={handleCreateNote}
                 onUpdate={handleUpdateNote}
                 onDelete={handleDeleteNote}
               />

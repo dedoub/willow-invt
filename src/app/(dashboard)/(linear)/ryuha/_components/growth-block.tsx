@@ -176,17 +176,22 @@ export function GrowthBlock({ records, onSave, onDelete, narrow }: GrowthBlockPr
         PC 는 좌 차트 / 우 표, 모바일은 세로로 쌓는다.
       */}
       <LCard pad={0}>
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+        {/* 제목 아래 18(panelPadY+panelPadX) — 수첩·업무위키·사업관리 카드와 같은 리듬 */}
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY + t.density.panelPadX }}>
           <LSectionHead
             title="성장기록"
-            mb={10}
+            mb={0}
             action={<LHeadBtn icon="plus" label="기록" title="측정 기록 추가" onClick={() => openDialog()} />}
           />
+        </div>
 
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+          {/* 판을 벗은 패널 사이는 blockGap 12. kpiGap 8 은 회색 판을 두른 KPI 타일용이라
+              여기서는 두 패널이 붙어 보인다(2026-09-13 부동산에서 같은 것을 겪었다). */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: (mobile || narrow) ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
-            gap: (mobile || narrow) ? t.density.blockGap : t.density.kpiGap, alignItems: 'stretch',
+            gap: t.density.blockGap, alignItems: 'stretch',
           }}>
             {/* 좌: 추이 — data-panel 표식이 테마에게 회색 판을 벗기라고 말한다 */}
             <div data-panel="" style={{
@@ -277,7 +282,7 @@ export function GrowthBlock({ records, onSave, onDelete, narrow }: GrowthBlockPr
         </div>
         <LCardFoot
           right={`${records.length}건`}
-          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          style={{ marginTop: t.density.gapSm, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       </LCard>
 

@@ -7,10 +7,13 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import {
-  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableDate, type LColumn,
+  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableDate, LTableBadge,
+  type LColumn,
 } from '@/app/(dashboard)/_components/linear-table'
 
 export interface RyuhaMemo {
@@ -34,7 +37,6 @@ interface RyuhaNote {
 
 interface NotebookBlockProps {
   notes: RyuhaNote[]
-  onCreate: (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => Promise<void>
   onUpdate: (id: string, data: Partial<{ title: string; content: string; is_pinned: boolean; attachments: { name: string; url: string }[] | null; memos: unknown }>) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
@@ -42,12 +44,30 @@ interface NotebookBlockProps {
 const PAGE_SIZE_KEY = 'ryuha-notebook-page-size'
 const DEFAULT_PAGE_SIZE = 10
 
-// 표 열은 업무위키와 같은 순서로 읽는다 — 날짜·제목·첨부.
-// 위키의 '구분'은 없다. 류하 노트에는 나눌 섹션이 없다.
+// 구분은 색조 대신 회색 명도로 나눈다 — 업무위키 표와 같은 램프(2026-09-11).
+// 값은 운영 DB에 실제로 들어 있는 것들이다: 진학 7 · 학습법 2 · 학교 1 · 학습계획 1.
+// '메모'는 ryuha_create_note MCP 툴이 category 를 안 주면 넣는 기본값이라 자리를 비워 둔다.
+const CATEGORY_BADGES: Record<string, { bg: string; fg: string }> = {
+  '진학':     { bg: '#D3D7DD', fg: '#1F242B' },
+  '학교':     { bg: '#DCE0E5', fg: '#262C33' },
+  '학습법':   { bg: '#E4E7EB', fg: '#2C323A' },
+  '학습계획': { bg: '#EAECEF', fg: '#343A42' },
+  '메모':     { bg: '#F5F6F8', fg: '#4B525A' },
+}
+const FALLBACK_BADGE = CATEGORY_BADGES['메모']
+
+// 칩은 램프 순서 그대로. 활성 칩 색은 다른 카드와 같이 테마가 정한다.
+const CATEGORY_FILTERS = [
+  { value: 'all', label: '전체' },
+  ...Object.keys(CATEGORY_BADGES).map(c => ({ value: c, label: c })),
+]
+
+// 표 열은 업무위키와 같은 순서로 읽는다 — 구분·날짜·제목·첨부.
 const COLUMNS: LColumn<RyuhaNote>[] = [
-  { key: 'date', label: '날짜', width: '64px' },
-  { key: 'title', label: '제목', width: 'minmax(140px,1fr)' },
-  { key: 'attach', label: '첨부', width: '40px', align: 'right' },
+  { key: 'category', label: '구분', width: '68px' },
+  { key: 'date', label: '날짜', width: '56px' },
+  { key: 'title', label: '제목', width: 'minmax(120px,1fr)' },
+  { key: 'attach', label: '첨부', width: '36px', align: 'right' },
 ]
 
 function getStoredPageSize(): number {
@@ -224,18 +244,22 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
 }
 
 /* ── Main Component ────────────────────────────────────────── */
-export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookBlockProps) {
+export function NotebookBlock({ notes, onUpdate, onDelete }: NotebookBlockProps) {
   const mobile = useIsMobile()
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
-  const [adding, setAdding] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const filtered = useMemo(() => {
     let result = notes
+    if (categoryFilter !== 'all') {
+      result = result.filter(n => (n.category || '메모') === categoryFilter)
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       result = result.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
@@ -247,14 +271,14 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
       const bf = sortBy === 'created' ? b.created_at : b.updated_at
       return new Date(bf).getTime() - new Date(af).getTime()
     })
-  }, [notes, search, sortBy])
+  }, [notes, search, sortBy, categoryFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
 
   // 상세가 모달이라 자동 선택은 하지 않는다 — 페이지를 열자마자 창이 뜬다.
-  const closeDetail = () => { setSelectedId(null); setAdding(false); setEditing(false) }
+  const closeDetail = () => { setSelectedId(null); setEditing(false) }
 
   const handleSearchChange = (v: string) => {
     setSearch(v)
@@ -265,12 +289,6 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
     setPageSize(n)
     setPage(0)
     localStorage.setItem(PAGE_SIZE_KEY, String(n))
-  }
-
-  const handleCreate = async (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => {
-    await onCreate(data)
-    setAdding(false)
-    setPage(0)
   }
 
   const handleEdit = async (data: { title: string; content: string; attachments?: { name: string; url: string }[] }) => {
@@ -330,19 +348,35 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
         />
       </div>
 
-      {/* 검색 · 새 노트 한 줄 — 업무위키와 같은 자리, 같은 모양 */}
+      {/* 구분 칩 · 검색 한 줄 — 업무위키와 같은 자리, 같은 모양.
+          검색에 들어가면 칩은 접혀 자리를 내준다. 반쪽 폭이라 둘 다 펴 두면 검색칸이 남지 않는다. */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: t.density.gapSm,
         padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px`,
         flexWrap: mobile ? 'wrap' : 'nowrap',
       }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140 }}>
+        <div style={{
+          maxWidth: searchOpen ? 0 : 520,
+          opacity: searchOpen ? 0 : 1,
+          overflow: 'hidden', flexShrink: 0,
+          transition: 'max-width .26s ease, opacity .16s ease',
+        }}>
+          <LFilterChip
+            options={CATEGORY_FILTERS}
+            value={categoryFilter}
+            onChange={v => { setCategoryFilter(v); setPage(0) }}
+            gap={t.density.gapXs}
+          />
+        </div>
+        <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 120 }}>
           <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
           <input
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
+            onFocus={() => setSearchOpen(true)}
+            onBlur={() => { if (!search) setSearchOpen(false) }}
             placeholder="제목 · 내용 검색"
             style={{
               width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
@@ -353,7 +387,7 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
             }}
           />
           {search && (
-            <button onClick={() => handleSearchChange('')} style={{
+            <button onClick={() => { handleSearchChange(''); setSearchOpen(false) }} style={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', cursor: 'pointer',
               padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
@@ -362,10 +396,6 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
             </button>
           )}
         </div>
-        <LBtn size="sm" icon={<LIcon name="plus" size={12} stroke={2.5} />}
-          onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
-          새 노트
-        </LBtn>
       </div>
 
       {/* 목록 — 사업관리 표와 같은 문법. 행을 누르면 상세 모달이 열린다 */}
@@ -381,8 +411,11 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                   key={note.id}
                   columns={COLUMNS}
                   mobile={mobile}
-                  onClick={() => { setSelectedId(note.id); setAdding(false); setEditing(false) }}
+                  onClick={() => { setSelectedId(note.id); setEditing(false) }}
                 >
+                  <LTableBadge tone={CATEGORY_BADGES[note.category] || FALLBACK_BADGE}>
+                    {note.category || '메모'}
+                  </LTableBadge>
                   <LTableDate value={(sortBy === 'created' ? note.created_at : note.updated_at).slice(0, 10)} />
                   <span style={{
                     minWidth: 0, fontWeight: t.weight.medium, color: t.neutrals.text,
@@ -413,10 +446,10 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
         </LTableScroll>
       </div>
 
-      {/* 쪽 넘김 */}
+      {/* 쪽 넘김 — 지금 보고 있는 범위. 카드 전체 건수는 아래 푸터가 말한다. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
+        padding: `0 ${t.density.cardPad}px`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
@@ -449,21 +482,22 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
           </div>
         )}
       </div>
+
+      {/* 옆의 성장기록 카드와 같은 바닥 줄 — 두 카드가 나란히 서므로 끝도 같아야 한다 */}
+      <LCardFoot
+        right={`${notes.length}건`}
+        style={{ marginTop: t.density.gapSm, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
 
     {/* ── 상세·추가·편집은 모달로 ──
         카드가 반쪽 폭이라 목록 옆에 본문을 둘 자리가 없다. 업무위키가 텐소에서 같은 이유로
         쓰는 detailMode='modal' 과 같은 선택이다(CEO 2026-09-10).
         카드 밖 형제로 둔다 — 카드 안에 두면 테마가 '카드 안 카드'로 보고 테두리를 지운다. */}
-    {(selectedId || adding) && (
+    {selectedId && (
       <ModalShell onClose={closeDetail}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {adding ? (
-            /* New note form */
-            <div style={{ padding: t.density.controlPadXMd, flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <NoteForm onSave={handleCreate} onCancel={() => setAdding(false)} />
-            </div>
-          ) : selectedNote && editing ? (
+          {selectedNote && editing ? (
             /* Edit mode */
             <div style={{ padding: t.density.controlPadXMd, flex: 1, display: 'flex', flexDirection: 'column' }}>
               <NoteForm
