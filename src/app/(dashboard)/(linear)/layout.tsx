@@ -17,12 +17,9 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['400', '500', '600'],
 })
 
-// 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들).
-// wiki·ryuha 는 마스터-디테일이라 제외 — 류하 페이지의 세 카드(일정 달력, 수첩 목록·본문,
-// 성장기록 차트·표)는 저마다 제 안에서 이미 가로를 다 쓴다. 반으로 접을 자리가 없는데
-// 토글만 떠 있으면 눌러도 아무 일이 없다(2026-09-14, 나머지 12쪽은 모두 useDashCols 를 읽는다).
+// 1열/2열 토글을 상단바에 노출할 페이지 (바디 그리드가 있는 페이지들). wiki는 마스터-디테일이라 제외.
 const COLS_TOGGLE_PATHS = new Set([
-  '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/email', '/valuechain', '/voicecards', '/reviewnotes', '/scripta', '/portle',
+  '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/valuechain', '/voicecards', '/reviewnotes', '/scripta', '/portle',
   '/admin/rates',
 ])
 

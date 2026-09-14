@@ -6,9 +6,12 @@ import remarkGfm from 'remark-gfm'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import {
+  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableDate, type LColumn,
+} from '@/app/(dashboard)/_components/linear-table'
 
 export interface RyuhaMemo {
   id: string
@@ -38,9 +41,14 @@ interface NotebookBlockProps {
 
 const PAGE_SIZE_KEY = 'ryuha-notebook-page-size'
 const DEFAULT_PAGE_SIZE = 10
-const ROW_H = 47
-const FILTER_H = 52
-const PAGI_H = 33
+
+// 표 열은 업무위키와 같은 순서로 읽는다 — 날짜·제목·첨부.
+// 위키의 '구분'은 없다. 류하 노트에는 나눌 섹션이 없다.
+const COLUMNS: LColumn<RyuhaNote>[] = [
+  { key: 'date', label: '날짜', width: '64px' },
+  { key: 'title', label: '제목', width: 'minmax(140px,1fr)' },
+  { key: 'attach', label: '첨부', width: '40px', align: 'right' },
+]
 
 function getStoredPageSize(): number {
   if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
@@ -53,6 +61,34 @@ function getStoredPageSize(): number {
 function fmtDate(dateStr: string): string {
   const d = new Date(dateStr)
   return `${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+
+/** 모달 셸 — 업무위키(work/wiki-list)의 것과 같은 문법. 껍데기는 카드 그대로. */
+function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
+      {/* 높이는 내용이 정한다 — 짧은 노트에 빈 판이 남지 않게. 길면 상한까지만 자라고 안에서 스크롤한다. */}
+      <LCard pad={0} style={{
+        position: 'relative', width: 'min(720px, calc(100vw - 24px))', maxHeight: 'min(85vh, 760px)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <button onClick={onClose} aria-label="닫기" style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 2,
+          background: 'transparent', border: 'none', borderRadius: t.radius.sm, padding: t.density.gapXs,
+          cursor: 'pointer', color: t.neutrals.muted, display: 'flex',
+        }}>
+          <LIcon name="x" size={14} stroke={2} />
+        </button>
+        {children}
+      </LCard>
+    </div>
+  )
 }
 
 /* ── Note Form (matches wiki-note-form pattern) ────────────── */
@@ -96,10 +132,12 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
     }
   }
 
+  // 테마의 input 규칙은 text·search 만 잡는다. 여기서 직접 맞추지 않으면
+  // 제목칸(흰 면)과 내용칸(회색 판)이 한 폼 안에서 서로 다른 꼴이 된다.
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-    background: t.neutrals.inner, borderRadius: t.radius.sm, border: 'none',
-    color: t.neutrals.text, outline: 'none',
+    background: t.neutrals.card, borderRadius: t.radius.md, border: `1px solid ${t.neutrals.line}`,
+    color: t.neutrals.text, outline: 'none', boxSizing: 'border-box',
   }
 
   return (
@@ -172,13 +210,13 @@ function NoteForm({ onSave, onCancel, initial, onDelete }: {
         alignItems: 'center', gap: t.density.kpiGap,
       }}>
         {onDelete && (
-          <LBtn variant="danger" size="sm" onClick={onDelete}>삭제</LBtn>
+          <span data-danger-action=""><LBtn variant="ghost" size="sm" onClick={onDelete}>삭제</LBtn></span>
         )}
         <div style={{ display: 'flex', gap: t.density.gapSm }}>
-          <LBtn variant="secondary" size="sm" onClick={onCancel}>취소</LBtn>
-          <LBtn size="sm" onClick={handleSave} disabled={!canSave}>
+          <LBtn variant="ghost" size="sm" onClick={onCancel}>취소</LBtn>
+          <span data-primary-action=""><LBtn variant="secondary" size="sm" onClick={handleSave} disabled={!canSave}>
             {saving ? '저장 중...' : '저장'}
-          </LBtn>
+          </LBtn></span>
         </div>
       </div>
     </div>
@@ -194,29 +232,29 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [sortBy, setSortBy] = useState<'updated' | 'created'>('updated')
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return notes
-    const q = search.trim().toLowerCase()
-    return notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
-  }, [notes, search])
+    let result = notes
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
+    }
+    // 고정한 노트 먼저, 그 다음 고른 기준 날짜의 최신순 — 업무위키와 같은 차례.
+    return [...result].sort((a, b) => {
+      if (!!a.is_pinned !== !!b.is_pinned) return a.is_pinned ? -1 : 1
+      const af = sortBy === 'created' ? a.created_at : a.updated_at
+      const bf = sortBy === 'created' ? b.created_at : b.updated_at
+      return new Date(bf).getTime() - new Date(af).getTime()
+    })
+  }, [notes, search, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
-  const containerH = FILTER_H + pageSize * ROW_H + 4 + PAGI_H
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
 
-  // 데스크탑 진입 시 우측 패널이 비지 않도록 가장 최근 업데이트된 노트를 자동 선택. (위키와 동일 동작)
-  // 모바일에선 list만 표시하므로 자동 선택 X. useIsMobile은 첫 렌더 시 false라 window.innerWidth 직접 체크.
-  useEffect(() => {
-    if (selectedId || notes.length === 0) return
-    if (typeof window !== 'undefined' && window.innerWidth < 768) return
-    const latest = notes.reduce<RyuhaNote | null>((acc, n) => {
-      if (!acc) return n
-      return new Date(n.updated_at).getTime() > new Date(acc.updated_at).getTime() ? n : acc
-    }, null)
-    if (latest) setSelectedId(latest.id)
-  }, [selectedId, notes])
+  // 상세가 모달이라 자동 선택은 하지 않는다 — 페이지를 열자마자 창이 뜬다.
+  const closeDetail = () => { setSelectedId(null); setAdding(false); setEditing(false) }
 
   const handleSearchChange = (v: string) => {
     setSearch(v)
@@ -274,163 +312,152 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
   }
 
   return (
+    <>
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead title="류하 수첩" mb={0} />
+      {/* 제목과 목록 사이는 업무위키 카드와 같은 리듬 */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY + t.density.panelPadX }}>
+        <LSectionHead
+          title="류하 수첩"
+          tools={
+            <LSegmented
+              options={[{ value: 'updated', label: '수정일' }, { value: 'created', label: '작성일' }]}
+              value={sortBy}
+              onChange={setSortBy}
+            />
+          }
+          toolsInline
+          mb={0}
+        />
       </div>
 
+      {/* 검색 · 새 노트 한 줄 — 업무위키와 같은 자리, 같은 모양 */}
       <div style={{
-        display: 'flex',
-        flexDirection: mobile ? 'column' : 'row',
-        height: mobile ? 'auto' : containerH,
+        display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+        padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px`,
+        flexWrap: mobile ? 'wrap' : 'nowrap',
       }}>
-        {/* ===== LEFT PANEL: list ===== */}
-        {(!mobile || (!selectedId && !adding)) && (
-        <div style={{
-          width: mobile ? '100%' : '42%',
-          minWidth: mobile ? undefined : 280,
-          display: 'flex', flexDirection: 'column',
-          borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-        }}>
-          {/* Filter bar */}
-          <div style={{ padding: `${t.density.panelPadX}px ${t.density.blockGap}px ${t.density.panelPadY}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: t.density.gapXs, flex: 1,
-              background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
-              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`,
+        <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 140 }}>
+          <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+          </div>
+          <input
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            placeholder="제목 · 내용 검색"
+            style={{
+              width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
+              padding: `0 ${t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+              borderRadius: t.radius.sm, outline: 'none',
+            }}
+          />
+          {search && (
+            <button onClick={() => handleSearchChange('')} style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: t.density.tableRowGap, color: t.neutrals.muted, display: 'flex', alignItems: 'center',
             }}>
-              <LIcon name="search" size={13} color={t.neutrals.subtle} />
-              <input
-                value={search} onChange={e => handleSearchChange(e.target.value)}
-                placeholder="검색..."
-                style={{
-                  border: 'none', background: 'transparent', outline: 'none',
-                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, fontFamily: t.font.sans,
-                  width: '100%',
-                }}
-              />
-              {search && (
-                <button onClick={() => handleSearchChange('')} style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  color: t.neutrals.subtle,
-                }}>
-                  <LIcon name="x" size={11} />
-                </button>
-              )}
-            </div>
-            <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
-              새 노트
-            </LBtn>
-          </div>
-
-          {/* Note rows */}
-          <div style={{ flex: 1, overflow: 'hidden', padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
-            {paged.length === 0 ? (
-              <div style={{ padding: '30px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                {search ? '검색 결과가 없습니다' : '노트가 없습니다'}
-              </div>
-            ) : (
-              paged.map(note => {
-                const isSelected = selectedId === note.id
-                return (
-                  <div
-                    key={note.id}
-                    onClick={() => { setSelectedId(note.id); setAdding(false); setEditing(false) }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
-                      padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, cursor: 'pointer',
-                      background: isSelected ? t.neutrals.inner : 'transparent',
-                      borderRadius: t.radius.sm, transition: 'background 0.1s',
-                    }}
-                  >
-                    {/* 이모지는 회색 표 안에서 혼자 색을 갖는다 — 같은 뜻의 선 아이콘으로 바꾼다 */}
-                    <span style={{
-                      width: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: note.is_pinned ? t.chart.mono : 'transparent',
-                    }}>
-                      {note.is_pinned && <LIcon name="pin" size={11} stroke={2} color="currentColor" />}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        color: t.neutrals.text,
-                      }}>
-                        {note.title || '(제목 없음)'}
-                      </div>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: t.density.gapSm, marginTop: t.density.tableRowGap,
-                      }}>
-                        <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                          {fmtDate(note.updated_at)}
-                        </span>
-                        {note.attachments && note.attachments.length > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: t.density.tableRowGap, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                            <LIcon name="paperclip" size={9} />
-                            {note.attachments.length}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          {/* Pagination bar */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: `${t.density.gapSm}px ${t.density.blockGap}px`,
-            borderTop: `1px solid ${t.neutrals.line}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-              <LPageSize value={pageSize} onChange={applyPageSize} />
-              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{notes.length}건</span>
-            </div>
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                  style={{
-                    background: 'transparent', border: 'none',
-                    cursor: page === 0 ? 'default' : 'pointer',
-                    padding: t.density.gapXs, borderRadius: t.radius.sm,
-                    color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-                    opacity: page === 0 ? 0.4 : 1,
-                  }}>
-                  <LIcon name="chevronLeft" size={13} stroke={2} />
-                </button>
-                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                  {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
-                </span>
-                <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                  style={{
-                    background: 'transparent', border: 'none',
-                    cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-                    padding: t.density.gapXs, borderRadius: t.radius.sm,
-                    color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-                    opacity: page >= totalPages - 1 ? 0.4 : 1,
-                  }}>
-                  <LIcon name="chevronRight" size={13} stroke={2} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        )}
-
-        {/* ===== RIGHT PANEL: detail ===== */}
-        {(!mobile || selectedId || adding) && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: mobile ? 'visible' : 'hidden', minHeight: 0 }}>
-          {/* Mobile back button */}
-          {mobile && (
-            <LBtn size="md" variant="ghost" icon={<LIcon name="chevronLeft" size={13} stroke={2} />}
-              onClick={() => { setSelectedId(null); setAdding(false); setEditing(false) }}
-              style={{ alignSelf: 'flex-start', color: t.brand[600] }}>
-              목록으로
-            </LBtn>
+              <LIcon name="x" size={12} stroke={2} />
+            </button>
           )}
+        </div>
+        <LBtn size="sm" icon={<LIcon name="plus" size={12} stroke={2.5} />}
+          onClick={() => { setAdding(true); setSelectedId(null); setEditing(false) }}>
+          새 노트
+        </LBtn>
+      </div>
 
+      {/* 목록 — 사업관리 표와 같은 문법. 행을 누르면 상세 모달이 열린다 */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
+          <LTableHead columns={COLUMNS} mobile={mobile} />
+          {paged.length === 0 ? (
+            <LTableEmpty>{search ? '검색 결과가 없습니다' : '노트가 없습니다'}</LTableEmpty>
+          ) : (
+            <LTableBody columns={COLUMNS} mobile={mobile}>
+              {paged.map(note => (
+                <LTableRow
+                  key={note.id}
+                  columns={COLUMNS}
+                  mobile={mobile}
+                  onClick={() => { setSelectedId(note.id); setAdding(false); setEditing(false) }}
+                >
+                  <LTableDate value={(sortBy === 'created' ? note.created_at : note.updated_at).slice(0, 10)} />
+                  <span style={{
+                    minWidth: 0, fontWeight: t.weight.medium, color: t.neutrals.text,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }} title={note.title || '(제목 없음)'}>
+                    {note.is_pinned && (
+                      <span style={{ marginRight: t.density.gapXs, color: t.chart.mono, display: 'inline-flex', verticalAlign: '-1px' }}>
+                        <LIcon name="pin" size={10} stroke={2} />
+                      </span>
+                    )}
+                    {note.title || '(제목 없음)'}
+                  </span>
+                  <span style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: t.density.tableRowGap,
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
+                  }}>
+                    {note.attachments && note.attachments.length > 0 ? (
+                      <>
+                        <LIcon name="paperclip" size={9} />
+                        {note.attachments.length}
+                      </>
+                    ) : ''}
+                  </span>
+                </LTableRow>
+              ))}
+            </LTableBody>
+          )}
+        </LTableScroll>
+      </div>
+
+      {/* 쪽 넘김 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+          <LPageSize value={pageSize} onChange={applyPageSize} />
+        </div>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page === 0 ? 'default' : 'pointer',
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page === 0 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronLeft" size={13} stroke={2} />
+            </button>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+              {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filtered.length)} / {filtered.length}
+            </span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+              style={{
+                background: 'transparent', border: 'none',
+                cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                padding: t.density.gapXs, borderRadius: t.radius.sm,
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                opacity: page >= totalPages - 1 ? 0.4 : 1,
+              }}>
+              <LIcon name="chevronRight" size={13} stroke={2} />
+            </button>
+          </div>
+        )}
+      </div>
+    </LCard>
+
+    {/* ── 상세·추가·편집은 모달로 ──
+        카드가 반쪽 폭이라 목록 옆에 본문을 둘 자리가 없다. 업무위키가 텐소에서 같은 이유로
+        쓰는 detailMode='modal' 과 같은 선택이다(CEO 2026-09-10).
+        카드 밖 형제로 둔다 — 카드 안에 두면 테마가 '카드 안 카드'로 보고 테두리를 지운다. */}
+    {(selectedId || adding) && (
+      <ModalShell onClose={closeDetail}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {adding ? (
             /* New note form */
             <div style={{ padding: t.density.controlPadXMd, flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -453,9 +480,11 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
           ) : selectedNote ? (
             /* Read mode */
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-              {/* Detail header */}
+              {/* Detail header — 오른쪽은 모달의 닫기 단추 자리를 비워 둔다.
+                  비우지 않으면 '편집' 위에 X 가 겹쳐 둘 다 못 누른다. */}
               <div style={{
                 padding: `${t.density.controlPadXMd}px ${t.density.controlPadXLg}px ${t.density.blockGap}px`,
+                paddingRight: 40,
                 borderBottom: `1px solid ${t.neutrals.line}`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
@@ -593,8 +622,9 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                       placeholder="이 노트에 메모 추가… (엔터)"
                       style={{
                         flex: 1, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                        background: t.neutrals.inner, border: 'none', borderRadius: t.radius.sm,
+                        background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
                         padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, color: t.neutrals.text, outline: 'none', fontFamily: t.font.sans,
+                        boxSizing: 'border-box',
                       }}
                     />
                     <LBtn size="sm" variant="secondary" onClick={handleAddMemo} disabled={savingMemo || !newMemo.trim()}
@@ -605,18 +635,10 @@ export function NotebookBlock({ notes, onCreate, onUpdate, onDelete }: NotebookB
                 </div>
               </div>
             </div>
-          ) : (
-            /* Empty state */
-            <div style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: t.neutrals.subtle, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.sans,
-            }}>
-              노트를 선택하세요
-            </div>
-          )}
+          ) : null}
         </div>
-        )}
-      </div>
-    </LCard>
+      </ModalShell>
+    )}
+    </>
   )
 }

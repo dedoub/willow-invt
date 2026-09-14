@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import { t } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { RyuhaSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 import { RyuhaSchedule, RyuhaDailyMemo, RyuhaBodyRecord } from '@/types/ryuha'
 import { CalendarBlock } from './_components/calendar-block'
@@ -22,6 +23,8 @@ interface RyuhaNote {
 }
 
 export default function RyuhaPage() {
+  const mobile = useIsMobile()
+  const cols = useDashCols()
   const [loading, setLoading] = useState(true)
   const [schedules, setSchedules] = useState<RyuhaSchedule[]>([])
   const [memos, setMemos] = useState<RyuhaDailyMemo[]>([])
@@ -218,20 +221,29 @@ export default function RyuhaPage() {
             onSaveMemo={handleSaveMemo}
           />
 
-          {/* Notebook */}
-          <NotebookBlock
-            notes={notes}
-            onCreate={handleCreateNote}
-            onUpdate={handleUpdateNote}
-            onDelete={handleDeleteNote}
-          />
-
-          {/* Growth records */}
-          <GrowthBlock
-            records={bodyRecords}
-            onSave={handleSaveBodyRecord}
-            onDelete={handleDeleteBodyRecord}
-          />
+          {/* 아래 줄은 반씩 나눈다 — 왼쪽이 쌓아 두는 것(수첩), 오른쪽이 재는 것(성장기록). */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'),
+            gap: t.density.blockGap, alignItems: 'start',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <NotebookBlock
+                notes={notes}
+                onCreate={handleCreateNote}
+                onUpdate={handleUpdateNote}
+                onDelete={handleDeleteNote}
+              />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <GrowthBlock
+                records={bodyRecords}
+                onSave={handleSaveBodyRecord}
+                onDelete={handleDeleteBodyRecord}
+                narrow={!mobile && cols !== 1}
+              />
+            </div>
+          </div>
 
         </div>
 

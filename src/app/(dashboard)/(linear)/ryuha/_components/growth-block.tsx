@@ -14,6 +14,12 @@ interface GrowthBlockProps {
   records: RyuhaBodyRecord[]
   onSave: (data: { id?: string; record_date: string; height_cm: string; weight_kg: string; notes: string }) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /**
+   * 카드가 반쪽 폭에 들어갈 때 켠다. 차트와 표를 옆으로 두지 않고 위아래로 쌓는다 —
+   * 반쪽을 또 반으로 가르면 둘 다 못 읽는다. 화면이 좁은 것(mobile)과는 다른 문제라
+   * 따로 받는다: 1열 모드에서는 카드가 전폭이라 좁지 않다.
+   */
+  narrow?: boolean
 }
 
 // 두 계열은 색조가 아니라 명도로 가른다 — 보이스카드·부동산 차트와 같은 짝이다.
@@ -105,7 +111,7 @@ function SvgLineChart({ records }: { records: RyuhaBodyRecord[] }) {
   )
 }
 
-export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
+export function GrowthBlock({ records, onSave, onDelete, narrow }: GrowthBlockProps) {
   const mobile = useIsMobile()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editRecord, setEditRecord] = useState<RyuhaBodyRecord | null>(null)
@@ -179,8 +185,8 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
-            gap: t.density.kpiGap, alignItems: 'stretch',
+            gridTemplateColumns: (mobile || narrow) ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
+            gap: (mobile || narrow) ? t.density.blockGap : t.density.kpiGap, alignItems: 'stretch',
           }}>
             {/* 좌: 추이 — data-panel 표식이 테마에게 회색 판을 벗기라고 말한다 */}
             <div data-panel="" style={{
@@ -243,7 +249,7 @@ export function GrowthBlock({ records, onSave, onDelete }: GrowthBlockProps) {
                 }}>
                   <span>날짜</span><span>키</span><span>몸무게</span><span>메모</span>
                 </div>
-                <div style={{ maxHeight: mobile ? 200 : 232, overflowY: 'auto' }}>
+                <div style={{ maxHeight: (mobile || narrow) ? 200 : 232, overflowY: 'auto' }}>
                   {sorted.slice(0, 20).map(r => (
                     <div key={r.id} data-panel-row="" onClick={() => openDialog(r)} style={{
                       display: 'grid', gridTemplateColumns: '72px 56px 56px 1fr',

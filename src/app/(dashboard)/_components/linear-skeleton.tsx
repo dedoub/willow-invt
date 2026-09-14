@@ -274,55 +274,45 @@ export function RyuhaSkeleton() {
         </div>
       </CardSkel>
 
-      {/* 류하 수첩 — 좌 목록 / 우 본문 */}
-      <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-          <Bone w={60} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', minHeight: mobile ? undefined : 300 }}>
-          <div style={{
-            width: mobile ? '100%' : '42%',
-            minWidth: mobile ? undefined : 280,
-            borderRight: mobile ? 'none' : `1px solid ${t.neutrals.line}`,
-            padding: t.density.blockGap,
-          }}>
-            <Bone h={28} r={t.radius.md} />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={36} style={{ marginTop: t.density.kpiGap }} />
+      {/* 아래 줄은 반씩 — 왼쪽 수첩(표), 오른쪽 성장기록(차트+표) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+        gap: t.density.blockGap, alignItems: 'start',
+      }}>
+        {/* 류하 수첩 — 머리 + 검색줄 + 표 + 쪽넘김 */}
+        <CardSkel pad={0}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+            <Bone w={60} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
+          </div>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+            <Bone h={28} r={t.radius.sm} />
+          </div>
+          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+            <Bone h={12} w="60%" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Bone key={i} h={22} style={{ marginTop: t.density.gapSm }} />
             ))}
           </div>
-          <div style={{ flex: 1, padding: t.density.cardPad }}>
-            <Bone w="50%" h={16} />
-            <Bone h={12} style={{ marginTop: t.density.blockGap }} />
-            <Bone h={12} w="80%" style={{ marginTop: t.density.gapSm }} />
-          </div>
-        </div>
-      </CardSkel>
+        </CardSkel>
 
-      {/* 성장기록 — 한 카드 안에 좌 차트 / 우 표, 아래 푸터 */}
-      <CardSkel pad={0}>
-        <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
-          <Bone w={60} h={8} />
-          <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
-            gap: t.density.kpiGap, marginTop: t.density.gapMd,
-          }}>
-            <Bone h={mobile ? 180 : 240} r={t.radius.sm} />
-            <div>
-              <Bone h={12} w="40%" />
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Bone key={i} h={24} style={{ marginTop: t.density.gapSm }} />
-              ))}
-            </div>
+        {/* 성장기록 — 차트 + 표, 아래 푸터 */}
+        <CardSkel pad={0}>
+          <div style={{ padding: `12px ${t.density.cardPad}px 12px` }}>
+            <Bone w={60} h={8} />
+            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
+            <Bone h={mobile ? 180 : 210} r={t.radius.sm} style={{ marginTop: t.density.gapMd }} />
+            <Bone h={12} w="40%" style={{ marginTop: t.density.blockGap }} />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Bone key={i} h={22} style={{ marginTop: t.density.gapSm }} />
+            ))}
           </div>
-        </div>
-        <div style={{ padding: `${t.density.panelPadY}px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-          <Bone w={48} h={10} />
-        </div>
-      </CardSkel>
+          <div style={{ padding: `${t.density.panelPadY}px ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+            <Bone w={48} h={10} />
+          </div>
+        </CardSkel>
+      </div>
     </div>
   )
 }
