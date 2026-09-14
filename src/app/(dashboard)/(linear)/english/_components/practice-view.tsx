@@ -979,7 +979,12 @@ function ResultLine({ label, text, highlight, against }: {
   return (
     <div data-panel="" style={{
       background: t.neutrals.inner,
-      borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapLg}px`,
+      borderRadius: t.radius.md,
+      // 테두리를 두른 상자는 안쪽을 더 띄운다. 판만 깔려 있을 때 쓰던 6px 로는
+      // 글자가 선에 붙어 보인다(CEO 2026-09-14).
+      padding: highlight
+        ? `${t.density.blockGap}px ${t.density.gapLg}px`
+        : `${t.density.gapSm}px ${t.density.gapLg}px`,
       ...(highlight ? { border: `1px solid ${t.neutrals.line}` } : {}),
     }}>
       <div data-panel-title="" style={{

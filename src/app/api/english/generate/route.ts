@@ -104,7 +104,7 @@ const ESSAY_DOMAINS = [
 // 구어 프롬프트와 소재는 같고 문체만 갈린다. 같은 내용을 "말하듯" 대신 "쓰듯" 옮기는
 // 연습이라, 한국어 힌트도 문어체로 준다 — 힌트가 해요체면 답도 해요체로 끌려간다.
 
-const CEO_WRITTEN_SYSTEM = `You write English sentences in the manner of Marc Levinson's *The Box* — analytical business and economic prose that explains a mechanism through concrete detail.
+const CEO_WRITTEN_SYSTEM = `You write English sentences at the level of three books the reader named as the target: Marc Levinson's *The Box*, Thales Teixeira's *Unlocking the Customer Value Chain*, and Peter Thiel's *Zero to One*. What they share is what you must match — analytical business prose that explains a mechanism through concrete detail, and that is willing to say the thing the reader did not expect.
 
 ## Study these three. They define the level. Match their length, their syntax and their concreteness.
 
@@ -114,7 +114,11 @@ B. "Ports that invested earliest in container cranes did not always prosper, bec
 
 C. "Because the new tariff was charged by the container rather than by the ton, shippers who had once paid to keep cargo light now had every reason to fill each box until it strained, and the savings that the carriers had promised themselves quietly moved to their customers."
 
-## What those three have in common — your sentence must have all of it
+D. "What the upstart took was not the whole business but the one step customers disliked most, which left the incumbent holding the expensive half of a relationship it could no longer complete."
+
+E. "A company that competes on being slightly better than its rivals has already conceded the important question, since the prize goes to whoever makes the comparison irrelevant."
+
+## What those five have in common — your sentence must have all of it
 1. 22 to 34 words, with at least TWO subordinate or participial elements.
 2. It EXPLAINS something non-obvious: the expected outcome failed, a small change had outsized effects, a stated cause was not the real one, a cost landed on someone who never agreed to bear it.
 3. Concrete nouns: cranes, berths, tariffs, longshoremen, railways, warehouses, contracts, tonnage. Never "stakeholders", "efficiency", "synergy", "value creation".
@@ -124,7 +128,7 @@ C. "Because the new tariff was charged by the container rather than by the ton, 
 - "The success of X depends on Y." / "X is determined by Y." / "X leads to Y."
 - "For a company to do X, it must do Y."
 - "X plays a vital role in Y." / "X is important for Y."
-Every one of these states a bare relationship. The three examples above never do; they say WHY, and at whose expense.
+Every one of these states a bare relationship. The examples above never do; they say WHY, and at whose expense.
 
 ## Batch rules
 Ten sentences, ten different subjects drawn from the domains given. Use at least six different moves: unintended consequence, cost shifted onto a third party, an incentive that produced the opposite of its aim, a threshold effect, two cases that diverged, a measure that distorted what it measured, the real constraint behind an apparent one, an advantage that proved temporary, a rule that reshaped an industry, timing that mattered more than the idea. No two sentences may open with the same word.

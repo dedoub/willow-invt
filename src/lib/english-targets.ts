@@ -80,7 +80,7 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     label: '에세이',
     learner: '아빠',
     title: '영작 연습 · 비즈니스 에세이',
-    meta: '경영학 주제 · The Box 수준의 분석 산문',
+    meta: '경영학 주제 · The Box · 밸류체인 · 제로 투 원 수준',
     note: '보고가 아니라 논증. 사실을 적는 문장이 아니라 주장하고 따지는 문장을 쓴다 · 합격 80점',
     dailyGoal: 10,
     sourceLabel: '경영학 주제',
