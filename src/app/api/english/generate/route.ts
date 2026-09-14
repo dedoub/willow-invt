@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { reviewnotesSupabase } from '@/lib/reviewnotes-supabase'
 import { llmJson, asProfile } from '@/lib/english'
+import { findTarget } from '@/lib/english-targets'
 
 export const maxDuration = 120
 
@@ -81,17 +82,77 @@ chunks: [
 
 ${OUTPUT_SPEC}`
 
-// 소재를 뽑아 구어체 영작 문제를 배치 생성해 문제은행에 저장.
+// ── 문어(written) ──────────────────────────────────────────────────────────
+// 구어 프롬프트와 소재는 같고 문체만 갈린다. 같은 내용을 "말하듯" 대신 "쓰듯" 옮기는
+// 연습이라, 한국어 힌트도 문어체로 준다 — 힌트가 해요체면 답도 해요체로 끌려간다.
+
+const CEO_WRITTEN_SYSTEM = `You create English WRITING-practice items for a Korean executive who writes documents, reports and formal emails in English.
+
+## English style (write this FIRST)
+1. Write ONE natural WRITTEN English sentence (12-24 words) of the kind that belongs in a business document, a report, a proposal or a formal email — not speech. Third or first person, complete clauses, no contractions, no filler, no "Let me know if...".
+2. Prefer the precise verb over the phrasal verb (submit, not send in; resolve, not sort out). Keep it plain: no consultant padding, no "leverage/synergy".
+3. Draw the subject matter from the provided wiki notes and email summaries — invoices, schedules, product work, partner relations, hiring, finance. The sentence must state something concrete, not a generic platitude.
+4. Vary the shape across a batch of 10: statements of fact, conditions, consequences, comparisons, definitions, recommendations. No two sentences may open with the same word.
+5. Do NOT mirror Korean sentence structure. Write the English thought first.
+
+${CHUNKING_RULES}
+- All Korean is 문어체 ("~합니다/~된다/~이다"), never 구어체 ("~해요/~거예요"). This is the whole point of this profile.
+
+Example:
+reference_english: "The invoice was issued on the last business day of the month, so payment is expected within the following two weeks."
+korean_full: "인보이스는 해당 월의 마지막 영업일에 발행되었으며, 따라서 수금은 이후 2주 이내로 예상된다."
+chunks: [
+  {"en": "The invoice was issued", "ko": "인보이스는 발행되었다"},
+  {"en": "on the last business day of the month,", "ko": "해당 월의 마지막 영업일에,"},
+  {"en": "so payment is expected", "ko": "따라서 수금은 예상된다"},
+  {"en": "within the following two weeks.", "ko": "이후 2주 이내로."}
+]
+- topic: 2-4 word Korean label of the subject matter.
+- kind: "work" for the work-context items, "business_talk" for the general business items, "daily_life" for the rest. Every item must have one.
+
+${OUTPUT_SPEC}`
+
+const RYUHA_WRITTEN_SYSTEM = `You create English WRITING-practice items for Ryuha, an 11-year-old Korean girl preparing for UK senior school entrance — the WRITTEN paper and the work she will hand in at a British school, not the interview.
+
+## English style (write this FIRST)
+1. Write ONE natural WRITTEN British English sentence (12-22 words) of the kind a strong Year 6 pupil would put on paper: a personal statement, a book response, a short descriptive or explanatory piece. Full clauses, no contractions, more careful than speech but still her own voice — never corporate.
+2. British spelling and vocabulary (favourite, colour, maths, practise as verb).
+3. Use the provided notes as background for subject matter (her reading, her studies, her school life, why this school). Administrative facts are her parents' business — never make her write them.
+4. Vary the shape across a batch of 10: description, reason, comparison, sequence, opinion with support, reflection. No two sentences may open the same way, and at most 3 may mention exams at all.
+5. Do NOT mirror Korean sentence structure. Write the English thought first.
+
+${CHUNKING_RULES}
+- All Korean is 문어체 ("~이다/~한다/~했다"), never 해요체. This is the whole point of this profile.
+
+Example:
+reference_english: "Although the story is set in a small village, it explores questions that feel much larger than the place itself."
+korean_full: "그 이야기는 작은 마을을 배경으로 하지만, 그 장소 자체보다 훨씬 큰 질문들을 다룬다."
+chunks: [
+  {"en": "Although the story is set", "ko": "그 이야기는 배경으로 하지만"},
+  {"en": "in a small village,", "ko": "작은 마을을,"},
+  {"en": "it explores questions", "ko": "그것은 질문들을 다룬다"},
+  {"en": "that feel much larger", "ko": "훨씬 크게 느껴지는"},
+  {"en": "than the place itself.", "ko": "그 장소 자체보다."}
+]
+- topic: 2-4 word Korean label (예: "독서 감상", "학교 생활", "지원 동기").
+
+${OUTPUT_SPEC}`
+
+// 소재를 뽑아 영작 문제를 배치 생성해 문제은행에 저장.
 // count(기본 10, 최대 50)만큼 10개 단위로 나눠 생성 — 회차마다 중복 방지 목록을 누적한다.
 // profile: ceo(미국식 비즈니스, 위키+이메일 소재) / ryuha(영국식 ISEB 인터뷰, 류하 노트 소재)
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as { count?: number; profile?: string }
   const count = Math.min(MAX_COUNT, Math.max(BATCH, Number(body.count ?? BATCH)))
   const profile = asProfile(body.profile)
+  // 소재 풀과 문체는 대상 목록이 정한다 — 'ceo 냐 아니냐'로 갈라 두면 대상을 하나
+  // 늘릴 때마다 이 파일의 조건문을 전부 고쳐야 한다(2026-09-14).
+  const target = findTarget(profile)
+  const fromWiki = target.source === 'wiki'
   const supabase = getServiceSupabase()
 
   // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 소재가 금방 겹친다
-  const sourceQuery = profile !== 'ceo'
+  const sourceQuery = !fromWiki
     ? supabase.from('ryuha_notes')
         .select('title, content, category')
         .in('category', ['진학', '학습법', '학교', '학습계획'])
@@ -104,7 +165,7 @@ export async function POST(req: NextRequest) {
 
   const [sourceRes, emailRes, recentRes] = await Promise.all([
     sourceQuery,
-    profile === 'ceo'
+    fromWiki
       ? supabase.from('email_analysis')
           .select('label, analysis_data')
           .order('generated_at', { ascending: false })
@@ -122,7 +183,7 @@ export async function POST(req: NextRequest) {
 
   // 류하 추가 소재 — ReviewNotes의 ISEB English/Maths 노트 문항 (지금 실제로 공부하는 내용)
   let isebProblems: { note: string; question: string; answer: string }[] = []
-  if (profile !== 'ceo' && reviewnotesSupabase) {
+  if (!fromWiki && reviewnotesSupabase) {
     const { data: rnNotes } = await reviewnotesSupabase
       .from('Note')
       .select('id, title')
@@ -150,7 +211,9 @@ export async function POST(req: NextRequest) {
     .map(e => `- ${e.label}: ${JSON.stringify(e.analysis_data).slice(0, 400)}`)
     .join('\n')
   const existing = (recentRes.data ?? []).map(r => r.reference_english)
-  const system = profile === 'ryuha' ? RYUHA_SYSTEM : CEO_SYSTEM
+  const system = target.register === 'written'
+    ? (fromWiki ? CEO_WRITTEN_SYSTEM : RYUHA_WRITTEN_SYSTEM)
+    : (fromWiki ? CEO_SYSTEM : RYUHA_SYSTEM)
 
   interface GenChunk { en: string; ko: string }
   interface GenItem { korean_full: string; reference_english: string; chunks: GenChunk[]; topic?: string; kind?: string }
@@ -177,7 +240,7 @@ export async function POST(req: NextRequest) {
 
       const user = `## Notes (source material for topics)
 ${noteText || '(none)'}
-${profile === 'ceo' ? `
+${fromWiki ? `
 ## Recent email analysis (source material)
 ${emailText || '(none)'}
 ` : `
@@ -207,7 +270,7 @@ ${existing.join('\n') || '(none)'}`
         english_chunks: it.chunks.map(c => c.en),
         reference_english: it.reference_english,
         topic: it.topic ?? null,
-        source_type: profile === 'ceo' ? (CEO_SOURCE[String(it.kind ?? '')] ?? 'wiki') : 'ryuha_notes',
+        source_type: fromWiki ? (CEO_SOURCE[String(it.kind ?? '')] ?? 'wiki') : 'ryuha_notes',
         profile,
       }))
       const { error } = await supabase.from('english_practice_items').insert(rows)

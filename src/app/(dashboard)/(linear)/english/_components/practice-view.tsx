@@ -6,12 +6,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { DrawPad, type DrawPadHandle } from '@/app/(dashboard)/_components/linear-draw-pad'
+import { DrawTools, useDrawTools } from '@/app/(dashboard)/_components/linear-draw-tools'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import type { PracticeTarget } from '@/lib/english-targets'
 import { useDictation } from './use-dictation'
 import { appendTranscript } from '@/lib/dictation'
 
@@ -26,21 +28,15 @@ const ORDER_OPTIONS: { value: string; label: string; title: string }[] = [
 ]
 
 export interface PracticeViewProps {
-  profile: 'ceo' | 'ryuha'
-  eyebrow: string
-  title: string
-  meta: string
-  note: string
-  /** 오늘 목표 문장 수 (지표 카드의 /N 표기) */
-  dailyGoal: number
-  /** 문제 소재를 설명하는 짧은 라벨 — 빈 상태·버튼 툴팁 문구에 쓰인다 (예: "위키·이메일", "류하 노트") */
-  sourceLabel: string
+  target: PracticeTarget
 }
 
 interface QueueItem {
   id: string
   korean_full: string
   korean_chunks: string[]
+  /** 조각별 영어 — 의미조각을 눌러 뒤집을 때 보여 준다. 한글 조각과 1:1로 맞는다. */
+  english_chunks?: string[] | null
   reference_english: string
   topic: string | null
   is_review: boolean
@@ -77,7 +73,8 @@ const POINT_LABEL: Record<string, string> = {
   grammar: '문법', word: '단어', natural: '자연스러움', good: '좋음', meaning: '의미',
 }
 
-export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, sourceLabel }: PracticeViewProps) {
+export function PracticeView({ target }: PracticeViewProps) {
+  const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
   const [mode, setMode] = useState<Mode>('balanced')
   const [order, setOrder] = useState('oldest')
@@ -95,6 +92,19 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
   const [inputMode, setInputMode] = useState<'type' | 'draw'>(profile === 'ceo' ? 'type' : 'draw')
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [hasInk, setHasInk] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const tools = useDrawTools('english-practice-tools')
+
+  // 어느 의미조각이 뒤집혀 있나. 문항이 바뀌면 전부 덮는다.
+  const [flipped, setFlipped] = useState<Set<number>>(new Set())
+
+  // 채점 뒤 한 번 더 쓰는 판. 답을 보고 같은 문장을 다시 써 보는 자리라
+  // 채점에 들어가지 않는다 — 여기 쓴 것은 어디에도 기록되지 않는다.
+  const againRef = useRef<DrawPadHandle | null>(null)
+  const [againTool, setAgainTool] = useState<'pen' | 'eraser'>('pen')
+  const [againInk, setAgainInk] = useState(false)
+  const [againRedo, setAgainRedo] = useState(false)
+  const againTools = useDrawTools('english-practice-again-tools')
   // "다시 풀기"로 다시 푸는 중. 교정문·참고 답안을 이미 본 뒤라 이후 채점은
   // 기록하지 않는다 — 다음 문항으로 넘어가야 풀린다.
   const [retrying, setRetrying] = useState(false)
@@ -193,7 +203,12 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     setVcState('idle')
     padRef.current?.clear()
     setHasInk(false)
+    setCanRedo(false)
     setTool('pen')
+    setFlipped(new Set())
+    againRef.current?.clear()
+    setAgainInk(false)
+    setAgainRedo(false)
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
@@ -208,8 +223,20 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
     setError(null)
     padRef.current?.clear()
     setHasInk(false)
+    setCanRedo(false)
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
   }, [mobile, dictation])
+
+  // 판이 바뀔 때마다 도구의 켜짐·꺼짐을 다시 읽는다. 되돌릴 게 없는데 단추가 살아
+  // 있으면 눌러 놓고 왜 아무 일도 없는지 묻게 된다(연습장에서 가져온 규칙).
+  const syncTools = useCallback(() => {
+    setHasInk(!padRef.current?.isEmpty())
+    setCanRedo(!!padRef.current?.canRedo())
+  }, [])
+  const syncAgain = useCallback(() => {
+    setAgainInk(!againRef.current?.isEmpty())
+    setAgainRedo(!!againRef.current?.canRedo())
+  }, [])
 
   // 현재 문장을 보이스카드 영어 덱에 청크 행으로 추가 (류하봇 청킹번역과 같은 시트 경로)
   const toVoiceCards = useCallback(async () => {
@@ -277,15 +304,17 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
 
   return (
     // keep-all: 한글이 어절 중간에서 줄바꿈되지 않게 (LSectionHead meta와 같은 규칙)
+    // 한 줄짜리 읽기 화면일 때는 860이 맞았다. 이제 힌트와 쓰는 자리를 나란히 두므로
+    // 그 폭으로는 양쪽 다 좁다. 다른 페이지처럼 폭을 다 쓴다.
     <div style={{
-      maxWidth: 860, margin: '0 auto', wordBreak: 'keep-all',
+      wordBreak: 'keep-all',
       display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
     }}>
-      {/* 섹션 카드 — 다른 페이지 위계와 동일: 카드 안에 헤더(eyebrow)+지표 */}
+      {/* 상단 통계 — 주식 페이지(포트폴리오 시그널)와 같은 축:
+          머리 구역(cardPad, 아래 panelPadY) · 지표 격자 구역(좌우 cardPad, 아래 cardPad). */}
       <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <LSectionHead
-            eyebrow={eyebrow}
             title={title}
             meta={meta}
             tools={
@@ -310,9 +339,9 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
                     fontSize: t.type.control,
                     padding: `0 ${t.density.controlPadXSm}px`,
                     borderRadius: t.radius.sm,
-                    background: t.neutrals.inner,
+                    background: t.neutrals.card,
                     color: t.neutrals.muted,
-                    border: 'none',
+                    border: `1px solid ${t.neutrals.line}`,
                     fontFamily: t.font.sans,
                     cursor: 'pointer',
                   }}
@@ -326,16 +355,20 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
             action={<LHeadBtn icon="sparkles" label="문제 생성" title={`${sourceLabel}에서 새 문제 50개 생성`} onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
           />
 
-          {/* 안내문 — 탭(모드) 줄과 분리해 헤더 아래 한 줄로 (3개 프로필 공통 위치) */}
-          <div style={{
-            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
-            lineHeight: 1.5, marginBottom: t.density.gapMd,
-          }}>{note}</div>
+        </div>
 
-          {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
+        {/* 안내문 — 탭(모드) 줄과 분리해 헤더 아래 한 줄로 */}
+        <div style={{
+          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle,
+          lineHeight: 1.5, padding: `0 ${t.density.cardPad}px ${t.density.panelPadY}px`,
+        }}>{note}</div>
+
+        {/* 지표 — 오늘 학습량 / 누적 문장 / 정답률 / 남은 문제 */}
+        <div>
           <div style={{
             display: 'grid', gap: t.density.kpiGap,
             gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
+            padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
           }}>
             <LStat
               label="오늘 학습"
@@ -408,9 +441,13 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
         </LCard>
       ) : (
         <>
-          {/* 문제 카드 */}
-          <LCard>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapMd }}>
+          {/* 문제 카드 — 왼쪽은 읽는 것(힌트·채점 결과), 오른쪽은 쓰는 것.
+              스크립타 풀기 화면과 같은 나눔이다: 눈이 가는 자리와 손이 가는 자리를 섞지 않는다. */}
+          <LCard pad={0}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: t.density.cardPad, paddingBottom: t.density.panelPadY,
+            }}>
               <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
                 <LBadge tone={current.is_review ? 'warn' : 'brand'} pill>
                   {current.is_review ? '복습' : '신규'}
@@ -422,170 +459,289 @@ export function PracticeView({ profile, eyebrow, title, meta, note, dailyGoal, s
               </span>
             </div>
 
-            {/* 한글 청킹 — 영어어순, 줄 단위 */}
             <div style={{
-              background: t.neutrals.inner, borderRadius: t.radius.md,
-              padding: `${t.density.gapMd}px ${t.density.gapLg}px`, marginBottom: t.density.gapMd,
+              display: 'grid',
+              // 상단바 자리는 대상 토글이 쓰고 있어 1열/2열 토글을 둘 데가 없다. 폭으로만 가른다.
+              gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
+              gap: t.density.blockGap,
+              padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
+              alignItems: 'start',
             }}>
-              {current.korean_chunks.map((chunk, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                  padding: `${t.density.gapXs}px 0`, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
-                }}>
-                  <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
-                    minWidth: 14, textAlign: 'right',
-                  }}>{i + 1}</span>
-                  <span>{chunk}</span>
+
+              {/* ── 왼쪽: 힌트와 채점 결과 ───────────────────────────── */}
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+                <div data-panel="">
+                  <div data-panel-title="" style={{
+                    fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
+                    textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: t.density.gapSm,
+                  }}>
+                    한글 청킹 · 영어어순
+                  </div>
+                  {/* 조각을 누르면 그 줄만 뒤집혀 영어가 나온다. 한 줄씩 확인하려고 문장
+                      전체를 열면 나머지 조각의 답까지 같이 보여 연습이 끝나 버린다. */}
+                  {current.korean_chunks.map((chunk, i) => {
+                    const en = current.english_chunks?.[i]
+                    const open = flipped.has(i)
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          if (!en) return
+                          setFlipped(prev => {
+                            const nextSet = new Set(prev)
+                            if (nextSet.has(i)) nextSet.delete(i)
+                            else nextSet.add(i)
+                            return nextSet
+                          })
+                        }}
+                        title={en ? (open ? '눌러서 한글로' : '눌러서 영어 보기') : undefined}
+                        style={{
+                          width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
+                          display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
+                          padding: `${t.density.gapSm}px 0`, cursor: en ? 'pointer' : 'default',
+                          borderBottom: i < current.korean_chunks.length - 1 ? `1px solid ${t.neutrals.line}` : 'none',
+                          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
+                          fontFamily: t.font.sans, color: t.neutrals.text,
+                        }}
+                      >
+                        <span style={{
+                          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
+                          minWidth: 14, textAlign: 'right', flexShrink: 0,
+                        }}>{i + 1}</span>
+                        <span style={{
+                          minWidth: 0,
+                          color: open ? t.chart.mono : t.neutrals.text,
+                          fontFamily: open ? t.font.sans : t.font.sans,
+                        }}>
+                          {open && en ? en : chunk}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
-            <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapMd }}>
-              전체 문장: {current.korean_full}
-            </div>
 
-            {/* 입력 방식 — 모든 프로필에서 손글씨/키보드 전환 가능. 기본값: 류하=손글씨, 아빠=키보드 */}
-            {(
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.density.gapSm }}>
-                <LSegmented<'draw' | 'type'>
-                  value={inputMode}
-                  onChange={(v) => { if (v === 'draw') dictation.stop(); setInputMode(v); setError(null) }}
-                  options={[
-                    { value: 'draw', label: '✏️ 손글씨' },
-                    { value: 'type', label: '키보드' },
-                  ]}
-                />
-                {inputMode === 'type' && !result && dictation.supported && (
-                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
-                    {dictation.listening && (
-                      <span style={{ fontSize: t.type.control, color: t.accent.neg }}>● 듣는 중</span>
+                <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5 }}>
+                  전체 문장: {current.korean_full}
+                </div>
+
+                {/* 채점 결과 — 힌트 바로 아래. 왼쪽에서 읽고 오른쪽에서 고쳐 쓴다. */}
+                {result && (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: t.density.gapMd,
+                    paddingTop: t.density.blockGap, borderTop: `1px solid ${t.neutrals.line}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: t.density.gapMd }}>
+                      <span style={{
+                        fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono,
+                        color: result.passed ? t.accent.pos : t.accent.neg,
+                      }}>{result.score}</span>
+                      <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
+                      {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
+                      {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
+                      <div style={{ marginLeft: 'auto' }}>
+                        <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
+                          {vcState === 'done' ? '보이스카드 담김 ✓' : vcState === 'sending' ? '담는 중…' : '보이스카드 담기'}
+                        </LBtn>
+                      </div>
+                    </div>
+
+                    {result.points.length > 0 && (
+                      <div style={{ display: 'grid', gap: t.density.gapSm }}>
+                        {result.points.map((pt, i) => (
+                          <div key={i} style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'baseline' }}>
+                            <LBadge tone={POINT_TONE[pt.type] ?? 'neutral'}>{POINT_LABEL[pt.type] ?? pt.type}</LBadge>
+                            <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5 }}>{pt.note}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    <LBtn
-                      size="sm"
-                      variant={dictation.listening ? 'danger' : 'secondary'}
-                      disabled={grading}
-                      onClick={() => { setError(null); dictation.toggle() }}
-                    >
-                      {dictation.listening ? '🎤 중지' : '🎤 말하기'}
+
+                    <div style={{ display: 'grid', gap: t.density.gapSm }}>
+                      {result.transcript && <ResultLine label="인식된 손글씨" text={result.transcript} />}
+                      <ResultLine label="내 문장 다듬기" text={result.corrected} />
+                      <ResultLine label="네이티브 버전" text={result.natural} highlight />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 오른쪽: 쓰는 자리 ────────────────────────────────── */}
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+                  <LSegmented<'draw' | 'type'>
+                    value={inputMode}
+                    onChange={(v) => { if (v === 'draw') dictation.stop(); setInputMode(v); setError(null) }}
+                    options={[
+                      { value: 'draw', label: '손글씨' },
+                      { value: 'type', label: '키보드' },
+                    ]}
+                  />
+                  {inputMode === 'type' && !result && dictation.supported && (
+                    <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
+                      {dictation.listening && (
+                        <span style={{ fontSize: t.type.control, color: t.accent.neg }}>● 듣는 중</span>
+                      )}
+                      <LBtn
+                        size="sm"
+                        variant={dictation.listening ? 'danger' : 'secondary'}
+                        disabled={grading}
+                        onClick={() => { setError(null); dictation.toggle() }}
+                      >
+                        {dictation.listening ? '중지' : '말하기'}
+                      </LBtn>
+                    </div>
+                  )}
+                </div>
+
+                {inputMode === 'draw' ? (
+                  <>
+                    {/* 도구 바 — 문서함 연습장과 같은 아이콘 바. 좁으면 판 밖 한 줄로,
+                        넓으면 판 위에 띄워 쓰는 자리를 뺏지 않는다. */}
+                    {tools.docked && (
+                      <DrawTools
+                        toolsRef={tools.toolsRef}
+                        tool={tool} onToolChange={setTool}
+                        onUndo={() => { padRef.current?.undo(); syncTools() }}
+                        onRedo={() => { padRef.current?.redo(); syncTools() }}
+                        onClear={() => { padRef.current?.clear(); syncTools() }}
+                        canUndo={hasInk} canRedo={canRedo}
+                        docked={tools.docked} onToggleDock={tools.toggleDock}
+                        place={tools.place} handleProps={tools.handleProps}
+                      />
+                    )}
+                    <div ref={tools.boxRef} style={{ position: 'relative' }}>
+                      {!tools.docked && (
+                        <DrawTools
+                          toolsRef={tools.toolsRef}
+                          tool={tool} onToolChange={setTool}
+                          onUndo={() => { padRef.current?.undo(); syncTools() }}
+                          onRedo={() => { padRef.current?.redo(); syncTools() }}
+                          onClear={() => { padRef.current?.clear(); syncTools() }}
+                          canUndo={hasInk} canRedo={canRedo}
+                          docked={tools.docked} onToggleDock={tools.toggleDock}
+                          place={tools.place} handleProps={tools.handleProps}
+                        />
+                      )}
+                      <DrawPad
+                        ref={padRef}
+                        disabled={!!result || grading}
+                        height={mobile ? 220 : 260}
+                        storageKey="english-practice-h"
+                        tool={tool}
+                        onInkChange={syncTools}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <textarea
+                    ref={taRef}
+                    value={answer}
+                    onChange={e => setAnswer(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
+                    rows={6}
+                    disabled={!!result || grading}
+                    autoFocus={!mobile}
+                    style={{
+                      width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                      background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
+                      padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
+                      // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
+                      fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
+                    }}
+                  />
+                )}
+
+                {/* 아직 확정되지 않은 인식분. 다음 이벤트에서 통째로 갈리는 값이라
+                    입력창에 넣지 않고 여기서만 흐리게 보여준다. */}
+                {inputMode === 'type' && dictation.listening && dictation.interim && (
+                  <div style={{
+                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, lineHeight: 1.5,
+                    color: t.neutrals.subtle, fontStyle: 'italic',
+                  }}>
+                    {dictation.interim}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
+                  {!result ? (
+                    <LBtn variant="brand" onClick={grade}
+                      disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
+                      style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                      {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
                     </LBtn>
-                  </div>
-                )}
-                {inputMode === 'draw' && !result && (
-                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <LSegmented<'pen' | 'eraser'>
-                      value={tool}
-                      onChange={setTool}
-                      options={[
-                        { value: 'pen', label: '펜' },
-                        { value: 'eraser', label: '지우개' },
-                      ]}
-                    />
-                    <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.undo(); setHasInk(!padRef.current?.isEmpty()) }}>한 획 취소</LBtn>
-                    <LBtn size="sm" variant="secondary" onClick={() => { padRef.current?.clear(); setHasInk(false) }}>전체 지우기</LBtn>
+                  ) : (
+                    <>
+                      <LBtn variant="secondary" onClick={retry}
+                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                        다시 풀기
+                      </LBtn>
+                      <LBtn variant="brand" onClick={next}
+                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                        {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                      </LBtn>
+                    </>
+                  )}
+                </div>
+
+                {/* 채점 뒤 한 번 더 — 답을 옆에 두고 같은 문장을 손으로 다시 써 본다.
+                    '다시 풀기'는 점수를 다시 받는 자리라 판을 비우고 답을 감춘다. 이 판은
+                    답을 띄운 채로 베껴 쓰는 자리여서 채점에 들어가지 않는다(CEO 2026-09-14). */}
+                {result && (
+                  <div style={{
+                    marginTop: t.density.gapSm, paddingTop: t.density.blockGap,
+                    borderTop: `1px solid ${t.neutrals.line}`,
+                    display: 'flex', flexDirection: 'column', gap: t.density.gapSm,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: t.density.gapSm }}>
+                      <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                        답을 보고 한 번 더 · 채점하지 않아요
+                      </span>
+                      {againInk && (
+                        <LBtn size="sm" variant="ghost" onClick={() => { againRef.current?.clear(); syncAgain() }}>
+                          지우기
+                        </LBtn>
+                      )}
+                    </div>
+                    {againTools.docked && (
+                      <DrawTools
+                        toolsRef={againTools.toolsRef}
+                        tool={againTool} onToolChange={setAgainTool}
+                        onUndo={() => { againRef.current?.undo(); syncAgain() }}
+                        onRedo={() => { againRef.current?.redo(); syncAgain() }}
+                        onClear={() => { againRef.current?.clear(); syncAgain() }}
+                        canUndo={againInk} canRedo={againRedo}
+                        docked={againTools.docked} onToggleDock={againTools.toggleDock}
+                        place={againTools.place} handleProps={againTools.handleProps}
+                      />
+                    )}
+                    <div ref={againTools.boxRef} style={{ position: 'relative' }}>
+                      {!againTools.docked && (
+                        <DrawTools
+                          toolsRef={againTools.toolsRef}
+                          tool={againTool} onToolChange={setAgainTool}
+                          onUndo={() => { againRef.current?.undo(); syncAgain() }}
+                          onRedo={() => { againRef.current?.redo(); syncAgain() }}
+                          onClear={() => { againRef.current?.clear(); syncAgain() }}
+                          canUndo={againInk} canRedo={againRedo}
+                          docked={againTools.docked} onToggleDock={againTools.toggleDock}
+                          place={againTools.place} handleProps={againTools.handleProps}
+                        />
+                      )}
+                      <DrawPad
+                        ref={againRef}
+                        height={mobile ? 200 : 220}
+                        storageKey="english-practice-again-h"
+                        tool={againTool}
+                        onInkChange={syncAgain}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-
-            {inputMode === 'draw' ? (
-              <DrawPad
-                ref={padRef}
-                disabled={!!result || grading}
-                height={mobile ? 220 : 260}
-                tool={tool}
-                onInkChange={setHasInk}
-              />
-            ) : (
-              <textarea
-                ref={taRef}
-                value={answer}
-                onChange={e => setAnswer(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
-                rows={3}
-                disabled={!!result || grading}
-                autoFocus={!mobile}
-                style={{
-                  width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                  background: result ? t.neutrals.page : t.neutrals.inner,
-                  border: 'none', borderRadius: t.radius.md,
-                  padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
-                  // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
-                  fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5, fontFamily: t.font.sans, color: t.neutrals.text,
-                }}
-              />
-            )}
-
-            {/* 아직 확정되지 않은 인식분. 다음 이벤트에서 통째로 갈리는 값이라
-                입력창에 넣지 않고 여기서만 흐리게 보여준다. */}
-            {inputMode === 'type' && dictation.listening && dictation.interim && (
-              <div style={{
-                marginTop: t.density.gapSm,
-                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                lineHeight: 1.5,
-                color: t.neutrals.subtle,
-                fontStyle: 'italic',
-              }}>
-                {dictation.interim}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapMd }}>
-              {!result ? (
-                <LBtn variant="brand" onClick={grade}
-                  disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
-                  style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                  {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
-                </LBtn>
-              ) : (
-                <>
-                  <LBtn variant="secondary" onClick={retry}
-                    style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                    다시 풀기
-                  </LBtn>
-                  <LBtn variant="brand" onClick={next}
-                    style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                    {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
-                  </LBtn>
-                </>
-              )}
             </div>
           </LCard>
-
-          {/* 채점 결과 */}
-          {result && (
-            <LCard>
-              {/* 좁은 화면에서 배지+버튼이 넘치면 버튼이 다음 줄로 내려간다 */}
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: t.density.gapMd, marginBottom: t.density.gapMd }}>
-                <span style={{
-                  fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono,
-                  color: result.passed ? t.accent.pos : t.accent.neg,
-                }}>{result.score}</span>
-                <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
-                {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
-                {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
-                <div style={{ marginLeft: 'auto' }}>
-                  <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
-                    {vcState === 'done' ? '보이스카드 담김 ✓' : vcState === 'sending' ? '담는 중…' : '보이스카드 담기'}
-                  </LBtn>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gap: t.density.gapSm, marginBottom: t.density.gapMd }}>
-                {result.points.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'baseline' }}>
-                    <LBadge tone={POINT_TONE[p.type] ?? 'neutral'}>{POINT_LABEL[p.type] ?? p.type}</LBadge>
-                    <span style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5 }}>{p.note}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'grid', gap: t.density.gapSm }}>
-                {result.transcript && <ResultLine label="인식된 손글씨" text={result.transcript} />}
-                <ResultLine label="내 문장 다듬기" text={result.corrected} />
-                <ResultLine label="네이티브 버전" text={result.natural} highlight />
-              </div>
-            </LCard>
-          )}
         </>
       )}
     </div>

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const [itemsRes, attemptsRes] = await Promise.all([
     supabase.from('english_practice_items')
-      .select('id, korean_full, korean_chunks, reference_english, topic, source_type, created_at')
+      .select('id, korean_full, korean_chunks, english_chunks, reference_english, topic, source_type, created_at')
       .eq('profile', profile)
       .order('created_at', { ascending: true }),
     supabase.from('english_practice_attempts')

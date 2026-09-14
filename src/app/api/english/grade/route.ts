@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { llmJson, GradeFeedback, asProfile } from '@/lib/english'
+import { findTarget } from '@/lib/english-targets'
 
 export const maxDuration = 30
 
@@ -56,17 +57,38 @@ export async function POST(req: NextRequest) {
   }
   const effectiveAnswer = imageBase64 ? transcript : answer!.trim()
 
-  const system = profile === 'ryuha'
-    ? `You grade an 11-year-old Korean girl's spoken English answer against a Korean prompt. Register: natural spoken BRITISH English, age-appropriate (UK school interview / school life).
-Score 0-100: meaning accuracy 50, grammar 30, natural spoken phrasing 20. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one. Use British spelling in corrections (favourite, colour, maths).
+  // 채점 기준도 대상이 정한다 — 배우는 사람(아이/어른)과 문체(말/글)가 두 축이다.
+  // 문어 답안을 구어 기준으로 채점하면 갖춰 쓴 문장이 "딱딱하다"고 깎인다.
+  const target = findTarget(profile)
+  const child = target.source === 'ryuha_notes'
+  const written = target.register === 'written'
+
+  const who = child
+    ? `an 11-year-old Korean girl's English answer against a Korean prompt`
+    : `a Korean speaker's English composition against a Korean prompt`
+  const register = written
+    ? (child
+        ? `written BRITISH English as a strong Year 6 pupil would put on paper (personal statement, book response, descriptive writing). Full clauses, no contractions.`
+        : `written American business English as it would appear in a document, report or formal email. Full clauses, no contractions, precise verbs over phrasal verbs.`)
+    : (child
+        ? `natural spoken BRITISH English, age-appropriate (UK school interview / school life).`
+        : `spoken American business English.`)
+  const weights = written
+    ? `meaning accuracy 50, grammar 30, written register and precision 20`
+    : `meaning accuracy 50, grammar 30, natural spoken phrasing 20`
+  const naturalLabel = written
+    ? (child ? `the most natural written British version a Year 6 pupil would hand in` : `the most natural written American version for a document`)
+    : (child ? `the most natural spoken British version a Year 6 pupil would say` : `the most natural spoken American version`)
+  const spelling = child ? ` Use British spelling in corrections (favourite, colour, maths).` : ''
+  const tone = child
+    ? `Notes in Korean a child understands easily, encouraging tone, each under 60 chars.`
+    : `Notes in Korean, each under 60 chars.`
+
+  const system = `You grade ${who}. Register: ${register}
+Score 0-100: ${weights}. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one.${spelling}
 Return JSON only:
-{"score": int, "corrected": "minimal fix of the learner's own sentence (keep her words where possible)", "natural": "the most natural spoken British version a Year 6 pupil would say", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
-points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean a child understands easily, encouraging tone, each under 60 chars.`
-    : `You grade a Korean speaker's English composition against a Korean prompt. Register: spoken American business English.
-Score 0-100: meaning accuracy 50, grammar 30, natural spoken phrasing 20. Different-but-natural wording that keeps the meaning is NOT penalized — the reference is one possible answer, not the only one.
-Return JSON only:
-{"score": int, "corrected": "minimal fix of the learner's own sentence (keep their words where possible)", "natural": "the most natural spoken American version", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
-points: 1-3 items, most important first. If the answer is already great, one "good" point. Notes in Korean, each under 60 chars.`
+{"score": int, "corrected": "minimal fix of the learner's own sentence (keep their words where possible)", "natural": "${naturalLabel}", "points": [{"type":"grammar|word|natural|good","note":"짧은 한국어 코멘트"}]}
+points: 1-3 items, most important first. If the answer is already great, one "good" point. ${tone}`
 
   const user = `한글: ${item.korean_full}
 청킹: ${(item.korean_chunks as string[]).join(' / ')}
