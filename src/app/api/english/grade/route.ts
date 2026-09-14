@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
     itemId?: string; answer?: string; imageBase64?: string; isReview?: boolean; profile?: string
     /** false면 채점만 하고 시도로 남기지 않는다 (기본 true). */
     record?: boolean
+    /** 힌트(단계 되돌리기·의미조각 뒤집기)를 보고 쓴 답인지. */
+    usedHint?: boolean
   }
   const { itemId, answer, imageBase64, isReview } = body
+  const usedHint = body.usedHint === true
   // "다시 풀기"는 이미 교정문·참고 답안을 본 뒤의 연습이다. 그걸 기록하면 그게
   // 마지막 시도가 되어 정답률(문장별 마지막 시도 기준)과 복습 큐(마지막 시도가
   // 불합격인 문장)가 둘 다 답을 보고 쓴 문장으로 채워진다.
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
   const supabase = getServiceSupabase()
   const { data: item, error: itemErr } = await supabase
     .from('english_practice_items')
-    .select('id, korean_full, korean_chunks, reference_english')
+    .select('id, korean_full, korean_chunks, english_chunks, reference_english')
     .eq('id', itemId)
     .single()
   if (itemErr || !item) return NextResponse.json({ error: 'item not found' }, { status: 404 })
@@ -105,7 +108,10 @@ points: 1-3 items, most important first. If the answer is already great, one "go
       natural: String(raw.natural ?? item.reference_english),
       points: Array.isArray(raw.points) ? raw.points.slice(0, 3) : [],
     }
-    const passed = score >= PASS_SCORE
+    // 힌트를 봤으면 영어가 맞아도 합격이 아니다(CEO 2026-09-14). 점수는 그대로 둔다 —
+    // 문장 자체의 품질 신호는 잃지 않고, 왜 합격이 아닌지는 used_hint 가 말한다.
+    const scored = score >= PASS_SCORE
+    const passed = scored && !usedHint
 
     if (record) {
       const { error: insErr } = await supabase.from('english_practice_attempts').insert({
@@ -113,6 +119,7 @@ points: 1-3 items, most important first. If the answer is already great, one "go
         user_answer: effectiveAnswer,
         score,
         passed,
+        used_hint: usedHint,
         is_review: !!isReview,
         feedback,
         profile,
@@ -121,7 +128,8 @@ points: 1-3 items, most important first. If the answer is already great, one "go
     }
 
     return NextResponse.json({
-      ...feedback, passed, reference: item.reference_english, recorded: record,
+      ...feedback, passed, scored, usedHint,
+      reference: item.reference_english, recorded: record,
       ...(imageBase64 ? { transcript } : {}),
     })
   } catch (e) {

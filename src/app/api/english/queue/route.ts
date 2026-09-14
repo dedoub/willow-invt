@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { asProfile } from '@/lib/english'
 import { asFreshOrder, selectFresh, shuffle } from '@/lib/english-queue'
+import { passStreak, hintLevelFor } from '@/lib/english-practice-review'
 
 // 모드별 출제 큐 + 통계.
 // 복습 대상 = "마지막 시도가 불합격"인 문장. 정답률도 문장별 마지막 시도 기준 —
@@ -49,6 +50,16 @@ export async function GET(req: NextRequest) {
   const latest = new Map<string, { passed: boolean; created_at: string }>()
   for (const a of attempts) latest.set(a.item_id, { passed: a.passed, created_at: a.created_at })
 
+  // 문장별 시도 이력 — 연속 정답 수로 힌트 단계를 정한다.
+  // 힌트를 본 시도는 저장할 때 이미 passed=false 로 적히므로 여기서 따로 걸러낼 것이 없다.
+  const history = new Map<string, { passed: boolean }[]>()
+  for (const a of attempts) {
+    const row = history.get(a.item_id)
+    if (row) row.push({ passed: a.passed })
+    else history.set(a.item_id, [{ passed: a.passed }])
+  }
+  const hintOf = (id: string) => hintLevelFor(passStreak(history.get(id) ?? []))
+
   const freshPool = items.filter(it => !latest.has(it.id))
   const reviewPool = items
     .filter(it => latest.get(it.id)?.passed === false)
@@ -66,8 +77,8 @@ export async function GET(req: NextRequest) {
   }
 
   const queue = shuffle([
-    ...selectFresh(freshPool, order, nFresh).map(it => ({ ...it, is_review: false })),
-    ...reviewPool.slice(0, nReview).map(it => ({ ...it, is_review: true })),
+    ...selectFresh(freshPool, order, nFresh).map(it => ({ ...it, is_review: false, hint_level: hintOf(it.id) })),
+    ...reviewPool.slice(0, nReview).map(it => ({ ...it, is_review: true, hint_level: hintOf(it.id) })),
   ])
 
   // ── 통계 ──────────────────────────────────────────────

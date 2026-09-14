@@ -8,6 +8,8 @@ export const maxDuration = 120
 
 const BATCH = 10
 const MAX_COUNT = 50
+/** 문어 문장의 하한. 이보다 짧으면 종속절 없이 한 마디로 끝난 문장이다. */
+const WRITTEN_MIN_WORDS = 16
 
 // 청킹 규칙 — 두 프로필 공통 (보이스카드 청킹 스킬 방법론)
 const CHUNKING_RULES = `## Chunking (the core of the exercise)
@@ -82,6 +84,22 @@ chunks: [
 
 ${OUTPUT_SPEC}`
 
+/**
+ * 소재 표가 없는 대상이 쓰는 주제 목록.
+ *
+ * 미국 학부 경영 과목이 실제로 다루는 축이다. 회차마다 몇 개만 뽑아 넘겨 같은 주제가
+ * 연달아 나오지 않게 한다. 업무 기록을 소재로 쓰면 문장이 자꾸 보고로 돌아갔다 —
+ * 에세이 연습의 대상은 내 일정이 아니라 논증이다(CEO 2026-09-14).
+ */
+const ESSAY_DOMAINS = [
+  '경쟁우위와 그 지속 조건', '시장 구조와 가격 결정', '유인 설계와 대리인 문제',
+  '조직 설계와 조정 비용', '자본 배분과 위험 감수', '기술 도입과 확산의 속도',
+  '규제가 시장에 미치는 영향', '브랜드와 소비자 선택', '공급망과 수직 통합',
+  '플랫폼과 네트워크 효과', '측정 지표가 행동을 왜곡하는 방식', '불확실성 아래의 의사결정',
+  '진입 장벽과 신규 진입', '가격 차별과 소비자 잉여', '기업 지배구조와 책임',
+  '노동 시장과 인재 유지', '국제 무역과 비교우위', '혁신의 자금 조달',
+]
+
 // ── 문어(written) ──────────────────────────────────────────────────────────
 // 구어 프롬프트와 소재는 같고 문체만 갈린다. 같은 내용을 "말하듯" 대신 "쓰듯" 옮기는
 // 연습이라, 한국어 힌트도 문어체로 준다 — 힌트가 해요체면 답도 해요체로 끌려간다.
@@ -89,10 +107,14 @@ ${OUTPUT_SPEC}`
 const CEO_WRITTEN_SYSTEM = `You create English WRITING-practice items for a Korean executive who wants to write BUSINESS ESSAYS at the level expected of a student at a good US university — an analytical paper or case analysis, not a memo and not a task list.
 
 ## English style (write this FIRST)
-1. Write ONE sentence (15-28 words) that belongs in the body of an analytical business essay. It must ARGUE, not report: make a claim, qualify it, explain a mechanism, weigh a trade-off, draw an implication, or concede a counterpoint. Never "X must be reviewed", "Y is scheduled for Z", "preparing A is the priority" — those are status lines, not essays.
+1. Write ONE sentence of 18 to 28 words that belongs in the BODY of an analytical business essay.
+1-0. Every sentence must carry at least one SUBORDINATE CLAUSE, introduced by one of: although, even though, because, since, whereas, while, insofar as, unless, so that, which, whose, if. A single main clause is never enough. This is what makes the sentence essay-length; do not pad with adjectives to reach the count.
+1a. The sentence must assert a RELATIONSHIP between two things — a cause, a condition, a trade-off, a limit, a contrast. A property of one thing is not an essay sentence. Banned shapes, no exceptions: "X is important / crucial / essential / key / a critical factor", "X plays a vital role", "X must be reviewed", "X is scheduled for Y". Those are captions.
+1b. Third person only. No "we", "our", "us", "I", "my". No imperatives and no "must" addressed to the reader. An essay describes how the world works; it does not instruct.
 2. Academic register, plain and precise: abstract subjects are fine, hedge where honest (tends to, is likely to, suggests, in part because), use real connectives (whereas, insofar as, thereby, which in turn, although). No contractions. No consultant filler (leverage, synergy, going forward). Never first person.
-3. Use the provided wiki notes and email summaries ONLY as raw material for SUBJECT MATTER — the industries, products, counterparties, decisions and problems that appear there. Then write ABOUT that subject the way an essay would: generalize from the specific case to the mechanism behind it. A concrete name may appear, but the sentence must state something arguable about it, not record what happened.
-4. Vary the move across a batch of 10, and do not repeat one: claim, causal explanation, condition, contrast, concession, definition, consequence, comparison, limitation, implication. No two sentences may open with the same word.
+3. Each item takes one of the DOMAINS listed below as its subject. Write about the mechanism, not about any particular company's paperwork. Concrete examples are welcome as illustration, but invent them as an essay would; do not narrate anyone's actual schedule, invoice or task.
+4. Each item makes ONE of these moves, and a batch of 10 must use at least six different ones: causal explanation, necessary condition, trade-off, concession then counter, unintended consequence, comparison across cases, boundary of a claim, mechanism behind a correlation, implication for a decision, revision of a common belief. No two sentences may open with the same word.
+4a. Before returning, reread every sentence and replace any that reads as a textbook definition or a slogan. If the sentence could appear on a poster, it fails.
 5. Do NOT mirror Korean sentence structure. Write the English thought first.
 
 ${CHUNKING_RULES}
@@ -109,7 +131,7 @@ chunks: [
   {"en": "whose incentives may later diverge.", "ko": "그 유인이 이후 어긋날 수 있는."}
 ]
 - topic: 2-4 word Korean label of the subject matter.
-- kind: "work" for items grounded in the notes, "business_talk" for broader business analysis, "daily_life" for none of these. Every item must have one.
+- kind: always "business_talk" for this profile.
 
 ${OUTPUT_SPEC}`
 
@@ -150,10 +172,14 @@ export async function POST(req: NextRequest) {
   // 늘릴 때마다 이 파일의 조건문을 전부 고쳐야 한다(2026-09-14).
   const target = findTarget(profile)
   const fromWiki = target.source === 'wiki'
+  // 끌어올 표가 없는 대상. 주제 목록에서 돌려 가며 만든다.
+  const fromTopics = target.source === 'general'
   const supabase = getServiceSupabase()
 
   // 소재 풀을 넓게 가져와 회차마다 랜덤 샘플 — 최신 노트에만 편중되면 소재가 금방 겹친다
-  const sourceQuery = !fromWiki
+  const sourceQuery = fromTopics
+    ? Promise.resolve({ data: [] as { title: string; content: string | null }[], error: null })
+    : !fromWiki
     ? supabase.from('ryuha_notes')
         .select('title, content, category')
         .in('category', ['진학', '학습법', '학교', '학습계획'])
@@ -166,7 +192,7 @@ export async function POST(req: NextRequest) {
 
   const [sourceRes, emailRes, recentRes] = await Promise.all([
     sourceQuery,
-    fromWiki
+    fromWiki && !fromTopics
       ? supabase.from('email_analysis')
           .select('label, analysis_data')
           .order('generated_at', { ascending: false })
@@ -184,7 +210,7 @@ export async function POST(req: NextRequest) {
 
   // 류하 추가 소재 — ReviewNotes의 ISEB English/Maths 노트 문항 (지금 실제로 공부하는 내용)
   let isebProblems: { note: string; question: string; answer: string }[] = []
-  if (!fromWiki && reviewnotesSupabase) {
+  if (!fromWiki && !fromTopics && reviewnotesSupabase) {
     const { data: rnNotes } = await reviewnotesSupabase
       .from('Note')
       .select('id, title')
@@ -239,7 +265,18 @@ export async function POST(req: NextRequest) {
         .map(p => `- [${p.note}] Q: ${p.question}${p.answer ? ` / A: ${p.answer}` : ''}`)
         .join('\n')
 
-      const user = `## Notes (source material for topics)
+      // 주제로 만드는 대상은 회차마다 주제를 몇 개만 뽑아 넘긴다 — 전부 넘기면
+      // 모델이 앞쪽 주제에만 붙어 회차가 바뀌어도 같은 이야기가 나온다.
+      const domainText = [...ESSAY_DOMAINS].sort(() => Math.random() - 0.5).slice(0, 6)
+        .map(d => `- ${d}`).join('\n')
+
+      const user = fromTopics
+        ? `## Domains for this batch (use each at most twice)
+${domainText}
+
+## Already used (avoid duplicates)
+${existing.join('\n') || '(none)'}`
+        : `## Notes (source material for topics)
 ${noteText || '(none)'}
 ${fromWiki ? `
 ## Recent email analysis (source material)
@@ -263,15 +300,20 @@ ${existing.join('\n') || '(none)'}`
           })
           && (o.chunks as unknown[]).length > 0
       })
-      if (items.length === 0) { lastError = 'no items generated'; continue }
+      // 길이는 부탁해서 얻어지지 않는다. 방금 배치에서도 열 중 여덟이 기준 아래였다.
+      // 문어 대상만 바닥을 두고 걸러 낸다 — 짧은 문장은 에세이 연습이 되지 않는다(2026-09-14).
+      const kept = target.register === 'written'
+        ? items.filter(it => it.reference_english.trim().split(/\s+/).length >= WRITTEN_MIN_WORDS)
+        : items
+      if (kept.length === 0) { lastError = 'no items met the length floor'; continue }
 
-      const rows = items.map(it => ({
+      const rows = kept.map(it => ({
         korean_full: it.korean_full,
         korean_chunks: it.chunks.map(c => c.ko),
         english_chunks: it.chunks.map(c => c.en),
         reference_english: it.reference_english,
         topic: it.topic ?? null,
-        source_type: fromWiki ? (CEO_SOURCE[String(it.kind ?? '')] ?? 'wiki') : 'ryuha_notes',
+        source_type: fromTopics ? 'business_topics' : fromWiki ? (CEO_SOURCE[String(it.kind ?? '')] ?? 'wiki') : 'ryuha_notes',
         profile,
       }))
       const { error } = await supabase.from('english_practice_items').insert(rows)

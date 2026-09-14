@@ -11,8 +11,12 @@
 /** 구어(말하듯) / 문어(전문적인 글). 생성 프롬프트와 채점 기준이 갈리는 축이다. */
 export type Register = 'spoken' | 'written'
 
-/** 문제 소재를 어디서 길어 오나. 생성 API 가 이 값으로 소스 풀을 고른다. */
-export type SourcePool = 'wiki' | 'ryuha_notes'
+/**
+ * 문제 소재를 어디서 길어 오나. 생성 API 가 이 값으로 소스 풀을 고른다.
+ * `general` 은 끌어올 표가 없다 — 경영학 주제 목록에서 돌려 가며 만든다.
+ * 에세이 연습은 내 업무 기록이 아니라 논증 자체가 대상이기 때문이다(CEO 2026-09-14).
+ */
+export type SourcePool = 'wiki' | 'ryuha_notes' | 'general'
 
 export interface PracticeTarget {
   id: string
@@ -62,12 +66,12 @@ export const PRACTICE_TARGETS: PracticeTarget[] = [
     label: '에세이',
     learner: '아빠',
     title: '영작 연습 · 비즈니스 에세이',
-    meta: '업무위키·이메일 소재 · 미국 대학 수준 분석 산문',
+    meta: '경영학 주제 · 미국 대학 수준 분석 산문',
     note: '보고가 아니라 논증. 사실을 적는 문장이 아니라 주장하고 따지는 문장을 쓴다 · 합격 80점',
     dailyGoal: 10,
-    sourceLabel: '위키·이메일',
+    sourceLabel: '경영학 주제',
     register: 'written',
-    source: 'wiki',
+    source: 'general',
     defaultInput: 'type',
     deck: CEO_DECK,
   },

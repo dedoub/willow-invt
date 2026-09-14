@@ -14,6 +14,10 @@ import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import type { PracticeTarget } from '@/lib/english-targets'
+import {
+  correctionDiff, chunkRecord, easedLevel, HINT_CHUNKS, HINT_SENTENCE, HINT_TOPIC, HINT_LABEL,
+  type HintLevel,
+} from '@/lib/english-practice-review'
 import { useDictation } from './use-dictation'
 import { appendTranscript } from '@/lib/dictation'
 
@@ -40,6 +44,8 @@ interface QueueItem {
   reference_english: string
   topic: string | null
   is_review: boolean
+  /** 연속 정답 수로 서버가 정한 힌트 단계. 1=청킹 2=문장 전체 3=주제만 */
+  hint_level?: HintLevel
 }
 
 interface Stats {
@@ -64,6 +70,9 @@ interface GradeResult {
   transcript?: string
   /** false면 연습용 재시도라 시도로 남지 않았다 */
   recorded?: boolean
+  /** 점수는 합격선을 넘었는가. 힌트를 봤으면 passed 는 false 라도 이건 true 일 수 있다. */
+  scored?: boolean
+  usedHint?: boolean
 }
 
 // 색은 상태·부호·강조에만 쓴다(linear-tokens 주석). 문법·단어·자연스러움은 '어떤 종류의
@@ -123,9 +132,18 @@ export function PracticeView({ target }: PracticeViewProps) {
   // 어느 의미조각이 뒤집혀 있나. 문항이 바뀌면 전부 덮는다.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
 
+  // 이번 문항에서 힌트를 몇 단계 되돌렸나. 조각을 뒤집는 것도 답을 보는 것이라 같이 센다 —
+  // 그러지 않으면 단계를 올려 놓고 조각만 뒤집어 우회할 수 있다(2026-09-14).
+  const [stepsBack, setStepsBack] = useState(0)
+  const usedHint = stepsBack > 0 || flipped.size > 0
+
   // 채점 뒤 한 번 더 쓰는 판. 답을 보고 같은 문장을 다시 써 보는 자리라
   // 채점에 들어가지 않는다 — 여기 쓴 것은 어디에도 기록되지 않는다.
   const againRef = useRef<DrawPadHandle | null>(null)
+  // 다시 써보기도 펜·자판 둘 다 쓴다. 처음 값은 위 입력칸과 같게 두되 따로 바꿀 수 있다 —
+  // 손으로 풀고 나서 자판으로 정리해 보는 쓰임이 있다(CEO 2026-09-14).
+  const [againMode, setAgainMode] = useState<'type' | 'draw'>(target.defaultInput)
+  const [againText, setAgainText] = useState('')
   const [againTool, setAgainTool] = useState<'pen' | 'eraser'>('pen')
   const [againInk, setAgainInk] = useState(false)
   const [againRedo, setAgainRedo] = useState(false)
@@ -169,11 +187,23 @@ export function PracticeView({ target }: PracticeViewProps) {
 
   const current = queue[idx] ?? null
 
+  // 이 문항의 힌트 단계. 서버가 연속 정답 수로 정해 주고, 힌트를 누른 만큼 되돌린다.
+  const baseLevel: HintLevel = current?.hint_level ?? HINT_CHUNKS
+  const level = easedLevel(baseLevel, stepsBack)
+  // 단계를 거꾸로 읽어 연속 회수를 대강 보여 준다 — 정확한 수가 아니라 "얼마나 왔나"다.
+  const streakOf = (it: QueueItem) => (it.hint_level ?? HINT_CHUNKS) >= HINT_TOPIC ? 3 : 2
+
+  // 채점 뒤, 조각마다 답에 실제로 썼는지. 답은 손글씨면 전사된 글이다.
+  const chunkHits = result
+    ? chunkRecord(current?.english_chunks ?? [], result.transcript ?? answer)
+    : null
+
   const grade = useCallback(async () => {
     if (!current || grading || result) return
     // 채점에 들어가면 더 받아쓸 이유가 없다. 결과 화면에서 마이크가 켜져 있으면
     // 다음 문항 답이 이전 답에 붙는다.
     dictation.stop()
+    // 채점 순간의 값을 그대로 보낸다 — 결과를 보고 조각을 뒤집는 것은 힌트가 아니다.
     const drawing = inputMode === 'draw'
     const imageBase64 = drawing ? padRef.current?.getImage() : undefined
     if (drawing ? !imageBase64 : !answer.trim()) return
@@ -185,8 +215,8 @@ export function PracticeView({ target }: PracticeViewProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           drawing
-            ? { itemId: current.id, imageBase64, isReview: current.is_review, profile, record: !retrying }
-            : { itemId: current.id, answer, isReview: current.is_review, profile, record: !retrying },
+            ? { itemId: current.id, imageBase64, isReview: current.is_review, profile, record: !retrying, usedHint }
+            : { itemId: current.id, answer, isReview: current.is_review, profile, record: !retrying, usedHint },
         ),
       })
       const data = await res.json()
@@ -218,7 +248,7 @@ export function PracticeView({ target }: PracticeViewProps) {
     } finally {
       setGrading(false)
     }
-  }, [current, answer, grading, result, profile, inputMode, dictation, retrying])
+  }, [current, answer, grading, result, profile, inputMode, dictation, retrying, usedHint])
 
   const next = useCallback(() => {
     dictation.stop()
@@ -231,9 +261,11 @@ export function PracticeView({ target }: PracticeViewProps) {
     setCanRedo(false)
     setTool('pen')
     setFlipped(new Set())
+    setStepsBack(0)
     againRef.current?.clear()
     setAgainInk(false)
     setAgainRedo(false)
+    setAgainText('')
     setIdx(i => i + 1)
     // 모바일은 자동 포커스 금지 — 키보드가 멋대로 올라오지 않게, 직접 탭할 때만 연다
     if (!mobile) setTimeout(() => taRef.current?.focus(), 0)
@@ -246,6 +278,8 @@ export function PracticeView({ target }: PracticeViewProps) {
     setAnswer('')
     setResult(null)
     setError(null)
+    setFlipped(new Set())
+    setStepsBack(0)
     padRef.current?.clear()
     setHasInk(false)
     setCanRedo(false)
@@ -514,10 +548,15 @@ export function PracticeView({ target }: PracticeViewProps) {
                     fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
                     textTransform: 'uppercase' as const, color: t.neutrals.subtle,
                     minHeight: t.density.controlHSm - t.density.tableRowGap * 2,
-                    display: 'flex', alignItems: 'center',
-                    marginBottom: t.density.gapSm,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: t.density.gapSm, marginBottom: t.density.gapSm,
                   }}>
-                    한글 청킹 · 영어어순
+                    <span>{HINT_LABEL[level]}</span>
+                    {baseLevel > HINT_CHUNKS && (
+                      <span style={{ textTransform: 'none' as const, letterSpacing: 0, fontFamily: t.font.sans }}>
+                        연속 {streakOf(current)}회
+                      </span>
+                    )}
                   </div>
 
                   {/* 펜 도구를 위쪽 바로 세우면 오른쪽 판이 그 줄만큼 내려간다. 왼쪽도 같이
@@ -525,59 +564,100 @@ export function PracticeView({ target }: PracticeViewProps) {
                       판 위에 겹쳐 있어 자리를 차지하지 않으므로 이 칸도 없다. */}
                   {drawBarH > 0 && <div aria-hidden="true" style={{ height: drawBarH }} />}
 
-                  {/* 조각을 누르면 그 줄만 뒤집혀 영어가 나온다. 한 줄씩 확인하려고 문장
-                      전체를 열면 나머지 조각의 답까지 같이 보여 연습이 끝나 버린다. */}
-                  {current.korean_chunks.map((chunk, i) => {
-                    const en = current.english_chunks?.[i]
-                    const open = flipped.has(i)
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          if (!en) return
-                          setFlipped(prev => {
-                            const nextSet = new Set(prev)
-                            if (nextSet.has(i)) nextSet.delete(i)
-                            else nextSet.add(i)
-                            return nextSet
-                          })
-                        }}
-                        title={en ? (open ? '눌러서 한글로' : '눌러서 영어 보기') : undefined}
-                        // 줄을 긋는 일은 테마에 맡긴다 — 테마가 단추에 두르는 테두리를
-                        // 벗기면서 같은 자리에 표 행과 같은 얇은 선을 넣어 준다.
-                        data-chunk-line=""
-                        style={{
-                          width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
-                          display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                          padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`, cursor: en ? 'pointer' : 'default',
-                          borderBottom: i < current.korean_chunks.length - 1 ? `1px solid ${t.neutrals.line}` : 'none',
-                          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
-                          fontFamily: t.font.sans, color: t.neutrals.text,
-                        }}
-                      >
-                        <span style={{
-                          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
-                          minWidth: 14, textAlign: 'right', flexShrink: 0,
-                        }}>{i + 1}</span>
-                        <span style={{
-                          minWidth: 0,
-                          color: open ? t.chart.mono : t.neutrals.text,
-                          fontFamily: open ? t.font.sans : t.font.sans,
-                        }}>
-                          {open && en ? en : chunk}
-                        </span>
-                      </button>
-                    )
-                  })}
+                  {/* 단계에 따라 보여 주는 것이 줄어든다. 두 번 연속 맞으면 조각을 걷고
+                      문장만, 세 번째부터는 주제만 남는다(CEO 2026-09-14). */}
+                  {level === HINT_CHUNKS ? (
+                    current.korean_chunks.map((chunk, i) => {
+                      const en = current.english_chunks?.[i]
+                      const open = flipped.has(i) || !!result
+                      const wrote = result && chunkHits ? chunkHits[i] : null
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            if (!en || result) return
+                            setFlipped(prev => {
+                              const nextSet = new Set(prev)
+                              if (nextSet.has(i)) nextSet.delete(i)
+                              else nextSet.add(i)
+                              return nextSet
+                            })
+                          }}
+                          title={result ? undefined : en ? (open ? '눌러서 한글로' : '눌러서 영어 보기 · 힌트로 셉니다') : undefined}
+                          data-chunk-line=""
+                          style={{
+                            width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
+                            display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
+                            padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`,
+                            cursor: en && !result ? 'pointer' : 'default',
+                            fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
+                            fontFamily: t.font.sans, color: t.neutrals.text,
+                          }}
+                        >
+                          <span style={{
+                            fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
+                            minWidth: 14, textAlign: 'right', flexShrink: 0,
+                          }}>{i + 1}</span>
+                          <span style={{ minWidth: 0, flex: 1, color: open ? t.chart.mono : t.neutrals.text }}>
+                            {open && en ? en : chunk}
+                          </span>
+                          {/* 채점 뒤에만 — 이 조각을 답에 실제로 썼는지. 채점이 아니라 기록이다. */}
+                          {wrote !== null && (
+                            <span style={{
+                              flexShrink: 0, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                              fontFamily: t.font.mono,
+                              color: wrote ? t.accent.pos : t.accent.neg,
+                            }}>
+                              {wrote ? '썼음' : '빠짐'}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })
+                  ) : level === HINT_SENTENCE ? (
+                    <div style={{
+                      padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`,
+                      fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6, color: t.neutrals.text,
+                    }}>
+                      {current.korean_full}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`,
+                      fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6, color: t.neutrals.text,
+                    }}>
+                      {current.topic || '(주제 없음)'}
+                      <span style={{ marginLeft: t.density.gapSm, fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                        에 대해 한 문장
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div style={{
-                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5,
-                  marginTop: t.density.gapSm, padding: `0 ${t.density.tableRowPadX}px`,
-                }}>
-                  전체 문장: {current.korean_full}
-                </div>
+                {/* 힌트보기 — 한 단계씩 되돌린다. 누르면 이 시도는 합격으로 세지 않는다. */}
+                {!result && level > HINT_CHUNKS && (
+                  <LBtn size="sm" variant="ghost"
+                    onClick={() => setStepsBack(n => n + 1)}
+                    style={{ alignSelf: 'flex-start' }}>
+                    힌트 보기 · {HINT_LABEL[easedLevel(level, 1)]}
+                  </LBtn>
+                )}
+                {!result && usedHint && (
+                  <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+                    힌트를 봤으므로 이번 시도는 합격으로 세지 않습니다.
+                  </div>
+                )}
+
+                {/* 채점 뒤에는 전체 문장을 늘 보여 준다 — 단계와 무관하게 답을 맞춰 볼 자리가 필요하다. */}
+                {(result || level === HINT_CHUNKS) && (
+                  <div style={{
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5,
+                    marginTop: t.density.gapSm, padding: `0 ${t.density.tableRowPadX}px`,
+                  }}>
+                    전체 문장: {current.korean_full}
+                  </div>
+                )}
 
                 {/* 채점 결과 — 힌트 바로 아래. 왼쪽에서 읽고 오른쪽에서 고쳐 쓴다. */}
                 {result && (
@@ -590,7 +670,9 @@ export function PracticeView({ target }: PracticeViewProps) {
                         fontSize: `calc(${t.type.display}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono,
                         color: result.passed ? t.accent.pos : t.accent.neg,
                       }}>{result.score}</span>
-                      <LBadge tone={result.passed ? 'pos' : 'neg'} pill>{result.passed ? '합격' : '재도전 대상'}</LBadge>
+                      <LBadge tone={result.passed ? 'pos' : 'neg'} pill>
+                        {result.passed ? '합격' : result.scored ? '힌트 사용 · 합격 아님' : '재도전 대상'}
+                      </LBadge>
                       {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
                       {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
                       <div style={{ marginLeft: 'auto' }}>
@@ -613,7 +695,7 @@ export function PracticeView({ target }: PracticeViewProps) {
 
                     <div style={{ display: 'grid', gap: t.density.gapSm }}>
                       {result.transcript && <ResultLine label="인식된 손글씨" text={result.transcript} />}
-                      <ResultLine label="내 문장 다듬기" text={result.corrected} />
+                      <ResultLine label="내 문장 다듬기" text={result.corrected} against={result.transcript ?? answer} />
                       <ResultLine label="네이티브 버전" text={result.natural} highlight />
                     </div>
                   </div>
@@ -752,12 +834,41 @@ export function PracticeView({ target }: PracticeViewProps) {
                       <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                         답을 보고 한 번 더 · 채점하지 않아요
                       </span>
-                      {againInk && (
-                        <LBtn size="sm" variant="ghost" onClick={() => { againRef.current?.clear(); syncAgain() }}>
-                          지우기
-                        </LBtn>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+                        <LSegmented<'draw' | 'type'>
+                          value={againMode}
+                          onChange={setAgainMode}
+                          options={[
+                            { value: 'draw', label: '손글씨' },
+                            { value: 'type', label: '키보드' },
+                          ]}
+                        />
+                        {((againMode === 'draw' && againInk) || (againMode === 'type' && againText)) && (
+                          <LBtn size="sm" variant="ghost" onClick={() => {
+                            if (againMode === 'draw') { againRef.current?.clear(); syncAgain() }
+                            else setAgainText('')
+                          }}>
+                            지우기
+                          </LBtn>
+                        )}
+                      </div>
                     </div>
+                    {againMode === 'type' ? (
+                      <textarea
+                        value={againText}
+                        onChange={e => setAgainText(e.target.value)}
+                        placeholder="답을 보고 다시 써보세요…"
+                        rows={4}
+                        style={{
+                          width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                          background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
+                          padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
+                          fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
+                          fontFamily: t.font.sans, color: t.neutrals.text,
+                        }}
+                      />
+                    ) : (
+                    <>
                     {againTools.docked && (
                       <DrawTools
                         toolsRef={againTools.toolsRef}
@@ -791,6 +902,8 @@ export function PracticeView({ target }: PracticeViewProps) {
                         onInkChange={syncAgain}
                       />
                     </div>
+                    </>
+                    )}
                   </div>
                 )}
               </div>
@@ -809,8 +922,13 @@ export function PracticeView({ target }: PracticeViewProps) {
  * 두르면서 판은 벗겨지므로, 강조는 색면이 아니라 왼쪽 세로선 하나로 한다 — 이 카드에서
  * 색을 갖는 것은 점수와 '좋음' 배지뿐이어야 한다(2026-09-14).
  */
-function ResultLine({ label, text, highlight }: { label: string; text: string; highlight?: boolean }) {
+function ResultLine({ label, text, highlight, against }: {
+  label: string; text: string; highlight?: boolean
+  /** 주면 이 글과 견줘 바뀐 낱말에 배경을 깐다 (스크립타 교정 표시와 같은 방식). */
+  against?: string
+}) {
   if (!text) return null
+  const parts = against ? correctionDiff(against, text) : null
   return (
     <div data-panel="" style={{
       background: t.neutrals.inner,
@@ -822,7 +940,19 @@ function ResultLine({ label, text, highlight }: { label: string; text: string; h
         textTransform: 'uppercase', color: t.neutrals.subtle, fontFamily: t.font.mono,
         marginBottom: t.density.tableRowGap,
       }}>{label}</div>
-      <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.55 }}>{text}</div>
+      <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.55 }}>
+        {parts
+          ? parts.map((part, i) => part.changed
+              ? (
+                // 바뀐 자리에만 배경. 부호라서 색을 쓴다 — 무엇이 고쳐졌는지가 이 줄의 전부다.
+                <mark key={i} style={{
+                  background: '#DAEEDD', color: '#1F5F3D',
+                  borderRadius: 3, padding: '0 2px',
+                }}>{part.text}</mark>
+              )
+              : <span key={i}>{part.text}</span>)
+          : text}
+      </div>
     </div>
   )
 }
