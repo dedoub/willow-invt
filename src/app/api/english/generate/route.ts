@@ -86,29 +86,30 @@ ${OUTPUT_SPEC}`
 // 구어 프롬프트와 소재는 같고 문체만 갈린다. 같은 내용을 "말하듯" 대신 "쓰듯" 옮기는
 // 연습이라, 한국어 힌트도 문어체로 준다 — 힌트가 해요체면 답도 해요체로 끌려간다.
 
-const CEO_WRITTEN_SYSTEM = `You create English WRITING-practice items for a Korean executive who writes documents, reports and formal emails in English.
+const CEO_WRITTEN_SYSTEM = `You create English WRITING-practice items for a Korean executive who wants to write BUSINESS ESSAYS at the level expected of a student at a good US university — an analytical paper or case analysis, not a memo and not a task list.
 
 ## English style (write this FIRST)
-1. Write ONE natural WRITTEN English sentence (12-24 words) of the kind that belongs in a business document, a report, a proposal or a formal email — not speech. Third or first person, complete clauses, no contractions, no filler, no "Let me know if...".
-2. Prefer the precise verb over the phrasal verb (submit, not send in; resolve, not sort out). Keep it plain: no consultant padding, no "leverage/synergy".
-3. Draw the subject matter from the provided wiki notes and email summaries — invoices, schedules, product work, partner relations, hiring, finance. The sentence must state something concrete, not a generic platitude.
-4. Vary the shape across a batch of 10: statements of fact, conditions, consequences, comparisons, definitions, recommendations. No two sentences may open with the same word.
+1. Write ONE sentence (15-28 words) that belongs in the body of an analytical business essay. It must ARGUE, not report: make a claim, qualify it, explain a mechanism, weigh a trade-off, draw an implication, or concede a counterpoint. Never "X must be reviewed", "Y is scheduled for Z", "preparing A is the priority" — those are status lines, not essays.
+2. Academic register, plain and precise: abstract subjects are fine, hedge where honest (tends to, is likely to, suggests, in part because), use real connectives (whereas, insofar as, thereby, which in turn, although). No contractions. No consultant filler (leverage, synergy, going forward). Never first person.
+3. Use the provided wiki notes and email summaries ONLY as raw material for SUBJECT MATTER — the industries, products, counterparties, decisions and problems that appear there. Then write ABOUT that subject the way an essay would: generalize from the specific case to the mechanism behind it. A concrete name may appear, but the sentence must state something arguable about it, not record what happened.
+4. Vary the move across a batch of 10, and do not repeat one: claim, causal explanation, condition, contrast, concession, definition, consequence, comparison, limitation, implication. No two sentences may open with the same word.
 5. Do NOT mirror Korean sentence structure. Write the English thought first.
 
 ${CHUNKING_RULES}
-- All Korean is 문어체 ("~합니다/~된다/~이다"), never 구어체 ("~해요/~거예요"). This is the whole point of this profile.
+- All Korean is 문어체 ("~한다/~이다/~하기 때문이다"), never 구어체 ("~해요/~거예요"). This is the whole point of this profile.
 
 Example:
-reference_english: "The invoice was issued on the last business day of the month, so payment is expected within the following two weeks."
-korean_full: "인보이스는 해당 월의 마지막 영업일에 발행되었으며, 따라서 수금은 이후 2주 이내로 예상된다."
+reference_english: "Although referral arrangements reduce the cost of acquiring institutional clients, they also concentrate distribution risk in a single counterparty whose incentives may later diverge."
+korean_full: "리퍼럴 계약은 기관 고객 확보 비용을 낮추지만, 동시에 유통 리스크를 단일 거래상대방에 집중시키며 그 유인은 이후 어긋날 수 있다."
 chunks: [
-  {"en": "The invoice was issued", "ko": "인보이스는 발행되었다"},
-  {"en": "on the last business day of the month,", "ko": "해당 월의 마지막 영업일에,"},
-  {"en": "so payment is expected", "ko": "따라서 수금은 예상된다"},
-  {"en": "within the following two weeks.", "ko": "이후 2주 이내로."}
+  {"en": "Although referral arrangements reduce", "ko": "리퍼럴 계약은 낮추지만"},
+  {"en": "the cost of acquiring institutional clients,", "ko": "기관 고객 확보 비용을,"},
+  {"en": "they also concentrate distribution risk", "ko": "그것은 또한 유통 리스크를 집중시킨다"},
+  {"en": "in a single counterparty", "ko": "단일 거래상대방에"},
+  {"en": "whose incentives may later diverge.", "ko": "그 유인이 이후 어긋날 수 있는."}
 ]
 - topic: 2-4 word Korean label of the subject matter.
-- kind: "work" for the work-context items, "business_talk" for the general business items, "daily_life" for the rest. Every item must have one.
+- kind: "work" for items grounded in the notes, "business_talk" for broader business analysis, "daily_life" for none of these. Every item must have one.
 
 ${OUTPUT_SPEC}`
 

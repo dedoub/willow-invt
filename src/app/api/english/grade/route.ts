@@ -69,15 +69,15 @@ export async function POST(req: NextRequest) {
   const register = written
     ? (child
         ? `written BRITISH English as a strong Year 6 pupil would put on paper (personal statement, book response, descriptive writing). Full clauses, no contractions.`
-        : `written American business English as it would appear in a document, report or formal email. Full clauses, no contractions, precise verbs over phrasal verbs.`)
+        : `analytical BUSINESS ESSAY English at the level expected of a student at a good US university. The sentence should argue rather than report: claim, qualification, mechanism, trade-off or implication. Academic register, honest hedging, real connectives, no contractions, no first person, no consultant filler.`)
     : (child
         ? `natural spoken BRITISH English, age-appropriate (UK school interview / school life).`
         : `spoken American business English.`)
   const weights = written
-    ? `meaning accuracy 50, grammar 30, written register and precision 20`
+    ? `meaning accuracy 50, grammar 30, register and argumentative precision 20`
     : `meaning accuracy 50, grammar 30, natural spoken phrasing 20`
   const naturalLabel = written
-    ? (child ? `the most natural written British version a Year 6 pupil would hand in` : `the most natural written American version for a document`)
+    ? (child ? `the most natural written British version a Year 6 pupil would hand in` : `the version a strong US university student would write in a business essay`)
     : (child ? `the most natural spoken British version a Year 6 pupil would say` : `the most natural spoken American version`)
   const spelling = child ? ` Use British spelling in corrections (favourite, colour, maths).` : ''
   const tone = child

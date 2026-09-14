@@ -66,8 +66,11 @@ interface GradeResult {
   recorded?: boolean
 }
 
-const POINT_TONE: Record<string, 'danger' | 'warn' | 'info' | 'pos'> = {
-  grammar: 'danger', word: 'warn', natural: 'info', good: 'pos', meaning: 'danger',
+// 색은 상태·부호·강조에만 쓴다(linear-tokens 주석). 문법·단어·자연스러움은 '어떤 종류의
+// 지적인가'라는 분류지 부호가 아니다 — 네 가지 색을 쓰면 한 줄에 무지개가 뜬다.
+// 부호는 둘뿐이다: 잘했다(초록) / 고칠 것(회색). 종류는 옆의 글자가 이미 말한다.
+const POINT_TONE: Record<string, 'neutral' | 'pos'> = {
+  grammar: 'neutral', word: 'neutral', natural: 'neutral', good: 'pos', meaning: 'neutral',
 }
 const POINT_LABEL: Record<string, string> = {
   grammar: '문법', word: '단어', natural: '자연스러움', good: '좋음', meaning: '의미',
@@ -444,19 +447,29 @@ export function PracticeView({ target }: PracticeViewProps) {
           {/* 문제 카드 — 왼쪽은 읽는 것(힌트·채점 결과), 오른쪽은 쓰는 것.
               스크립타 풀기 화면과 같은 나눔이다: 눈이 가는 자리와 손이 가는 자리를 섞지 않는다. */}
           <LCard pad={0}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: t.density.cardPad, paddingBottom: t.density.panelPadY,
-            }}>
-              <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
-                <LBadge tone={current.is_review ? 'warn' : 'brand'} pill>
-                  {current.is_review ? '복습' : '신규'}
-                </LBadge>
-                {current.topic && <LBadge tone="neutral">{current.topic}</LBadge>}
-              </div>
-              <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>
-                {idx + 1} / {queue.length}
-              </span>
+            {/* 카드에는 제목이 있어야 한다 — 배지만 있으면 이 카드가 무엇인지 말하는 줄이 없다.
+                배지는 이 문항이 어떤 것인지를, 오른쪽 숫자는 어디까지 왔는지를 말한다. */}
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+              <LSectionHead
+                title="연습하기"
+                tools={
+                  <div style={{ display: 'flex', gap: t.density.gapSm, alignItems: 'center' }}>
+                    {/* 신규·복습은 분류다. 사업관리 일정과 같이 회색 명도로 가른다 —
+                        복습이 한 단계 진하고, 옆의 주제 배지가 가장 옅다. */}
+                    <LBadge palette={current.is_review ? { bg: '#D3D7DD', fg: '#1F242B' } : { bg: '#E4E7EB', fg: '#2C323A' }} pill>
+                      {current.is_review ? '복습' : '신규'}
+                    </LBadge>
+                    {current.topic && <LBadge tone="neutral">{current.topic}</LBadge>}
+                  </div>
+                }
+                toolsInline
+                action={
+                  <span style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, whiteSpace: 'nowrap' }}>
+                    {idx + 1} / {queue.length}
+                  </span>
+                }
+                mb={0}
+              />
             </div>
 
             <div style={{
@@ -469,11 +482,18 @@ export function PracticeView({ target }: PracticeViewProps) {
             }}>
 
               {/* ── 왼쪽: 힌트와 채점 결과 ───────────────────────────── */}
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
                 <div data-panel="">
+                  {/* 오른쪽 칸의 첫 줄은 손글씨·키보드 세그먼트다. 여기 제목이 그 줄과 같은
+                      높이를 잡아야 두 칸의 본문이 같은 선에서 시작한다.
+                      controlHSm(28)이 아니라 28에서 트랙 여백 두 겹을 뺀 값이다 — 세그먼트 단추는
+                      원래 트랙 안에 들어앉아 그만큼 작고, 테마가 그 트랙을 없애 단추 키가 곧 줄 키가 된다. */}
                   <div data-panel-title="" style={{
                     fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
-                    textTransform: 'uppercase' as const, color: t.neutrals.subtle, marginBottom: t.density.gapSm,
+                    textTransform: 'uppercase' as const, color: t.neutrals.subtle,
+                    minHeight: t.density.controlHSm - t.density.tableRowGap * 2,
+                    display: 'flex', alignItems: 'center',
+                    marginBottom: t.density.gapSm,
                   }}>
                     한글 청킹 · 영어어순
                   </div>
@@ -496,10 +516,13 @@ export function PracticeView({ target }: PracticeViewProps) {
                           })
                         }}
                         title={en ? (open ? '눌러서 한글로' : '눌러서 영어 보기') : undefined}
+                        // 줄을 긋는 일은 테마에 맡긴다 — 테마가 단추에 두르는 테두리를
+                        // 벗기면서 같은 자리에 표 행과 같은 얇은 선을 넣어 준다.
+                        data-chunk-line=""
                         style={{
                           width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
                           display: 'flex', alignItems: 'baseline', gap: t.density.gapMd,
-                          padding: `${t.density.gapSm}px 0`, cursor: en ? 'pointer' : 'default',
+                          padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px`, cursor: en ? 'pointer' : 'default',
                           borderBottom: i < current.korean_chunks.length - 1 ? `1px solid ${t.neutrals.line}` : 'none',
                           fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
                           fontFamily: t.font.sans, color: t.neutrals.text,
@@ -521,7 +544,10 @@ export function PracticeView({ target }: PracticeViewProps) {
                   })}
                 </div>
 
-                <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5 }}>
+                <div style={{
+                  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, lineHeight: 1.5,
+                  marginTop: t.density.gapSm, padding: `0 ${t.density.tableRowPadX}px`,
+                }}>
                   전체 문장: {current.korean_full}
                 </div>
 
@@ -748,14 +774,22 @@ export function PracticeView({ target }: PracticeViewProps) {
   )
 }
 
+/**
+ * 채점이 돌려준 문장 한 줄.
+ *
+ * 예전에는 회색 판 위에 얹고 네이티브 버전만 생 하늘색(#ECF6FB)을 깔았다. 카드가 테마를
+ * 두르면서 판은 벗겨지므로, 강조는 색면이 아니라 왼쪽 세로선 하나로 한다 — 이 카드에서
+ * 색을 갖는 것은 점수와 '좋음' 배지뿐이어야 한다(2026-09-14).
+ */
 function ResultLine({ label, text, highlight }: { label: string; text: string; highlight?: boolean }) {
   if (!text) return null
   return (
-    <div style={{
-      background: highlight ? '#ECF6FB' : t.neutrals.inner,
+    <div data-panel="" style={{
+      background: t.neutrals.inner,
       borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.gapLg}px`,
+      ...(highlight ? { borderLeft: `2px solid ${t.chart.mono}`, paddingLeft: t.density.gapMd } : {}),
     }}>
-      <div style={{
+      <div data-panel-title="" style={{
         fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold, letterSpacing: 0.8,
         textTransform: 'uppercase', color: t.neutrals.subtle, fontFamily: t.font.mono,
         marginBottom: t.density.tableRowGap,

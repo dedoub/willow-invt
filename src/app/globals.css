@@ -934,6 +934,21 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
 
 .theme-outline [data-panel-row]:hover { background: #FAFAFB !important; }
 
+/* 영작 연습의 의미조각 줄 — 누를 수 있을 뿐 컨트롤이 아니다. 읽는 줄이다.
+   테마의 단추 규칙이 테두리를 둘러 한 줄마다 상자가 생겼다(2026-09-14 CEO).
+   표 행과 같은 문법으로 되돌린다: 배경 없음, 아래 얇은 선, 마지막 줄은 선 없음. */
+.theme-outline [data-chunk-line] {
+  border: none !important;
+  border-bottom: 1px solid #F1F2F4 !important;
+  border-radius: 0 !important;
+}
+.theme-outline [data-chunk-line]:last-child {
+  border-bottom: none !important;
+}
+.theme-outline [data-chunk-line]:hover {
+  background: #FAFAFB !important;
+}
+
 /* 삭제만 붉은 선과 붉은 글자를 쓴다 — 되돌릴 수 없는 동작은 눌리기 전에 보여야 한다 */
 .theme-outline [data-danger-action] button {
   color: #C23A3A !important;
