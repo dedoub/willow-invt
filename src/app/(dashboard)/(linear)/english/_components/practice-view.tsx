@@ -12,7 +12,7 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import type { PracticeTarget } from '@/lib/english-targets'
 import {
   correctionDiff, chunkRecord, easedLevel, HINT_CHUNKS, HINT_SENTENCE, HINT_TOPIC, HINT_LABEL,
@@ -99,7 +99,6 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
   const [answer, setAnswer] = useState('')
   const [grading, setGrading] = useState(false)
   const [result, setResult] = useState<GradeResult | null>(null)
-  const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [vcState, setVcState] = useState<'idle' | 'sending' | 'done'>('idle')
   // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
@@ -162,9 +161,7 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
     onFinal: (text) => setAnswer(prev => appendTranscript(prev, text)),
     onError: setError,
   })
-  const generatingRef = useRef(false)
   // 자동 충전이 실패했을 때 무한 재시도 방지 — 수동 생성 버튼을 누르면 해제
-  const autoRefillBlockedRef = useRef(false)
 
   const loadQueue = useCallback(async (m: Mode, o: string) => {
     setLoading(true)
@@ -351,41 +348,6 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
     }
   }, [current, vcState])
 
-  const generate = useCallback(async (opts?: { silent?: boolean; reloadIfEmpty?: boolean }) => {
-    if (generatingRef.current) return
-    generatingRef.current = true
-    setGenerating(true)
-    if (!opts?.silent) setError(null)
-    try {
-      const res = await fetch('/api/english/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: 50, profile }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? `generate ${res.status}`)
-      // 문제은행이 늘었으니 남은 문제 수만 즉시 반영
-      setStats(prev => prev ? { ...prev, totalItems: prev.totalItems + data.created, freshRemaining: prev.freshRemaining + data.created } : prev)
-      if (opts?.reloadIfEmpty) loadQueue(mode, order)
-    } catch (e) {
-      if (opts?.silent) autoRefillBlockedRef.current = true
-      else setError(e instanceof Error ? e.message : '문제 생성 실패')
-    } finally {
-      generatingRef.current = false
-      setGenerating(false)
-    }
-  }, [loadQueue, mode, order, profile])
-
-  // 신규 문장이 바닥나면(20개 이하 — 하루 100문장 페이스 기준 큐 하나 분량) 백그라운드로 50개 자동 충전.
-  // 풀 게 아예 없을 때는 충전 완료 후 큐도 자동 리로드.
-  useEffect(() => {
-    if (loading || !stats) return
-    // 자동 보충을 끈 대상은 손으로 넣은 씨드만 쓴다. 버튼으로는 여전히 만들 수 있다.
-    if (target.autoRefill === false) return
-    if (stats.freshRemaining <= 20 && !generatingRef.current && !autoRefillBlockedRef.current) {
-      generate({ silent: true, reloadIfEmpty: queue.length === 0 || idx >= queue.length })
-    }
-  }, [loading, stats, queue.length, idx, generate, target.autoRefill])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -448,7 +410,6 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
                 </select>
               </div>
             }
-            action={<LHeadBtn icon="sparkles" label="문제 생성" title={`${sourceLabel}에서 새 문제 50개 생성`} onClick={() => { autoRefillBlockedRef.current = false; generate() }} busy={generating} />}
           />
 
         </div>
@@ -523,15 +484,10 @@ export function PracticeView({ target, onGraded }: PracticeViewProps) {
             <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, color: t.neutrals.muted, marginBottom: t.density.gapLg }}>
               {queue.length > 0
                 ? `${queue.length}문장 학습했습니다. 새 큐를 받아 계속하세요.`
-                : generating
-                  ? '신규 문장 50개를 자동 생성하는 중입니다… 끝나면 큐가 자동으로 열립니다.'
-                  : `문제 생성 버튼으로 ${sourceLabel}에서 새 문장 50개를 만드세요.`}
+                : `${sourceLabel} 문항이 더 필요합니다. 문장은 scripts/seed-english-essays.ts 로 넣습니다.`}
             </div>
             <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'center' }}>
               <LBtn variant="brand" onClick={() => loadQueue(mode, order)}>새 큐 받기</LBtn>
-              {queue.length === 0 && !generating && (
-                <LBtn onClick={() => { autoRefillBlockedRef.current = false; generate({ reloadIfEmpty: true }) }}>문제 생성</LBtn>
-              )}
             </div>
           </div>
         </LCard>

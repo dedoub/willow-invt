@@ -1,3 +1,14 @@
+/**
+ * ⚠️ 화면에서 더는 부르지 않는다(2026-09-14).
+ *
+ * 문제 생성 버튼과 자동 보충을 걷어냈다. 이 라우트가 타는 공용 llm-json 프록시가
+ * gemini-2.5-flash 에 thinking 0 으로 고정돼 있어, 프롬프트를 네 번 강화해도 원하는
+ * 수준이 나오지 않았다 — 매 배치의 사분의 일이 단순 관계문이었다.
+ *
+ * 문항은 이제 `scripts/seed-english-essays.ts` 로 손으로 넣는다. 이 파일은 목표 문체의
+ * 명세를 담고 있어 남겨 둔다. 프록시가 모델과 thinking budget 을 받게 되면 다시 쓸 수 있다.
+ * 그때까지 호출하면 약한 문장이 은행에 섞인다.
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceSupabase } from '@/lib/supabase'
 import { reviewnotesSupabase } from '@/lib/reviewnotes-supabase'

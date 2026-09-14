@@ -16,16 +16,28 @@
  * 청킹은 영어 어순 그대로다. 청크 N 의 한국어는 청크 N 의 영어를 그 자리에서 옮긴 것이고,
  * 한국어 어순으로 재배열하지 않는다(.claude/skills/chunk-translation).
  *
+ * **문항이 들어오는 유일한 문이다.** 화면의 문제 생성 버튼과 자동 보충은 걷어냈다 —
+ * 공용 llm-json 프록시가 thinking 을 끈 flash 에 묶여 있어 원하는 수준이 나오지 않았고,
+ * 앞으로는 여기서 직접 써서 넣는다(CEO 2026-09-14).
+ *
+ * 대상을 늘리려면 lib/english-targets 에 먼저 더하고, 여기 SEEDS 에 같은 id 로 키를 연다.
+ * 검증 자는 그 대상의 register 를 따라간다 — 문어는 길고 종속절이 필요하고, 구어는 짧다.
+ *
  * 사용법:
- *   npx tsx scripts/seed-english-essays.ts          # 넣기 (이미 있는 문장은 건너뜀)
- *   npx tsx scripts/seed-english-essays.ts --dry    # 검증만
+ *   npx tsx scripts/seed-english-essays.ts                    # 전부 넣기 (있는 건 건너뜀)
+ *   npx tsx scripts/seed-english-essays.ts --dry              # 검증만
+ *   npx tsx scripts/seed-english-essays.ts --profile=ceo      # 한 대상만
  */
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
+import { findTarget } from '../src/lib/english-targets'
 
-const PROFILE = 'ceo_written'
+/**
+ * 프로필마다 씨드를 따로 둔다. 대상을 하나 늘리면 여기 키를 하나 더하면 된다.
+ * 검증 기준은 lib/english-targets 의 register·minWords 를 따라간다.
+ */
 const SOURCE = 'business_topics'
 
 interface Seed {
@@ -34,7 +46,8 @@ interface Seed {
   korean_full: string
 }
 
-const SEEDS: Seed[] = [
+const SEEDS: Record<string, Seed[]> = {
+  ceo_written: [
   {
     topic: '항만과 내륙 연결',
     korean_full: '항만은 해안에서 가장 높은 크레인을 들이고도 물동량을 잃을 수 있었다. 그토록 빠르게 들어 올린 상자들이 어떤 항만 당국도 통제하지 못하는 철도로 떠나야 했기 때문이다.',
@@ -1556,12 +1569,19 @@ const SEEDS: Seed[] = [
       { en: 'and it was the large one who asked for the rule.', ko: '그 규정을 요청한 쪽은 큰 생산자였다.' },
     ],
   },
-]
+  ],
+}
 
 /* ── 검증 ──────────────────────────────────────────────────── */
 
-const MIN_WORDS = 20
-const MAX_WORDS = 34
+/**
+ * 문체마다 다른 자. 문어는 길고 종속절을 요구하고, 구어는 짧고 말하듯 쓴다.
+ * 한 자로 재면 구어 문장이 전부 "짧다"로 걸린다.
+ */
+const RULES = {
+  written: { min: 20, max: 34, needsSubordinate: true, spokenKorean: false },
+  spoken: { min: 8, max: 22, needsSubordinate: false, spokenKorean: true },
+} as const
 const BANNED = /(depends on|is determined by|leads to|plays a (vital|key) role|is (important|crucial|essential))/i
 // once·when·before·after 도 종속절을 연다. 처음 목록에서 빠뜨려 멀쩡한 문장이 걸렸다.
 const SUBORDINATOR = /\b(although|even though|because|since|whereas|while|insofar as|unless|so that|which|whose|who|that|until|though|once|when|before|after|if|whether|what|where|how)\b/i
@@ -1570,34 +1590,51 @@ function sentenceOf(seed: Seed): string {
   return seed.chunks.map(c => c.en).join(' ')
 }
 
-function problems(seed: Seed): string[] {
+function problems(seed: Seed, register: 'written' | 'spoken'): string[] {
   const out: string[] = []
+  const rule = RULES[register]
   const en = sentenceOf(seed)
   const n = en.trim().split(/\s+/).length
-  if (n < MIN_WORDS) out.push(`짧다(${n})`)
-  if (n > MAX_WORDS) out.push(`길다(${n})`)
+  if (n < rule.min) out.push(`짧다(${n})`)
+  if (n > rule.max) out.push(`길다(${n})`)
   if (BANNED.test(en)) out.push('금지된 꼴')
-  if (!SUBORDINATOR.test(en)) out.push('종속절 없음')
-  if (/\b(we|our|us|I|my)\b/i.test(en)) out.push('1인칭')
+  if (rule.needsSubordinate && !SUBORDINATOR.test(en)) out.push('종속절 없음')
+  if (register === 'written' && /\b(we|our|us|I|my)\b/i.test(en)) out.push('1인칭')
   if (seed.chunks.some(c => !c.en.trim() || !c.ko.trim())) out.push('빈 청크')
-  // 한국어 힌트는 문어체여야 한다 — 해요체가 섞이면 답도 구어로 끌려간다
-  if (/(해요|거예요|이에요|예요)\b/.test(seed.korean_full)) out.push('구어체 한국어')
+  // 문어 힌트에 해요체가 섞이면 답도 구어로 끌려간다. 구어는 반대로 해요체가 맞다.
+  const spokenKo = /(해요|거예요|이에요|예요|거든요)/.test(seed.korean_full)
+  if (!rule.spokenKorean && spokenKo) out.push('구어체 한국어')
   return out
 }
 
 async function main() {
   const dry = process.argv.includes('--dry')
+  const only = process.argv.find(a => a.startsWith('--profile='))?.split('=')[1]
+
+  const groups = Object.entries(SEEDS).filter(([id]) => !only || id === only)
+  if (groups.length === 0) {
+    console.error(`--profile=${only} 에 해당하는 씨드가 없다`)
+    process.exit(1)
+  }
 
   let bad = 0
-  for (const seed of SEEDS) {
-    const found = problems(seed)
-    if (found.length > 0) {
+  for (const [id, seeds] of groups) {
+    const target = findTarget(id)
+    if (target.id !== id) {
+      console.error(`✗ ${id} 는 대상 목록에 없다 — lib/english-targets 에 먼저 더할 것`)
       bad += 1
-      console.error(`✗ [${seed.topic}] ${found.join(' · ')}\n  ${sentenceOf(seed)}`)
+      continue
     }
+    for (const seed of seeds) {
+      const found = problems(seed, target.register)
+      if (found.length > 0) {
+        bad += 1
+        console.error(`✗ [${id} · ${seed.topic}] ${found.join(' · ')}\n  ${sentenceOf(seed)}`)
+      }
+    }
+    const words = seeds.map(x => sentenceOf(x).split(/\s+/).length)
+    console.log(`${id} (${target.register}) · 씨드 ${seeds.length}개 · 평균 ${(words.reduce((a, b) => a + b, 0) / words.length).toFixed(1)}낱말 · 최소 ${Math.min(...words)} 최대 ${Math.max(...words)}`)
   }
-  const words = SEEDS.map(s => sentenceOf(s).split(/\s+/).length)
-  console.log(`씨드 ${SEEDS.length}개 · 평균 ${(words.reduce((a, b) => a + b, 0) / words.length).toFixed(1)}낱말 · 최소 ${Math.min(...words)} 최대 ${Math.max(...words)}`)
   if (bad > 0) {
     console.error(`검증 실패 ${bad}개 — 넣지 않는다`)
     process.exit(1)
@@ -1610,33 +1647,35 @@ async function main() {
     process.env.SUPABASE_SECRET_KEY!,
   )
 
-  // 같은 문장을 두 번 넣지 않는다 — 여러 번 돌려도 안전해야 한다
-  const { data: existing, error: readErr } = await supabase
-    .from('english_practice_items')
-    .select('reference_english')
-    .eq('profile', PROFILE)
-  if (readErr) throw new Error(readErr.message)
-  const have = new Set((existing ?? []).map(r => r.reference_english))
+  for (const [profile, seeds] of groups) {
+    // 같은 문장을 두 번 넣지 않는다 — 여러 번 돌려도 안전해야 한다
+    const { data: existing, error: readErr } = await supabase
+      .from('english_practice_items')
+      .select('reference_english')
+      .eq('profile', profile)
+    if (readErr) throw new Error(readErr.message)
+    const have = new Set((existing ?? []).map(r => r.reference_english))
 
-  const rows = SEEDS
-    .filter(seed => !have.has(sentenceOf(seed)))
-    .map(seed => ({
-      korean_full: seed.korean_full,
-      korean_chunks: seed.chunks.map(c => c.ko),
-      english_chunks: seed.chunks.map(c => c.en),
-      reference_english: sentenceOf(seed),
-      topic: seed.topic,
-      source_type: SOURCE,
-      profile: PROFILE,
-    }))
+    const rows = seeds
+      .filter(seed => !have.has(sentenceOf(seed)))
+      .map(seed => ({
+        korean_full: seed.korean_full,
+        korean_chunks: seed.chunks.map(c => c.ko),
+        english_chunks: seed.chunks.map(c => c.en),
+        reference_english: sentenceOf(seed),
+        topic: seed.topic,
+        source_type: SOURCE,
+        profile,
+      }))
 
-  if (rows.length === 0) {
-    console.log('이미 다 들어 있다')
-    return
+    if (rows.length === 0) {
+      console.log(`${profile}: 이미 다 들어 있다`)
+      continue
+    }
+    const { error } = await supabase.from('english_practice_items').insert(rows)
+    if (error) throw new Error(error.message)
+    console.log(`${profile}: ${rows.length}개 넣음 (${seeds.length - rows.length}개는 이미 있었다)`)
   }
-  const { error } = await supabase.from('english_practice_items').insert(rows)
-  if (error) throw new Error(error.message)
-  console.log(`${rows.length}개 넣음 (${SEEDS.length - rows.length}개는 이미 있었다)`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
