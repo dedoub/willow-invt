@@ -132,7 +132,9 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   const [searchFocused, setSearchFocused] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredCashPageSize)
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>('tensw-cash', COLUMNS)
+  // 정렬은 탭·필터칩마다 따로 기억한다 — 같은 표라도 보고 있는 것이 다르면 보고 싶은 순서도
+  // 다르다. 키가 바뀌면 useTableSort 가 그 조합이 마지막에 쓰던 정렬로 갈아탄다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswCashItem>(`tensw-cash:${typeFilter}`, COLUMNS)
   // 은행별 잔고 타일을 누르면 그 은행의 계좌별 내역을 띄운다. 타일은 은행 합계만 보여줘서
   // 어느 계좌에 얼마가 있는지는 여기 아니면 볼 곳이 없다.
   const [balanceModal, setBalanceModal] = useState<string | null>(null)

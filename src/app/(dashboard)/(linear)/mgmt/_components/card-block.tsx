@@ -208,7 +208,9 @@ export function CardBlock({ approvals, billing, year, onYearChange, storageKey =
     setSelected(null)
     onRefresh?.()
   }
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<CardApproval>(storageKey, COLUMNS)
+  // 정렬은 탭·필터칩마다 따로 기억한다 — 같은 표라도 보고 있는 것이 다르면 보고 싶은 순서도
+  // 다르다. 키가 바뀌면 useTableSort 가 그 조합이 마지막에 쓰던 정렬로 갈아탄다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<CardApproval>(`${storageKey}:${category}`, COLUMNS)
 
   const applyPageSize = (n: number) => {
     setPageSize(n)

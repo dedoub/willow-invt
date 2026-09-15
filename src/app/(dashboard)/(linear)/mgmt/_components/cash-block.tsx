@@ -143,10 +143,12 @@ function getStoredCashPageSize(): number {
 // 새 디자인에서는 업로드·추가 버튼을 카드에서 뺐다(CEO 2026-09-10).
 export function CashBlock({ invoices, onSelectInvoice, bankBalances = [], usdRate = 0, balanceHistory = [] }: CashBlockProps) {
   const mobile = useIsMobile()
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<Invoice>('willow-cash', COLUMNS)
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const [baseDate, setBaseDate] = useState(new Date())
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  // 정렬은 탭·필터칩마다 따로 기억한다 — 같은 표라도 보고 있는 것이 다르면 보고 싶은 순서도
+  // 다르다. 키가 바뀌면 useTableSort 가 그 조합이 마지막에 쓰던 정렬로 갈아탄다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<Invoice>(`willow-cash:${typeFilter}`, COLUMNS)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [page, setPage] = useState(0)
