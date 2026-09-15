@@ -695,17 +695,6 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                         </LBadge>
                         {/* 없으면 "다시 풀어 90점인데 왜 정답률이 그대로지?"가 된다 */}
                         {result.recorded === false && <LBadge tone="neutral" pill>연습 · 기록 안 됨</LBadge>}
-                        <div style={{ marginLeft: 'auto' }}>
-                          {/* LBtn 은 title 을 받지 않는다 — 자세한 수는 감싼 자리에 붙인다 */}
-                          <span title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}>
-                            <LBtn size="sm" onClick={toVoiceCards} disabled={vcState !== 'idle'}>
-                              {vcState === 'sending' ? '담는 중…'
-                                : vcState !== 'done' ? '보이스카드 담기'
-                                : vcCount?.added === 0 ? '이미 담겨 있어요'
-                                : '보이스카드 담김 ✓'}
-                            </LBtn>
-                          </span>
-                        </div>
                       </div>
 
                       {result.points.length > 0 && (
@@ -930,20 +919,46 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                   )}
 
                   {/* 넘어가는 단추는 복습 판 뒤에 온다 — 한 번 더 써 보고 나서 넘어가는 차례다.
-                      판 위에 두면 아직 할 일이 남았는데 끝난 것처럼 읽힌다(CEO 2026-09-14). */}
+                      판 위에 두면 아직 할 일이 남았는데 끝난 것처럼 읽힌다(CEO 2026-09-14).
+                      보이스카드 담기도 이 줄에 선다. 이 문항을 두고 할 수 있는 일이 세 가지고,
+                      그 셋이 한자리에 있는 편이 점수 줄 구석에 하나만 떨어져 있는 것보다 낫다.
+                      담는 것은 되돌아가는 쪽이라 왼쪽, 넘어가는 것은 오른쪽이다(CEO 2026-09-15). */}
                   {result && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapSm }}>
-                      <LBtn variant="secondary" onClick={retry}
-                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                        다시 풀기
-                      </LBtn>
-                      {/* 이 화면에서 다음으로 가는 길은 하나다. 강조색을 그 자리에 쓴다. */}
-                      <span data-primary-action="">
-                        <LBtn variant="brand" onClick={next}
-                          style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                          {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+                      gap: t.density.gapSm, marginTop: t.density.gapSm,
+                    }}>
+                      {/* LBtn 은 title 을 받지 않는다 — 자세한 수는 감싼 자리에 붙인다.
+                          강조색은 할 일이 남아 있을 때만 보인다. 담고 나면 disabled 로 회색이
+                          되어 끝난 일처럼 읽힌다. */}
+                      <span
+                        data-primary-action=""
+                        title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}
+                        style={mobile ? { flex: '1 1 100%' } : undefined}
+                      >
+                        <LBtn variant="brand" onClick={toVoiceCards} disabled={vcState !== 'idle'}
+                          style={mobile ? { width: '100%', justifyContent: 'center' } : undefined}>
+                          {vcState === 'sending' ? '담는 중…'
+                            : vcState !== 'done' ? '보이스카드 담기'
+                            : vcCount?.added === 0 ? '이미 담겨 있어요'
+                            : '보이스카드 담김 ✓'}
                         </LBtn>
                       </span>
+
+                      <div style={{ display: 'flex', gap: t.density.gapSm, marginLeft: 'auto', ...(mobile ? { flex: '1 1 100%' } : {}) }}>
+                        <LBtn variant="secondary" onClick={retry}
+                          style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                          다시 풀기
+                        </LBtn>
+                        {/* 넘어가는 길은 하나다. 강조색을 그 자리에 쓴다 — 왼쪽 끝의 담기와
+                            같은 색이지만 줄의 반대편이고 사이에 다시 풀기가 있어 섞이지 않는다. */}
+                        <span data-primary-action="" style={mobile ? { flex: 1, display: 'flex' } : undefined}>
+                          <LBtn variant="brand" onClick={next}
+                            style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                            {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                          </LBtn>
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
