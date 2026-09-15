@@ -177,6 +177,16 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   // 어느 의미조각이 뒤집혀 있나. 문항이 바뀌면 전부 덮는다.
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
 
+  /** 조각 하나를 뒤집는다. 누르든 단축키든 같은 길을 쓴다. */
+  const toggleFlip = useCallback((i: number) => {
+    setFlipped(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }, [])
+
   // 이번 문항에서 힌트를 몇 단계 되돌렸나. 조각을 뒤집는 것도 답을 보는 것이라 같이 센다 —
   // 그러지 않으면 단계를 올려 놓고 조각만 뒤집어 우회할 수 있다(2026-09-14).
   const [stepsBack, setStepsBack] = useState(0)
@@ -240,6 +250,34 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   const level = easedLevel(baseLevel, stepsBack)
   // 단계를 거꾸로 읽어 연속 회수를 대강 보여 준다 — 정확한 수가 아니라 "얼마나 왔나"다.
   const streakOf = (it: QueueItem) => (it.hint_level ?? HINT_CHUNKS) >= HINT_TOPIC ? 3 : 2
+
+  /**
+   * ⌥1~9 로 그 번호의 조각을 뒤집는다. 줄 앞에 이미 번호가 붙어 있어 짝이 맞는다.
+   *
+   * 옵션을 고른 이유는 남는 자리가 거기뿐이어서다. ⌘숫자는 크롬이 탭을 바꾸는 데 쓰고
+   * 페이지가 가로챌 수 없다. ⌃숫자는 맥에서는 비어 있지만 윈도우 크롬이 탭에 쓴다.
+   * 옵션은 어느 쪽에서도 브라우저가 쓰지 않는다 — 대신 맥에서는 글자(¡™£)가 찍히므로
+   * 기본 동작을 막는다.
+   *
+   * 글자가 아니라 자리로 읽는다(`code`). 한글 자판에서도 숫자 자리는 그대로다.
+   * 창 전체에서 듣는 이유는 그 순간 손이 입력창에 있기 때문이다 — 뒤집으려고 왼쪽을
+   * 눌러 초점을 옮기면 쓰던 자리를 잃는다. 그게 이 단축키가 있는 이유다.
+   */
+  useEffect(() => {
+    if (view !== 'practice' || result || level !== HINT_CHUNKS || !current) return
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey || e.metaKey || e.ctrlKey) return
+      const m = /^Digit([1-9])$/.exec(e.code)
+      if (!m) return
+      const i = Number(m[1]) - 1
+      if (i >= current.korean_chunks.length) return
+      if (!current.english_chunks?.[i]) return
+      e.preventDefault()
+      toggleFlip(i)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [view, result, level, current, toggleFlip])
 
   // 다시 써보기 판을 왼쪽 '네이티브 버전' 글 상자와 같은 높이에서 시작시킨다.
   //
@@ -610,10 +648,14 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       gap: t.density.gapSm, marginBottom: t.density.gapSm,
                     }}>
                       <span>{HINT_LABEL[level]}</span>
-                      {baseLevel > HINT_CHUNKS && (
+                      {baseLevel > HINT_CHUNKS ? (
                         <span style={{ textTransform: 'none' as const, letterSpacing: 0, fontFamily: t.font.sans }}>
                           연속 {streakOf(current)}회
                         </span>
+                      ) : level === HINT_CHUNKS && !result && !mobile && (
+                        /* 연속 회수가 있을 때는 그쪽이 먼저다 — 한 자리에 둘을 밀어 넣지 않는다.
+                           단축키는 몰라도 눌러서 할 수 있는 일이고, 회수는 지금 어디쯤인지다. */
+                        <span title="숫자는 줄 앞 번호와 같다">⌥1~9 뒤집기</span>
                       )}
                     </div>
 
@@ -633,16 +675,10 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                           <button
                             key={i}
                             type="button"
-                            onClick={() => {
-                              if (!en || result) return
-                              setFlipped(prev => {
-                                const nextSet = new Set(prev)
-                                if (nextSet.has(i)) nextSet.delete(i)
-                                else nextSet.add(i)
-                                return nextSet
-                              })
-                            }}
-                            title={result ? undefined : en ? (open ? '눌러서 한글로' : '눌러서 영어 보기 · 힌트로 셉니다') : undefined}
+                            onClick={() => { if (en && !result) toggleFlip(i) }}
+                            title={result ? undefined : en
+                              ? `${open ? '눌러서 한글로' : '눌러서 영어 보기'}${i < 9 ? ` · ⌥${i + 1}` : ''} · 힌트로 셉니다`
+                              : undefined}
                             data-chunk-line=""
                             style={{
                               width: '100%', textAlign: 'left', border: 'none', background: 'transparent',
