@@ -11,6 +11,7 @@ import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
+import { useStoredTab } from '@/app/(dashboard)/_components/linear-stored-tab'
 
 /**
  * 권역 비교 — 강남3구와 서울 외곽(노도강·금관구)의 매매 추세.
@@ -41,6 +42,8 @@ interface ZoneIndexResponse {
   basis: string
 }
 
+const SMOOTH_TABS = ['ma3', 'raw'] as const
+
 function fmtMonth(m: string) {
   return `${m.slice(2, 4)}/${m.slice(5, 7)}`
 }
@@ -51,7 +54,8 @@ export function ZoneIndexCard() {
   const [loading, setLoading] = useState(true)
   // 월별 지수는 강남3구에서 달마다 5포인트씩 튄다(2026-04 114.3 → 06 119.3 → 08 122.4).
   // 방향을 보려는 화면이라 3개월 평균을 기본으로 두고, 원값은 눌러서 본다.
-  const [smooth, setSmooth] = useState<'ma3' | 'raw'>('ma3')
+  // 원값을 보기로 한 사람은 계속 원값을 보고 싶어 하므로 고른 쪽을 기억한다(CEO 2026-09-15).
+  const [smooth, setSmooth] = useStoredTab('re-zone-smooth', SMOOTH_TABS, 'ma3')
 
   // 첫 로드는 loading 초기값이 이미 true 라 다시 세우지 않는다 — 효과 안에서 동기로
   // setState 하면 렌더가 한 번 더 돈다(react-hooks). 버튼으로 부를 때만 다시 켠다.
