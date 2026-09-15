@@ -46,7 +46,9 @@ const OUTBOUND_TONE = { bg: '#C7CCD3', fg: '#171B21' }
 const COLUMNS: LColumn<FullEmail>[] = [
   { key: 'source', label: '출처', width: '68px' },
   { key: 'category', label: '분류', width: '84px' },
-  { key: 'time', label: '시간', width: '104px' },
+  // 가장 긴 값이 "09-14 (19시간 전)" 이고 실측 121px 다. 104px 이던 자리에서 글자가
+  // 넘쳐 보낸사람을 덮었다(CEO 2026-09-15). 넉넉히 주고, 그래도 넘치면 잘리게 둔다.
+  { key: 'time', label: '시간', width: '124px' },
   { key: 'from', label: '보낸사람', width: 'minmax(80px,0.6fr)' },
   { key: 'subject', label: '제목', width: 'minmax(140px,1.4fr)' },
 ]
@@ -222,8 +224,10 @@ export function EmailBlock({
                         ? <LTableBadge tone={{ bg: '#F5F6F8', fg: '#4B525A' }}>{m.category}</LTableBadge>
                         : <span />)}
                       <span style={{
-                        fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                        minWidth: 0, fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
                         color: t.neutrals.subtle, whiteSpace: 'nowrap',
+                        // 칸을 넘으면 잘린다. 넘친 글자가 옆 칸 위로 흐르면 두 값이 한 덩어리로 읽힌다.
+                        overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
                         {receivedAt(m.date)}
                       </span>
