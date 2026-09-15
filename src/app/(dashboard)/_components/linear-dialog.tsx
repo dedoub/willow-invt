@@ -48,10 +48,15 @@ export function LDialog({
         background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)',
       }} />
 
-      <LCard pad={0} style={{
+      {/* 구르는 방식이 둘로 갈린다. 편집 창은 머리와 발을 붙박아 두고 가운데만 구른다 —
+          긴 폼에서 저장 단추가 화면 밖으로 밀리면 안 된다. 상세 창은 카드가 통째로 구른다.
+          윌로우 사업관리가 그렇게 되어 있고, 두 화면이 달라 보이면 안 되므로 그대로 따른다. */}
+      <LCard pad={0} style={title ? {
         position: 'relative', width: mobile ? '100%' : width, maxWidth: '100%', maxHeight: '85vh',
-        // 머리와 발은 붙박이고 가운데만 구른다 — 긴 내용에서 닫기와 저장이 화면 밖으로 밀리지 않는다.
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      } : {
+        position: 'relative', width: mobile ? '100%' : width, maxWidth: '100%', maxHeight: '85vh',
+        overflowY: 'auto',
       }}>
         {title ? (
           <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY, flexShrink: 0 }}>
@@ -66,17 +71,27 @@ export function LDialog({
           </div>
         )}
 
-        <div style={{
-          padding: `0 ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
-        }}>
-          {children}
-        </div>
+        {title ? (
+          <div style={{
+            padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
+            display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
+          }}>
+            {children}
+          </div>
+        ) : (
+          // 상세는 판을 깔지 않는다 — 지표 격자가 제 패딩을 갖고 있고, 뒤따르는 구역은
+          // 제 위에 얇은 선을 긋는다. 여기서 사이를 벌리면 그 선이 뜬 줄이 된다.
+          <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+            {children}
+          </div>
+        )}
 
         {foot && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexShrink: 0,
-            margin: `${t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, flexShrink: 0,
+            // 편집 창은 본문이 제 아래 여백을 갖고 있어 발이 더 띄우지 않는다. 상세는 격자가
+            // 바로 끝나므로 한 칸 띄운다. 윌로우가 두 곳에서 각각 그렇게 한다.
+            margin: `${title ? 0 : t.density.gapMd}px ${t.density.cardPad}px 0`, paddingBottom: t.density.cardPad,
           }}>
             {foot}
           </div>

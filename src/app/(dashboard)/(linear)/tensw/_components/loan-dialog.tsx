@@ -150,7 +150,7 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
         </>}
       />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
         {/* 은행 + 계좌번호 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
           <div>

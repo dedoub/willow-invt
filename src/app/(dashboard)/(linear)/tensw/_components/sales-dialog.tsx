@@ -190,7 +190,7 @@ export function SalesDialog({ open, invoiceType = 'sales', editInvoice, onClose,
         </>}
       />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
         {/* 거래처 + 발행일 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
           <div>

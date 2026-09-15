@@ -7,7 +7,6 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { TenswSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
 
 // Blocks
-import { ProjectBlock } from './_components/project-block'
 import { ScheduleBlock } from './_components/schedule-block'
 import { CashBlock } from './_components/cash-block'
 import { SalesBlock } from './_components/sales-block'
@@ -44,7 +43,6 @@ export default function TenswPage() {
 
   // Data states
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [projects, setProjects] = useState<any[]>([])
   const [schedules, setSchedules] = useState<TenswMgmtSchedule[]>([])
   const [clients, setClients] = useState<TenswMgmtClient[]>([])
   const [cashItems, setCashItems] = useState<TenswCashItem[]>([])
@@ -157,9 +155,8 @@ export default function TenswPage() {
   const loadData = useCallback(async () => {
     // 재로드 시 phase 유지 — 달력/사용자 상태 보존 (useState 기본값으로 초기 스켈레톤은 표시됨)
     try {
-      const [projectsRes, schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes, taxesRes] =
+      const [schedulesRes, clientsRes, cashRes, salesRes, loansRes, balancesRes, historyRes, taxesRes] =
         await Promise.all([
-          fetch('/api/tensoftworks'),
           fetch('/api/tensw-mgmt/schedules'),
           fetch('/api/tensw-mgmt/clients'),
           fetch('/api/tensw-mgmt/invoices'),
@@ -170,10 +167,6 @@ export default function TenswPage() {
           fetch('/api/finance/tax-obligations?company=tensw'),
         ])
 
-      if (projectsRes.ok) {
-        const data = await projectsRes.json()
-        setProjects(data.projects || [])
-      }
       if (schedulesRes.ok) setSchedules(await schedulesRes.json())
       if (clientsRes.ok) setClients(await clientsRes.json())
       if (cashRes.ok) {
@@ -557,9 +550,6 @@ export default function TenswPage() {
               isSyncing={isSyncing}
             />
           </div>
-
-          {/* Projects (full width) — 일단 숨김 */}
-          {false && <ProjectBlock projects={projects} />}
         </div>
 
         {/* Schedule dialogs */}

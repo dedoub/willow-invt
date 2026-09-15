@@ -142,7 +142,7 @@ export function ScheduleAddDialog({
         </>}
       />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
         {/* Title */}
         <div>
           <Label required>제목</Label>

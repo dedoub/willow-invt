@@ -120,7 +120,7 @@ export function CashDialog({ open, editItem, onClose, onSave, onDelete }: CashDi
         </>}
       />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
         {/* Type chips */}
         <div>
           <Label>유형</Label>

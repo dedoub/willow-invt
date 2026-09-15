@@ -97,7 +97,7 @@ export function ScheduleDetailDialog({
       </div>
 
       {/* Body */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, paddingBottom: t.density.gapSm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
         <InfoRow icon="calendar">{dateDisplay}</InfoRow>
         {timeDisplay && <InfoRow icon="briefcase">{timeDisplay}</InfoRow>}
 
