@@ -120,6 +120,31 @@ Willow Dashboard는 자체 MCP 서버를 내장하고 있으며, Claude Desktop 
 - 문서 원본은 private 버킷 `corp-records`, 감사 로그는 `willow_corp_events` 해시체인. 확정 버전·이벤트는 삭제·수정 불가.
 - 스펙: `docs/superpowers/specs/2026-09-03-corp-records-design.md`, `docs/superpowers/specs/2026-09-03-b2b-service-ledger-design.md`.
 
+## 반복 작업 레시피 (스킬)
+
+손으로 외울 필요 없는 작업들이다. 스킬 원문은 `.claude/skills/<이름>/SKILL.md` 에 있고
+`.agents/skills/` 에 같은 사본이 있다. 아래는 그중 **명령 한 줄로 끝나는 것**들이라,
+윌리(텔레그램)가 이 레포로 지시를 내리면 그대로 실행하면 된다.
+
+### CEO 보이스카드 덱 다시 세우기
+`ceo-voicecards-deck-rebuild` · 트리거: "CEO 덱 업데이트", "보이스카드 청크3 문장", "덱 다시 세워줘"
+
+영작연습의 **보이스카드 담기**는 문장의 청크를 시트 끝에 한 바퀴만 붙인다. 덱이 쓰는
+배치는 **청크 3바퀴 → 그 문장 카드 1장** 이라, 담은 뒤 한 번 다시 세워야 한다.
+
+```bash
+npx tsx scripts/voicecards-sentence-cards.ts --dry   # 무엇이 바뀔지만 본다
+npx tsx scripts/voicecards-sentence-cards.ts         # 시트에 쓴다
+npx tsx scripts/voicecards-sentence-cards.ts --dry   # "이미 이 모양이다" 가 나와야 끝
+```
+
+- 대상은 `src/lib/english-targets.ts` 의 `CEO_DECK` 하나다(vcrd.quest/sweltering-risk-3).
+- 인증은 `.env.local` 의 `GOOGLE_SA_JSON_B64`. 이 문서에는 권한이 있다.
+- **쓰기 전에 줄지 않는지 본다.** `values.update` 는 A2부터 덮어쓸 뿐이라, 결과가 지금보다
+  짧으면 꼬리에 옛 행이 남는다. `--dry` 의 총 행수가 현재 데이터 행수보다 작으면 멈추고 보고한다.
+- 보고는 바뀐 행수로 한다(예: 68행 → 90행, 문장 카드 4장 → 6장).
+- 자세한 배경과 덫은 `.claude/skills/ceo-voicecards-deck-rebuild/SKILL.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - wiki-attachments 버킷은 public으로 설정됨
