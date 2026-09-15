@@ -176,7 +176,8 @@ export function SalesBlock({ invoices, etcInvoices, usdRate, style, onRefresh }:
       notes: '',
     }
   }
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<SalesRow>('willow-sales', COLUMNS)
+  // 매출과 매입은 같은 표를 쓰지만 보는 것이 다르다 — 정렬도 탭마다 따로 기억한다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<SalesRow>(`willow-sales:${mode}`, COLUMNS)
 
   const yearFiltered = useMemo<SalesRow[]>(() => {
     const taxRows: SalesRow[] = invoices

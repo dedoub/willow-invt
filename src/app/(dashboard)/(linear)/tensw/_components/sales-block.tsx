@@ -91,7 +91,8 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   // 행을 누르면 상세 모달. 표 안에서 펼치면 아래 행이 통째로 밀린다(CEO 2026-09-15).
   const [selected, setSelected] = useState<TenswTaxInvoice | null>(null)
   const [search, setSearch] = useState('')
-  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswTaxInvoice>('tensw-sales', COLUMNS)
+  // 매출과 매입은 같은 표를 쓰지만 보는 것이 다르다 — 정렬도 탭마다 따로 기억한다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswTaxInvoice>(`tensw-sales:${mode}`, COLUMNS)
 
   const statusFilters = FILTERS[mode]
   const statusLabels = LABELS[mode]

@@ -57,11 +57,27 @@ const ROW_PAD_X = t.density.tableRowPadX
  * 되돌릴 방법이 없으면 화면을 새로고침하는 수밖에 없어서 3단계로 돈다.
  */
 export function useTableSort<T>(storageKey: string, columns: LColumn<T>[]) {
-  const [sort, setSort] = useState<TableSort | null>(() => {
+  const read = (): TableSort | null => {
     const stored = getStoredSort(storageKey)
     // 그 사이 사라진 컬럼이면 복원하지 않는다
     return stored && columns.some(c => c.key === stored.col) ? { key: stored.col, dir: stored.dir } : null
-  })
+  }
+
+  const [sort, setSort] = useState<TableSort | null>(read)
+
+  /**
+   * 키가 바뀌면 그 자리에서 갈아탄다.
+   *
+   * 한 카드가 탭으로 다른 목록을 보여 줄 때(매출↔매입) 키에 탭을 넣어 부르는데,
+   * 처음 한 번만 읽으면 탭을 바꿔도 앞 탭의 정렬이 그대로 남는다. 효과로 미루면
+   * 한 프레임 동안 남의 정렬로 그려진 표가 보인다 — 그리는 중에 맞추는 편이 낫다
+   * (React 가 말하는 "props 가 바뀔 때 state 고치기").
+   */
+  const [seenKey, setSeenKey] = useState(storageKey)
+  if (seenKey !== storageKey) {
+    setSeenKey(storageKey)
+    setSort(read())
+  }
 
   const toggle = (key: string) => {
     setSort(cur => {
