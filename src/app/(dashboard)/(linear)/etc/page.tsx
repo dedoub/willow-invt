@@ -193,7 +193,9 @@ export default function EtcPage() {
     <>
       {loadPhase === 0 ? <EtcSkeleton /> : (
         <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+        {/* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다 — 사업관리·보이스카드와
+            같은 카드 문법(CEO 2026-09-15). */}
+        <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
             /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 업무위키 > 인보이스 > 이메일 */
             <>

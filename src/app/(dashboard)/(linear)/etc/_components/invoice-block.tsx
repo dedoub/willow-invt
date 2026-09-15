@@ -129,10 +129,10 @@ export function InvoiceBlock({
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
-          eyebrow="INVOICES"
           title="인보이스"
+          mb={0}
           action={
             <LBtn
               size="sm"
@@ -145,8 +145,8 @@ export function InvoiceBlock({
         />
       </div>
 
-      {/* Invoice rows */}
-      <div style={{ padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
+      {/* Invoice rows — 좌우는 카드 패딩에 맞춘다. 머리·쪽넘김과 같은 선에서 시작해야 한다. */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         {paged.map(inv => {
           const effective = getEffectiveInvoiceStatus(inv)
           const sty = STATUS_STYLES[effective]
@@ -158,8 +158,7 @@ export function InvoiceBlock({
             <div
               key={inv.id}
               style={{
-                padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-                borderRadius: t.radius.sm,
+                padding: `${t.density.panelPadY}px 0`,
                 marginBottom: t.density.tableRowGap,
               }}
             >

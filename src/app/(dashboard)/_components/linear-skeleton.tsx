@@ -47,7 +47,7 @@ export function MgmtSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Schedule card */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={60} h={8} />
           <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -67,7 +67,7 @@ export function MgmtSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         {/* Cash */}
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={80} h={8} />
             <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -84,7 +84,7 @@ export function MgmtSkeleton() {
         </CardSkel>
         {/* Email */}
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={50} h={8} />
             <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -111,7 +111,7 @@ export function InvestHoldingsSkeleton() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={80} h={8} />
           <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -123,7 +123,7 @@ export function InvestHoldingsSkeleton() {
       </CardSkel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={80} h={8} />
             <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -132,7 +132,7 @@ export function InvestHoldingsSkeleton() {
           </div>
         </CardSkel>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={60} h={8} />
             <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -161,7 +161,7 @@ export function InvestSkeleton() {
 
       {/* Kanban: 3 columns (horizontally scrollable on mobile) */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={80} h={8} />
           <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -186,7 +186,7 @@ export function InvestSkeleton() {
       {/* Holdings + Analysis/TradeLog (1-col on mobile) */}
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={80} h={8} />
             <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -198,7 +198,7 @@ export function InvestSkeleton() {
         </CardSkel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
               <Bone w={80} h={8} />
               <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
@@ -207,7 +207,7 @@ export function InvestSkeleton() {
             </div>
           </CardSkel>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
               <Bone w={60} h={8} />
               <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
@@ -222,7 +222,7 @@ export function InvestSkeleton() {
 
       {/* Real Estate Block */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={100} h={8} />
           <Bone w={120} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -258,7 +258,7 @@ export function RyuhaSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* 일정 — 머리 + 기간 + 분류 칩 + 7열 달력 */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={60} h={8} />
           <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -282,7 +282,7 @@ export function RyuhaSkeleton() {
       }}>
         {/* 류하 수첩 — 머리 + 검색줄 + 표 + 쪽넘김 */}
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={60} h={8} />
             <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>
@@ -523,7 +523,7 @@ export function TenswSkeleton() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       {/* Projects */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={90} h={8} />
           <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -535,7 +535,7 @@ export function TenswSkeleton() {
       </CardSkel>
       {/* Schedule */}
       <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
           <Bone w={100} h={8} />
           <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
         </div>
@@ -554,7 +554,7 @@ export function TenswSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.5fr 1fr', gap: t.density.blockGap }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
               <Bone w={80} h={8} />
               <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
@@ -570,7 +570,7 @@ export function TenswSkeleton() {
             </div>
           </CardSkel>
           <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
               <Bone w={80} h={8} />
               <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
             </div>
@@ -582,7 +582,7 @@ export function TenswSkeleton() {
           </CardSkel>
         </div>
         <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <Bone w={70} h={8} />
             <Bone w={60} h={14} style={{ marginTop: t.density.gapSm }} />
           </div>

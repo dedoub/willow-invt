@@ -6,6 +6,7 @@ import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
 
 interface StatsBlockProps {
@@ -29,9 +30,14 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
   const totalRemainingFee = etfs.reduce((sum, e) => sum + (e.remainingFee || 0), 0)
 
   return (
-    <LCard>
-      <LSectionHead eyebrow="DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: t.density.gapMd }}>
+    // 눈썹(DASHBOARD)은 두지 않는다 — 한글 제목이 이미 무엇인지 말한다(사업관리 2026-09-10).
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="운용 현황" mb={0} />
+      </div>
+      {/* 지표는 칸 사이를 띄우지 않고 줄 위에만 가로줄을 둔다 — 보이스카드·포틀과 같은 리듬. */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      <StatRows cols={mobile ? 'repeat(1, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
         <LStat
           label="총 AUM"
           value={fmtUsd(totalAum)}
@@ -50,6 +56,7 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
           sub="36개월 프로라타"
           sparkline={historicalData.map(d => ({ date: d.date, value: d.totalRemainingFee }))}
         />
+      </StatRows>
       </div>
     </LCard>
   )

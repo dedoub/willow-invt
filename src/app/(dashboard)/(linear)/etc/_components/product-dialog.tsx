@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { ETFDisplayData, FeeStructure, FeeTier } from '@/lib/etf-types'
 import {
@@ -258,55 +259,29 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.35)',
-      }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
-        style={{
-          background: t.neutrals.card,
-          borderRadius: t.radius.lg,
-          width: '100%',
-          maxWidth: 480,
-          padding: t.density.pagePadX,
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingBottom: t.density.controlPadXMd, marginBottom: 0,
-          borderBottom: `1px solid ${t.neutrals.line}`,
-        }}>
-          <span style={{
-            fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-            fontFamily: t.font.sans, color: t.neutrals.text,
-          }}>
-            {editEtf ? '상품 수정' : '상품 추가'}
+    <LDialog
+      title={editEtf ? '상품 수정' : '상품 추가'}
+      width={480}
+      onClose={onClose}
+      foot={<LDialogFoot
+        left={editEtf ? (
+          <span data-danger-action="">
+            <LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
           </span>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: t.density.gapXs, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
-              borderRadius: t.radius.sm,
-            }}
-          >
-            <LIcon name="x" size={16} />
-          </button>
-        </div>
-
+        ) : undefined}
+        right={<>
+          <LBtn variant="ghost" size="sm" onClick={onClose} disabled={saving}>취소</LBtn>
+          <span data-primary-action="">
+            <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !symbol.trim() || !fundName.trim()}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
+          </span>
+        </>}
+      />}
+    >
         {/* Scrollable body */}
-        <div style={{
-          flex: 1, overflowY: 'auto', maxHeight: '70vh',
-          paddingTop: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
-        }}>
+        {/* 구르는 것은 모달이 맡는다 — 여기는 칸 사이 간격만 준다. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {/* Symbol */}
           <div>
             <label style={labelStyle}>Symbol *</label>
@@ -406,29 +381,6 @@ export function ProductDialog({ open, editEtf, onClose, onSaved }: ProductDialog
           />
         </div>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingTop: t.density.controlPadXMd, borderTop: `1px solid ${t.neutrals.line}`,
-          marginTop: 14,
-        }}>
-          {editEtf ? (
-            <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>
-              삭제
-            </LBtn>
-          ) : (
-            <div />
-          )}
-          <div style={{ display: 'flex', gap: t.density.gapSm }}>
-            <LBtn variant="secondary" size="sm" onClick={onClose} disabled={saving}>
-              취소
-            </LBtn>
-            <LBtn size="sm" onClick={handleSave} disabled={saving || !symbol.trim() || !fundName.trim()}>
-              {saving ? '저장 중...' : '저장'}
-            </LBtn>
-          </div>
-        </div>
-      </div>
-    </div>
+    </LDialog>
   )
 }

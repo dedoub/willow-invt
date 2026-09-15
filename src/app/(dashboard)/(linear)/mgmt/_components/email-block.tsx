@@ -110,7 +110,7 @@ export function EmailBlock({
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead eyebrow={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm }}>
             {eyebrow}

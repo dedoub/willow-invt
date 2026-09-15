@@ -268,8 +268,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
       : fillHeight ? { display: 'flex', flexDirection: 'column' }
       : undefined
     }>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX, flexShrink: 0 }}>
-        <LSectionHead eyebrow="WIKI" title="업무위키" />
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY, flexShrink: 0 }}>
+        <LSectionHead title="업무위키" />
       </div>
 
       <div ref={wrapRef} style={{

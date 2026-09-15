@@ -71,8 +71,8 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="PRODUCTS" title="상품관리" action={
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="상품관리" mb={0} action={
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />
             <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />} onClick={onAdd}>추가</LBtn>

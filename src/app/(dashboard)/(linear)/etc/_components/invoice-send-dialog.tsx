@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
-import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
 import { Invoice } from '@/lib/invoice/types'
 import { isInvoiceDeliveryTargetAllowed } from '@/lib/invoice/delivery-policy'
 
@@ -174,55 +174,22 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
   // ---- Render ----
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.35)',
-      }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    <LDialog
+      title="인보이스 발송"
+      width={520}
+      onClose={onClose}
+      foot={<LDialogFoot right={<>
+        <LBtn variant="ghost" size="sm" onClick={onClose} disabled={sending}>취소</LBtn>
+        <span data-primary-action="">
+          <LBtn variant="brand" size="sm" onClick={handleSend} disabled={sending || !canSend}>
+            {sending ? '발송 중...' : scheduled ? '예약 발송' : '발송'}
+          </LBtn>
+        </span>
+      </>} />}
     >
-      <div
-        style={{
-          background: t.neutrals.card,
-          borderRadius: t.radius.lg,
-          width: '100%',
-          maxWidth: 520,
-          padding: t.density.pagePadX,
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          paddingBottom: t.density.controlPadXMd,
-          borderBottom: `1px solid ${t.neutrals.line}`,
-        }}>
-          <span style={{
-            fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-            fontFamily: t.font.sans, color: t.neutrals.text,
-          }}>
-            인보이스 발송 — {target === 'etc' ? 'ETC' : '은행'}
-          </span>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: t.density.gapXs, color: t.neutrals.subtle, display: 'flex', alignItems: 'center',
-              borderRadius: t.radius.sm,
-            }}
-          >
-            <LIcon name="x" size={16} />
-          </button>
-        </div>
-
         {/* Scrollable body */}
-        <div style={{
-          flex: 1, overflowY: 'auto', maxHeight: '70vh',
-          paddingTop: t.density.cardPad, display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
-        }}>
+        {/* 구르는 것은 모달이 맡는다 — 여기는 칸 사이 간격만 준다. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {/* PDF status */}
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
@@ -332,20 +299,6 @@ export function InvoiceSendDialog({ invoice, target, onClose, onSent }: InvoiceS
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          paddingTop: t.density.controlPadXMd, borderTop: `1px solid ${t.neutrals.line}`,
-          marginTop: t.density.gapMd, gap: t.density.gapSm,
-        }}>
-          <LBtn variant="secondary" size="sm" onClick={onClose} disabled={sending}>
-            취소
-          </LBtn>
-          <LBtn size="sm" onClick={handleSend} disabled={sending || !canSend}>
-            {sending ? '발송 중...' : scheduled ? '예약 발송' : '발송'}
-          </LBtn>
-        </div>
-      </div>
-    </div>
+    </LDialog>
   )
 }
