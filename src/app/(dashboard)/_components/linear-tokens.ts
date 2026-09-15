@@ -24,8 +24,8 @@ export function useIsMobile(breakpoint = 768) {
  * 매일 쓰는 기계가 맥이라, 한 프레임 어긋나더라도 드문 쪽이 어긋나는 게 낫다.
  * 값이 도중에 바뀔 일은 없으므로 구독은 비워 둔다.
  */
-const MAC_KEYS = { mod: '⌘', alt: '⌥', enter: '↵', modEnter: '⌘↵', altDigits: '⌥1~9' } as const
-const WIN_KEYS = { mod: 'Ctrl', alt: 'Alt', enter: 'Enter', modEnter: 'Ctrl+Enter', altDigits: 'Alt+1~9' } as const
+const MAC_KEYS = { mod: '⌘', alt: '⌥', enter: '↵', modEnter: '⌘↵', altDigits: '⌥1~9' , altCover: '⌥0' } as const
+const WIN_KEYS = { mod: 'Ctrl', alt: 'Alt', enter: 'Enter', modEnter: 'Ctrl+Enter', altDigits: 'Alt+1~9', altCover: 'Alt+0' } as const
 
 const neverChanges = () => () => {}
 const alwaysMac = () => true
