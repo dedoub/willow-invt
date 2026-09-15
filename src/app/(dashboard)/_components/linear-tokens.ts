@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 
 export function useIsMobile(breakpoint = 768) {
   // CSR 첫 렌더에서도 즉시 정확한 값을 반영해야 wiki/calendar 등 mobile 분기 패널이 깜빡이지 않는다.
@@ -13,6 +13,31 @@ export function useIsMobile(breakpoint = 768) {
     return () => window.removeEventListener('resize', check)
   }, [breakpoint])
   return mobile
+}
+
+/**
+ * 단축키를 뭐라고 부를지는 기계가 정한다 — 같은 조합이라도 맥은 ⌘·⌥, 윈도우는 Ctrl·Alt다.
+ * 동작은 어느 쪽에서든 같다(핸들러가 metaKey|ctrlKey 를 함께 보고, Alt 는 양쪽에서 같은 자리다).
+ * 여기서 갈라지는 것은 이름뿐이다.
+ *
+ * 서버에는 `navigator` 가 없어 스냅샷을 따로 준다. 서버 쪽 답은 맥이다 — 이 대시보드를
+ * 매일 쓰는 기계가 맥이라, 한 프레임 어긋나더라도 드문 쪽이 어긋나는 게 낫다.
+ * 값이 도중에 바뀔 일은 없으므로 구독은 비워 둔다.
+ */
+const MAC_KEYS = { mod: '⌘', alt: '⌥', enter: '↵', modEnter: '⌘↵', altDigits: '⌥1~9' } as const
+const WIN_KEYS = { mod: 'Ctrl', alt: 'Alt', enter: 'Enter', modEnter: 'Ctrl+Enter', altDigits: 'Alt+1~9' } as const
+
+const neverChanges = () => () => {}
+const alwaysMac = () => true
+
+function isMac(): boolean {
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+  // userAgentData.platform 이 있으면 그게 정확하다. 없으면 UA 문자열로 본다.
+  return /mac|iphone|ipad|ipod/i.test(nav.userAgentData?.platform || nav.userAgent || '')
+}
+
+export function useKeyNames(): typeof MAC_KEYS | typeof WIN_KEYS {
+  return useSyncExternalStore(neverChanges, isMac, alwaysMac) ? MAC_KEYS : WIN_KEYS
 }
 
 export const t = {

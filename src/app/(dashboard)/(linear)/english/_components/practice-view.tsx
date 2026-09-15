@@ -4,7 +4,7 @@
 // 목표: 누적 학습 문장을 늘리고, 마지막 시도 기준 정답률을 100%에 가깝게.
 
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile, useKeyNames } from '@/app/(dashboard)/_components/linear-tokens'
 import { DrawPad, type DrawPadHandle } from '@/app/(dashboard)/_components/linear-draw-pad'
 import { DrawTools, useDrawTools } from '@/app/(dashboard)/_components/linear-draw-tools'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
@@ -127,6 +127,8 @@ function useAutoGrow(ref: React.RefObject<HTMLTextAreaElement | null>, value: st
 export function PracticeView({ target, view, onViewChange }: PracticeViewProps) {
   const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
+  // 같은 조합이라도 기계마다 이름이 다르다 — 맥은 ⌘·⌥, 윈도우는 Ctrl·Alt.
+  const keys = useKeyNames()
   // 힌트|쓰기를 나란히 둘지 위아래로 둘지 — 1열/2열 단추가 정한다(경로별로 기억).
   // 좁은 화면에서도 단추를 내주므로 폭으로 가로막지 않는다. 고르지 않았을 때만 폭이 정한다.
   const twoCol = useDashCols() === 2
@@ -655,7 +657,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       ) : level === HINT_CHUNKS && !result && !mobile && (
                         /* 연속 회수가 있을 때는 그쪽이 먼저다 — 한 자리에 둘을 밀어 넣지 않는다.
                            단축키는 몰라도 눌러서 할 수 있는 일이고, 회수는 지금 어디쯤인지다. */
-                        <span title="숫자는 줄 앞 번호와 같다">⌥1~9 뒤집기</span>
+                        <span title="숫자는 줄 앞 번호와 같다">{keys.altDigits} 뒤집기</span>
                       )}
                     </div>
 
@@ -677,7 +679,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                             type="button"
                             onClick={() => { if (en && !result) toggleFlip(i) }}
                             title={result ? undefined : en
-                              ? `${open ? '눌러서 한글로' : '눌러서 영어 보기'}${i < 9 ? ` · ⌥${i + 1}` : ''} · 힌트로 셉니다`
+                              ? `${open ? '눌러서 한글로' : '눌러서 영어 보기'}${i < 9 ? ` · ${keys.alt}${keys.alt === 'Alt' ? '+' : ''}${i + 1}` : ''} · 힌트로 셉니다`
                               : undefined}
                             data-chunk-line=""
                             style={{
@@ -870,7 +872,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       value={answer}
                       onChange={e => setAnswer(e.target.value)}
                       onKeyDown={onKeyDown}
-                      placeholder={mobile ? '영어로 써보세요…' : '영어로 써보세요… (⌘+Enter 채점)'}
+                      placeholder={mobile ? '영어로 써보세요…' : `영어로 써보세요… (${keys.modEnter} 채점)`}
                       rows={6}
                       disabled={!!result || grading}
                       autoFocus={!mobile}
@@ -902,7 +904,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       <LBtn variant="brand" onClick={grade}
                         disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
                         style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                        {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : '채점 (⌘↵)'}
+                        {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : `채점 (${keys.modEnter})`}
                       </LBtn>
                     </div>
                   )}
@@ -1032,7 +1034,7 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                         <span data-primary-action="" style={mobile ? { flex: 1, display: 'flex' } : undefined}>
                           <LBtn variant="brand" onClick={next}
                             style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                            {mobile ? '다음 문제' : '다음 문제 (⌘↵)'}
+                            {mobile ? '다음 문제' : `다음 문제 (${keys.modEnter})`}
                           </LBtn>
                         </span>
                       </div>
