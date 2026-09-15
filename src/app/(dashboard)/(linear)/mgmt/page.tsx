@@ -450,7 +450,7 @@ export default function MgmtPage() {
             <SalesBlock invoices={taxInvoices} etcInvoices={etcInvoices} usdRate={usdRate} onRefresh={loadData} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-            <TaxManagementBlock obligations={taxObligations} onRefresh={loadData} />
+            <TaxManagementBlock obligations={taxObligations} storageKey="willow-tax" onRefresh={loadData} />
             <CardBlock
               approvals={cardApprovals}
               billing={cardBilling}

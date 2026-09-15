@@ -6,7 +6,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LTableScroll, LTableBadge, LTableBody, LTableDate, LTableEmpty, LTableHead, LTableNumber, LTableRow, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import type { FinanceTaxObligation, TaxObligationSource, TaxObligationStatus } from '@/types/finance-tax'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
@@ -46,14 +46,20 @@ const SOURCES: Record<TaxObligationSource, string> = {
   nhis: '4대보험',
 }
 
+// 상태는 글자순으로 세우면 뜻이 없다(납부완료 < 납부예정 < 연체). 급한 것부터 읽도록
+// 순서를 매겨 두고 그 숫자로 세운다.
+const STATUS_RANK: Record<TaxObligationStatus, number> = {
+  overdue: 0, unpaid: 1, paid: 2, cancelled: 3,
+}
+
 const COLUMNS: LColumn<FinanceTaxObligation>[] = [
-  { key: 'status', label: '상태', width: '68px' },
-  { key: 'source', label: '출처', width: '62px' },
-  { key: 'due', label: '납부기한', width: '72px' },
+  { key: 'status', label: '상태', width: '68px', sortValue: item => STATUS_RANK[item.status] },
+  { key: 'source', label: '출처', width: '62px', sortValue: item => SOURCES[item.source] },
+  { key: 'due', label: '납부기한', width: '72px', sortValue: item => item.due_date, sortFirst: 'desc' },
   // 기한 옆에 실제 납부일을 둔다 — 언제까지였는지와 언제 나갔는지를 나란히 읽는다(CEO 2026-09-10)
-  { key: 'paid', label: '납부일', width: '64px' },
-  { key: 'title', label: '고지내역', width: 'minmax(130px,1fr)' },
-  { key: 'amount', label: '금액', width: 'minmax(80px,110px)', align: 'right' },
+  { key: 'paid', label: '납부일', width: '64px', sortValue: item => item.paid_at, sortFirst: 'desc' },
+  { key: 'title', label: '고지내역', width: 'minmax(130px,1fr)', sortValue: item => item.title },
+  { key: 'amount', label: '금액', width: 'minmax(80px,110px)', align: 'right', sortValue: item => item.amount, sortFirst: 'desc' },
 ]
 
 const STATUS_LABELS = { unpaid: '납부예정', paid: '납부완료', overdue: '연체', cancelled: '취소' }
@@ -73,7 +79,12 @@ function obligationYear(item: FinanceTaxObligation): string | null {
   return item.due_date?.slice(0, 4) ?? item.period_label?.slice(0, 4) ?? null
 }
 
-export function TaxManagementBlock({ obligations, onRefresh }: { obligations: FinanceTaxObligation[]; onRefresh?: () => void }) {
+export function TaxManagementBlock({ obligations, storageKey, onRefresh }: {
+  obligations: FinanceTaxObligation[]
+  /** 정렬을 기억할 자리. 윌로우와 텐소프트웍스가 같은 카드를 쓰므로 회사마다 다르게 준다. */
+  storageKey: string
+  onRefresh?: () => void
+}) {
   const mobile = useIsMobile()
   const [source, setSource] = useState<SourceFilter>('all')
   const [year, setYear] = useState(new Date().getFullYear())
@@ -122,6 +133,10 @@ export function TaxManagementBlock({ obligations, onRefresh }: { obligations: Fi
     [obligations, year],
   )
 
+  // 정렬은 출처 탭·상태 칩마다 따로 기억한다 — 같은 표라도 보고 있는 것이 다르면 보고 싶은
+  // 순서도 다르다. 키가 바뀌면 useTableSort 가 그 조합이 마지막에 쓰던 정렬로 갈아탄다(CEO 2026-09-15).
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<FinanceTaxObligation>(`${storageKey}:${source}:${status}`, COLUMNS)
+
   const rows = useMemo(() => {
     let list = source === 'all' ? yearScoped : yearScoped.filter(item => item.source === source)
     if (status !== 'all') list = list.filter(item => item.status === status)
@@ -131,8 +146,9 @@ export function TaxManagementBlock({ obligations, onRefresh }: { obligations: Fi
         `${item.title} ${item.agency} ${item.notice_number ?? ''} ${item.period_label ?? ''}`
           .toLowerCase().includes(query))
     }
-    return [...list].sort((a, b) => (b.due_date || '').localeCompare(a.due_date || ''))
-  }, [yearScoped, source, status, search])
+    const base = [...list].sort((a, b) => (b.due_date || '').localeCompare(a.due_date || ''))
+    return sortApply(base)
+  }, [yearScoped, source, status, search, sortApply])
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   // A reload can shrink the list under the page being viewed; clamping keeps the
@@ -259,7 +275,7 @@ export function TaxManagementBlock({ obligations, onRefresh }: { obligations: Fi
 
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS} mobile={mobile}>
-        <LTableHead columns={COLUMNS} mobile={mobile} />
+        <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
         {rows.length === 0 && <LTableEmpty>{year}년에 수집된 세금·4대보험 고지가 없습니다</LTableEmpty>}
         <LTableBody columns={COLUMNS} mobile={mobile}>
           {paged.map(item => {

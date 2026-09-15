@@ -515,7 +515,7 @@ export default function TenswPage() {
                 onEdit={(inv) => { setEditingSales(inv); setSalesDialogOpen(true) }}
                 onDelete={handleDeleteSales}
               />
-              <TaxManagementBlock obligations={taxObligations} />
+              <TaxManagementBlock obligations={taxObligations} storageKey="tensw-tax" />
               <CardBlock
                 approvals={cardApprovals}
                 billing={cardBilling}
