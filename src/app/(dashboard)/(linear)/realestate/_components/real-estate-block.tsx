@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
+import { ZoneIndexCard } from './zone-index-card'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -1202,6 +1203,9 @@ export function RealEstateBlock() {
     {/* 2열 모드에서는 매매가 왼쪽, 전세가 오른쪽. 1열 모드와 모바일에서는 위아래로 쌓인다.
         열 안에서 패널은 세로로 쌓는다 — 카드 하나가 곧 한 열이다. */}
     <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
+    {/* 왼쪽 열 — 매매 현황 아래에 권역 비교가 붙는다(CEO 2026-09-15). 열 하나가 카드 하나던
+        자리에 둘이 서므로 세로로 묶는다. */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
     {/* 카드 2 · 매매 현황 — 실거래·호가·괴리율·시가총액을 한 판단 단위로 묶는다.
         껍데기는 전체 현황과 같다: pad={0} 위에 안쪽이 제 패딩을 주고, 하단 메타 바는
         테마가 좌우를 글자 줄에 맞춘다. */}
@@ -1285,6 +1289,12 @@ export function RealEstateBlock() {
         style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
     </LCard>
+
+    {/* 카드 2-2 · 권역 비교 — 위 카드들과 보는 대상이 다르다. 저것들은 추적 22개 단지를,
+        이것은 아홉 개 구의 실거래 전량으로 만든 지수를 본다. 그래서 상단 필터를 따르지 않고
+        제 데이터를 스스로 읽는다 — 이 열에 들어와도 그것은 그대로다. */}
+    <ZoneIndexCard />
+    </div>
 
     {/* 카드 3 · 전세 현황 — 매매 현황과 쌍이다. 2열에서 나란히 서므로 껍데기·제목·하단 바를
         같은 문법으로 맞춘다. 오른쪽 값은 두지 않는다 — 전세에는 시가총액 같은 합산 대상이 없다. */}
