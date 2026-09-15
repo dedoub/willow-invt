@@ -9,6 +9,7 @@ import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linea
 import { BalanceTrend } from '@/app/(dashboard)/(linear)/mgmt/_components/cash-block'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 import { cashTone } from '@/lib/cash-direction'
@@ -521,39 +522,7 @@ function BankBalanceModal({
   const sorted = [...balances].sort((a, b) => Number(b.balance) - Number(a.balance))
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 60,
-        background: 'rgba(0,0,0,0.35)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.cardPad,
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: t.neutrals.card, borderRadius: t.radius.md,
-          width: '100%', maxWidth: 420, maxHeight: '80vh', overflowY: 'auto',
-          padding: t.density.cardPad, boxSizing: 'border-box',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.blockGap }}>
-          <div>
-            <div style={{
-              fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
-              textTransform: 'uppercase', color: t.neutrals.subtle, marginBottom: t.density.tableRowGap,
-            }}>
-              BALANCE
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold }}>{bank}은행 계좌별 잔고</div>
-          </div>
-          <button onClick={onClose} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: t.density.gapXs, color: t.neutrals.muted, display: 'flex',
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
-        </div>
+    <LDialog title={`${bank}은행 계좌별 잔고`} width={420} onClose={onClose}>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
           {sorted.length === 0 && (
@@ -597,7 +566,6 @@ function BankBalanceModal({
             {total.toLocaleString()}원
           </span>
         </div>
-      </div>
-    </div>
+    </LDialog>
   )
 }

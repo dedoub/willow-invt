@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
-import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
 export interface TenswLoanFormData {
@@ -127,236 +127,180 @@ export function LoanDialog({ open, editLoan, onClose, onSave, onDelete }: LoanDi
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }}
-      />
-
-      {/* Panel */}
-      <div style={{
-        position: 'relative', width: 480, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+    <LDialog
+      title={isEdit ? '차입금 수정' : '차입금 추가'}
+      width={480}
+      onClose={onClose}
+      foot={<LDialogFoot
+        left={isEdit ? (
+          <span data-danger-action="">
+            <LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting ? '삭제 중...' : '삭제'}
+            </LBtn>
+          </span>
+        ) : undefined}
+        right={<>
+          <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
+          <span data-primary-action="">
+            <LBtn variant="brand" size="sm" onClick={handleSave}
+              disabled={saving || !form.bank.trim() || !form.loan_type.trim() || !form.principal.trim()}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
+          </span>
+        </>}
+      />}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+        {/* 은행 + 계좌번호 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
           <div>
-            <div style={{
-              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold,
-              color: t.neutrals.subtle, letterSpacing: 0.6,
-              textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap,
-            }}>
-              LOAN
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '차입금 수정' : '차입금 추가'}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
-              background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-            }}
-          >
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{
-          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: t.density.blockGap,
-        }}>
-          {/* 은행 + 계좌번호 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label required>은행</Label>
-              <input
-                value={form.bank}
-                onChange={e => set('bank', e.target.value)}
-                placeholder="은행명"
-                style={inputBase}
-                autoFocus
-              />
-            </div>
-            <div>
-              <Label>계좌번호</Label>
-              <input
-                value={form.account_number}
-                onChange={e => set('account_number', e.target.value)}
-                placeholder="계좌번호"
-                style={inputBase}
-              />
-            </div>
-          </div>
-
-          {/* 대출유형 */}
-          <div>
-            <Label required>대출유형</Label>
+            <Label required>은행</Label>
             <input
-              value={form.loan_type}
-              onChange={e => set('loan_type', e.target.value)}
-              placeholder="예: 기업운전일반자금대출"
+              value={form.bank}
+              onChange={e => set('bank', e.target.value)}
+              placeholder="은행명"
+              style={inputBase}
+              autoFocus
+            />
+          </div>
+          <div>
+            <Label>계좌번호</Label>
+            <input
+              value={form.account_number}
+              onChange={e => set('account_number', e.target.value)}
+              placeholder="계좌번호"
               style={inputBase}
             />
           </div>
+        </div>
 
-          {/* 원금 + 이율 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label required>대출원금</Label>
-              <input
-                value={form.principal}
-                onChange={e => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '')
-                  set('principal', raw ? Number(raw).toLocaleString() : '')
-                }}
-                placeholder="0"
-                style={inputBase}
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <Label>이자율 (%)</Label>
-              <input
-                value={form.interest_rate}
-                onChange={e => set('interest_rate', e.target.value)}
-                placeholder="0.00"
-                type="number"
-                step="0.01"
-                style={inputBase}
-              />
-            </div>
-          </div>
+        {/* 대출유형 */}
+        <div>
+          <Label required>대출유형</Label>
+          <input
+            value={form.loan_type}
+            onChange={e => set('loan_type', e.target.value)}
+            placeholder="예: 기업운전일반자금대출"
+            style={inputBase}
+          />
+        </div>
 
-          {/* 월평균 이자 + 이자납입일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>월평균 이자</Label>
-              <input
-                value={form.monthly_interest_avg}
-                onChange={e => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '')
-                  set('monthly_interest_avg', raw ? Number(raw).toLocaleString() : '')
-                }}
-                placeholder="0"
-                style={inputBase}
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <Label>이자납입일</Label>
-              <input
-                value={form.interest_payment_day}
-                onChange={e => set('interest_payment_day', e.target.value)}
-                placeholder="매월 (1-31)"
-                type="number"
-                min={1}
-                max={31}
-                style={inputBase}
-              />
-            </div>
-          </div>
-
-          {/* 대출일 + 만기일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>대출일</Label>
-              <input type="date" value={form.loan_date} onChange={e => set('loan_date', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>만기일</Label>
-              <input type="date" value={form.maturity_date} onChange={e => set('maturity_date', e.target.value)} style={inputBase} />
-            </div>
-          </div>
-
-          {/* 최근 연장일 + 다음 이자일 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>최근 연장일</Label>
-              <input type="date" value={form.last_extension_date} onChange={e => set('last_extension_date', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>다음 이자일</Label>
-              <input type="date" value={form.next_interest_date} onChange={e => set('next_interest_date', e.target.value)} style={inputBase} />
-            </div>
-          </div>
-
-          {/* 상환방식 + 상태 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>상환방식</Label>
-              <LFilterChip
-                options={REPAYMENT_TYPES.map(rt => ({ value: rt.key, label: rt.label }))}
-                value={form.repayment_type}
-                onChange={v => set('repayment_type', v)}
-                gap={t.density.gapSm}
-              />
-            </div>
-            <div>
-              <Label>상태</Label>
-              <LFilterChip
-                options={STATUS_OPTIONS.map(s => ({ value: s.key, label: s.label }))}
-                value={form.status}
-                onChange={v => set('status', v)}
-                gap={t.density.gapSm}
-              />
-            </div>
-          </div>
-
-          {/* 메모 */}
+        {/* 원금 + 이율 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
           <div>
-            <Label>메모</Label>
-            <textarea
-              value={form.memo}
-              onChange={e => set('memo', e.target.value)}
-              placeholder="추가 메모 (선택)"
-              rows={3}
-              style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
+            <Label required>대출원금</Label>
+            <input
+              value={form.principal}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^0-9]/g, '')
+                set('principal', raw ? Number(raw).toLocaleString() : '')
+              }}
+              placeholder="0"
+              style={inputBase}
+              inputMode="numeric"
+            />
+          </div>
+          <div>
+            <Label>이자율 (%)</Label>
+            <input
+              value={form.interest_rate}
+              onChange={e => set('interest_rate', e.target.value)}
+              placeholder="0.00"
+              type="number"
+              step="0.01"
+              style={inputBase}
             />
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`,
-          background: t.neutrals.inner,
-          display: 'flex',
-          justifyContent: isEdit ? 'space-between' : 'flex-end',
-          alignItems: 'center',
-          gap: t.density.kpiGap,
-        }}>
-          {isEdit && (
-            <LBtn
-              variant="ghost"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              style={{ color: t.accent.neg }}
-            >
-              {deleting ? '삭제 중...' : '삭제'}
-            </LBtn>
-          )}
-          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
-            <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
-            <LBtn
-              variant="brand"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving || !form.bank.trim() || !form.loan_type.trim() || !form.principal.trim()}
-            >
-              {saving ? '저장 중...' : '저장'}
-            </LBtn>
+        {/* 월평균 이자 + 이자납입일 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>월평균 이자</Label>
+            <input
+              value={form.monthly_interest_avg}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^0-9]/g, '')
+                set('monthly_interest_avg', raw ? Number(raw).toLocaleString() : '')
+              }}
+              placeholder="0"
+              style={inputBase}
+              inputMode="numeric"
+            />
+          </div>
+          <div>
+            <Label>이자납입일</Label>
+            <input
+              value={form.interest_payment_day}
+              onChange={e => set('interest_payment_day', e.target.value)}
+              placeholder="매월 (1-31)"
+              type="number"
+              min={1}
+              max={31}
+              style={inputBase}
+            />
           </div>
         </div>
+
+        {/* 대출일 + 만기일 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>대출일</Label>
+            <input type="date" value={form.loan_date} onChange={e => set('loan_date', e.target.value)} style={inputBase} />
+          </div>
+          <div>
+            <Label>만기일</Label>
+            <input type="date" value={form.maturity_date} onChange={e => set('maturity_date', e.target.value)} style={inputBase} />
+          </div>
+        </div>
+
+        {/* 최근 연장일 + 다음 이자일 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>최근 연장일</Label>
+            <input type="date" value={form.last_extension_date} onChange={e => set('last_extension_date', e.target.value)} style={inputBase} />
+          </div>
+          <div>
+            <Label>다음 이자일</Label>
+            <input type="date" value={form.next_interest_date} onChange={e => set('next_interest_date', e.target.value)} style={inputBase} />
+          </div>
+        </div>
+
+        {/* 상환방식 + 상태 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>상환방식</Label>
+            <LFilterChip
+              options={REPAYMENT_TYPES.map(rt => ({ value: rt.key, label: rt.label }))}
+              value={form.repayment_type}
+              onChange={v => set('repayment_type', v)}
+              gap={t.density.gapSm}
+            />
+          </div>
+          <div>
+            <Label>상태</Label>
+            <LFilterChip
+              options={STATUS_OPTIONS.map(s => ({ value: s.key, label: s.label }))}
+              value={form.status}
+              onChange={v => set('status', v)}
+              gap={t.density.gapSm}
+            />
+          </div>
+        </div>
+
+        {/* 메모 */}
+        <div>
+          <Label>메모</Label>
+          <textarea
+            value={form.memo}
+            onChange={e => set('memo', e.target.value)}
+            placeholder="추가 메모 (선택)"
+            rows={3}
+            style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
+          />
+        </div>
       </div>
-    </div>
+    </LDialog>
   )
 }
 

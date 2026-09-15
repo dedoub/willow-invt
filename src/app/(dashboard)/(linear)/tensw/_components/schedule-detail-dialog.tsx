@@ -2,6 +2,7 @@
 
 import { t, eventTones, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule } from '@/types/tensw-mgmt'
@@ -59,149 +60,109 @@ export function ScheduleDetailDialog({
     : null
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
-
-      {/* Panel */}
-      <div style={{
-        position: 'relative', width: 420, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, marginBottom: t.density.gapXs }}>
-              SCHEDULE
-            </div>
-            <div style={{
-              fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans,
-              color: t.neutrals.text, lineHeight: 1.35,
-              textDecoration: done ? 'line-through' : 'none',
-              opacity: done ? 0.6 : 1,
-            }}>
-              {schedule.title}
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm, flexShrink: 0,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
-        </div>
-
-        {/* Pills row */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-          {/* Status pill */}
-          <LBadge pill palette={tone}>
-            {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
-          </LBadge>
-
-          {/* Type pill */}
-          <LBadge palette={typeTone}>
-            {TYPE_LABELS[schedule.type] ?? schedule.type}
-          </LBadge>
-
-          {/* Client pill */}
-          {client && (
-            <LBadge palette={{ bg: client.color + '20', fg: client.color }}>
-              {client.name}
-            </LBadge>
-          )}
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, display: 'flex', flexDirection: 'column', gap: t.density.gapMd, overflowY: 'auto', flex: 1 }}>
-          <InfoRow icon="calendar">{dateDisplay}</InfoRow>
-          {timeDisplay && <InfoRow icon="briefcase">{timeDisplay}</InfoRow>}
-
-          {schedule.milestones && schedule.milestones.length > 0 && (
-            <InfoRow icon="book">
-              {schedule.milestones.map(ms => ms.name).join(', ')}
-            </InfoRow>
-          )}
-
-          {schedule.description && (
-            <div style={{
-              marginTop: t.density.gapSm, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-              background: t.neutrals.inner, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
-              fontFamily: t.font.sans, color: t.neutrals.text,
-              whiteSpace: 'pre-wrap',
-            }}>
-              {schedule.description}
-            </div>
-          )}
-
-          {/* Tasks */}
-          {schedule.tasks && schedule.tasks.length > 0 && (
-            <div style={{ marginTop: t.density.gapXs }}>
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: t.density.gapSm }}>
-                태스크
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
-                {schedule.tasks.map(task => (
-                  <div key={task.id} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: t.density.kpiGap,
-                    padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
-                    background: t.neutrals.inner, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                    fontFamily: t.font.sans, color: t.neutrals.text,
-                  }}>
-                    <div style={{
-                      width: 14, height: 14, borderRadius: t.radius.pill, flexShrink: 0, marginTop: 1,
-                      background: task.is_completed ? t.accent.pos : t.neutrals.line,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {task.is_completed && (
-                        <svg width={8} height={8} viewBox="0 0 24 24" fill="none"
-                          stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M5 12l5 5L20 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        textDecoration: task.is_completed ? 'line-through' : 'none',
-                        opacity: task.is_completed ? 0.6 : 1,
-                      }}>
-                        {task.content}
-                      </div>
-                      {task.deadline && (
-                        <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: t.density.tableRowGap }}>
-                          마감 {task.deadline}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <LBtn variant="ghost" size="sm" style={{ color: t.accent.neg }}
-            onClick={() => { onDelete(schedule.id); onClose() }}>
-            삭제
+    <LDialog
+      title={schedule.title}
+      width={420}
+      onClose={onClose}
+      foot={<LDialogFoot
+        left={<span data-danger-action="">
+          <LBtn variant="ghost" size="sm" onClick={() => { onDelete(schedule.id); onClose() }}>삭제</LBtn>
+        </span>}
+        right={<>
+          <LBtn variant="ghost" size="sm" onClick={() => { onToggleComplete(schedule.id, !done); onClose() }}>
+            {done ? '미완료로 변경' : '완료 처리'}
           </LBtn>
-          <div style={{ display: 'flex', gap: t.density.kpiGap }}>
-            <LBtn variant="ghost" size="sm"
-              onClick={() => { onToggleComplete(schedule.id, !done); onClose() }}>
-              {done ? '미완료로 변경' : '완료 처리'}
-            </LBtn>
-            <LBtn variant="secondary" size="sm"
-              onClick={() => { onEdit(schedule); onClose() }}>
-              수정
-            </LBtn>
-          </div>
-        </div>
+          <LBtn variant="secondary" size="sm" onClick={() => { onEdit(schedule); onClose() }}>수정</LBtn>
+        </>}
+      />}
+    >
+      {/* Pills row */}
+      <div style={{ display: 'flex', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+        {/* Status pill */}
+        <LBadge pill palette={tone}>
+          {done ? '완료' : schedule.type === 'deadline' ? '마감' : '예정'}
+        </LBadge>
+
+        {/* Type pill */}
+        <LBadge palette={typeTone}>
+          {TYPE_LABELS[schedule.type] ?? schedule.type}
+        </LBadge>
+
+        {/* Client pill */}
+        {client && (
+          <LBadge palette={{ bg: client.color + '20', fg: client.color }}>
+            {client.name}
+          </LBadge>
+        )}
       </div>
-    </div>
+
+      {/* Body */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, paddingBottom: t.density.gapSm }}>
+        <InfoRow icon="calendar">{dateDisplay}</InfoRow>
+        {timeDisplay && <InfoRow icon="briefcase">{timeDisplay}</InfoRow>}
+
+        {schedule.milestones && schedule.milestones.length > 0 && (
+          <InfoRow icon="book">
+            {schedule.milestones.map(ms => ms.name).join(', ')}
+          </InfoRow>
+        )}
+
+        {schedule.description && (
+          <div style={{
+            marginTop: t.density.gapSm, padding: `${t.density.panelPadX}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
+            background: t.neutrals.inner, fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.6,
+            fontFamily: t.font.sans, color: t.neutrals.text,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {schedule.description}
+          </div>
+        )}
+
+        {/* Tasks */}
+        {schedule.tasks && schedule.tasks.length > 0 && (
+          <div style={{ marginTop: t.density.gapXs }}>
+            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: t.density.gapSm }}>
+              태스크
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
+              {schedule.tasks.map(task => (
+                <div key={task.id} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: t.density.kpiGap,
+                  padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
+                  background: t.neutrals.inner, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
+                  fontFamily: t.font.sans, color: t.neutrals.text,
+                }}>
+                  <div style={{
+                    width: 14, height: 14, borderRadius: t.radius.pill, flexShrink: 0, marginTop: 1,
+                    background: task.is_completed ? t.accent.pos : t.neutrals.line,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {task.is_completed && (
+                      <svg width={8} height={8} viewBox="0 0 24 24" fill="none"
+                        stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12l5 5L20 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      textDecoration: task.is_completed ? 'line-through' : 'none',
+                      opacity: task.is_completed ? 0.6 : 1,
+                    }}>
+                      {task.content}
+                    </div>
+                    {task.deadline && (
+                      <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, marginTop: t.density.tableRowGap }}>
+                        마감 {task.deadline}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </LDialog>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { t, readableOn } from '@/app/(dashboard)/_components/linear-tokens'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { TenswMgmtSchedule, TenswMgmtClient } from '@/types/tensw-mgmt'
@@ -126,218 +127,186 @@ export function ScheduleAddDialog({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.18)', backdropFilter: 'blur(3px)' }} />
-
-      {/* Panel */}
-      <div style={{
-        position: 'relative', width: 440, maxHeight: '85vh',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.blockGap}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              SCHEDULE
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontFamily: t.font.sans, color: t.neutrals.text }}>
-              {isEdit ? '일정 수정' : '일정 추가'}
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{
-          padding: `0 ${t.density.pagePadX}px ${t.density.cardPad}px`, overflowY: 'auto', flex: 1,
-          display: 'flex', flexDirection: 'column', gap: t.density.gapLg,
-        }}>
-          {/* Title */}
-          <div>
-            <Label required>제목</Label>
-            <input
-              value={form.title} onChange={e => set('title', e.target.value)}
-              placeholder="일정 제목을 입력하세요"
-              style={inputBase} autoFocus
-            />
-          </div>
-
-          {/* Type chips */}
-          <div>
-            <Label>업무 유형</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
-              {TYPE_OPTIONS.map(t_ => (
-                <ChipBtn
-                  key={t_.key}
-                  active={form.type === t_.key}
-                  onClick={() => set('type', t_.key)}
-                >
-                  {t_.label}
-                </ChipBtn>
-              ))}
-            </div>
-          </div>
-
-          {/* Category chips */}
-          <div>
-            <Label>일정 분류</Label>
-            <LFilterChip
-              options={SCHEDULE_CATEGORIES.map(c => ({ value: c, label: SCHEDULE_CATEGORY_LABEL[c] }))}
-              value={form.category}
-              onChange={c => set('category', c)}
-            />
-          </div>
-
-          {/* Client chips */}
-          <div>
-            <Label>클라이언트</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, alignItems: 'center' }}>
-              {/* No client option */}
-              <ChipBtn
-                active={form.client_id === ''}
-                onClick={() => set('client_id', '')}
-              >
-                없음
-              </ChipBtn>
-              {clients.map(client => (
-                <ChipBtn
-                  key={client.id}
-                  active={form.client_id === client.id}
-                  onClick={() => set('client_id', client.id)}
-                  activeStyle={{
-                    background: client.color + '20',
-                    color: client.color,
-                  }}
-                >
-                  {client.name}
-                </ChipBtn>
-              ))}
-              {/* Add client button */}
-              <button
-                onClick={() => setAddingClient(true)}
-                style={{
-                  width: 24, height: 24, borderRadius: t.radius.pill,
-                  background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: t.neutrals.muted, flexShrink: 0,
-                }}
-                title="클라이언트 추가"
-              >
-                <LIcon name="plus" size={11} stroke={2.5} />
-              </button>
-            </div>
-            {/* Inline add client form */}
-            {addingClient && (
-              <div style={{
-                marginTop: t.density.kpiGap, padding: t.density.panelPadX, borderRadius: t.radius.md,
-                background: t.neutrals.inner,
-                display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
-              }}>
-                <input
-                  value={newClientName}
-                  onChange={e => setNewClientName(e.target.value)}
-                  placeholder="클라이언트명"
-                  style={{ ...inputBase, background: t.neutrals.card }}
-                  autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddClient() }}
-                />
-                <div style={{ display: 'flex', gap: t.density.gapXs }}>
-                  {CLIENT_COLORS.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setNewClientColor(c)}
-                      style={{
-                        width: 20, height: 20, borderRadius: t.radius.pill,
-                        background: c, border: 'none', cursor: 'pointer', padding: 0,
-                        // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
-                        color: readableOn(c), fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
-                        transform: newClientColor === c ? 'scale(1.15)' : undefined,
-                      }}
-                    >{newClientColor === c ? '✓' : ''}</button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setAddingClient(false); setNewClientName('') }}
-                    style={{
-                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
-                      background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: t.neutrals.muted, fontFamily: t.font.sans,
-                    }}
-                  >취소</button>
-                  <button
-                    onClick={handleAddClient}
-                    disabled={savingClient || !newClientName.trim()}
-                    style={{
-                      padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
-                      background: t.brand[600], border: 'none', cursor: 'pointer',
-                      color: '#fff', fontFamily: t.font.sans, fontWeight: t.weight.regular,
-                      opacity: !newClientName.trim() ? 0.5 : 1,
-                    }}
-                  >{savingClient ? '...' : '추가'}</button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Dates */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>시작일</Label>
-              <input type="date" value={form.schedule_date} onChange={e => set('schedule_date', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>종료일</Label>
-              <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputBase} />
-            </div>
-          </div>
-
-          {/* Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
-            <div>
-              <Label>시작 시간</Label>
-              <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} style={inputBase} />
-            </div>
-            <div>
-              <Label>종료 시간</Label>
-              <input type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} style={inputBase} />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label>설명</Label>
-            <textarea
-              value={form.description} onChange={e => set('description', e.target.value)}
-              placeholder="상세 내용 (선택)"
-              rows={3}
-              style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: `${t.density.blockGap}px ${t.density.pagePadX}px`, background: t.neutrals.inner,
-          display: 'flex', justifyContent: 'flex-end', gap: t.density.kpiGap,
-        }}>
+    <LDialog
+      title={isEdit ? '일정 수정' : '일정 추가'}
+      width={440}
+      onClose={onClose}
+      foot={<LDialogFoot
+        right={<>
           <LBtn variant="ghost" size="sm" onClick={onClose}>취소</LBtn>
-          <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
-            {saving ? '저장 중...' : '저장'}
-          </LBtn>
+          <span data-primary-action="">
+            <LBtn variant="brand" size="sm" onClick={handleSave} disabled={saving || !form.title.trim()}>
+              {saving ? '저장 중...' : '저장'}
+            </LBtn>
+          </span>
+        </>}
+      />}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg, paddingBottom: t.density.gapSm }}>
+        {/* Title */}
+        <div>
+          <Label required>제목</Label>
+          <input
+            value={form.title} onChange={e => set('title', e.target.value)}
+            placeholder="일정 제목을 입력하세요"
+            style={inputBase} autoFocus
+          />
+        </div>
+
+        {/* Type chips */}
+        <div>
+          <Label>업무 유형</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm }}>
+            {TYPE_OPTIONS.map(t_ => (
+              <ChipBtn
+                key={t_.key}
+                active={form.type === t_.key}
+                onClick={() => set('type', t_.key)}
+              >
+                {t_.label}
+              </ChipBtn>
+            ))}
+          </div>
+        </div>
+
+        {/* Category chips */}
+        <div>
+          <Label>일정 분류</Label>
+          <LFilterChip
+            options={SCHEDULE_CATEGORIES.map(c => ({ value: c, label: SCHEDULE_CATEGORY_LABEL[c] }))}
+            value={form.category}
+            onChange={c => set('category', c)}
+          />
+        </div>
+
+        {/* Client chips */}
+        <div>
+          <Label>클라이언트</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, alignItems: 'center' }}>
+            {/* No client option */}
+            <ChipBtn
+              active={form.client_id === ''}
+              onClick={() => set('client_id', '')}
+            >
+              없음
+            </ChipBtn>
+            {clients.map(client => (
+              <ChipBtn
+                key={client.id}
+                active={form.client_id === client.id}
+                onClick={() => set('client_id', client.id)}
+                activeStyle={{
+                  background: client.color + '20',
+                  color: client.color,
+                }}
+              >
+                {client.name}
+              </ChipBtn>
+            ))}
+            {/* Add client button */}
+            <button
+              onClick={() => setAddingClient(true)}
+              style={{
+                width: 24, height: 24, borderRadius: t.radius.pill,
+                background: t.neutrals.inner, border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: t.neutrals.muted, flexShrink: 0,
+              }}
+              title="클라이언트 추가"
+            >
+              <LIcon name="plus" size={11} stroke={2.5} />
+            </button>
+          </div>
+          {/* Inline add client form */}
+          {addingClient && (
+            <div style={{
+              marginTop: t.density.kpiGap, padding: t.density.panelPadX, borderRadius: t.radius.md,
+              background: t.neutrals.inner,
+              display: 'flex', flexDirection: 'column', gap: t.density.kpiGap,
+            }}>
+              <input
+                value={newClientName}
+                onChange={e => setNewClientName(e.target.value)}
+                placeholder="클라이언트명"
+                style={{ ...inputBase, background: t.neutrals.card }}
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleAddClient() }}
+              />
+              <div style={{ display: 'flex', gap: t.density.gapXs }}>
+                {CLIENT_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setNewClientColor(c)}
+                    style={{
+                      width: 20, height: 20, borderRadius: t.radius.pill,
+                      background: c, border: 'none', cursor: 'pointer', padding: 0,
+                      // 선택 표시는 outline 대신 안쪽 체크(색 위에서 읽히는 흑/백)
+                      color: readableOn(c), fontSize: `calc(${t.type.control}px * var(--fz, 1))`, lineHeight: 1,
+                      transform: newClientColor === c ? 'scale(1.15)' : undefined,
+                    }}
+                  >{newClientColor === c ? '✓' : ''}</button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: t.density.gapSm, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setAddingClient(false); setNewClientName('') }}
+                  style={{
+                    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: t.neutrals.muted, fontFamily: t.font.sans,
+                  }}
+                >취소</button>
+                <button
+                  onClick={handleAddClient}
+                  disabled={savingClient || !newClientName.trim()}
+                  style={{
+                    padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, borderRadius: t.radius.sm,
+                    background: t.brand[600], border: 'none', cursor: 'pointer',
+                    color: '#fff', fontFamily: t.font.sans, fontWeight: t.weight.regular,
+                    opacity: !newClientName.trim() ? 0.5 : 1,
+                  }}
+                >{savingClient ? '...' : '추가'}</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dates */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>시작일</Label>
+            <input type="date" value={form.schedule_date} onChange={e => set('schedule_date', e.target.value)} style={inputBase} />
+          </div>
+          <div>
+            <Label>종료일</Label>
+            <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputBase} />
+          </div>
+        </div>
+
+        {/* Times */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.gapMd }}>
+          <div>
+            <Label>시작 시간</Label>
+            <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} style={inputBase} />
+          </div>
+          <div>
+            <Label>종료 시간</Label>
+            <input type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} style={inputBase} />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <Label>설명</Label>
+          <textarea
+            value={form.description} onChange={e => set('description', e.target.value)}
+            placeholder="상세 내용 (선택)"
+            rows={3}
+            style={{ ...inputBase, resize: 'vertical' as const, lineHeight: 1.5 }}
+          />
         </div>
       </div>
-    </div>
+    </LDialog>
   )
 }
 
