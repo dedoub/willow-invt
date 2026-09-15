@@ -162,12 +162,13 @@ export default function AkrosPage() {
                 </div>
               </div>
 
-              {/* 이메일 이슈 트래킹(좌 2/3) + 업무위키(우 1/3, 높이 맞춤·모바일식) */}
+              {/* 이메일 이슈 트래킹 + 업무위키 — 반씩 나눠 쓴다(CEO 2026-09-15).
+                  alignItems:start — 두 카드가 각자 내용만큼만 자란다. 늘려 맞추면 짧은 쪽에 빈 판이 남는다. */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
+                gridTemplateColumns: '1fr 1fr',
                 gap: t.density.blockGap,
-                alignItems: 'stretch',
+                alignItems: 'start',
               }}>
                 <div style={{ minWidth: 0 }}>
                   <IssueTrackerBlock
@@ -184,7 +185,6 @@ export default function AkrosPage() {
                     onCreate={handleCreateWiki}
                     onUpdate={handleUpdateWiki}
                     onDelete={handleDeleteWiki}
-                    embedded
                   />
                 </div>
               </div>

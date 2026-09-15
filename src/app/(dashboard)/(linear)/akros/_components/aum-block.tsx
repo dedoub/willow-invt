@@ -5,6 +5,7 @@ import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import type { TimeSeriesData } from '@/lib/etf-types'
@@ -59,6 +60,12 @@ export function AumBlock({ timeSeries, yearLaunches }: AumBlockProps) {
         />
       </StatRows>
       </div>
+      {/* 어느 날짜의 숫자인지 카드가 스스로 말한다 — 표가 없어 쪽넘김 줄이 그 일을 못 한다. */}
+      <LCardFoot
+        left="아크로스 운용 데이터 · 일별 스냅샷"
+        right={latest?.date}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

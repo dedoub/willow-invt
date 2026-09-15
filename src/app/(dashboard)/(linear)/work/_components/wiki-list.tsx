@@ -420,14 +420,17 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
             </LTableScroll>
           </div>
 
-          {/* Pagination bar */}
+          {/* 쪽넘김 줄이 이 카드의 푸터를 겸한다 — 다른 표 카드와 같은 선·여백·건수로 맞춘다
+              (그 전에는 선도 건수도 없어 카드가 표에서 그냥 끊겼다, CEO 2026-09-15). */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
+            padding: `${t.density.gapSm}px ${t.density.cardPad}px`,
+            borderTop: `1px solid ${t.neutrals.line}`,
           }}>
             {/* Page size input */}
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
               <LPageSize value={pageSize} onChange={applyPageSize} />
+              <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{filtered.length}개</span>
             </div>
 
             {/* Page navigation */}

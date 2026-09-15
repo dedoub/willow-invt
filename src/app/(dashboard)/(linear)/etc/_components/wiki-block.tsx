@@ -1,6 +1,6 @@
 'use client'
 
-import { WikiList } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-list'
+import { WikiList } from '@/app/(dashboard)/(linear)/work/_components/wiki-list'
 import { WikiNote } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-row'
 
 type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -32,6 +32,8 @@ export function EtcWikiBlock({ notes, loading, onCreate, onUpdate, onDelete, fil
       onDelete={onDelete}
       hideFilter
       fillHeight={fillHeight}
+      // 이메일과 1/2씩 나누는 자리라 2단이 들어가지 않는다. 목록은 표, 상세는 모달.
+      detailMode="modal"
     />
   )
 }

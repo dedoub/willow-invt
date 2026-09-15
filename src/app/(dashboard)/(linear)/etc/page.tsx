@@ -261,11 +261,13 @@ export default function EtcPage() {
                 </div>
               </div>
 
-              {/* Wiki + Email */}
+              {/* 업무위키 + 이메일 — 반씩 나눠 쓴다. 텐소프트웍스와 같은 배치(CEO 2026-09-15).
+                  alignItems:start — 늘려 맞추면 짧은 쪽에 빈 판이 남는다. */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
+                gridTemplateColumns: '1fr 1fr',
                 gap: t.density.blockGap,
+                alignItems: 'start',
               }}>
                 <div style={{ minWidth: 0 }}>
                   <EtcWikiBlock
