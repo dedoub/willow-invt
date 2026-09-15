@@ -8,6 +8,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
+import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
@@ -232,7 +233,8 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
   const [filter, setFilter] = useState<FilterKey>('전체')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // 행을 누르면 상세 모달. 줄 안에서 펼치면 그 아래 프로젝트들이 통째로 밀린다(CEO 2026-09-15).
+  const [selected, setSelected] = useState<TenswProjectFull | null>(null)
 
   const filters = buildFilters(projects)
   const filtered = filterProjects(projects, filter)
@@ -304,7 +306,6 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
         {paged.map(project => {
           const statusStyle = getStatusStyle(project.status, project.is_poc)
           const progress = calcProgress(project.stats)
-          const expanded = expandedId === project.id
           const waiting = project.stats.pending
           const inProgress = project.stats.assigned + project.stats.in_progress
           const completed = project.stats.completed
@@ -317,7 +318,7 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                   padding: `${t.density.panelPadX}px ${t.density.cardPad}px`, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
                 }}
-                onClick={() => setExpandedId(expanded ? null : project.id)}
+                onClick={() => setSelected(project)}
               >
                 {/* Icon */}
                 <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
@@ -383,26 +384,30 @@ export function ProjectBlock({ projects }: ProjectBlockProps) {
                   </span>
                 )}
 
-                {/* Expand chevron */}
                 <span style={{ color: t.neutrals.subtle, flexShrink: 0 }}>
-                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
+                  <LIcon name="chevronRight" size={12} stroke={2} />
                 </span>
               </div>
 
-              {/* Expanded detail */}
-              {expanded && (
-                <ExpandedDetail
-                  project={project}
-                  waiting={waiting}
-                  inProgress={inProgress}
-                  completed={completed}
-                  progress={progress}
-                />
-              )}
             </div>
           )
         })}
       </div>
+
+      {selected && (() => {
+        const stats = selected.stats
+        return (
+          <LDialog title={selected.name} width={560} onClose={() => setSelected(null)}>
+            <ExpandedDetail
+              project={selected}
+              waiting={stats.pending}
+              inProgress={stats.assigned + stats.in_progress}
+              completed={stats.completed}
+              progress={calcProgress(stats)}
+            />
+          </LDialog>
+        )
+      })()}
 
       {/* Pagination */}
       <div style={{
@@ -469,7 +474,8 @@ function ExpandedDetail({
   const hasServiceUrls = project.serviceUrls.length > 0
 
   return (
-    <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
+    // 좌우 여백은 감싼 모달이 준다. 예전에는 줄 안에 펼쳐져 제가 카드 패딩을 들고 있었다.
+    <div style={{ paddingBottom: t.density.gapSm }}>
       {/* 지표 — 카드와 같은 격자 */}
       <FigureGrid cols={mobile ? 2 : 4} items={[
         { label: '배정 대기', value: String(waiting), mono: true },

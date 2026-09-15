@@ -7,8 +7,8 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { RowDetailDialog, DetailList } from './row-detail-dialog'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableNumber, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswTaxInvoice } from '@/types/tensw-mgmt'
 
@@ -88,7 +88,8 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // 행을 누르면 상세 모달. 표 안에서 펼치면 아래 행이 통째로 밀린다(CEO 2026-09-15).
+  const [selected, setSelected] = useState<TenswTaxInvoice | null>(null)
   const [search, setSearch] = useState('')
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswTaxInvoice>('tensw-sales', COLUMNS)
 
@@ -145,7 +146,7 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
     setMode(m)
     setStatusFilter('all')
     setPage(0)
-    setExpandedId(null)
+    setSelected(null)
   }
 
   // Summary stats (부가세 포함 = total_amount 기준). 부분수금(paid_amount)을 반영해
@@ -261,107 +262,23 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
         <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map(inv => {
           const tone = STATUS_TONES[inv.payment_status] ?? tonePalettes.neutral
-          const expanded = expandedId === inv.id
-
           return (
-            <div key={inv.id}>
-              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : inv.id)}>
-                <LTableBadge tone={tone}>{statusLabels[inv.payment_status] ?? inv.payment_status}</LTableBadge>
-                <LTableDate value={inv.issue_date} />
-                <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {inv.counterparty}
+            <LTableRow key={inv.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(inv)}>
+              <LTableBadge tone={tone}>{statusLabels[inv.payment_status] ?? inv.payment_status}</LTableBadge>
+              <LTableDate value={inv.issue_date} />
+              <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {inv.counterparty}
+              </span>
+              {!mobile && (
+                <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {inv.notes ?? ''}
                 </span>
-                {!mobile && (
-                  <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {inv.notes ?? ''}
-                  </span>
-                )}
-                <LTableNumber value={inv.total_amount} />
-                <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
-                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
-                </span>
-              </LTableRow>
-
-              {/* Expanded detail */}
-              {expanded && (
-                <div style={{ padding: `0 0 ${t.density.blockGap}px` }}>
-                  <div style={{
-                    background: t.neutrals.inner, borderRadius: t.radius.md,
-                    padding: t.density.blockGap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap,
-                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-                  }}>
-                    <DetailRow label="거래처" value={inv.counterparty} />
-                    <DetailRow label="발행일" value={inv.issue_date} mono />
-                    <DetailRow label="사업자번호" value={inv.business_number || '-'} mono />
-                    <DetailRow label="대표자" value={inv.representative || '-'} />
-                    <DetailRow label="공급가액" value={`${inv.supply_amount.toLocaleString()}원`} mono />
-                    <DetailRow label="세액" value={`${inv.tax_amount.toLocaleString()}원`} mono />
-                    <DetailRow label="합계" value={`${inv.total_amount.toLocaleString()}원`} mono />
-                    <DetailRow label={mode === 'purchase' ? '지급상태' : '수금상태'} value={statusLabels[inv.payment_status] || inv.payment_status} />
-                    <DetailRow label="입금예정일" value={inv.expected_payment_date || '-'} mono />
-                    {inv.paid_amount != null && (
-                      <DetailRow label="수금액" value={`${inv.paid_amount.toLocaleString()}원`} mono />
-                    )}
-                    {inv.paid_amount != null && inv.paid_amount < inv.total_amount && (
-                      <DetailRow label="미수잔액" value={`${(inv.total_amount - inv.paid_amount).toLocaleString()}원`} mono />
-                    )}
-                    {inv.bank_ref && (
-                      <DetailRow label="은행참조" value={inv.bank_ref} mono />
-                    )}
-                  </div>
-
-                  {/* Items */}
-                  {inv.items && inv.items.length > 0 && (
-                    <div style={{ marginTop: t.density.kpiGap }}>
-                      <div style={{
-                        fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
-                        fontFamily: t.font.mono, marginBottom: t.density.gapXs, letterSpacing: 0.3,
-                      }}>
-                        품목
-                      </div>
-                      <div style={{
-                        background: t.neutrals.inner, borderRadius: t.radius.md,
-                        padding: `${t.density.panelPadY}px ${t.density.blockGap}px`,
-                      }}>
-                        {inv.items.map((item, i) => (
-                          <div key={i} style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            fontSize: `calc(${t.type.control}px * var(--fz, 1))`, padding: `${t.density.gapXs}px 0`,
-                            borderTop: i > 0 ? `1px solid ${t.neutrals.line}` : 'none',
-                          }}>
-                            <span style={{ color: t.neutrals.text }}>{item.description}</span>
-                            <span style={{ fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                              {item.quantity != null && item.unit_price != null
-                                ? `${item.quantity} x ${item.unit_price.toLocaleString()} = ${item.supply_amount.toLocaleString()}원`
-                                : `${(item.supply_amount ?? (item as unknown as Record<string, number>).amount ?? 0).toLocaleString()}원`
-                              }
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  {inv.notes && (
-                    <div style={{
-                      marginTop: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-                      lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                    }}>
-                      {inv.notes}
-                    </div>
-                  )}
-
-                  {/* Edit button */}
-                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
-                    <LBtn size="sm" icon={<LIcon name="pencil" size={10} stroke={2} />} onClick={() => onEdit(inv)}>
-                      수정
-                    </LBtn>
-                  </div>
-                </div>
               )}
-            </div>
+              <LTableNumber value={inv.total_amount} />
+              <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
+                <LIcon name="chevronRight" size={12} stroke={2} />
+              </span>
+            </LTableRow>
           )
         })}
         </LTableBody>
@@ -409,19 +326,51 @@ export function SalesBlock({ invoices, onEdit, style }: SalesBlockProps) {
           </div>
         )}
       </div>
+
+      {selected && (
+        <RowDetailDialog
+          items={detailItems(selected, mode, statusLabels)}
+          extra={
+            <DetailList
+              title="품목"
+              rows={(selected.items ?? []).map(item => ({
+                left: item.description,
+                right: item.quantity != null && item.unit_price != null
+                  ? `${item.quantity} x ${item.unit_price.toLocaleString()} = ${item.supply_amount.toLocaleString()}원`
+                  : `${(item.supply_amount ?? 0).toLocaleString()}원`,
+              }))}
+            />
+          }
+          onEdit={() => { const inv = selected; setSelected(null); onEdit(inv) }}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </LCard>
   )
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
-      <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
-        {value}
-      </div>
-    </div>
-  )
+/** 상세 모달에 실을 항목. 표의 열 순서로 읽히게 둔다 — 눈이 표에서 오던 순서 그대로다. */
+function detailItems(
+  inv: TenswTaxInvoice, mode: string, statusLabels: Record<string, string>,
+): FigureItem[] {
+  const items: FigureItem[] = [
+    { label: '거래처', value: inv.counterparty, wrap: true },
+    { label: '발행일', value: inv.issue_date, mono: true },
+    { label: '사업자번호', value: inv.business_number || '-', mono: true },
+    { label: '대표자', value: inv.representative || '-' },
+    { label: '공급가액', value: `${inv.supply_amount.toLocaleString()}원`, mono: true },
+    { label: '세액', value: `${inv.tax_amount.toLocaleString()}원`, mono: true },
+    { label: '합계', value: `${inv.total_amount.toLocaleString()}원`, mono: true },
+    { label: mode === 'purchase' ? '지급상태' : '수금상태', value: statusLabels[inv.payment_status] || inv.payment_status },
+    { label: '입금예정일', value: inv.expected_payment_date || '-', mono: true },
+  ]
+  if (inv.paid_amount != null) {
+    items.push({ label: '수금액', value: `${inv.paid_amount.toLocaleString()}원`, mono: true })
+    if (inv.paid_amount < inv.total_amount) {
+      items.push({ label: '미수잔액', value: `${(inv.total_amount - inv.paid_amount).toLocaleString()}원`, mono: true, tone: 'neg' })
+    }
+  }
+  if (inv.bank_ref) items.push({ label: '은행참조', value: inv.bank_ref, mono: true })
+  if (inv.notes) items.push({ label: '비고', value: inv.notes, prose: true, span: 2 })
+  return items
 }

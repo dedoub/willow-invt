@@ -10,6 +10,7 @@ import { BalanceTrend } from '@/app/(dashboard)/(linear)/mgmt/_components/cash-b
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
+import { RowDetailDialog } from './row-detail-dialog'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 import { cashTone } from '@/lib/cash-direction'
@@ -135,6 +136,9 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
   // 은행별 잔고 타일을 누르면 그 은행의 계좌별 내역을 띄운다. 타일은 은행 합계만 보여줘서
   // 어느 계좌에 얼마가 있는지는 여기 아니면 볼 곳이 없다.
   const [balanceModal, setBalanceModal] = useState<string | null>(null)
+  // 행을 누르면 상세가 먼저다. 바로 수정 창이 뜨면 읽으려던 사람이 고치는 화면에 앉는다 —
+  // 윌로우가 같은 자리에서 상세를 거친다(CEO 2026-09-15).
+  const [selected, setSelected] = useState<TenswCashItem | null>(null)
 
   const [rangeStart, rangeEnd] = useMemo(() => getDateRange(baseDate, periodMode), [baseDate, periodMode])
   const periodLabel = useMemo(() => getPeriodLabel(baseDate, periodMode), [baseDate, periodMode])
@@ -428,7 +432,7 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         {paged.map((item) => {
           const typeTone = TYPE_TONES[item.type]
           return (
-            <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => onSelect(item)}>
+            <LTableRow key={item.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(item)}>
               <LTableBadge tone={typeTone}>{TYPE_LABELS[item.type]}</LTableBadge>
               <LTableDate value={item.payment_date || item.issue_date} />
               {!mobile && (
@@ -458,6 +462,14 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
         </LTableBody>
         </LTableScroll>
       </div>
+
+      {selected && (
+        <RowDetailDialog
+          items={detailItems(selected)}
+          onEdit={() => { const item = selected; setSelected(null); onSelect(item) }}
+          onClose={() => setSelected(null)}
+        />
+      )}
 
       {balanceModal && (
         <BankBalanceModal
@@ -512,6 +524,28 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
       </div>
     </LCard>
   )
+}
+
+/** 지표 격자는 'text' 를 모른다 — 방향이 없는 줄에는 색을 주지 않는다는 뜻이라 undefined 로 옮긴다. */
+function amountTone(item: TenswCashItem): 'pos' | 'neg' | undefined {
+  const tone = cashTone(item.type, item.amount)
+  return tone === 'text' ? undefined : tone
+}
+
+/** 상세 모달에 실을 항목. 표의 열 순서로 읽히게 둔다. */
+function detailItems(item: TenswCashItem): FigureItem[] {
+  const items: FigureItem[] = [
+    { label: '구분', value: TYPE_LABELS[item.type] ?? item.type },
+    { label: '거래처', value: item.counterparty, wrap: true },
+    // 표에서 칠한 색을 상세에서도 그대로 쓴다 — 같은 값이 화면마다 다른 뜻이면 안 된다.
+    { label: '금액', value: `${item.amount.toLocaleString()}원`, mono: true, tone: amountTone(item) },
+    { label: '계좌', value: item.account_number ?? '-', mono: true },
+    { label: '발행일', value: item.issue_date ?? '-', mono: true },
+    { label: '입금/지급일', value: item.payment_date ?? '-', mono: true },
+  ]
+  if (item.description) items.push({ label: '적요', value: item.description, prose: true, span: 2 })
+  if (item.notes) items.push({ label: '메모', value: item.notes, prose: true, span: 2 })
+  return items
 }
 
 /** 은행별 계좌 잔고. 타일이 보여주는 합계가 어떤 계좌들로 이뤄졌는지 펼쳐 보여준다. */

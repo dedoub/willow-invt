@@ -6,9 +6,9 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
-import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { RowDetailDialog } from './row-detail-dialog'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableMono, LTableNumber, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 
@@ -88,7 +88,8 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<TenswLoan>('tensw-loan', COLUMNS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // 행을 누르면 상세 모달. 표 안에서 펼치면 아래 행이 통째로 밀린다(CEO 2026-09-15).
+  const [selected, setSelected] = useState<TenswLoan | null>(null)
 
   // Summary KPIs (active loans only)
   const activeLoans = useMemo(() => loans.filter(l => l.status === 'active'), [loans])
@@ -162,103 +163,32 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
         <LTableBody columns={COLUMNS} mobile={mobile}>
         {paged.map((loan) => {
           const statusTone = STATUS_TONES[loan.status] ?? tonePalettes.neutral
-          const expanded = expandedId === loan.id
           const maturityDays = daysToMaturity(loan.maturity_date)
           const maturityWarning = maturityDays != null && maturityDays >= 0 && maturityDays <= 90
-
           return (
-            <div key={loan.id}>
-              <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpandedId(expanded ? null : loan.id)}>
-                <LTableBadge tone={statusTone}>{STATUS_LABELS[loan.status] ?? loan.status}</LTableBadge>
-                <span style={{ fontWeight: t.weight.medium, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {loan.bank}
-                  {maturityWarning && (
-                    <LBadge tone="danger" pill style={{ marginLeft: t.density.gapSm, fontFamily: t.font.mono }}>
-                      D-{maturityDays}
-                    </LBadge>
-                  )}
-                </span>
-                <LTableDate value={loan.loan_date} format="ymd" />
-                <LTableDate value={loan.maturity_date} format="ymd" tone={maturityWarning ? 'neg' : 'muted'} />
-                <LTableMono align="right">
-                  {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
-                </LTableMono>
-                <LTableMono align="right" tone="text">
-                  {monthlyInterest(loan)?.toLocaleString() ?? '-'}
-                </LTableMono>
-                <LTableNumber value={loan.principal} />
-                <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
-                  <LIcon name={expanded ? 'chevronDown' : 'chevronRight'} size={12} stroke={2} />
-                </span>
-              </LTableRow>
-
-              {/* Expanded detail */}
-              {expanded && (
-                <div style={{ padding: `0 0 ${t.density.blockGap}px` }}>
-                  <div style={{
-                    background: t.neutrals.inner, borderRadius: t.radius.md,
-                    padding: t.density.blockGap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: t.density.kpiGap,
-                    fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans,
-                  }}>
-                    <DetailRow label="대출유형" value={loan.loan_type} />
-                    <DetailRow label="계좌번호" value={loan.account_number} mono />
-                    <DetailRow label="이자율" value={loan.interest_rate != null ? `${loan.interest_rate}%` : '-'} />
-                    <DetailRow label="월평균 이자" value={loan.monthly_interest_avg != null ? `${loan.monthly_interest_avg.toLocaleString()}원` : '-'} />
-                    <DetailRow label="대출일" value={loan.loan_date || '-'} mono />
-                    <DetailRow label="만기일" value={loan.maturity_date || '-'} mono />
-                    <DetailRow label="상환방식" value={REPAYMENT_LABELS[loan.repayment_type] || loan.repayment_type || '-'} />
-                    <DetailRow label="이자납입일" value={loan.interest_payment_day != null ? `매월 ${loan.interest_payment_day}일` : '-'} />
-                    {loan.last_extension_date && (
-                      <DetailRow label="최근 연장일" value={loan.last_extension_date} mono />
-                    )}
-                    {loan.next_interest_date && (
-                      <DetailRow label="다음 이자일" value={loan.next_interest_date} mono />
-                    )}
-                  </div>
-
-                  {/* Memo */}
-                  {loan.memo && (
-                    <div style={{
-                      marginTop: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.blockGap}px`, borderRadius: t.radius.md,
-                      background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-                      lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                    }}>
-                      {loan.memo}
-                    </div>
-                  )}
-
-                  {/* Attachments */}
-                  {loan.attachments?.length > 0 && (
-                    <div style={{ marginTop: t.density.kpiGap, display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
-                      {loan.attachments.map((att, i) => (
-                        <a
-                          key={i}
-                          href={att.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: t.density.gapSm,
-                            padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm,
-                            background: t.neutrals.inner, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                            color: t.brand[700], textDecoration: 'none',
-                          }}
-                        >
-                          <LIcon name="file" size={11} stroke={1.8} />
-                          {att.name}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Edit button */}
-                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: t.density.kpiGap, display: 'flex', justifyContent: 'flex-end' }}>
-                    <LBtn size="sm" icon={<LIcon name="pencil" size={10} stroke={2} />} onClick={() => onEdit(loan)}>
-                      수정
-                    </LBtn>
-                  </div>
-                </div>
-              )}
-            </div>
+            <LTableRow key={loan.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(loan)}>
+              <LTableBadge tone={statusTone}>{STATUS_LABELS[loan.status] ?? loan.status}</LTableBadge>
+              <span style={{ fontWeight: t.weight.medium, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {loan.bank}
+                {maturityWarning && (
+                  <LBadge tone="danger" pill style={{ marginLeft: t.density.gapSm, fontFamily: t.font.mono }}>
+                    D-{maturityDays}
+                  </LBadge>
+                )}
+              </span>
+              <LTableDate value={loan.loan_date} format="ymd" />
+              <LTableDate value={loan.maturity_date} format="ymd" tone={maturityWarning ? 'neg' : 'muted'} />
+              <LTableMono align="right">
+                {loan.interest_rate != null ? `${loan.interest_rate}%` : '-'}
+              </LTableMono>
+              <LTableMono align="right" tone="text">
+                {monthlyInterest(loan)?.toLocaleString() ?? '-'}
+              </LTableMono>
+              <LTableNumber value={loan.principal} />
+              <span style={{ color: t.neutrals.subtle, display: 'flex' }}>
+                <LIcon name="chevronRight" size={12} stroke={2} />
+              </span>
+            </LTableRow>
           )
         })}
         </LTableBody>
@@ -308,17 +238,51 @@ export function LoanBlock({ loans, onEdit, style }: LoanBlockProps) {
           </div>
         )}
       </div>
+
+      {selected && (
+        <RowDetailDialog
+          items={detailItems(selected)}
+          extra={selected.attachments?.length ? (
+            <div style={{
+              paddingTop: t.density.panelPadY, borderTop: `1px solid ${t.neutrals.line}`,
+              display: 'flex', flexDirection: 'column', gap: t.density.gapXs,
+            }}>
+              {selected.attachments.map((att, i) => (
+                <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
+                  color: t.brand[700], textDecoration: 'none',
+                }}>
+                  <LIcon name="file" size={11} stroke={1.8} />
+                  {att.name}
+                </a>
+              ))}
+            </div>
+          ) : undefined}
+          onEdit={() => { const loan = selected; setSelected(null); onEdit(loan) }}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </LCard>
   )
 }
 
-function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{label}</div>
-      <div style={{ fontFamily: mono ? t.font.mono : t.font.sans, color: t.neutrals.text }}>
-        {value}
-      </div>
-    </div>
-  )
+/** 상세 모달에 실을 항목. 표의 열 순서로 읽히게 둔다. */
+function detailItems(loan: TenswLoan): FigureItem[] {
+  const items: FigureItem[] = [
+    { label: '은행', value: loan.bank, wrap: true },
+    { label: '대출유형', value: loan.loan_type },
+    { label: '계좌번호', value: loan.account_number, mono: true },
+    { label: '원금', value: `${loan.principal.toLocaleString()}원`, mono: true },
+    { label: '이자율', value: loan.interest_rate != null ? `${loan.interest_rate}%` : '-', mono: true },
+    { label: '월평균 이자', value: loan.monthly_interest_avg != null ? `${loan.monthly_interest_avg.toLocaleString()}원` : '-', mono: true },
+    { label: '대출일', value: loan.loan_date || '-', mono: true },
+    { label: '만기일', value: loan.maturity_date || '-', mono: true },
+    { label: '상환방식', value: REPAYMENT_LABELS[loan.repayment_type] || loan.repayment_type || '-' },
+    { label: '이자납입일', value: loan.interest_payment_day != null ? `매월 ${loan.interest_payment_day}일` : '-' },
+  ]
+  if (loan.last_extension_date) items.push({ label: '최근 연장일', value: loan.last_extension_date, mono: true })
+  if (loan.next_interest_date) items.push({ label: '다음 이자일', value: loan.next_interest_date, mono: true })
+  if (loan.memo) items.push({ label: '메모', value: loan.memo, prose: true, span: 2 })
+  return items
 }
