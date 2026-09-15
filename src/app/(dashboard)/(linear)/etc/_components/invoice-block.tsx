@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { Invoice } from '@/lib/invoice/types'
 import { isReferralFeeInvoice } from '@/lib/invoice/delivery-policy'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
@@ -115,6 +116,9 @@ export function InvoiceBlock({
     }
   }
 
+  // 켜짐은 `data-active` 로 말한다 — theme-outline 이 단추의 배경과 글자색을 통째로
+  // 덮어써서, 인라인 색으로 칠하면 보낸 것과 안 보낸 것이 똑같이 보인다(2026-09-15).
+  // 꺼진 상태의 글자색도 line(#E7E9EB)에서 subtle 로 올린다 — 선 색은 글자로 읽히지 않는다.
   const actionBtnStyle = (active: boolean, activeBg: string, activeFg: string): React.CSSProperties => ({
     background: active ? activeBg : 'none',
     border: 'none',
@@ -124,7 +128,7 @@ export function InvoiceBlock({
     fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
     fontFamily: t.font.mono,
     fontWeight: t.weight.medium,
-    color: active ? activeFg : t.neutrals.line,
+    color: active ? activeFg : t.neutrals.subtle,
   })
 
   return (
@@ -170,18 +174,10 @@ export function InvoiceBlock({
                 gap: t.density.gapSm,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0, overflow: 'hidden' }}>
-                  <span style={{
-                    fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`,
-                    fontFamily: t.font.mono,
-                    padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`,
-                    borderRadius: t.radius.sm,
-                    background: sty.bg,
-                    color: sty.fg,
-                    fontWeight: t.weight.medium,
-                    flexShrink: 0,
-                  }}>
+                  {/* 배지는 테마가 아는 물건이다 — 손으로 칠한 알약은 같은 화면의 다른 배지와 달라진다. */}
+                  <LBadge pill palette={{ bg: sty.bg, fg: sty.fg }} style={{ flexShrink: 0 }}>
                     {sty.label}
-                  </span>
+                  </LBadge>
                   <span style={{
                     fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
                     fontFamily: t.font.mono,
@@ -236,6 +232,8 @@ export function InvoiceBlock({
                   {!bankOnly && (
                     <button
                       onClick={() => onSendEtc(inv)}
+                      data-row-toggle=""
+                      data-active={!!inv.sent_to_etc_at ? '' : undefined}
                       style={actionBtnStyle(
                         !!inv.sent_to_etc_at,
                         tonePalettes.info.bg,
@@ -249,6 +247,8 @@ export function InvoiceBlock({
                   {/* 은행 */}
                   <button
                     onClick={() => onSendBank(inv)}
+                    data-row-toggle=""
+                    data-active={!!inv.sent_to_bank_at ? '' : undefined}
                     style={actionBtnStyle(
                       !!inv.sent_to_bank_at,
                       tonePalettes.warn.bg,
@@ -262,6 +262,8 @@ export function InvoiceBlock({
                   <button
                     onClick={() => handleTogglePaid(inv)}
                     disabled={toggling === inv.id}
+                    data-row-toggle=""
+                    data-active={isPaid ? '' : undefined}
                     style={actionBtnStyle(
                       isPaid,
                       tonePalettes.done.bg,

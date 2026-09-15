@@ -768,6 +768,10 @@ input[type="date"].date-placeholder-hidden[value=""]::-webkit-datetime-edit {
    강조색은 여기(활성 칩·탭)에만 쓰고 나머지는 회색으로 둔다(CEO 2026-09-10). */
 .theme-outline [data-filter-chip][data-active],
 .theme-outline [data-segment][data-active],
+/* 표 행의 켜짐/꺼짐 단추(ETC·은행·입금 발송 표시)도 같은 언어로 읽힌다. 인라인 색으로
+   칠하면 위의 `button` 규칙이 배경과 글자색을 모두 덮어써서 켜진 것과 꺼진 것이
+   구분되지 않는다(2026-09-15). */
+.theme-outline [data-row-toggle][data-active],
 /* 필기 도구 바의 켜진 도구(펜·지우개)도 같은 언어로 읽힌다. 아이콘만 있는 단추라
    위의 `button:has(> svg:only-child)` 규칙이 배경을 벗기는데, 속성 두 개짜리 이 선택자가
    더 구체적이라 이긴다(2026-09-13). */
