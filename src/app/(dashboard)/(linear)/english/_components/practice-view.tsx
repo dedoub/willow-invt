@@ -91,6 +91,39 @@ const POINT_LABEL: Record<string, string> = {
   grammar: '문법', word: '단어', natural: '자연스러움', good: '좋음', meaning: '의미',
 }
 
+/**
+ * 쓴 만큼 자라는 입력창.
+ *
+ * `rows` 로 잡은 처음 높이를 바닥으로 삼는다 — 비어 있을 때 한 줄로 쪼그라들면 쓰기
+ * 시작할 자리가 없어 보인다. 값이 밖에서 바뀔 때도(받아쓰기가 이어 붙일 때, 지우기를
+ * 눌렀을 때) 다시 재야 해서 값 자체를 의존성으로 둔다.
+ *
+ * 테두리는 `scrollHeight` 에 들어 있지 않다. border-box 인 이 상자에 그 값을 그대로
+ * 주면 두 줄째부터 아래가 잘리며 스크롤이 생긴다 — 그래서 테두리 두께를 더한다.
+ *
+ * 폭이 바뀌면 줄바꿈이 달라져 높이도 달라진다. 1열/2열을 바꿀 때가 그렇고, 창을 줄일
+ * 때도 그렇다.
+ */
+function useAutoGrow(ref: React.RefObject<HTMLTextAreaElement | null>, value: string, ...deps: unknown[]) {
+  const floor = useRef(0)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      // 처음 한 번, 아직 우리가 높이를 건드리기 전의 키가 바닥이다.
+      if (!floor.current) floor.current = el.offsetHeight
+      const cs = getComputedStyle(el)
+      const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(el.scrollHeight + border, floor.current)}px`
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, value, ...deps])
+}
+
 export function PracticeView({ target, view, onViewChange }: PracticeViewProps) {
   const { id: profile, title, meta, note, dailyGoal, sourceLabel } = target
   const mobile = useIsMobile()
@@ -165,6 +198,11 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   const [retrying, setRetrying] = useState(false)
   const padRef = useRef<DrawPadHandle | null>(null)
   const taRef = useRef<HTMLTextAreaElement | null>(null)
+  const againTaRef = useRef<HTMLTextAreaElement | null>(null)
+  // 손글씨와 오가면 상자가 떼였다 붙는다. 그때도 다시 재야 한다 — 긴 글을 써 둔 채로
+  // 돌아오면 처음 키 그대로라, overflow 를 감춘 상자에서는 아래가 잘린 채 굴릴 수도 없다.
+  useAutoGrow(taRef, answer, inputMode, twoCol, result)
+  useAutoGrow(againTaRef, againText, againMode, twoCol, result)
   // 마이크 받아쓰기 — 인식 결과를 입력창에 이어붙이고, 사용자가 고친 뒤 채점한다.
   // 류하는 영국식으로 연습하므로 인식 언어도 갈라 준다.
   const dictation = useDictation({
@@ -801,7 +839,9 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       disabled={!!result || grading}
                       autoFocus={!mobile}
                       style={{
-                        width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                        // 손잡이를 없앤다 — 키가 이제 쓴 글을 따라가므로, 끌어 놓은 키를
+                        // 다음 글자에서 우리가 덮어쓰면 고장으로 보인다.
+                        width: '100%', boxSizing: 'border-box', resize: 'none', overflow: 'hidden',
                         background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
                         padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
                         // 16px 미만이면 iOS Safari가 포커스 시 강제 줌 — 16 고정
@@ -865,12 +905,13 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       <div ref={retryInputRef}>
                       {againMode === 'type' ? (
                         <textarea
+                          ref={againTaRef}
                           value={againText}
                           onChange={e => setAgainText(e.target.value)}
                           placeholder="답을 보고 다시 써보세요…"
                           rows={4}
                           style={{
-                            width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                            width: '100%', boxSizing: 'border-box', resize: 'none', overflow: 'hidden',
                             background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md,
                             padding: `${t.density.gapMd}px ${mobile ? t.density.gapMd : t.density.gapLg}px`,
                             fontSize: `calc(${t.type.body}px * var(--fz, 1))`, lineHeight: 1.5,
