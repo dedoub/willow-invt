@@ -10,7 +10,7 @@ import { BalanceTrend } from '@/app/(dashboard)/(linear)/mgmt/_components/cash-b
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
-import { RowDetailDialog } from './row-detail-dialog'
+import { RowDetailDialog } from '@/app/(dashboard)/_components/linear-row-detail'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
 import { cashTone } from '@/lib/cash-direction'

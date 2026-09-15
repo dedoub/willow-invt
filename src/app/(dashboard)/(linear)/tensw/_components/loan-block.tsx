@@ -8,7 +8,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
-import { RowDetailDialog } from './row-detail-dialog'
+import { RowDetailDialog } from '@/app/(dashboard)/_components/linear-row-detail'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableDate, LTableMono, LTableNumber, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswLoan } from '@/types/tensw-mgmt'
 

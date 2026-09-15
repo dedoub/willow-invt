@@ -105,11 +105,12 @@ export function ProductBlock({ products }: ProductBlockProps) {
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="PRODUCTS" title="상품관리" />
+      {/* 머리·표·쪽넘김의 간격은 사업관리 표 카드와 같은 값이다(16/16/8 · 0 16 6 · 6 16). */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="상품관리" mb={0} />
       </div>
 
-      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.panelPadX}px` }}>
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
         <LTableScroll columns={COLUMNS}>
           <LTableHead columns={COLUMNS} />
           {paged.length === 0 && <LTableEmpty>상품 데이터가 없습니다</LTableEmpty>}

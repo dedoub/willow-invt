@@ -96,11 +96,12 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
 
   return (
     <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
+      {/* 머리 간격은 사업관리 표 카드와 같다(16/16/8). 눈썹은 두지 않는다. */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <LSectionHead
-          eyebrow="ISSUE TRACKING"
           title="이메일 이슈 트래킹"
           action={<LHeadBtn icon="refresh" title="새로고침" onClick={onRefresh} />}
+          mb={0}
         />
       </div>
 
@@ -194,8 +195,9 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
               )}
               <LBadge pill palette={{ bg: sm.bg, fg: sm.fg }}>{sm.label}</LBadge>
               {issue.thread_url && (
+                /* 회색 판을 깔지 않는다 — 같은 화면의 다른 아이콘 단추는 전부 맨바닥이다. */
                 <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기" style={{
-                  width: 26, height: 26, borderRadius: t.radius.sm, background: t.neutrals.inner,
+                  width: 26, height: 26, borderRadius: t.radius.sm,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted, flexShrink: 0,
                 }}>
                   <LIcon name="mail" size={12} />

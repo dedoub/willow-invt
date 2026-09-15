@@ -1,13 +1,18 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
-import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import {
+  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty,
+  LTableBadge, LTableDate, LTableNumber, type LColumn,
+} from '@/app/(dashboard)/_components/linear-table'
+import { LDialog, LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
+import { RowDetailDialog } from '@/app/(dashboard)/_components/linear-row-detail'
+import type { FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 
 export interface AkrosTaxInvoice {
   id: string
@@ -41,6 +46,14 @@ interface TaxInvoiceBlockProps {
   style?: React.CSSProperties
 }
 
+/** 카드가 3분의 1 폭이라 열은 넷까지다. 비고는 좁아지면 접힌다. */
+const COLUMNS: LColumn<AkrosTaxInvoice>[] = [
+  { key: 'status', label: '상태', width: '44px' },
+  { key: 'date', label: '발행일', width: '76px' },
+  { key: 'amount', label: '금액', width: 'minmax(84px,1fr)', align: 'right' },
+  { key: 'notes', label: '비고', width: 'minmax(90px,1.4fr)', hideMobile: true },
+]
+
 const TAX_INVOICE_PAGE_SIZE_KEY = 'akros-tax-invoice-page-size'
 const DEFAULT_TAX_INVOICE_PAGE_SIZE = 10
 
@@ -56,6 +69,8 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredTaxInvoicePageSize)
   const [addOpen, setAddOpen] = useState(false)
+  // 행을 누르면 상세가 먼저다. 고치는 것은 거기서 한 걸음 더 간다(사업관리와 같은 길).
+  const [selected, setSelected] = useState<AkrosTaxInvoice | null>(null)
   const [editInv, setEditInv] = useState<AkrosTaxInvoice | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -150,96 +165,34 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
 
   return (
     <LCard pad={0} style={style}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadX }}>
-        <LSectionHead eyebrow="TAX INVOICES" title="세금계산서" action={
+      {/* 머리·표의 간격은 사업관리 표 카드와 같다. 눈썹(TAX INVOICES)은 두지 않는다. */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="세금계산서" mb={0} action={
           <LBtn size="sm" icon={<LIcon name="plus" size={14} color={t.neutrals.text} />}
             onClick={() => setAddOpen(true)}>추가</LBtn>
         } />
       </div>
 
-      {/* Invoice rows */}
-      <div style={{ padding: `0 ${t.density.gapXs}px ${t.density.gapXs}px` }}>
-        {paged.map(inv => {
-          const status = getStatus(inv)
-          const sty = STATUS_STYLES[status]
-          const isEditing = editInv?.id === inv.id
-          return (
-            <div key={inv.id} style={{
-              padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, borderRadius: t.radius.sm,
-              marginBottom: t.density.tableRowGap, background: isEditing ? t.neutrals.inner : 'transparent',
-            }}>
-              {isEditing ? (
-                /* Edit form */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
-                  <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputStyle} />
-                  <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} placeholder="금액" style={inputStyle} />
-                  <input value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="비고" style={inputStyle} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: t.density.gapXs }}>
-                    <LBtn variant="danger" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
-                    <div style={{ display: 'flex', gap: t.density.gapSm }}>
-                      <LBtn variant="secondary" size="sm" onClick={() => setEditInv(null)}>취소</LBtn>
-                      <LBtn size="sm" onClick={handleUpdate} disabled={saving}>{saving ? '저장중...' : '저장'}</LBtn>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Read row — 2-line layout for narrow containers */
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
-                      <LBadge pill palette={{ bg: sty.bg, fg: sty.fg }} style={{ flexShrink: 0 }}>{sty.label}</LBadge>
-                      <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle, flexShrink: 0 }}>
-                        {inv.invoice_date}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, flexShrink: 0 }}>
-                      {inv.file_url && (
-                        <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                          <LIcon name="file" size={12} />
-                        </a>
-                      )}
-                      <button onClick={() => toggleStatus(inv, 'issued_at')} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                        color: inv.issued_at ? tonePalettes.info.fg : t.neutrals.line,
-                        backgroundColor: inv.issued_at ? tonePalettes.info.bg : 'transparent',
-                      }}>발행</button>
-                      <button onClick={() => toggleStatus(inv, 'paid_at')} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: `${t.density.tableRowGap}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
-                        fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                        color: inv.paid_at ? tonePalettes.done.fg : t.neutrals.line,
-                        backgroundColor: inv.paid_at ? tonePalettes.done.bg : 'transparent',
-                      }}>입금</button>
-                      <button onClick={() => openEdit(inv)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-                        color: t.neutrals.subtle,
-                      }}>
-                        <LIcon name="pencil" size={12} />
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, marginTop: t.density.gapXs, paddingLeft: t.density.tableRowGap, minWidth: 0 }}>
-                    <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium, color: t.neutrals.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {inv.amount.toLocaleString()}원
-                    </span>
-                    {inv.notes && (
-                      <span style={{ flex: 1, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                        {inv.notes}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-        {paged.length === 0 && (
-          <div style={{ padding: 30, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-            세금계산서가 없습니다
-          </div>
-        )}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+        <LTableScroll columns={COLUMNS}>
+          <LTableHead columns={COLUMNS} />
+          {paged.length === 0 && <LTableEmpty>세금계산서가 없습니다</LTableEmpty>}
+          <LTableBody columns={COLUMNS}>
+            {paged.map(inv => {
+              const sty = STATUS_STYLES[getStatus(inv)]
+              return (
+                <LTableRow key={inv.id} columns={COLUMNS} onClick={() => setSelected(inv)}>
+                  <LTableBadge tone={{ bg: sty.bg, fg: sty.fg }}>{sty.label}</LTableBadge>
+                  <LTableDate value={inv.invoice_date} />
+                  <LTableNumber value={inv.amount} />
+                  <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {inv.notes ?? ''}
+                  </span>
+                </LTableRow>
+              )
+            })}
+          </LTableBody>
+        </LTableScroll>
       </div>
 
       {/* Pagination */}
@@ -276,47 +229,134 @@ export function TaxInvoiceBlock({ invoices, onRefresh, style }: TaxInvoiceBlockP
         )}
       </div>
 
-      {/* Add Modal */}
-      {addOpen && (
-        <div onClick={() => resetAdd()} style={{
-          position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.density.cardPad,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: t.neutrals.card, borderRadius: t.radius.lg,
-            width: '100%', maxWidth: 400, padding: t.density.pagePadX,
-          }}>
-            <h3 style={{ margin: '0 0 14px', fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
-              세금계산서 추가
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
-              <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>발행일 *</label>
-                <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} style={inputStyle} />
+      {/* 상세 — 행을 누르면 여기로 온다. 발행·입금은 여기서 찍는다(사업관리 일정의 완료 처리와 같은 자리). */}
+      {selected && (() => {
+        const inv = selected
+        const sty = STATUS_STYLES[getStatus(inv)]
+        const facts: FigureItem[] = [
+          { label: '상태', value: sty.label },
+          { label: '발행일', value: inv.invoice_date, mono: true },
+          { label: '금액', value: `${inv.amount.toLocaleString()}원`, mono: true },
+          { label: '발행 처리', value: inv.issued_at ? inv.issued_at.slice(0, 10) : '-', mono: true },
+          { label: '입금 확인', value: inv.paid_at ? inv.paid_at.slice(0, 10) : '-', mono: true },
+        ]
+        if (inv.notes) facts.push({ label: '비고', value: inv.notes, prose: true, span: 2 })
+        return (
+          <RowDetailDialog
+            items={facts}
+            extra={inv.file_url ? (
+              <div style={{ paddingTop: t.density.panelPadY, borderTop: `1px solid ${t.neutrals.line}` }}>
+                <a href={inv.file_url} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[700], textDecoration: 'none',
+                }}>
+                  <LIcon name="file" size={11} stroke={1.8} />
+                  세금계산서 PDF
+                </a>
               </div>
-              <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>금액 (원) *</label>
-                <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} style={inputStyle} />
-              </div>
-              <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>비고</label>
-                <input value={addNotes} onChange={e => setAddNotes(e.target.value)} style={inputStyle} />
-              </div>
-              <div>
-                <label style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapXs, display: 'block' }}>PDF 파일</label>
-                <input type="file" accept=".pdf" onChange={e => setAddFile(e.target.files?.[0] || null)}
-                  style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: 14 }}>
-              <LBtn variant="secondary" size="sm" onClick={resetAdd}>취소</LBtn>
-              <LBtn size="sm" onClick={handleCreate} disabled={saving || !addDate || !addAmount}>
-                {saving ? '저장중...' : '저장'}
-              </LBtn>
-            </div>
+            ) : undefined}
+            foot={
+              <LDialogFoot
+                left={
+                  <div style={{ display: 'flex', gap: t.density.gapSm }}>
+                    <LBtn variant="ghost" size="sm" onClick={() => { toggleStatus(inv, 'issued_at'); setSelected(null) }}>
+                      {inv.issued_at ? '발행 취소' : '발행 처리'}
+                    </LBtn>
+                    <LBtn variant="ghost" size="sm" onClick={() => { toggleStatus(inv, 'paid_at'); setSelected(null) }}>
+                      {inv.paid_at ? '입금 취소' : '입금 확인'}
+                    </LBtn>
+                  </div>
+                }
+                right={<LBtn variant="secondary" size="sm" onClick={() => { setSelected(null); openEdit(inv) }}>수정</LBtn>}
+              />
+            }
+            onClose={() => setSelected(null)}
+          />
+        )
+      })()}
+
+      {/* 수정 — 상세의 수정에서 온다. 삭제는 여기 안에 둔다(사업관리와 같다). */}
+      {editInv && (
+        <LDialog
+          title="세금계산서 수정"
+          width={440}
+          z={1100}
+          onClose={() => setEditInv(null)}
+          foot={<LDialogFoot
+            left={<span data-danger-action="">
+              <LBtn variant="ghost" size="sm" onClick={handleDelete} disabled={saving}>삭제</LBtn>
+            </span>}
+            right={<>
+              <LBtn variant="ghost" size="sm" onClick={() => setEditInv(null)}>취소</LBtn>
+              <span data-primary-action="">
+                <LBtn variant="brand" size="sm" onClick={handleUpdate} disabled={saving || !editDate || !editAmount}>
+                  {saving ? '저장 중...' : '저장'}
+                </LBtn>
+              </span>
+            </>}
+          />}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
+            <Field label="발행일" required>
+              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="금액 (원)" required>
+              <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="비고">
+              <input value={editNotes} onChange={e => setEditNotes(e.target.value)} style={inputStyle} />
+            </Field>
           </div>
-        </div>
+        </LDialog>
+      )}
+
+      {/* 추가 */}
+      {addOpen && (
+        <LDialog
+          title="세금계산서 추가"
+          width={440}
+          onClose={resetAdd}
+          foot={<LDialogFoot right={<>
+            <LBtn variant="ghost" size="sm" onClick={resetAdd}>취소</LBtn>
+            <span data-primary-action="">
+              <LBtn variant="brand" size="sm" onClick={handleCreate} disabled={saving || !addDate || !addAmount}>
+                {saving ? '저장 중...' : '저장'}
+              </LBtn>
+            </span>
+          </>} />}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapLg }}>
+            <Field label="발행일" required>
+              <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="금액 (원)" required>
+              <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="비고">
+              <input value={addNotes} onChange={e => setAddNotes(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="PDF 파일">
+              <input type="file" accept=".pdf" onChange={e => setAddFile(e.target.files?.[0] || null)}
+                style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }} />
+            </Field>
+          </div>
+        </LDialog>
       )}
     </LCard>
+  )
+}
+
+/** 폼 한 칸 — 라벨 아래 입력. 사업관리 편집 창과 같은 리듬이다. */
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+        color: t.neutrals.subtle, fontFamily: t.font.sans, marginBottom: t.density.gapSm,
+      }}>
+        {label}{required && <span style={{ color: t.accent.neg, marginLeft: t.density.tableRowGap }}>*</span>}
+      </div>
+      {children}
+    </div>
   )
 }

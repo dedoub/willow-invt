@@ -124,7 +124,9 @@ export default function AkrosPage() {
     <>
       {loadPhase === 0 ? <AkrosSkeleton /> : (
         <>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+        {/* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리·보이스카드와
+            같은 카드 문법(CEO 2026-09-15). 이게 없으면 카드는 테두리를 못 받고 안쪽 판은 회색으로 남는다. */}
+        <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
             /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 이슈트래킹 > 세금계산서 > 업무위키 */
             <>

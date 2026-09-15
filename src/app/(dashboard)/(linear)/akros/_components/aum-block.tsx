@@ -6,6 +6,7 @@ import { useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import type { TimeSeriesData } from '@/lib/etf-types'
 
 interface AumBlockProps {
@@ -30,9 +31,14 @@ export function AumBlock({ timeSeries, yearLaunches }: AumBlockProps) {
   const currentYear = new Date().getFullYear()
 
   return (
-    <LCard>
-      <LSectionHead eyebrow="AUM DASHBOARD" title="운용 현황" />
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: t.density.gapMd }}>
+    // 눈썹(AUM DASHBOARD)은 뺀다 — 한글 제목이 이미 무엇인지 말한다(사업관리 2026-09-10).
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="운용 현황" mb={0} />
+      </div>
+      {/* 지표는 칸 사이를 띄우지 않고 줄 위에만 가로줄을 둔다 — 보이스카드·포틀과 같은 리듬. */}
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+      <StatRows cols={mobile ? 'repeat(1, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
         <LStat
           label="총 AUM"
           value={fmtKrw(latest?.total_aum_krw)}
@@ -51,6 +57,7 @@ export function AumBlock({ timeSeries, yearLaunches }: AumBlockProps) {
           sub={fmtUsd(latest?.total_arr_usd)}
           sparkline={timeSeries.map(d => ({ date: d.date, value: d.total_arr_krw || 0 }))}
         />
+      </StatRows>
       </div>
     </LCard>
   )
