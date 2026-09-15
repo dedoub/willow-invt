@@ -6,6 +6,9 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
+import { RowDetailDialog } from '@/app/(dashboard)/_components/linear-row-detail'
+import type { FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import type { ETFDisplayData } from '@/lib/etf-types'
 import { LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 
@@ -14,7 +17,6 @@ interface ProductBlockProps {
   onAdd: () => void
   onEdit: (etf: ETFDisplayData) => void
   onDocuments: (etf: ETFDisplayData) => void
-  onDelete: (etf: ETFDisplayData) => void
   onRefresh: () => void
 }
 
@@ -53,11 +55,13 @@ const COLUMNS: LColumn<ETFDisplayData>[] = [
   { key: 'flow', label: '1M flow', width: 'minmax(72px,0.6fr)', align: 'right', hideMobile: true },
   { key: 'fee', label: 'Fee/mo', width: 'minmax(72px,0.6fr)', align: 'right', hideMobile: true },
   { key: 'remaining', label: 'Remaining', width: 'minmax(80px,0.6fr)', align: 'right' },
-  { key: 'actions', label: '', width: '72px', align: 'center' },
 ]
 
-export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRefresh }: ProductBlockProps) {
+export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onRefresh }: ProductBlockProps) {
   const mobile = useIsMobile()
+  // 행을 누르면 상세. 행마다 연필·파일·× 를 세워 두면 표가 단추밭이 되고, 단독 삭제
+  // 아이콘은 카드 문법이 금하는 것이다 — 삭제는 수정 창 안에 있다(CEO 2026-09-15).
+  const [selected, setSelected] = useState<ETFDisplayData | null>(null)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
   const totalPages = Math.max(1, Math.ceil(etfs.length / pageSize))
@@ -86,7 +90,7 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
           {paged.length === 0 && <LTableEmpty>상품 데이터가 없습니다</LTableEmpty>}
           <LTableBody columns={COLUMNS} mobile={mobile}>
             {paged.map(etf => (
-              <LTableRow key={etf.id} columns={COLUMNS} mobile={mobile}>
+              <LTableRow key={etf.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(etf)}>
                 <LTableMono tone="text" strong>
                   {etf.fundUrl ? (
                     <a href={etf.fundUrl} target="_blank" rel="noopener noreferrer"
@@ -105,17 +109,6 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
                 )}
                 {!mobile && <LTableMono align="right" tone="text">{fmtUsd(etf.totalMonthlyFee)}</LTableMono>}
                 <LTableMono align="right" tone="text" strong>{fmtUsd(etf.remainingFee)}</LTableMono>
-                <div style={{ display: 'flex', gap: t.density.tableRowGap, justifyContent: 'center' }}>
-                  <button onClick={() => onEdit(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                    <LIcon name="pencil" size={12} />
-                  </button>
-                  <button onClick={() => onDocuments(etf)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                    <LIcon name="file" size={12} />
-                  </button>
-                  <button onClick={() => { if (confirm(`${etf.symbol} 삭제?`)) onDelete(etf) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs, color: t.neutrals.subtle }}>
-                    <LIcon name="x" size={12} />
-                  </button>
-                </div>
               </LTableRow>
             ))}
           </LTableBody>
@@ -157,6 +150,41 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onDelete, onRef
           </div>
         )}
       </div>
+      {selected && (() => {
+        const etf = selected
+        const facts: FigureItem[] = [
+          { label: 'Symbol', value: etf.symbol, mono: true },
+          { label: '상장일', value: etf.listingDate || '-', mono: true },
+          { label: 'Fund name', value: etf.fundName, wrap: true, span: 2 },
+          { label: 'AUM', value: fmtUsd(etf.aum), mono: true },
+          { label: '1M flow', value: fmtFlow(etf.flow), mono: true, tone: (etf.flow ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: '월 수수료', value: fmtUsd(etf.totalMonthlyFee), mono: true },
+          { label: '잔여 수수료', value: fmtUsd(etf.remainingFee), mono: true },
+        ]
+        return (
+          <RowDetailDialog
+            items={facts}
+            extra={etf.fundUrl ? (
+              <div style={{ paddingTop: t.density.panelPadY, borderTop: `1px solid ${t.neutrals.line}` }}>
+                <a href={etf.fundUrl} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'flex', alignItems: 'center', gap: t.density.gapSm,
+                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.brand[700], textDecoration: 'none',
+                }}>
+                  <LIcon name="file" size={11} stroke={1.8} />
+                  운용사 상품 페이지
+                </a>
+              </div>
+            ) : undefined}
+            foot={
+              <LDialogFoot
+                left={<LBtn variant="ghost" size="sm" onClick={() => { setSelected(null); onDocuments(etf) }}>문서</LBtn>}
+                right={<LBtn variant="secondary" size="sm" onClick={() => { setSelected(null); onEdit(etf) }}>수정</LBtn>}
+              />
+            }
+            onClose={() => setSelected(null)}
+          />
+        )
+      })()}
     </LCard>
   )
 }

@@ -5,7 +5,7 @@ import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { EtcSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
-import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData, deleteETFProduct } from '@/lib/etf-client'
+import { fetchETFDisplayData, fetchETFProducts, fetchHistoricalData } from '@/lib/etf-client'
 import type { ETFDisplayData, HistoricalDataPoint } from '@/lib/etf-types'
 import { Invoice } from '@/lib/invoice/types'
 import { isInvoiceDeliveryTargetAllowed } from '@/lib/invoice/delivery-policy'
@@ -150,10 +150,6 @@ export default function EtcPage() {
   // Product handlers
   const handleAddProduct = () => { setEditEtf(null); setProductDialogOpen(true) }
   const handleEditProduct = (etf: ETFDisplayData) => { setEditEtf(etf); setProductDialogOpen(true) }
-  const handleDeleteProduct = async (etf: ETFDisplayData) => {
-    await deleteETFProduct(etf.id)
-    loadData().then(loadHistorical)
-  }
   const handleProductSaved = () => { setProductDialogOpen(false); setEditEtf(null); loadData().then(loadHistorical) }
 
   // Invoice handlers
@@ -205,7 +201,6 @@ export default function EtcPage() {
                 onAdd={handleAddProduct}
                 onEdit={handleEditProduct}
                 onDocuments={(etf) => setDocEtf(etf)}
-                onDelete={handleDeleteProduct}
                 onRefresh={() => loadData().then(loadHistorical)}
               />
               <EtcWikiBlock
@@ -261,7 +256,6 @@ export default function EtcPage() {
                     onAdd={handleAddProduct}
                     onEdit={handleEditProduct}
                     onDocuments={(etf) => setDocEtf(etf)}
-                    onDelete={handleDeleteProduct}
                     onRefresh={() => loadData().then(loadHistorical)}
                   />
                 </div>
