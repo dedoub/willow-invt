@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LDialogFoot } from '@/app/(dashboard)/_components/linear-dialog'
@@ -185,6 +186,14 @@ export function ProductBlock({ etfs, onAdd, onEdit, onDocuments, onRefresh }: Pr
           />
         )
       })()}
+
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만 말하고, 이 줄이 어디서 온
+          숫자인지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="ETC 운용 상품 · AUM은 일별 스냅샷, 수수료는 36개월 프로라타"
+        right={`${etfs.length}개 상품`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { ScratchpadDialog } from './scratchpad-dialog'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -683,6 +684,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
           onSave={onCreate}
         />
       )}
+
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만 말하고, 이 줄이 어디서 온
+          것인지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="업무위키 · 첨부는 wiki-attachments 버킷"
+        right={`${notes.length}건`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

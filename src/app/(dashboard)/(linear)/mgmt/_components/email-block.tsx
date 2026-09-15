@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { t, tonePalettes } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -256,6 +257,14 @@ export function EmailBlock({
           </div>
         )}
       </div>
+
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만 말하고, 이 줄이 어디서 온
+          것인지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="Gmail 동기화 · 분류는 아침 자동 라벨링"
+        right={`${emails.length}통`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

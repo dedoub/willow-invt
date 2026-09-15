@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import type { AkrosProduct } from '@/lib/etf-types'
 import {
@@ -172,6 +173,14 @@ export function ProductBlock({ products }: ProductBlockProps) {
           </div>
         )}
       </div>
+
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만 말하고, 이 줄이 어디서 온
+          숫자인지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="아크로스 운용 상품 · AUM·플로우는 일별 스냅샷"
+        right={`${products.length}개 상품`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

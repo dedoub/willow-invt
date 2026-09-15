@@ -6,7 +6,8 @@ import { t } from './linear-tokens'
 /**
  * 카드 하단 메타 바 — "2026-09-10 기준", "1-8 / 35", "업데이트 1시간 전"처럼 카드 전체에 걸리는 부가 정보 한 줄.
  * 헤더 meta는 제목을 설명하는 짧은 단서만 두고, 시각·건수·출처는 여기로 내린다 (2026-09-10 카드 문법).
- * 좌우 두 슬롯. 표 페이지네이션(LPageSize + 페이지 이동)이 있는 카드는 그 줄이 이 자리를 겸한다.
+ * 좌우 두 슬롯. 쪽넘김 줄이 있어도 이 줄은 따로 단다 — 겸하게 두면 카드가 "몇 개 중 몇 개"
+ * 까지만 말하고 그 숫자가 어디서 왔는지는 말하지 않는다(CEO 2026-09-15).
  */
 export function LCardFoot({ left, right, style }: { left?: ReactNode; right?: ReactNode; style?: React.CSSProperties }) {
   if (!left && !right) return null
