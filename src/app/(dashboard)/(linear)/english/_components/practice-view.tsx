@@ -662,13 +662,19 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       gap: t.density.gapSm, marginBottom: t.density.gapSm,
                     }}>
                       <span>{HINT_LABEL[level]}</span>
-                      {baseLevel > HINT_CHUNKS ? (
+                      {/* 뒤집어 둔 것이 있으면 덮는 단추가 먼저다 — 지금 할 수 있는 일이기 때문이다.
+                          없을 때만 연속 회수나 단축키 안내가 그 자리를 쓴다. */}
+                      {level === HINT_CHUNKS && !result && flipped.size > 0 ? (
+                        <span style={{ textTransform: 'none' as const, letterSpacing: 0, fontFamily: t.font.sans }}>
+                          <LBtn size="sm" variant="ghost" onClick={coverAll}>
+                            뒤집기 초기화{mobile ? '' : ` (${keys.altCover})`}
+                          </LBtn>
+                        </span>
+                      ) : baseLevel > HINT_CHUNKS ? (
                         <span style={{ textTransform: 'none' as const, letterSpacing: 0, fontFamily: t.font.sans }}>
                           연속 {streakOf(current)}회
                         </span>
                       ) : level === HINT_CHUNKS && !result && !mobile && (
-                        /* 연속 회수가 있을 때는 그쪽이 먼저다 — 한 자리에 둘을 밀어 넣지 않는다.
-                           단축키는 몰라도 눌러서 할 수 있는 일이고, 회수는 지금 어디쯤인지다. */
                         <span title={`숫자는 줄 앞 번호와 같다 · ${keys.altCover} 은 모두 덮기`}>
                           {keys.altDigits} 뒤집기
                         </span>
