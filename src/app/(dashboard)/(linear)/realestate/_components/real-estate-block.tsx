@@ -10,6 +10,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { useStoredTab, useStoredTabs } from '@/app/(dashboard)/_components/linear-stored-tab'
 import { LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
@@ -117,6 +118,8 @@ const AREA_OPTIONS = [
   { value: '50', label: '50평' },
   { value: '60+', label: '60+' },
 ]
+// 저장해 둔 값이 아직 있는 칩인지 가릴 때 쓴다.
+const AREA_VALUES = AREA_OPTIONS.map(o => o.value)
 // 단지별 선 색 — 보이스카드가 쓰는 바로 그 램프다(분포 차트 palette·MEMBER/NEW/SOLD/USED).
 // 네이비 하나에서 시작해 회색으로 내려간다. 색상환을 도는 무지개 10색은 카드 문법의
 // "색은 상태·부호·강조에만" 을 정면으로 어겼다. 단지를 여럿 겹쳐 보는 일은 드물고
@@ -615,9 +618,11 @@ export function RealEstateBlock() {
   const cols = useDashCols()
 
   /* ── Filter state ── */
-  const [districts, setDistricts] = useState<string[]>([...ALL_DISTRICTS])
+  // 자치구·평형은 매번 같은 조합으로 보는 필터다. 새로고침마다 전체로 돌아가면
+  // 볼 때마다 같은 칩을 다시 누르게 된다 — 고른 조합을 기억한다(CEO 2026-09-15).
+  const [districts, setDistricts] = useStoredTabs<string>('re-districts', ALL_DISTRICTS, ALL_DISTRICTS)
   const [selectedComplexIds, setSelectedComplexIds] = useState<string[]>([])
-  const [areaRange, setAreaRange] = useState('')
+  const [areaRange, setAreaRange] = useStoredTab<string>('re-area', AREA_VALUES, '')
   const [period] = useState('12')
   const [complexDropdownOpen, setComplexDropdownOpen] = useState(false)
 
@@ -774,13 +779,10 @@ export function RealEstateBlock() {
 
   /* ── Toggle helpers ── */
   const toggleDistrict = (d: string) => {
-    setDistricts(prev => {
-      if (prev.includes(d)) {
-        const next = prev.filter(x => x !== d)
-        return next.length === 0 ? [d] : next
-      }
-      return [...prev, d]
-    })
+    if (!districts.includes(d)) { setDistricts([...districts, d]); return }
+    // 마지막 하나까지 끄면 빈 표가 된다. 끄는 대신 그것만 남긴다.
+    const next = districts.filter(x => x !== d)
+    setDistricts(next.length === 0 ? [d] : next)
   }
 
   const toggleComplex = (id: string) => {
