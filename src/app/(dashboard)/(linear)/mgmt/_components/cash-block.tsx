@@ -19,6 +19,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { cashTone } from '@/lib/cash-direction'
 
 interface Invoice {
   id: string
@@ -463,7 +464,9 @@ export function CashBlock({ invoices, onSelectInvoice, bankBalances = [], usdRat
               <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.description}
               </span>
-              <LTableNumber value={v.amount} />
+              {/* 들어온 돈은 녹색, 나간 돈은 빨강. 방향은 구분과 부호를 같이 봐야 나온다 —
+                  비용 마이너스는 환급이라 들어온 돈이다(CEO 2026-09-15). */}
+              <LTableNumber value={v.amount} tone={cashTone(v.type, v.amount)} />
             </LTableRow>
           )
         })}

@@ -267,14 +267,15 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
 export function LTableMono({ children, align = 'left', tone, strong, strike }: {
   children: React.ReactNode
   align?: 'left' | 'right'
-  tone?: 'muted' | 'text' | 'warn' | 'neg'
+  tone?: 'muted' | 'text' | 'warn' | 'neg' | 'pos'
   strong?: boolean
   strike?: boolean
 }) {
   const color = tone === 'text' ? t.neutrals.text
     : tone === 'warn' ? t.accent.warn
       : tone === 'neg' ? t.accent.neg
-        : t.neutrals.muted
+        : tone === 'pos' ? t.accent.pos
+          : t.neutrals.muted
   return (
     <span style={{
       textAlign: align, fontFamily: t.font.mono, color,
@@ -306,7 +307,7 @@ export function LTableDate({ value, format = 'md', tone }: {
 export function LTableNumber({ value, align = 'right', tone = 'text', muted, strike }: {
   value: number
   align?: 'left' | 'right'
-  tone?: 'muted' | 'text' | 'warn' | 'neg'
+  tone?: 'muted' | 'text' | 'warn' | 'neg' | 'pos'
   muted?: boolean
   strike?: boolean
 }) {

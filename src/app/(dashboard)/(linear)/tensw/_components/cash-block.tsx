@@ -11,6 +11,7 @@ import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBadge, LTableNumber, LTableDate, useTableSort, type LColumn, LPageSize } from '@/app/(dashboard)/_components/linear-table'
 import { TenswCashItem } from '@/types/tensw-mgmt'
+import { cashTone } from '@/lib/cash-direction'
 
 interface BankBalance {
   bank_name: string
@@ -447,7 +448,9 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
               <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {item.description}
               </span>
-              <LTableNumber value={item.amount} />
+              {/* 들어온 돈은 녹색, 나간 돈은 빨강. 방향은 구분과 부호를 같이 봐야 나온다 —
+                  비용 마이너스는 환급이라 들어온 돈이다(CEO 2026-09-15). */}
+              <LTableNumber value={item.amount} tone={cashTone(item.type, item.amount)} />
             </LTableRow>
           )
         })}
