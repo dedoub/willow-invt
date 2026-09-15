@@ -297,6 +297,12 @@ run_tensw() {
   group match "세금 지급 매칭" run_step "세금 지급 매칭" \
     $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
   group classify "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company tensw
+  # 04시 예약 실행은 07시 홈택스 턴에서 계산서 수금 대사를 한다. 다만 사람이 수동으로
+  # 전체 실행했을 때는 방금 받은 은행 입금을 매출관리 수금완료까지 즉시 연결해야 한다.
+  if [ "$DEFER_NOTIFY" != 1 ]; then
+    group reconcile "수금 대사" run_step "수금 대사" \
+      npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts"
+  fi
   group schedules "재무 일정 동기화" run_step "재무 일정 동기화" \
     $NODE "$RUNTIME/scripts/sync-tensw-finance-schedules.mjs"
 }
