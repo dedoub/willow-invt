@@ -18,7 +18,12 @@ import path from 'node:path'
 import process from 'node:process'
 import { promisify } from 'node:util'
 import sharp from 'sharp'
-import { appleScriptLiteral } from './lib/desktop.mjs'
+import {
+  appleScriptLiteral,
+  captureScreen as captureFullScreen,
+  ocrScreenshot,
+} from './lib/desktop.mjs'
+import { certificateRowPoint } from './lib/cert-dialog.mjs'
 import {
   analyzeWooriKeypadScreenshot,
   countMaskedCharacters,
@@ -36,6 +41,9 @@ const execFileAsync = promisify(execFile)
 const IDENTITY = financeIdentity()
 const ARTIFACT_DIR = path.join(os.homedir(), 'logs', `${IDENTITY.company}-local-finance`)
 const SCREENSHOT_PATH = path.join(ARTIFACT_DIR, 'woori-bank-screen.png')
+// 키패드 판독은 창을 잘라 1440 폭으로 줄여 쓰지만, 글자 판독기는 화면 전체를 논리
+// 좌표(1920) 로 돌려준다. 두 좌표계를 섞으면 클릭이 엉뚱한 데로 간다 — 그림을 따로 둔다.
+const OCR_SCREENSHOT_PATH = path.join(os.tmpdir(), 'willow-woori-cert.png')
 const RAW_SCREENSHOT_PATH = path.join(ARTIFACT_DIR, 'woori-bank-screen@2x.png')
 const ACCOUNTS_PATH = path.join(ARTIFACT_DIR, 'latest-woori-accounts.json')
 const TRANSACTIONS_PATH = path.join(ARTIFACT_DIR, 'latest-woori-transactions.json')
@@ -354,8 +362,21 @@ async function run() {
       }
 
       await waitForCertificateModal()
-      // 저장 위치(하드디스크)와 인증서 한 줄을 고르고 나면 암호 칸이 열린다.
-      await click(700, 581)
+
+      // 인증서 줄은 이름으로 고른다. 예전에는 (700,581) 고정 좌표였다 — 인증서가 두 장일
+      // 때 둘째 줄이 그 자리였을 뿐이라, 2026-09-16 에 한 장이 늘자 같은 자리가 윌로우
+      // 줄을 가리키게 됐다. 남의 인증서에 비밀번호를 넣으면 그 인증서의 오류 횟수가
+      // 오르고 5회면 잠긴다. 목록은 언제든 또 늘 수 있으니 자리로 세지 않는다.
+      const items = await ocrScreenshot(await captureFullScreen(OCR_SCREENSHOT_PATH))
+      const row = certificateRowPoint(items, IDENTITY.certificateRowKeywords, {
+        within: { x: 0, y: 0, w: 1440, h: 1080 },
+      })
+      log(`인증서 줄 선택: ${IDENTITY.certificateRowKeywords.join('/')} (${row.x},${row.y})`)
+      await click(row.x, row.y)
+      await sleep(500)
+
+      // 암호 칸을 눌러야 보안키패드가 열린다. 목록 상자는 높이가 고정이라 인증서가
+      // 몇 장이든 이 칸은 제자리에 있다.
       await click(790, 768)
       await sleep(800)
 
