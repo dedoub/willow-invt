@@ -193,7 +193,7 @@ export default function EtcPage() {
             같은 카드 문법(CEO 2026-09-15). */}
         <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
-            /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 업무위키 > 인보이스 > 이메일 */
+            /* 단일열(모바일·1열 토글): 전체현황 > 상품관리 > 업무위키 > 인보이스 > 이메일 */
             <>
               <StatsBlock etfs={etfs} historicalData={historicalData} />
               <ProductBlock

@@ -128,7 +128,7 @@ export default function AkrosPage() {
             같은 카드 문법(CEO 2026-09-15). 이게 없으면 카드는 테두리를 못 받고 안쪽 판은 회색으로 남는다. */}
         <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
           {singleCol ? (
-            /* 단일열(모바일·1열 토글): 운용현황 > 상품관리 > 이슈트래킹 > 세금계산서 > 업무위키 */
+            /* 단일열(모바일·1열 토글): 전체현황 > 상품관리 > 이슈트래킹 > 세금계산서 > 업무위키 */
             <>
               <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
               <ProductBlock products={products} />

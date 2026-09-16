@@ -34,7 +34,7 @@ export function StatsBlock({ etfs, historicalData }: StatsBlockProps) {
     // 눈썹(DASHBOARD)은 두지 않는다 — 한글 제목이 이미 무엇인지 말한다(사업관리 2026-09-10).
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead title="운용 현황" mb={0} />
+        <LSectionHead title="전체현황" mb={0} />
       </div>
       {/* 지표는 칸 사이를 띄우지 않고 줄 위에만 가로줄을 둔다 — 보이스카드·포틀과 같은 리듬. */}
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
