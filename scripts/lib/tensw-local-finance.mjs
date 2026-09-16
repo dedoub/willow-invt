@@ -35,10 +35,12 @@ const COMPANIES = Object.freeze({
     label: '텐소프트웍스',
     keychainService: 'willow.tensw.hometax.certificate',
     keychainAccount: 'tensoftworks',
-    // 인증서 CN 에 회사명이 없다. 윌로우 것과 겹치지 않는 조각이 '승인자' 하나뿐이라
-    // 폴더 찾기와 목록에서 줄 고르기 모두 이걸로 한다.
-    certificateOwnerKeyword: '승인자',
-    certificateRowKeywords: Object.freeze(['승인자']),
+    // 인증서 CN 에 회사명이 없다. 신한 인증서 창은 이름을 "주식회사 승인..." 으로 잘라
+    // 끝의 '자' 를 지우므로 '승인자' 로는 걸리지 않는다(2026-09-16 실측). 매칭은 양쪽
+    // 공백을 지우고 하니 '주식회사 승인' 이면 잘린 줄도, 안 잘린 홈택스 DOM 도 걸린다.
+    // 맨 '승인' 하나로 두지 않는 것은 인증서 창 밖에서 흔한 낱말이기 때문이다.
+    certificateOwnerKeyword: '주식회사 승인',
+    certificateRowKeywords: Object.freeze(['주식회사 승인']),
     businessNumber: '8288800992',
     // 로그인한 화면이 이 회사임을 알아보는 표시. 공용 포털에서 남의 세션을
     // 물고 수집하는 사고를 막는다.

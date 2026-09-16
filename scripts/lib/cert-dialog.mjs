@@ -91,7 +91,17 @@ export function certificateRowPoint(items, keywords, options = {}) {
     .filter(item => wanted.some(keyword => normalizeOcrText(item.text).includes(keyword)))
 
   if (rows.length === 0) {
-    throw new Error(`인증서 목록에서 "${label}" 인증서를 찾지 못했어요.`)
+    // 무엇이 보였는지 함께 적는다. 인증서를 바꾸면 화면에 뜨는 이름도 바뀌는데, 예전
+    // 메시지는 "못 찾았어요" 만 남겨서 키워드가 틀린 것인지 목록이 빈 것인지조차
+    // 알 수 없었다(2026-09-16 신한 '승인자').
+    // 줄로 묶지 않고 조각 그대로 적는다. 한 줄은 이름·용도·발급기관·만료일 네 조각인데,
+    // 묶으면 대표 하나(대개 만료일)만 남아 정작 궁금한 이름이 사라진다.
+    const seen = items.filter(item => withinRect(item, options.within))
+      .map(item => String(item.text ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 40)
+    const listed = seen.length > 0 ? `목록에 보인 줄: ${seen.join(' | ')}` : '목록이 비어 있었어요.'
+    throw new Error(`인증서 목록에서 "${label}" 인증서를 찾지 못했어요. ${listed}`)
   }
   // Several OCR fragments can land on one row — the name and the CA are separate
   // items — so rows on the same line are one row, not an ambiguity. They are

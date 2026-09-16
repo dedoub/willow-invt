@@ -67,12 +67,18 @@ test('financeIdentity separates Willow and Tensoftworks Keychain credentials', a
   const tensw = financeIdentity({ FINANCE_COMPANY: 'tensw' })
   assert.equal(tensw.keychainService, 'willow.tensw.hometax.certificate')
   assert.equal(tensw.keychainAccount, 'tensoftworks')
-  // 2026-09-16 에 신한 BizBank 인증서로 갈아탔다. CN 에 회사명이 없어 '승인자' 로 고른다.
-  assert.equal(tensw.certificateOwnerKeyword, '승인자')
-  assert.ok('주식회사 승인자(BizBank)0088059'.includes(tensw.certificateOwnerKeyword))
+  // 2026-09-16 에 신한 BizBank 인증서로 갈아탔다. CN 에 회사명이 없어 이름 앞머리로 고른다.
+  assert.equal(tensw.certificateOwnerKeyword, '주식회사 승인')
+  // 신한 인증서 창은 "주식회사 승인..." 으로 잘라 보여준다. 잘린 줄도 걸려야 한다.
+  const squash = value => value.replaceAll(' ', '')
+  for (const shown of ['주식회사 승인자(BizBank)0088059', '주식회사 승인...']) {
+    assert.ok(squash(shown).includes(squash(tensw.certificateOwnerKeyword)), shown)
+  }
   // 두 회사가 같은 SignKorea 라, 이름 조각은 서로의 인증서에 걸리지 않아야 한다.
-  assert.ok(!'주식회사 승인자(BizBank)0088059'.includes(willow.certificateOwnerKeyword))
-  assert.ok(!'윌로우인베스트먼트((BizBank)0088059'.includes(tensw.certificateOwnerKeyword))
+  assert.ok(!squash('주식회사 승인자(BizBank)0088059').includes(squash(willow.certificateOwnerKeyword)))
+  for (const other of ['윌로우인베스...', 'E코 주식회사 텐소...']) {
+    assert.ok(!squash(other).includes(squash(tensw.certificateOwnerKeyword)), other)
+  }
   assert.equal(tensw.businessNumber, '8288800992')
 })
 
