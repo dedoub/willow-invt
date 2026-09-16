@@ -181,6 +181,13 @@ function expiryTime(value) {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
+/** 목록에 이 회사의 살아 있는 인증서가 있는가. 없으면 가져오기부터 해야 한다. */
+export function hasUsableCertificate(rows, now = new Date(), ownerKeyword = '텐소') {
+  const wanted = String(ownerKeyword).replaceAll(' ', '')
+  return rows.some(row =>
+    String(row.owner ?? '').replaceAll(' ', '').includes(wanted) && expiryTime(row.expiresAt) >= now.getTime())
+}
+
 export function selectCorporateCertificate(rows, now = new Date(), ownerKeyword = '텐소') {
   const match = rows
     .map((row, index) => ({ row, index }))
@@ -190,8 +197,13 @@ export function selectCorporateCertificate(rows, now = new Date(), ownerKeyword 
     })
 
   if (!match) {
-    const ownerLabel = ownerKeyword === '텐소' ? '텐소프트웍스' : ownerKeyword
-    throw new Error(`사용 가능한 ${ownerLabel} 인증서를 찾지 못했어요.`)
+    // 무엇이 보였는지 함께 적는다. 인증서를 바꾸면 화면에 뜨는 이름도 바뀌는데, 예전
+    // 메시지로는 이름이 안 맞은 것인지 기한이 지난 것인지조차 알 수 없었다(2026-09-16).
+    const seen = rows
+      .map(row => `${String(row.owner ?? '').trim()}(${String(row.expiresAt ?? '').trim()})`)
+      .slice(0, 12)
+    const listed = seen.length > 0 ? ` 목록: ${seen.join(' | ')}` : ' 목록이 비어 있었어요.'
+    throw new Error(`사용 가능한 ${ownerKeyword} 인증서를 찾지 못했어요.${listed}`)
   }
 
   return { index: match.index, owner: match.row.owner }

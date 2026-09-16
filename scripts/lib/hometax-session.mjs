@@ -7,6 +7,7 @@ import {
   financeIdentity,
   isHometaxReadyUrl,
   readCertificatePassword,
+  hasUsableCertificate,
   selectCorporateCertificate,
 } from './tensw-local-finance.mjs'
 
@@ -147,8 +148,12 @@ export async function hometaxLogin(page, { log = () => {} } = {}) {
   // the profile, once per profile.
   let rows = await waitForCertificateRows(frame, 10_000)
 
+  // 비었을 때만 가져오면 인증서를 바꾼 날 멈춘다. 2026-09-16 에 텐소가 새 인증서로
+  // 옮겼는데 목록에는 옛 것이 한 줄 남아 있어, 가져오기를 건너뛰고 없는 줄을 찾다
+  // 끝났다. 기준은 "목록이 비었는가" 가 아니라 "쓸 인증서가 목록에 있는가" 다.
   let password
-  if (rows.length === 0) {
+  if (!hasUsableCertificate(rows, new Date(), identity.certificateOwnerKeyword)) {
+    log(rows.length === 0 ? 'certificate list is empty; importing' : 'wanted certificate is not in the list; importing')
     password = await readCertificatePassword()
     await importBrowserCertificate(frame, password)
     if (await isHometaxLoggedIn(page, 45_000)) {

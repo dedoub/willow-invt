@@ -35,7 +35,7 @@ test('selectCorporateCertificate rejects expired matching certificates', async (
       [{ owner: '텐소프트웍스', purpose: '범용', issuer: 'TradeSign', expiresAt: '2025-01-01' }],
       new Date('2026-08-25T00:00:00+09:00'),
     ),
-    /사용 가능한 텐소프트웍스 인증서/,
+    /사용 가능한 텐소 인증서를 찾지 못했어요\. 목록: 텐소프트웍스\(2025-01-01\)/,
   )
 })
 
