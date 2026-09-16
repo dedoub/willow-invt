@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import { carryForwardMissingDays } from './etf-history'
 
 // 서버 전용. service role 키 사용 — anon 키로 ETF/AUM DB를 직접 못 읽게 RLS를 잠그고,
 // 클라이언트 대시보드는 /api/etf/* 라우트(@/lib/etf-client)를 통해서만 접근한다.
@@ -317,7 +318,7 @@ export async function fetchHistoricalData(
     remainingMonthsList: { fee: number; months: number }[]
   }>()
 
-  for (const row of data || []) {
+  for (const row of carryForwardMissingDays(data || [])) {
     const rowDate = new Date(row.date)
     const info = etfInfo.get(row.symbol)
     if (!info) continue
