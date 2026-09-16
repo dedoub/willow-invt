@@ -13,10 +13,18 @@ export const KEYCHAIN_ACCOUNT = 'tensoftworks'
 // Everything that differs between the two companies lives here, so a collector
 // or importer only has to ask which company it is running for.
 //
-// 텐소프트웍스 signs with the TradeSign 범용(법인) key and banks with 우리·신한;
-// 윌로우인베스트먼트 signs with the SignKorea BizBank key and banks with 신한
-// alone, carrying its spend on KB카드. Both file the same national taxes, local
-// taxes and social insurance, so those three sites are shared.
+// 텐소프트웍스 banks with 우리·신한; 윌로우인베스트먼트 banks with 신한 alone,
+// carrying its spend on KB카드. Both file the same national taxes, local taxes
+// and social insurance, so those three sites are shared.
+//
+// 두 회사 모두 SignKorea BizBank 인증서로 서명한다. 텐소는 2026-09-16 에 TradeSign
+// 범용(주식회사 텐소프트웍스)에서 갈아탔다(CEO). 신한이 발급하는 BizBank 인증서의
+// CN 은 회사명이 아니라 사용자 이름을 담아서, 텐소 것은 "주식회사 승인자(BizBank)…"
+// 로 시작한다 — 이름만 보면 어느 회사인지 알 수 없으므로 '승인자' 로 고른다.
+//
+// 그래서 발급기관은 더 이상 두 회사를 가르지 못한다. certificateRowKeywords 에서
+// 발급기관 예비 키워드를 뺀 이유다 — 이름이 안 읽히면 아무 줄이나 고르느니 실패하는
+// 편이 낫다. 남의 인증서에 비밀번호를 넣으면 그 인증서의 오류 횟수가 오른다(5회 잠김).
 //
 // The staging tables carry the CODEF name only for 텐소프트웍스, where they were
 // created while that vendor was still in use. 윌로우 was wired up after CODEF was
@@ -27,10 +35,10 @@ const COMPANIES = Object.freeze({
     label: '텐소프트웍스',
     keychainService: 'willow.tensw.hometax.certificate',
     keychainAccount: 'tensoftworks',
-    certificateOwnerKeyword: '텐소',
-    // 인증서 목록에서 이 회사 줄을 고르는 후보. 발급기관은 ASCII라 OCR이 안정적이고
-    // 잘리지도 않아, 이름이 안 읽힐 때 이쪽이 매칭을 받는다.
-    certificateRowKeywords: Object.freeze(['텐소', 'TradeSign']),
+    // 인증서 CN 에 회사명이 없다. 윌로우 것과 겹치지 않는 조각이 '승인자' 하나뿐이라
+    // 폴더 찾기와 목록에서 줄 고르기 모두 이걸로 한다.
+    certificateOwnerKeyword: '승인자',
+    certificateRowKeywords: Object.freeze(['승인자']),
     businessNumber: '8288800992',
     // 로그인한 화면이 이 회사임을 알아보는 표시. 공용 포털에서 남의 세션을
     // 물고 수집하는 사고를 막는다.
@@ -80,7 +88,8 @@ const COMPANIES = Object.freeze({
     // OCR reads 윌 as 월 in the certificate list, so the row is matched on a part
     // of the name that survives it. It still matches the DOM text on 홈택스.
     certificateOwnerKeyword: '인베스트먼트',
-    certificateRowKeywords: Object.freeze(['인베스트', 'SignKorea']),
+    // 'SignKorea' 는 예비 키워드로 못 쓴다 — 텐소도 SignKorea 라 두 줄 다 걸린다.
+    certificateRowKeywords: Object.freeze(['인베스트']),
     businessNumber: '2058801897',
     sessionMarkers: Object.freeze(['윌로우인베스트먼트', '월로우인베스트먼트']),
     tables: Object.freeze({
@@ -255,10 +264,19 @@ export function certificateImportPaths(env = process.env) {
     throw new Error(`${identity.label} 인증서 폴더가 여러 개예요. 오래된 인증서를 정리해 주세요.`)
   }
 
-  // 텐소프트웍스는 CODEF 시절 지정한 경로가 아직 .env.local 에 남아 있다.
+  // 텐소프트웍스는 CODEF 시절 지정한 경로가 아직 .env.local 에 남아 있다. 그 경로는
+  // 2026-09-16 에 내린 TradeSign 인증서를 가리키므로, 폴더를 못 찾았다고 그대로 쓰면
+  // 바꾼 인증서 대신 옛 인증서로 서명하게 된다 — 조용히 틀리는 대신 멈춘다.
   const paths = [env.CODEF_HOMETAX_CERT_DER, env.CODEF_HOMETAX_CERT_KEY]
   if (paths.some(value => !value)) {
     throw new Error(`${identity.label} 인증서 파일을 NPKI 폴더에서 찾지 못했어요.`)
+  }
+  const named = paths.map(value => ({ name: value, path: value }))
+  if (certificateDirectories(named, identity.certificateOwnerKeyword).length !== paths.length) {
+    throw new Error(
+      `${identity.label} 인증서 폴더를 찾지 못했고, .env.local 의 CODEF_HOMETAX_CERT_* 는 `
+      + `다른 인증서('${identity.certificateOwnerKeyword}' 아님)라 쓰지 않았어요.`,
+    )
   }
   return paths
 }

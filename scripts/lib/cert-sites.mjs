@@ -13,8 +13,8 @@
 //
 // Each company signs every one of its sites with a single key, found under
 // ~/Library/Preferences/NPKI by certificateImportPaths:
-//   텐소프트웍스  TradeSign 범용(법인)
-//   윌로우인베스트먼트  SignKorea BizBank(법인)
+//   텐소프트웍스  SignKorea BizBank(법인) — cn=주식회사 승인자(BizBank)…
+//   윌로우인베스트먼트  SignKorea BizBank(법인) — cn=윌로우인베스트먼트((BizBank)…
 //
 // 홈택스 · 위택스 · 사회보험 are shared by both companies; the driver picks the
 // certificate row by the owner keyword in the company registry. 신한은행 is

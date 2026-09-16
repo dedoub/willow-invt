@@ -67,7 +67,12 @@ test('financeIdentity separates Willow and Tensoftworks Keychain credentials', a
   const tensw = financeIdentity({ FINANCE_COMPANY: 'tensw' })
   assert.equal(tensw.keychainService, 'willow.tensw.hometax.certificate')
   assert.equal(tensw.keychainAccount, 'tensoftworks')
-  assert.equal(tensw.certificateOwnerKeyword, '텐소')
+  // 2026-09-16 에 신한 BizBank 인증서로 갈아탔다. CN 에 회사명이 없어 '승인자' 로 고른다.
+  assert.equal(tensw.certificateOwnerKeyword, '승인자')
+  assert.ok('주식회사 승인자(BizBank)0088059'.includes(tensw.certificateOwnerKeyword))
+  // 두 회사가 같은 SignKorea 라, 이름 조각은 서로의 인증서에 걸리지 않아야 한다.
+  assert.ok(!'주식회사 승인자(BizBank)0088059'.includes(willow.certificateOwnerKeyword))
+  assert.ok(!'윌로우인베스트먼트((BizBank)0088059'.includes(tensw.certificateOwnerKeyword))
   assert.equal(tensw.businessNumber, '8288800992')
 })
 
@@ -158,21 +163,33 @@ test('certificateImportPaths reads the NPKI folder, falling back to the configur
 
   // A home with a real NPKI tree resolves the company's own certificate.
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'npki-'))
-  const dir = path.join(home, 'Library/Preferences/NPKI/TradeSign/User', 'cn=주식회사 텐소프트웍스_0001')
+  const dir = path.join(home, 'Library/Preferences/NPKI/SignKorea/User', 'cn=주식회사 승인자(BizBank)0088059')
   fs.mkdirSync(dir, { recursive: true })
   assert.deepEqual(certificateImportPaths({ HOME: home, FINANCE_COMPANY: 'tensw' }), [
     path.join(dir, 'signCert.der'),
     path.join(dir, 'signPri.key'),
   ])
 
-  // A home without one falls back to the pair CODEF left in the environment.
+  // A home without one falls back to the pair CODEF left in the environment,
+  // but only when that pair is the certificate the company now signs with.
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'npki-empty-'))
   fs.mkdirSync(path.join(empty, 'Library/Preferences/NPKI'), { recursive: true })
   assert.deepEqual(certificateImportPaths({
     HOME: empty,
-    CODEF_HOMETAX_CERT_DER: '/secure/signCert.der',
-    CODEF_HOMETAX_CERT_KEY: '/secure/signPri.key',
-  }), ['/secure/signCert.der', '/secure/signPri.key'])
+    CODEF_HOMETAX_CERT_DER: '/secure/cn=주식회사 승인자(BizBank)0088059/signCert.der',
+    CODEF_HOMETAX_CERT_KEY: '/secure/cn=주식회사 승인자(BizBank)0088059/signPri.key',
+  }), [
+    '/secure/cn=주식회사 승인자(BizBank)0088059/signCert.der',
+    '/secure/cn=주식회사 승인자(BizBank)0088059/signPri.key',
+  ])
+
+  // .env.local 에 남아 있는 옛 TradeSign 경로로는 서명하지 않는다 — 조용히 바뀌기 전
+  // 인증서를 쓰면 오류 횟수만 태우고 무엇이 틀렸는지도 알 수 없다.
+  assert.throws(() => certificateImportPaths({
+    HOME: empty,
+    CODEF_HOMETAX_CERT_DER: '/secure/cn=주식회사 텐소프트웍스_0001729044/signCert.der',
+    CODEF_HOMETAX_CERT_KEY: '/secure/cn=주식회사 텐소프트웍스_0001729044/signPri.key',
+  }), /다른 인증서/)
 
   assert.throws(() => certificateImportPaths({ HOME: empty }), /인증서 파일을 NPKI 폴더에서 찾지 못했어요/)
 
