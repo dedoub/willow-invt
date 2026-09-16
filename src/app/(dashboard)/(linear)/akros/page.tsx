@@ -144,18 +144,21 @@ export default function AkrosPage() {
             </>
           ) : (
             <>
-              {/* AUM + Products (left 2/3) + Tax Invoices (right 1/3, full height) */}
+              {/* 전체현황·상품관리(왼쪽 2/3) + 세금계산서(오른쪽 1/3).
+                  alignItems:start — 오른쪽은 왼쪽 열 높이를 따라가지 않고 제 내용만큼만 자란다.
+                  늘려 맞추면 목록이 짧은 날 카드 아래가 빈 판으로 남았다(CEO 2026-09-16). */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr',
-                gridTemplateRows: 'auto 1fr',
+                gridTemplateRows: 'auto auto',
                 gap: t.density.blockGap,
+                alignItems: 'start',
               }}>
                 <div style={{ minWidth: 0, gridColumn: 1, gridRow: 1 }}>
                   <AumBlock timeSeries={timeSeries} productCount={products.length} yearLaunches={yearLaunches} />
                 </div>
                 <div style={{ minWidth: 0, gridColumn: 2, gridRow: '1 / -1' }}>
-                  <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} style={{ height: '100%' }} />
+                  <TaxInvoiceBlock invoices={invoices} onRefresh={loadInvoices} />
                 </div>
                 <div style={{ minWidth: 0, gridColumn: 1, gridRow: 2 }}>
                   <ProductBlock products={products} />
