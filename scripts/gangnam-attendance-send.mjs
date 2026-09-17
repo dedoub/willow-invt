@@ -32,7 +32,7 @@ const CC = 'ch.kim@tsw.im'
 const CONTEXT = 'tensoftworks'          // dw.kim@tensoftworks.com 에서 보내고 여기로 회신받는다
 
 // 첨부는 서버에서 받는다. 로컬 폴더에 기대면 그 폴더가 사라진 달에 조용히 멈춘다.
-// 서명이 든 파일이라 비공개 버킷에 둔다 — 위키 첨부는 공개 버킷이라 URL 만 알면 열린다.
+// 서명이 든 파일이라 비공개 버킷에 둔다.
 // 스토리지 키는 아스키만 받으므로 사람은 코드로, 파일명은 내려받을 때 한글로 되살린다.
 const BUCKET = 'tensw-attendance'
 
