@@ -176,12 +176,15 @@ node scripts/tensw-payroll-request.mjs --month 2026-09 --file 출력_202609.xlsx
 node scripts/tensw-payroll-request.mjs --month 2026-09 --file … --send                # 승인 뒤
 
 # 2단계 — 확정 급여대장이 오면 대량이체 xls + 개인별 급여명세서 → 급여일 아침 발송
+python3 scripts/tensw_payroll_payday.py 2026 8 8월급여대장.pdf \
+  --register 급여내역_202608.xlsx --accounts 계좌.json --out 폴더
 ```
 
 - 세무법인형운 `jjtaxro@daum.net`, 참조 `ch.kim@tsw.im`.
 - **급여일 오전까지 안 올라온 보험은 직전 달 숫자를 그대로 쓴다.** 이어쓴 칸은 메일에 적는다.
 - 건강은 16일쯤, 연금·산재는 21~24일쯤 올라온다. 수집기가 없는 보험을 "없음" 으로 찍어 준다.
 - 우리가 보내는 건 계산서가 아니라 입력이다. 근로자 부담분을 계산하지 않는다.
+- 이체 금액은 대장의 **차인지급액**. 계좌 json 은 깃에 두지 않고 직전 달 파일에서 옮긴다.
 - 자세한 배경과 덫은 `.claude/skills/tensw-monthly-payroll/SKILL.md`.
 
 ## Notes
