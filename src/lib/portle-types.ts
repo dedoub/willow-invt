@@ -56,8 +56,11 @@ export interface PortleUserRow {
   // 로그인 사용자(google)와 비로그인 기기(device) — VoiceCards처럼 둘 다 정상 사용자로 본다.
   type: 'google' | 'device' | 'other'
   // 구글 계정 id(sub). 로그인이 확인된 사람만 채워진다 — 이 값이 있으면 '가입자'로 보여준다.
-  // 이름·이메일은 서버에 없다(앱이 보내지 않는다). 지금 가진 가입자 정보는 이 id 하나뿐이다.
   accountId: string | null
+  // 가입자 이메일 (portle_users). 서버가 검증된 구글 토큰에서 읽어 넣는다. 이름은 없다 —
+  // 포틀 개인정보처리방침이 밝힌 범위가 id 와 이메일까지다. 그 사람이 앱을 다시 열어
+  // 토큰 요청을 보내기 전까지는 null 이므로, 없으면 계정 id 로 부른다.
+  email: string | null
   // 이 사람에게 귀속된 기기. 앱 이벤트가 없는 사람(AI 로그만 있는 사람)은 빈 배열.
   deviceIds: string[]
   platform: 'ios' | 'android' | 'other' | null

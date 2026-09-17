@@ -87,9 +87,10 @@ async function fetchAppEvents(): Promise<{
 }> {
   const empty = { funnel: { installs: [], signins: [], driveLinks: [], sheetActivations: [] }, devices: [] }
   if (!portleSupabase) return empty
-  // 이벤트별 (기기, 첫 발생) — 오름차순 스캔이라 처음 본 조합이 곧 첫 발생
-  const firstAt = new Map<string, string>() // `${event}\n${device}` → date
-  const devices = new Map<string, PortleDeviceRecord>()
+  const rows: Array<{
+    created_at: string; device_id: string | null; subject: string | null
+    event: string; platform: string | null; app_version: string | null
+  }> = []
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
     const { data, error } = await portleSupabase
       .from('portle_app_events')
@@ -101,31 +102,46 @@ async function fetchAppEvents(): Promise<{
       console.warn('portle_app_events 조회 실패:', error.message)
       return empty
     }
-    for (const row of data ?? []) {
-      if (isInternalEvent(row.platform, row.created_at)) continue // 우리 손으로 만든 트래픽
-      if (!row.device_id) continue
-      const key = `${row.event}\n${row.device_id}`
-      if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
-
-      const stage = STAGE_OF_EVENT[row.event] ?? 'install'
-      let d = devices.get(row.device_id)
-      if (!d) {
-        d = {
-          deviceId: row.device_id, platform: row.platform, appVersion: row.app_version,
-          subject: null, firstAt: row.created_at, lastAt: row.created_at,
-          installedAt: null, stage, days: new Set(),
-        }
-        devices.set(row.device_id, d)
-      }
-      d.lastAt = row.created_at                     // 오름차순이라 마지막 값이 최신
-      if (row.app_version) d.appVersion = row.app_version
-      if (row.platform) d.platform = row.platform
-      if (row.subject) d.subject = row.subject
-      if (row.event === 'app_opened' && !d.installedAt) d.installedAt = row.created_at
-      if (STAGE_RANK[stage] > STAGE_RANK[d.stage]) d.stage = stage
-      d.days.add(kstDateKey(row.created_at))
-    }
+    rows.push(...(data ?? []))
     if (!data || data.length < PAGE) break
+  }
+
+  // 기기 단위로 먼저 알아야 하는 것 두 가지. 행 하나만 봐서는 판정할 수 없다.
+  //   deviceSubject: 그 기기가 어느 계정의 것인가 (로그인 이벤트 한 줄에만 실려 온다)
+  //   그 계정이 관리자면 기기째로 뺀다 — 안 그러면 대표님 기기가 퍼널에 설치·로그인으로 잡힌다.
+  const deviceSubject = new Map<string, string>()
+  for (const row of rows) {
+    if (row.device_id && row.subject && !deviceSubject.has(row.device_id)) {
+      deviceSubject.set(row.device_id, row.subject)
+    }
+  }
+
+  // 이벤트별 (기기, 첫 발생) — 오름차순 스캔이라 처음 본 조합이 곧 첫 발생
+  const firstAt = new Map<string, string>() // `${event}\n${device}` → date
+  const devices = new Map<string, PortleDeviceRecord>()
+  for (const row of rows) {
+    if (!row.device_id) continue
+    const owner = deviceSubject.get(row.device_id) ?? null
+    if (isInternalEvent(row.platform, row.created_at, owner)) continue // 우리 손으로 만든 트래픽
+    const key = `${row.event}\n${row.device_id}`
+    if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
+
+    const stage = STAGE_OF_EVENT[row.event] ?? 'install'
+    let d = devices.get(row.device_id)
+    if (!d) {
+      d = {
+        deviceId: row.device_id, platform: row.platform, appVersion: row.app_version,
+        subject: owner, firstAt: row.created_at, lastAt: row.created_at,
+        installedAt: null, stage, days: new Set(),
+      }
+      devices.set(row.device_id, d)
+    }
+    d.lastAt = row.created_at                       // 오름차순이라 마지막 값이 최신
+    if (row.app_version) d.appVersion = row.app_version
+    if (row.platform) d.platform = row.platform
+    if (row.event === 'app_opened' && !d.installedAt) d.installedAt = row.created_at
+    if (STAGE_RANK[stage] > STAGE_RANK[d.stage]) d.stage = stage
+    d.days.add(kstDateKey(row.created_at))
   }
   const datesOf = (event: string) =>
     Array.from(firstAt.entries())
@@ -141,6 +157,23 @@ async function fetchAppEvents(): Promise<{
     },
     devices: Array.from(devices.values()),
   }
+}
+
+// 가입자 이메일 (portle_users). 서버가 검증된 구글 토큰에서 읽어 upsert 하므로 앱 버전과
+// 무관하지만, 그 사람이 앱을 다시 열어 토큰 요청을 보내기 전까지는 행이 없다. 표가 아직
+// 없거나 조회가 실패해도 대시보드는 계정 id 로 부르면 되므로 빈 맵으로 넘어간다.
+async function fetchPortleEmails(): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (!portleSupabase) return out
+  const { data, error } = await portleSupabase.from('portle_users').select('subject, email')
+  if (error) {
+    console.warn('portle_users 조회 실패:', error.message)
+    return out
+  }
+  for (const row of data ?? []) {
+    if (row.subject && row.email) out.set(row.subject, row.email)
+  }
+  return out
 }
 
 function subjectType(subject: string): PortleUserRow['type'] {
@@ -181,11 +214,22 @@ function isTestPeriod(createdAt: string): boolean {
   return new Date(createdAt).getTime() < PORTLE_TEST_CUTOFF_MS
 }
 
-/** 앱 이벤트가 우리(로컬 테스트·심사 전 iOS) 것인가 */
-function isInternalEvent(platform: string | null, createdAt: string): boolean {
+/**
+ * 앱 이벤트가 우리 것인가. 행 하나가 아니라 **기기 단위**로 판정한다 —
+ * `owner` 는 그 기기가 로그인 이벤트에 실어 보낸 계정(없으면 null)이다.
+ */
+function isInternalEvent(platform: string | null, createdAt: string, owner: string | null): boolean {
   if (isTestPeriod(createdAt)) return true
+  if (owner && EXCLUDED_PORTLE_SUBJECTS.has(owner)) return true   // 관리자 기기
   if (platform === 'ios') {
-    return PORTLE_IOS_RELEASE_MS === null || new Date(createdAt).getTime() < PORTLE_IOS_RELEASE_MS
+    // Jest 행을 지우기 전까지의 임시 기준(포틀 세션 제안, 2026-09-17): 계정을 한 번이라도
+    // 실어 보낸 iOS 기기만 실기기로 본다. 가짜 기기 1,396대는 전부 계정이 없고, 로그인한
+    // 실사용자는 drive_linked 에 계정이 실려 통과한다. 대신 **로그인 안 한 실제 iOS 사용자는
+    // 여전히 안 보인다** — 이벤트 1건짜리 가짜 기기 810대와 생김새가 같아서 가를 수가 없다.
+    // 지금도 iOS 를 통째로 빼고 있으니 이 규칙이 덜 가리는 쪽이고, 아래 출시 시각을 적는
+    // 순간(=Jest 행 삭제 뒤) 규칙 자체가 사라진다.
+    if (PORTLE_IOS_RELEASE_MS === null) return !owner
+    return new Date(createdAt).getTime() < PORTLE_IOS_RELEASE_MS
   }
   return false
 }
@@ -197,12 +241,13 @@ function isExcludedUsage(subject: string, createdAt: string): boolean {
 export async function getPortleStats(): Promise<PortleStats> {
   if (!portleSupabase) throw new Error('Portle Supabase 미설정 (PORTLE_SUPABASE_URL / PORTLE_SUPABASE_SECRET_KEY)')
 
-  const [usage, entitlementsRes, shortCodesRes, storeVisitsRes, appEvents] = await Promise.all([
+  const [usage, entitlementsRes, shortCodesRes, storeVisitsRes, appEvents, emails] = await Promise.all([
     fetchAllAiUsage(),
     portleSupabase.from('portle_entitlements').select('subject, store, product_id, expires_at, updated_at'),
     portleSupabase.from('portle_short_codes').select('owner_sub'),
     portleSupabase.from('portle_store_visits').select('date, visitors').order('date', { ascending: true }),
     fetchAppEvents(),
+    fetchPortleEmails(),
   ])
   const appFunnel = appEvents.funnel
   if (entitlementsRes.error) throw new Error(`portle_entitlements 조회 실패: ${entitlementsRes.error.message}`)
@@ -314,6 +359,7 @@ export async function getPortleStats(): Promise<PortleStats> {
       u = {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
+        email: emails.get(subject) ?? null,
         deviceIds: [], platform: null, appVersion: null, stage: null, installedAt: null,
         firstAt: row.created_at, lastAt: row.created_at, activeDays: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
@@ -349,6 +395,7 @@ export async function getPortleStats(): Promise<PortleStats> {
       u = {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
+        email: emails.get(subject) ?? null,
         deviceIds: [], platform: null, appVersion: null, stage: null, installedAt: null,
         firstAt: d.firstAt, lastAt: d.lastAt, activeDays: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},

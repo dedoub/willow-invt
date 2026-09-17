@@ -197,9 +197,9 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'portle.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '72px 72px minmax(140px,1.4fr) 48px 56px 52px 44px 52px 44px 44px 44px 52px 48px 40px 56px'
-// 컬럼 폭 합(864) + gap 6px×14(84) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 964
+const USER_TABLE_COLS = '72px 72px minmax(180px,1.6fr) 48px 56px 52px 44px 52px 44px 44px 44px 52px 48px 40px 56px'
+// 컬럼 폭 합(904) + gap 6px×14(84) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
+const USER_TABLE_MIN_WIDTH = 1004
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -221,13 +221,17 @@ const userDateCell: React.CSSProperties = {
 }
 
 // 사람 한 줄을 무엇으로 부를 것인가. 로그인한 사람은 계정으로, 아닌 사람은 기기로 부른다
-// (보이스카드 사용자 표와 같은 규칙). 포틀 서버에는 이름·이메일이 없어서 구글 계정도
-// 계정 id 축약이 이름 자리에 온다 — 앱이 로그인 이벤트에 이메일을 실어 보내면 그때 바뀐다.
+// (보이스카드 사용자 표와 같은 규칙). 이메일이 있으면 이메일이 이름 자리에 온다.
+// 이메일은 그 사람이 앱을 다시 열어 토큰 요청을 보내야 서버에 생기므로, 없는 동안은
+// 계정 id 로 부른다. 이름(display name)은 포틀이 수집하지 않는다.
 function identityOf(u: PortleUserRow): { label: string; full: string; account: boolean } {
+  if (u.email) {
+    return { label: u.email, full: `${u.email} (구글 계정 ${u.accountId ?? u.subject})`, account: true }
+  }
   if (u.accountId) {
     return {
       label: u.accountId.length > 12 ? `${u.accountId.slice(0, 10)}…` : u.accountId,
-      full: `구글 계정 ${u.accountId}`,
+      full: `구글 계정 ${u.accountId} (이메일 아직 없음)`,
       account: true,
     }
   }
@@ -756,10 +760,15 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
-                      {ident.account ? 'G' : ident.label.replace(/^#/, '').charAt(0).toUpperCase() || '?'}
+                      {(user.email ? user.email.charAt(0) : ident.account ? 'G' : ident.label.replace(/^#/, '').charAt(0)).toUpperCase() || '?'}
                     </div>
                     <LTableBadge tone={typeTone}>{typeTone.label}</LTableBadge>
-                    <span style={{ ...userTextCell, fontFamily: t.font.mono }}>{ident.label}</span>
+                    <span style={{
+                      ...userTextCell,
+                      // 이메일은 읽는 글자라 sans, 계정 id·기기번호는 대조하는 글자라 mono.
+                      fontFamily: user.email ? t.font.sans : t.font.mono,
+                      color: user.email ? t.neutrals.text : t.neutrals.muted,
+                    }}>{ident.label}</span>
                   </div>
                   {/* 플랫폼 · 앱버전 — 기기 이벤트에서 온다. 이벤트가 없는 사람은 '—' */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
