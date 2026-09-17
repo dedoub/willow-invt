@@ -102,15 +102,31 @@ python3 scripts/tensw_payroll_payday.py 2026 8 8월급여대장.pdf \
 은행 이름은 파일에 적힌 그대로다 — 우리은행 · 국민은행 · 하나은행 · 기업은행 · 신한은행 ·
 **NH농협은행**("농협" 이 아니다). 줄 순서는 급여대장 순서(사원번호 순)를 따른다.
 
-급여명세서는 회사 서식(`scripts/templates/tensw-payslip.xlsx`)에 담아 개인별 xlsx 로 만들고
-급여일 아침에 각자에게 보낸다. 서식에 자리가 없는 항목(정산·두루누리·연말정산)은 **기타**로
-모아서 지급합계·공제합계가 대장과 맞게 한다 — 조용히 버리면 합이 안 맞는다.
+급여명세서는 사람마다 **워드(.docx)와 PDF 한 벌**로 나온다. 워드는 고쳐 쓰라고, PDF 는
+보내라고 둔다. 서식에 자리가 없는 항목(정산·두루누리·연말정산)은 **기타**로 모아서
+지급합계·공제합계가 대장과 맞게 한다 — 조용히 버리면 합이 안 맞는다.
 
-법인인감은 저장소에 없다. 비공개 버킷에서 받아 `--seal` 로 넘긴다.
+**PDF 를 문서 변환기로 뽑지 않는다.** LibreOffice 는 이 맥에서 한글 글리프를 한 자도 못 그린다.
+텍스트 레이어에는 한글이 들어가서 `pdftotext` 로는 멀쩡해 보이지만 PDF 에 박히는 폰트는
+LinuxLibertine 뿐이라 화면에도 종이에도 아무것도 안 나온다(샌드박스 문제가 아니다). 그래서
+PDF 는 `scripts/lib/payslip_pdf.py` 가 AppleGothic 을 직접 박아 그린다. 워드와 PDF 는 같은
+인자로 만들어지니 따로 놀지 않는다.
+
+법인인감은 공식문서함 `TS-DOC-2026-003` 이 정본이다. 받아서 `--seal` 로 넘긴다.
 
 ```bash
-node scripts/fetch-private-file.mjs signatures tensw/corp-seal.png /tmp/seal.png
+curl -s "$(npx tsx scripts/corp-records.ts doc url TS-DOC-2026-003 | tr -d '\"')" -o /tmp/seal.png
 ```
+
+## 그 달 자료 모아 두기
+
+```bash
+node scripts/tensw-payroll-wiki.mjs --month 2026-08 --dir <그 달 폴더> \
+  --nhis ~/logs/tensw-local-finance/nhis-persons/202608
+```
+
+업무위키 노트 **"텐소프트웍스 월 급여"** 하나에 달마다 덧붙인다(`[2026-08]` 꼬리표).
+첨부 버킷은 private 이고 링크는 `/api/files/…` 라 로그인해야 열린다.
 
 ## 사람
 

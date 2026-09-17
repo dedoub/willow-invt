@@ -186,7 +186,8 @@ node scripts/tensw-payroll-request.mjs --month 2026-09 --file … --send        
 # 2단계 — 확정 급여대장이 오면 대량이체 xls + 개인별 급여명세서 → 급여일 아침 발송
 node scripts/fetch-private-file.mjs tensw-payroll accounts/latest.json /tmp/accounts.json
 python3 scripts/tensw_payroll_payday.py 2026 8 8월급여대장.pdf \
-  --register 급여내역_202608.xlsx --accounts /tmp/accounts.json --out 폴더
+  --register 급여내역_202608.xlsx --accounts /tmp/accounts.json --out 폴더   # 명세서는 docx+pdf
+node scripts/tensw-payroll-wiki.mjs --month 2026-08 --dir 폴더                # 업무위키에 모아 둔다
 ```
 
 - 세무법인형운 `jjtaxro@daum.net`, 참조 `ch.kim@tsw.im`.

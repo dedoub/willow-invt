@@ -5,7 +5,7 @@
       --register 급여내역_202608.xlsx --accounts 계좌.json --out 폴더
 
   1) 우리은행 대량이체 .xls — 머리글 없는 여덟 칸, 한 줄에 한 사람
-  2) 개인별 급여명세서 .xlsx — 회사 서식(scripts/templates/tensw-payslip.xlsx)
+  2) 개인별 급여명세서 — 워드(.docx, 고쳐 쓰라고)와 PDF(.pdf, 보내라고) 한 벌씩
 
 이체 금액은 **차인지급액**이다. 우리가 다시 계산하지 않는다. 대장에 적힌 숫자를 옮긴다.
 주민번호와 계좌번호는 깃·로그·위키에 적지 않는다. 계좌는 밖에서 받아 온 json 으로만 온다.
@@ -14,38 +14,28 @@ import argparse
 import datetime
 import json
 import re
-import shutil
 import sys
 from pathlib import Path
 
 import openpyxl
 import xlwt
-from openpyxl.drawing.image import Image as XlsxImage
-from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, TwoCellAnchor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'lib'))
 from kr_workdays import month_facts                                 # noqa: E402
 from payroll_ledger import read_ledger                               # noqa: E402
+from payslip_docx import build_payslip                               # noqa: E402
+from payslip_pdf import build_payslip_pdf                            # noqa: E402
 
-TEMPLATE = Path(__file__).resolve().parent / 'templates' / 'tensw-payslip.xlsx'
 COMPANY = '텐소프트웍스'
+COMPANY_FULL = '주식회사 텐소프트웍스'
+CEO = '대표이사 김철형'
 
-# 급여대장의 칸 → 명세서의 칸
-PAY_ROWS = {'기본급': 'D7', '식대': 'D8', '자가운전': 'D9'}
+# 급여대장의 칸 → 명세서의 줄. 서식에 자리가 없는 것은 기타로 모은다.
+PAY_ROWS = {'기본급': '기본급', '식대': '식대', '자가운전': '차량유지비'}
 DEDUCT_ROWS = {
-    '국민연금': 'I7', '건강보험': 'I8', '장기요양보험료': 'I9',
-    '고용보험': 'I10', '소득세': 'I11', '지방소득세': 'I12',
+    '국민연금': '국민연금', '건강보험': '건강보험', '장기요양보험료': '장기요양보험',
+    '고용보험': '고용보험', '소득세': '소득세', '지방소득세': '지방소득세',
 }
-PAY_OTHER = 'D16'          # 서식에 자리가 없는 지급 항목은 기타로 모은다
-DEDUCT_OTHER = 'I15'
-
-# 원래 서식이 인감을 놓던 자리. 인감 이미지는 저장소에 두지 않는다(비공개 버킷
-# signatures/tensw/corp-seal.png). --seal 로 받아 그 자리에 얹는다.
-SEAL_ANCHOR = TwoCellAnchor(
-    editAs='oneCell',
-    _from=AnchorMarker(col=5, colOff=171449, row=29, rowOff=114300),
-    to=AnchorMarker(col=7, colOff=6350, row=33, rowOff=25400),
-)
 
 DIGITS = '영일이삼사오육칠팔구'
 SMALL_UNITS = ('', '십', '백', '천')
@@ -132,52 +122,43 @@ def write_transfer(people, accounts, residents, year, month, destination):
 
 
 def write_payslip(person, year, month, paid_on, destination, seal=None):
-    shutil.copyfile(TEMPLATE, destination)
-    workbook = openpyxl.load_workbook(destination)
-    sheet = workbook.worksheets[0]
+    """명세서 한 장을 워드로 쓴다. 돌려주는 것은 서식에 자리가 없어 기타로 간 금액이다."""
     values = person['values']
 
-    sheet['C4'] = person['department']
-    sheet['F4'] = person['title']
-    sheet['J4'] = person['name']
-
-    def won(amount):
-        return f'{amount:,}원'
-
-    placed_pay = 0
-    for key, coordinate in PAY_ROWS.items():
+    pays, placed_pay = [], 0
+    for key, label in PAY_ROWS.items():
         amount = values.get(key, 0)
         if amount:
-            sheet[coordinate] = won(amount)
+            pays.append((label, amount))
             placed_pay += amount
-    placed_deduct = 0
-    for key, coordinate in DEDUCT_ROWS.items():
+    deducts, placed_deduct = [], 0
+    for key, label in DEDUCT_ROWS.items():
         amount = values.get(key, 0)
         if amount:
-            sheet[coordinate] = won(amount)
+            deducts.append((label, amount))
             placed_deduct += amount
 
-    # 서식에 자리가 없는 항목(정산·두루누리·연말정산 등)은 조용히 버리지 않고 기타로 남긴다.
+    # 정산·두루누리·연말정산처럼 줄이 없는 항목을 조용히 버리면 합이 안 맞는다.
     pay_rest = values['지급합계'] - placed_pay
     deduct_rest = values['공제합계'] - placed_deduct
     if pay_rest:
-        sheet[PAY_OTHER] = won(pay_rest)
+        pays.append(('기타', pay_rest))
     if deduct_rest:
-        sheet[DEDUCT_OTHER] = won(deduct_rest)
+        deducts.append(('기타', deduct_rest))
 
-    sheet['D19'] = won(values['지급합계'])
-    sheet['I19'] = won(values['공제합계'])
-    sheet['D21'] = f'{year}.{month:02d}.01~{year}.{month:02d}.{month_end(year, month):02d}'
-    sheet['D22'] = won(values['지급합계'])
-    sheet['D23'] = won(values['공제합계'])
     net = values['차인지급액']
-    sheet['D24'] = f'     일금   {korean_amount(net)}원정 (\\  {net:,})'
-    sheet['B28'] = f'{paid_on.year}년 {paid_on.month:02d}월 {paid_on.day:02d}일'
-    if seal:
-        image = XlsxImage(seal)
-        image.anchor = SEAL_ANCHOR
-        sheet.add_image(image)
-    workbook.save(destination)
+    layout = dict(
+        name=person['name'], department=person['department'], title=person['title'],
+        period=f'{year}.{month:02d}.01~{year}.{month:02d}.{month_end(year, month):02d}',
+        paid_on=paid_on,
+        pays=pays, deducts=deducts,
+        pay_total=values['지급합계'], deduct_total=values['공제합계'],
+        net=net, net_korean=korean_amount(net),
+        company=COMPANY_FULL, ceo_title=CEO, seal=seal,
+    )
+    # 워드는 고쳐 쓰라고 두고, 보낼 PDF 는 따로 그린다. 둘 다 같은 인자로 만든다.
+    build_payslip(path=destination, **layout)
+    build_payslip_pdf(path=destination.with_suffix('.pdf'), **layout)
     return pay_rest, deduct_rest
 
 
@@ -207,8 +188,8 @@ def main():
     parser.add_argument('ledger', help='세무법인이 보낸 확정 급여대장 PDF')
     parser.add_argument('--register', required=True, help='그 달 급여내역 xlsx (주민번호를 여기서 가져온다)')
     parser.add_argument('--accounts', help='{"이름": {"bank": "우리은행", "number": "1002…", "birth": "770818"}} 형태의 json')
-    parser.add_argument('--seal', help='법인인감 png. 비공개 버킷에서 받아 온다:\n'
-                        '  node scripts/fetch-private-file.mjs signatures tensw/corp-seal.png /tmp/seal.png')
+    parser.add_argument('--seal', help='법인인감 png. 공식문서함에서 받아 온다:\n'
+                        '  curl -s "$(npx tsx scripts/corp-records.ts doc url TS-DOC-2026-003 | tr -d \'"\')" -o /tmp/seal.png')
     parser.add_argument('--out', required=True)
     args = parser.parse_args()
 
@@ -239,7 +220,7 @@ def main():
 
     print('\n급여명세서')
     for person in people:
-        destination = out / f'급여명세서_{label}_{person["name"]}.xlsx'
+        destination = out / f'급여명세서_{label}_{person["name"]}.docx'
         pay_rest, deduct_rest = write_payslip(person, args.year, args.month, paid_on, destination, args.seal)
         extra = []
         if pay_rest:
