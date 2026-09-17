@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-// 그 달 급여 자료를 업무위키 한 곳에 모은다.
+// 그 달 급여 자료를 업무위키에 모은다.
 //
 //   node scripts/tensw-payroll-wiki.mjs --month 2026-08 --dir <그 달 폴더> [--nhis <4대보험 폴더>]
 //
-// 노트는 하나다("텐소프트웍스 월 급여"). 달마다 그 달 파일을 그 노트에 덧붙인다.
+// 노트를 둘로 나눈다. 절차는 안 변하니 "텐소프트웍스 월 급여" 한 장에 두고(고정),
+// 파일은 달마다 "텐소프트웍스 급여 2026년 08월" 을 새로 만들어 담는다.
+// list_wiki_notes 는 섹션을 통째로 돌려줄 뿐 검색을 못 한다. 제목만 보고 그 달을 집어낼 수
+// 있어야 해서 이렇게 나눈다 — 한 장에 쌓으면 첨부 이름 수백 개를 훑어야 한다.
+//
 // 첨부는 비공개 버킷에 올라가고 링크는 /api/files/… 로 적힌다 — 로그인해야 열린다.
 // 파일 안에 주민번호·계좌번호가 있으니 공개 URL 로는 절대 적지 않는다.
 
@@ -12,12 +16,22 @@ config({ path: '.env.local', quiet: true })
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+
+// 지급일 규칙(25일, 쉬는 날이면 직전 영업일)은 kr_workdays.py 하나만 안다.
+function monthFacts(month) {
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const [year, mm] = month.split('-')
+  const out = execFileSync('python3', [path.join(here, 'lib', 'kr_workdays.py'), year, String(Number(mm))], { encoding: 'utf8' })
+  return JSON.parse(out)
+}
 
 const BUCKET = 'wiki-attachments'
 const SECTION = 'tensw-mgmt'
 const CATEGORY = '재무'
-const TITLE = '텐소프트웍스 월 급여'
+const GUIDE_TITLE = '텐소프트웍스 월 급여'   // 절차. 한 장, 고정.
 // 앱 로그인 계정. 세션 이메일과 다르다.
 const USER_ID = 'dw.kim@willowinvt.com'
 
@@ -85,7 +99,7 @@ async function run() {
     const { error } = await supabase.storage.from(BUCKET).upload(key, body, { contentType, upsert: true })
     if (error) throw new Error(`${entry.name}: ${error.message}`)
     attachments.push({
-      name: `[${month}] ${entry.name}`,
+      name: entry.name,
       url: `/api/files/${BUCKET}/${key.split('/').map(encodeURIComponent).join('/')}`,
       size: body.length,
       type: contentType,
@@ -93,32 +107,50 @@ async function run() {
     console.log(`  올림 ${entry.name}  (${body.length.toLocaleString()}바이트)`)
   }
 
-  const { data: existing } = await supabase
-    .from('work_wiki')
-    .select('id, attachments, content')
-    .eq('user_id', USER_ID)
-    .eq('section', SECTION)
-    .eq('title', TITLE)
-    .maybeSingle()
+  const payDate = monthFacts(month).payDate
 
-  // 같은 달을 다시 올리면 그 달 것만 갈아 끼운다.
-  const kept = (existing?.attachments ?? []).filter(a => !String(a.name ?? '').startsWith(`[${month}]`))
-  const merged = [...kept, ...attachments]
+  // 절차 노트는 한 장. 없으면 만들고, 있으면 건드리지 않는다.
+  const { data: guide } = await supabase.from('work_wiki')
+    .select('id').eq('user_id', USER_ID).eq('section', SECTION).eq('title', GUIDE_TITLE).maybeSingle()
+  if (!guide) {
+    const here = path.dirname(fileURLToPath(import.meta.url))
+    const content = await fs.readFile(path.join(here, 'templates', 'tensw-payroll-wiki.md'), 'utf8')
+    const { error } = await supabase.from('work_wiki').insert({
+      user_id: USER_ID, section: SECTION, category: CATEGORY,
+      title: GUIDE_TITLE, content, attachments: null, is_pinned: true,
+    })
+    if (error) throw error
+    console.log(`\n절차 노트 생성: ${GUIDE_TITLE}`)
+  }
+
+  // 그 달 노트. 다시 돌리면 그 달 것만 갈아 끼운다.
+  const title = `텐소프트웍스 급여 ${month.slice(0, 4)}년 ${month.slice(5)}월`
+  const total = attachments.length
+  const content = [
+    `${month.slice(0, 4)}년 ${Number(month.slice(5))}월 급여 자료. 지급일 ${payDate}.`,
+    '',
+    `첨부 ${total}개 — 확정 급여대장, 급여내역(세무법인 입력본), 우리은행 대량이체,`,
+    '개인별 급여명세서(워드·PDF), 4대보험 개인별 산출내역.',
+    '',
+    `절차는 [${GUIDE_TITLE}] 노트에 있다.`,
+  ].join('\n')
+
+  const { data: existing } = await supabase.from('work_wiki')
+    .select('id').eq('user_id', USER_ID).eq('section', SECTION).eq('title', title).maybeSingle()
 
   if (existing) {
     const { error } = await supabase.from('work_wiki')
-      .update({ attachments: merged, updated_at: new Date().toISOString() })
+      .update({ content, attachments, updated_at: new Date().toISOString() })
       .eq('id', existing.id)
     if (error) throw error
-    console.log(`\n노트 갱신: ${TITLE} (첨부 ${merged.length}개)`)
+    console.log(`\n노트 갱신: ${title} (첨부 ${total}개)`)
   } else {
-    const content = await fs.readFile(path.join(path.dirname(new URL(import.meta.url).pathname), 'templates', 'tensw-payroll-wiki.md'), 'utf8')
     const { error } = await supabase.from('work_wiki').insert({
       user_id: USER_ID, section: SECTION, category: CATEGORY,
-      title: TITLE, content, attachments: merged, is_pinned: true,
+      title, content, attachments, is_pinned: false,
     })
     if (error) throw error
-    console.log(`\n노트 생성: ${TITLE} (첨부 ${merged.length}개)`)
+    console.log(`\n노트 생성: ${title} (첨부 ${total}개)`)
   }
 }
 
