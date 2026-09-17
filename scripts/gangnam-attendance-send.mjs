@@ -22,13 +22,17 @@ import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
 
 const INTERNS = [
-  { name: '조성민', email: 'sm.cho@tensoftworks.com' },
-  { name: '이승무', email: 'sm.lee@tensoftworks.com' },
-  { name: '전희나', email: 'hn.jeon@tensoftworks.com' },
+  { name: '조성민', code: 'cho', email: 'sm.cho@tensoftworks.com' },
+  { name: '이승무', code: 'lee', email: 'sm.lee@tensoftworks.com' },
+  { name: '전희나', code: 'jeon', email: 'hn.jeon@tensoftworks.com' },
 ]
 const CC = 'ch.kim@tsw.im'
 const CONTEXT = 'tensoftworks'          // dw.kim@tensoftworks.com 에서 보내고 여기로 회신받는다
-const DOCS = path.join(os.homedir(), 'Documents', '강남구인턴십_출근부_2026', 'PDF_담당서명')
+
+// 첨부는 서버에서 받는다. 로컬 폴더에 기대면 그 폴더가 사라진 달에 조용히 멈춘다.
+// 서명이 든 파일이라 비공개 버킷에 둔다 — 위키 첨부는 공개 버킷이라 URL 만 알면 열린다.
+// 스토리지 키는 아스키만 받으므로 사람은 코드로, 파일명은 내려받을 때 한글로 되살린다.
+const BUCKET = 'tensw-attendance'
 
 const args = process.argv.slice(2)
 const has = (f) => args.includes(f)
@@ -103,14 +107,19 @@ const from = (await gmail.users.getProfile({ userId: 'me' })).data.emailAddress
 console.log(`${year}년 ${month}월분 · 근무 ${facts.workdayCount}일 · 발송일 ${facts.sendDate} · 회신기한 ${facts.replyDue}`)
 console.log(`보내는 계정 ${from}, 참조 ${CC}, ${has('--send') ? '실제 발송' : '초안만'}\n`)
 
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gangnam-'))
 for (const intern of INTERNS) {
-  const file = path.join(DOCS, `${year}년 ${String(month).padStart(2, '0')}월 출근부_${intern.name}_서명.pdf`)
-  if (!fs.existsSync(file)) throw new Error(`첨부가 없어요: ${file}`)
+  const key = `${year}/signed/${year}-${String(month).padStart(2, '0')}_${intern.code}.pdf`
+  const { data: blob, error: dl } = await sb.storage.from(BUCKET).download(key)
+  if (dl || !blob) throw new Error(`첨부를 받지 못했어요: ${BUCKET}/${key} — ${dl?.message ?? '빈 응답'}`)
+  const file = path.join(tmp, `${year}년 ${String(month).padStart(2, '0')}월 출근부_${intern.name}.pdf`)
+  fs.writeFileSync(file, Buffer.from(await blob.arrayBuffer()))
   const subject = `[텐소프트웍스] ${year}년 ${month}월 출근부 확인 요청 (회신기한 ${due.m}/${due.dd})`
   const raw = Buffer.from(mime({ from, to: intern.email, cc: CC, subject, text: body(intern.name), file }))
     .toString('base64').replace(/\+/g, '-').replace(/\//g, '_')
   const res = has('--send')
     ? await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
     : await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw } } })
-  console.log(`  ${intern.name} <${intern.email}>  ${has('--send') ? '발송' : '초안'} ${res.data.id}  (${path.basename(file)})`)
+  console.log(`  ${intern.name} <${intern.email}>  ${has('--send') ? '발송' : '초안'} ${res.data.id}  (${BUCKET}/${key})`)
 }
+fs.rmSync(tmp, { recursive: true, force: true })

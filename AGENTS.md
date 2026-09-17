@@ -145,6 +145,24 @@ npx tsx scripts/voicecards-sentence-cards.ts --dry   # "이미 이 모양이다"
 - 보고는 바뀐 행수로 한다(예: 68행 → 90행, 문장 카드 4장 → 6장).
 - 자세한 배경과 덫은 `.claude/skills/ceo-voicecards-deck-rebuild/SKILL.md`.
 
+### 강남구 인턴십 출근부
+`gangnam-attendance-sheets` · 트리거: "출근부 보내", "출근부 준비", "강남구 출근부"
+
+매달 마지막 영업일에 조성민·이승무·전희나에게 그 달 출근부를 보내고 다음 달 5일까지 받는다.
+launchd `com.tensw.gangnam-attendance-send` 가 매일 17시에 부르고 스크립트가 그날인지 가린다.
+
+```bash
+node scripts/gangnam-attendance-send.mjs                 # 이번 달, 초안만
+node scripts/gangnam-attendance-send.mjs --month 2026-10 # 달 지정
+node scripts/gangnam-attendance-send.mjs --send          # 실제 발송(승인 뒤에만)
+```
+
+- 첨부는 비공개 버킷 `tensw-attendance` 에서 받는다. 로컬 폴더에 기대지 않는다.
+- 발신·회신 `dw.kim@tensoftworks.com`, 참조 `ch.kim@tsw.im`.
+- **기본은 초안까지만.** 보고하고 CEO 승인 뒤 `--send` 를 붙인다.
+- 근무일·지급일·발송일·회신기한은 `scripts/lib/kr_workdays.py` 가 준다. 손으로 세지 않는다.
+- 자세한 배경과 덫은 `.claude/skills/gangnam-attendance-sheets/SKILL.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - wiki-attachments 버킷은 public으로 설정됨
