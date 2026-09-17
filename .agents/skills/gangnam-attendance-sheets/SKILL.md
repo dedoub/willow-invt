@@ -33,11 +33,15 @@ description: Use when preparing, signing or sending the Gangnam internship atten
 ```bash
 node scripts/gangnam-attendance-send.mjs                 # 이번 달, 초안만
 node scripts/gangnam-attendance-send.mjs --month 2026-10 # 달 지정
+node scripts/gangnam-attendance-send.mjs --notify        # 초안 만들고 CEO 봇에 물어봄
 node scripts/gangnam-attendance-send.mjs --send          # 실제 발송
 ```
 
 발신 `dw.kim@tensoftworks.com`, 참조 `ch.kim@tsw.im`, 회신도 발신 주소로 받는다.
-**기본은 초안까지만.** 실제 발송은 CEO 승인 뒤 `--send`.
+
+**자동으로 보내지 않는다.** 예약 실행은 초안을 만들고 `--notify` 로 윌리(CEO 봇)에게
+"보낼까요?" 를 묻는다. CEO가 보내라고 하면 그때 `--send` 로 다시 부른다.
+발송일은 CEO 캘린더(`dw.kim@willowinvt.com`)에도 등록돼 있다.
 
 ## 서명 다시 얹기
 

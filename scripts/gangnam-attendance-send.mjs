@@ -5,12 +5,14 @@
  *   node scripts/gangnam-attendance-send.mjs --month 2026-09 # 달 지정
  *   node scripts/gangnam-attendance-send.mjs --send          # 실제 발송
  *   node scripts/gangnam-attendance-send.mjs --on-send-date  # 마지막 영업일이 아니면 그냥 끝냄
+ *   node scripts/gangnam-attendance-send.mjs --notify        # 초안 만들고 CEO 봇으로 물어봄
  *
  * 매달 마지막 영업일에 보내고 다음 달 5일까지 회신받는다(5일이 쉬는 날이면 다음 영업일).
  * 예약은 launchd 가 매일 부르고, --on-send-date 가 그날인지 가린다 — launchd 로는
  * "마지막 영업일"을 표현할 수 없다.
  *
  * 기본은 초안까지만 만든다. 실제 발송은 --send 를 붙일 때만 한다(CEO 승인 뒤).
+ * 예약 실행은 초안을 만들고 --notify 로 CEO 봇에 물어본다. 승인이 오면 그때 --send 로 부른다.
  */
 import { config } from 'dotenv'
 config({ path: '.env.local', quiet: true })
@@ -95,6 +97,24 @@ function mime({ from, to, cc, subject, text, file }) {
   ].join('\r\n')
 }
 
+/** CEO 봇(윌리) 대화로 보낸다. notify-job.mjs 와 같은 곳을 본다. */
+async function tellCeo(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY
+  if (!token || !url || !key) throw new Error('텔레그램·Supabase 환경변수가 없어요.')
+  const res = await fetch(`${url}/rest/v1/telegram_conversations?bot_type=eq.ceo&select=chat_id&order=updated_at.desc&limit=1`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+  if (!res.ok) throw new Error(`CEO 대화를 찾지 못했어요: ${res.status}`)
+  const chatId = (await res.json())[0]?.chat_id
+  if (!chatId) throw new Error('CEO 봇 대화가 없어 보낼 곳을 찾지 못했어요.')
+  const sent = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+  })
+  if (!sent.ok) throw new Error(`텔레그램 전송 실패: ${sent.status} ${await sent.text()}`)
+}
+
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY)
 const { data: token, error } = await sb.from('gmail_tokens').select('*').eq('context', CONTEXT)
   .order('updated_at', { ascending: false }).limit(1).single()
@@ -123,3 +143,19 @@ for (const intern of INTERNS) {
   console.log(`  ${intern.name} <${intern.email}>  ${has('--send') ? '발송' : '초안'} ${res.data.id}  (${BUCKET}/${key})`)
 }
 fs.rmSync(tmp, { recursive: true, force: true })
+
+if (has('--notify') && !has('--send')) {
+  await tellCeo([
+    `📋 ${year}년 ${month}월 출근부 초안 ${INTERNS.length}통을 만들었습니다.`,
+    `오늘이 ${month}월 마지막 영업일이라 보낼 차례입니다.`,
+    '',
+    `받는 사람: ${INTERNS.map(i => i.name).join(' · ')}`,
+    `참조: ${CC}`,
+    `회신기한: ${due.m}월 ${due.dd}일(${due.dow})`,
+    `근무일: ${facts.workdayCount}일`,
+    '',
+    '보낼까요? "출근부 보내줘" 라고 하시면 발송합니다.',
+    'Gmail 임시보관함에서 먼저 확인하실 수 있습니다.',
+  ].join('\n'))
+  console.log('\nCEO 봇에 발송 여부를 물었습니다.')
+}

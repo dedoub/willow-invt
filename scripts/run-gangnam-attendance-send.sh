@@ -16,7 +16,8 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 export GANGNAM_PYTHON="$HOME/.willow/venv/bin/python"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 출근부 발송 확인" >> "$LOG_FILE"
-node scripts/gangnam-attendance-send.mjs --on-send-date --send >> "$LOG_FILE" 2>&1
+# 자동으로 보내지 않는다. 초안을 만들고 CEO 봇으로 물어본 뒤, 승인이 오면 --send 로 다시 부른다.
+node scripts/gangnam-attendance-send.mjs --on-send-date --notify >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 완료 (exit: $EXIT_CODE)" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"

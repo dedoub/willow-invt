@@ -1,0 +1,4 @@
+interface:
+  display_name: "텐소프트웍스 인턴십 지원금 신청"
+  short_description: "월별 증빙 수집부터 신청서·메일 초안까지 준비"
+  default_prompt: "텐소프트웍스 강남구 인턴십 지원금 신청 자료를 수집하고 신청서와 제출 메일 초안을 준비해 주세요."
