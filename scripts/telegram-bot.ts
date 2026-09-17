@@ -5646,8 +5646,9 @@ async function uploadWikiActionFiles(action: ActionBlock): Promise<{ attachments
         throw listError || new Error(`첨부 업로드 검증 실패: ${file.name}`)
       }
 
-      const { data: publicUrl } = supabase.storage.from(WIKI_ATTACHMENT_BUCKET).getPublicUrl(objectPath)
-      attachments.push({ name: file.name, url: publicUrl.publicUrl, size, type })
+      // 공개 URL 이 아니라 로그인 뒤의 링크를 적는다(src/lib/storage-links.ts 와 같은 모양).
+      const href = `/api/files/${WIKI_ATTACHMENT_BUCKET}/${objectPath.split('/').map(encodeURIComponent).join('/')}`
+      attachments.push({ name: file.name, url: href, size, type })
     }
     return { attachments, objectPaths }
   } catch (error) {

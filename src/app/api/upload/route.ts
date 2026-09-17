@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { GUARDED_BUCKETS, guardedHref } from '@/lib/storage-links'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,13 +96,14 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath)
+      // 숨기는 버킷은 로그인 뒤의 링크로, 나머지는 예전처럼 공개 URL 로 준다.
+      const url = GUARDED_BUCKETS.includes(bucket)
+        ? guardedHref({ bucket, path: filePath })
+        : supabase.storage.from(bucket).getPublicUrl(filePath).data.publicUrl
 
       uploadedFiles.push({
         name: file.name,
-        url: urlData.publicUrl,
+        url,
         size: file.size,
         type: file.type,
       })

@@ -6,6 +6,7 @@ import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { WikiNoteForm } from './wiki-note-form'
 import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
+import { attachmentHref } from '@/lib/storage-links'
 
 export interface WikiMemo {
   id: string
@@ -232,7 +233,7 @@ export function WikiNoteRow({ note, expanded, onToggle, onUpdate, onDelete }: Wi
       {note.attachments && note.attachments.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs }}>
           {note.attachments.map((f, i) => (
-            <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
+            <a key={i} href={attachmentHref(f.url)} target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
               background: t.neutrals.card, borderRadius: t.radius.sm,
               padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[600],

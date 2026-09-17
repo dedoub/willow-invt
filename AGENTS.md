@@ -17,11 +17,19 @@ Next.js 기반 대시보드 애플리케이션. ETF 관리, 업무 관리 등 �
 #### Storage Buckets
 | Bucket | Public | 용도 |
 |--------|--------|------|
-| `wiki-attachments` | Yes | 업무위키 첨부파일 |
+| `wiki-attachments` | No | 업무위키 첨부파일 |
 | `etf-documents` | No | ETF 문서 |
-| `tensw-project-docs` | Yes | 텐소프트웍스 프로젝트 문서 |
-| `ceo-docs` | Yes | CEO 관련 문서 |
+| `tensw-project-docs` | No | 텐소프트웍스 프로젝트 문서 |
+| `ceo-docs` | No | CEO 관련 문서 |
 | `corp-records` | No | 법인 서류함 (정관·등기·결의 문서 원본, 삭제 금지, 서명 URL로만 열람) |
+| `tensw-payroll` | No | 텐소 급여 (급여내역·대량이체·계좌 장부) |
+| `tensw-attendance` | No | 강남구 인턴십 출근부 |
+| `signatures` | No | 대표 서명 표본 |
+
+**첨부 링크는 `/api/files/<버킷>/<경로>` 로 건넨다.** 그 라우트가 로그인을 보고 5분짜리
+서명 URL 로 넘긴다(`src/lib/storage-links.ts`, `src/app/api/files/[...ref]/route.ts`).
+`getPublicUrl()` 을 저장하지 않는다 — 공개 객체 URL 은 영구하고 인증이 없어서, 링크가 한 번
+새면 그 파일은 영원히 열리고 노트를 지워도 객체는 남는다.
 
 ### project-supernova (Akros DB)
 - **Project ID**: `iiicccnrnwdfawsvbacu`
@@ -191,7 +199,8 @@ python3 scripts/tensw_payroll_payday.py 2026 8 8월급여대장.pdf \
 
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
-- wiki-attachments 버킷은 public으로 설정됨
+- 첨부 버킷은 모두 private. 새 첨부 URL 은 `/api/files/…` 로 저장되고, 예전에 저장된
+  `/storage/v1/object/public/…` 도 같은 라우트로 돌려 읽는다(`attachmentHref`).
 
 ---
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { guardedHref } from '@/lib/storage-links'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,13 +88,10 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath)
-
       uploadedFiles.push({
         name: file.name,
-        url: urlData.publicUrl,
+        // 공개 URL 을 저장하지 않는다. 이 링크는 로그인한 사람에게만 열린다.
+        url: guardedHref({ bucket: STORAGE_BUCKET, path: filePath }),
         size: file.size,
         type: file.type,
       })

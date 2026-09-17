@@ -15,6 +15,7 @@ import { WikiNote, WikiMemo } from '@/app/(dashboard)/(linear)/wiki/_components/
 import { WikiNoteForm } from '@/app/(dashboard)/(linear)/wiki/_components/wiki-note-form'
 import { htmlToPlainText, plainTextToHtml, sanitizeEditorHtml } from '@/components/ui/tiptap-editor'
 import { LPageSize, LTableBadge, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableDate, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { attachmentHref } from '@/lib/storage-links'
 
 type SectionFilter = 'all' | 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
 export type WikiSection = 'memo' | 'akros' | 'etf-etc' | 'willow-mgmt' | 'tensw-mgmt' | 'invest-mgmt'
@@ -568,7 +569,7 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
                 {selectedNote.attachments && selectedNote.attachments.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapXs, marginTop: 14 }}>
                     {selectedNote.attachments.map((f, i) => (
-                      <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
+                      <a key={i} href={attachmentHref(f.url)} target="_blank" rel="noopener noreferrer" style={{
                         display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
                         background: 'transparent', border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm,
                         padding: `${t.density.gapXs}px ${t.density.panelPadX}px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
