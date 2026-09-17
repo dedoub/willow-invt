@@ -131,10 +131,15 @@ if (cmd === 'autolog') {
   const cwd = hook.cwd || process.cwd()
 
   // cwd → 프로젝트 키 매핑 (경로 마커 기반, 기본 willow-invt)
+  // 폴더 이름과 프로젝트 키가 다른 저장소가 있다(앱 본체가 ~/app-dev-old 에 있는 것들).
+  // 마커를 빠뜨리면 폴더 이름이 그대로 키가 되어 그 프로젝트 기록이 따로 쌓인다 —
+  // 포틀은 'port-ledger' 로 24건, 보이스카드는 'voice-cards' 로 70건이 그렇게 갈라져 있었다.
+  // portfolio 보다 port-ledger 를 먼저 본다. 'port' 로 시작해 앞 규칙에 먹히면 안 된다.
   const lc = cwd.toLowerCase()
   const project =
     lc.includes('valuechain') ? 'valuechain-wiki' :
-    lc.includes('voicecards') ? 'voicecards' :
+    lc.includes('port-ledger') || lc.includes('portle') ? 'portle' :
+    lc.includes('voicecards') || lc.includes('voice-cards') ? 'voicecards' :
     lc.includes('review-notes') || lc.includes('reviewnotes') ? 'review-notes' :
     lc.includes('ryuha') ? 'ryuha' :
     lc.includes('portfolio') ? 'portfolio' :
