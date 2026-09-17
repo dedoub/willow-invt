@@ -40,7 +40,7 @@ node scripts/tensw-payroll-request.mjs --month 2026-09 --file … --send   # 승
 새로 받았고 어느 칸을 이어썼는지 표로 찍어 준다 — 조용히 이어쓰면 틀려도 모른다.
 이어쓴 게 있으면 메일에 한 줄 적는다(`--note`).
 
-수신 `jjtaxro@daum.net`(세무법인형운 세무자료), 참조 `admin@tensoftworks.com`.
+수신 `jjtaxro@daum.net`(세무법인형운 세무자료), 참조 `ch.kim@tsw.im`.
 제목은 `[텐소프트웍스] N월 급여대장 요청`. 8월에는 요청 10분 만에 회신이 왔다.
 
 세무법인이 먼저 "전월과 변동 여부" 를 묻는 달도 있다. 그때는 그 메일에 답장으로 붙인다.

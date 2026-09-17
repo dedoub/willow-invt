@@ -17,7 +17,7 @@ import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
 
 const TO = 'jjtaxro@daum.net'        // 세무법인형운 세무자료
-const CC = 'admin@tensoftworks.com'
+const CC = 'ch.kim@tsw.im'          // 김철형 대표
 const CONTEXT = 'tensoftworks'
 
 const args = process.argv.slice(2)
