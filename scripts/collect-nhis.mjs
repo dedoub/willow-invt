@@ -7,30 +7,17 @@
 // The portal keeps one screen per insurance behind the same form, so each of the
 // four is queried in turn.
 
-import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
-import { fileURLToPath } from 'node:url'
-import { promisify } from 'node:util'
-import { certSite } from './lib/cert-sites.mjs'
 import { financeIdentity } from './lib/tensw-local-finance.mjs'
 import { NHIS_INSURANCES, nhisObligations, nhisObligationsPayload } from './lib/nhis.mjs'
-import { LOGOUT_SCRIPT, PAGE_TEXT_SCRIPT, SESSION_STATE, sessionState } from './lib/finance-session.mjs'
-import {
-  chromeJavascript,
-  chromeTabState,
-  openChromeTab,
-  positionChromeWindow,
-  sleep,
-} from './lib/desktop.mjs'
+import { ensureNhisLogin, nhisPageScript } from './lib/nhis-session.mjs'
+import { chromeTabState, sleep } from './lib/desktop.mjs'
 
-const execFileAsync = promisify(execFile)
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const IDENTITY = financeIdentity()
-const SITE = certSite('nhis')
-const HOST = new URL(SITE.url).host
+const HOST = 'si4n.nhis.or.kr'
 const ARTIFACT_DIR = path.join(os.homedir(), 'logs', `${IDENTITY.company}-local-finance`)
 const LEDGER_URL = 'https://si4n.nhis.or.kr/jpbc/JpBca00101.do'
 
@@ -45,65 +32,8 @@ function log(message) {
   console.log(`[nhis-collect] ${message}`)
 }
 
-async function pageScript(javascript) {
-  const output = await chromeJavascript(javascript, { host: HOST })
-  if (output === 'missing') throw new Error('사회보험 포털 탭을 찾지 못했어요.')
-  return output
-}
-
-// 로그인 여부가 아니라 "누구로" 로그인됐는지를 본다. 공용 포털이라 다른 회사
-// 세션이 살아 있으면 그 회사 데이터를 우리 회사 이름으로 적재하게 된다.
-async function currentSessionState() {
-  const text = await pageScript(PAGE_TEXT_SCRIPT).catch(() => '')
-  return sessionState(text, IDENTITY.company)
-}
-
-async function isLoggedIn() {
-  return await currentSessionState() === SESSION_STATE.ours
-}
-
-async function signOutOther() {
-  log('다른 회사 세션이 열려 있어 로그아웃해요.')
-  await pageScript(LOGOUT_SCRIPT).catch(() => {})
-  await sleep(6_000)
-  await openChromeTab(SITE.url, HOST)
-  await sleep(6_000)
-}
-
-async function ensureLogin() {
-  const existing = await chromeTabState(HOST)
-  if (!existing.url) {
-    await openChromeTab(SITE.url, HOST)
-    await sleep(6_000)
-  }
-  await positionChromeWindow(HOST)
-  await sleep(2_000)
-
-  const state = await currentSessionState()
-  if (state === SESSION_STATE.ours) {
-    log('reused existing session')
-    return
-  }
-  if (state === SESSION_STATE.other) await signOutOther()
-
-  await execFileAsync('/opt/homebrew/bin/node', [path.join(ROOT, 'scripts', 'login-nhis-si4n.mjs')], {
-    encoding: 'utf8',
-    maxBuffer: 4 * 1024 * 1024,
-  })
-
-  const deadline = Date.now() + 60_000
-  while (Date.now() < deadline) {
-    await sleep(3_000)
-    if (await isLoggedIn()) {
-      log('logged in')
-      return
-    }
-  }
-  throw new Error('사회보험 로그인 상태를 확인하지 못했어요.')
-}
-
 async function openLedger() {
-  await pageScript(`(() => { location.href = ${JSON.stringify(LEDGER_URL)}; return 'navigating'; })()`)
+  await nhisPageScript(`(() => { location.href = ${JSON.stringify(LEDGER_URL)}; return 'navigating'; })()`)
   const deadline = Date.now() + 40_000
   while (Date.now() < deadline) {
     await sleep(2_000)
@@ -119,7 +49,7 @@ async function openLedger() {
 // 조회 is an anchor carrying an inline onclick, so a DOM click runs the page's
 // own handler.
 async function queryInsurance(insurance) {
-  const result = await pageScript(`(() => {
+  const result = await nhisPageScript(`(() => {
     const radio = document.getElementById(${JSON.stringify(insurance.id)});
     if (!radio) return 'no-radio';
     radio.checked = true;
@@ -148,7 +78,7 @@ async function queryInsurance(insurance) {
 }
 
 async function readLedgerRows() {
-  const output = await pageScript(`(() => {
+  const output = await nhisPageScript(`(() => {
     const shown = element => {
       const rect = element.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
@@ -166,7 +96,7 @@ async function readLedgerRows() {
 
 async function run() {
   await fs.mkdir(ARTIFACT_DIR, { recursive: true })
-  await ensureLogin()
+  await ensureNhisLogin({ company: IDENTITY.company, log })
   await openLedger()
 
   const groups = []

@@ -25,16 +25,33 @@ description: Use when running the Tensoftworks monthly payroll — collecting 4�
 
 ## 1단계 — 급여내역 만들어 요청
 
-사회보험통합징수포털(si4n)에서 개인별 내역을 내려받는다. 건강보험은
-`nhisGungangList_1.csv` 꼴로 나온다(EUC-KR, 앞에 빈 줄이 붙고 건강·요양 두 벌이 옆으로 이어진다).
+사회보험통합징수포털(si4n)에서 개인별 산출내역을 내려받는다. 손으로 받을 필요 없다.
 
 ```bash
+node scripts/collect-nhis-persons.mjs                  # 조회되는 최신월
+node scripts/collect-nhis-persons.mjs --month 2026-09  # 달을 지정할 때
+
 python3 scripts/tensw_payroll_register.py 2026 9 \
   직전달_급여내역.xlsx 출력_급여내역_202609.xlsx  내려받은csv…
 
 node scripts/tensw-payroll-request.mjs --month 2026-09 --file 출력_급여내역_202609.xlsx
 node scripts/tensw-payroll-request.mjs --month 2026-09 --file … --send   # 승인 뒤
 ```
+
+받은 파일은 `~/logs/tensw-local-finance/nhis-persons/<YYYYMM>/` 에 보험별로 한 장씩
+(`nhis-health-202609.csv` 꼴) 떨어지고, 무엇을 받고 무엇이 없었는지가 `manifest.json` 에 남는다.
+포털이 붙이는 이름은 `nhisGungangList` · `nhisYeonkumList` · `nhisGoyongList` · `nhisSanjaeList` 다.
+
+**서식이 두 벌이다.** 건강보험은 EUC-KR 에 건강·요양 두 벌이 옆으로 이어지고, 연금·고용·산재는
+한 사람 한 줄에 `결정보험료` 한 칸이다. 고용과 산재는 머리글이 글자 하나 다르지 않아 **파일 이름**
+으로만 갈린다 — 이름에 `goyong`/`고용`, `sanjae`/`산재` 를 남겨 둬야 한다.
+
+파서를 손댔으면 왕복으로 확인한다. 직전 달 xlsx 를 직전달·출력 양쪽에 넣고 그 달 CSV 넉 장을
+먹이면 모든 칸이 `같음` 으로 나오고 출력이 입력과 한 칸도 다르지 않아야 한다.
+
+**보험마다 고지가 올라오는 날이 다르다.** 건강이 16일쯤으로 가장 빠르고 연금·산재는 21~24일쯤이라,
+급여일 직전에 돌리면 건강만 나오는 달이 흔하다(2026-09 가 그랬다). 없는 보험은 "없음" 으로 찍히니
+조용히 넘어가지 않는다.
 
 **급여일 오전까지 안 올라온 보험은 직전 달 숫자를 그대로 쓴다(CEO).** 생성기가 어느 칸을
 새로 받았고 어느 칸을 이어썼는지 표로 찍어 준다 — 조용히 이어쓰면 틀려도 모른다.

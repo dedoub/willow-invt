@@ -25,37 +25,70 @@ FROM_SITE = {
     '산재': '산재(합산)',
 }
 
-def read_nhis_csv(path):
-    """건강보험공단이 주는 개인별 CSV. 앞쪽에 빈 줄이 붙어 오고 인코딩은 EUC-KR 이다."""
+def _decode(path):
     raw = Path(path).read_bytes()
     for enc in ('euc-kr', 'cp949', 'utf-8-sig', 'utf-8'):
         try:
-            text = raw.decode(enc)
-            break
+            return raw.decode(enc)
         except UnicodeDecodeError:
             continue
-    else:
-        raise SystemExit(f'인코딩을 못 읽었어요: {path}')
-    lines = [l for l in text.splitlines() if l.strip()]
+    raise SystemExit(f'인코딩을 못 읽었어요: {path}')
+
+# 고용과 산재는 머리글이 글자 하나 다르지 않다. 파일 이름으로만 갈린다.
+BY_FILENAME = (('goyong', '고용'), ('고용', '고용'), ('sanjae', '산재'), ('산재', '산재'))
+
+def _single_kind(header, path):
+    if '국민연금번호' in header:
+        return '국민연금'
+    lowered = Path(path).name.lower()
+    for hint, kind in BY_FILENAME:
+        if hint in lowered:
+            return kind
+    raise SystemExit(
+        f'고용인지 산재인지 파일 이름으로 갈라지지 않아요: {Path(path).name}\n'
+        '  이름에 goyong/고용 또는 sanjae/산재 를 넣어 주세요.'
+    )
+
+def read_nhis_csv(path):
+    """사회보험 사이트가 주는 개인별 CSV. 앞쪽에 빈 줄이 붙어 오고 인코딩은 EUC-KR 이다.
+
+    서식이 두 벌이다. 건강보험은 건강·요양 두 벌이 옆으로 이어 붙고, 연금·고용·산재는
+    한 사람 한 줄에 결정보험료 한 칸이다.
+    """
+    lines = [l for l in _decode(path).splitlines() if l.strip()]
     head = next((i for i, l in enumerate(lines) if l.startswith('순번')), None)
     if head is None:
         raise SystemExit(f'머리글(순번)을 못 찾았어요: {path}')
     rows = list(csv.reader(lines[head:]))
-    header, body = rows[0], rows[1:]
+    header = [h.strip() for h in rows[0]]
+    body = rows[1:]
+
     # 같은 이름의 칸이 두 벌(건강/요양) 이어 붙는다. 구분 칸 위치로 갈라 읽는다.
     kinds = [i for i, h in enumerate(header) if h == '구분']
+    if kinds:
+        out = {}
+        for row in body:
+            if len(row) < 4 or not row[3].strip():
+                continue
+            per = out.setdefault(row[3].strip(), {})
+            for start in kinds:
+                kind = row[start].strip()
+                if not kind:
+                    continue
+                # 구분 다음 칸이 산출보험료
+                per[kind] = int(float(row[start + 1] or 0))
+        return out
+
+    if '결정보험료' not in header:
+        raise SystemExit(f'구분도 결정보험료도 없는 서식이에요: {Path(path).name}\n  머리글: {header}')
+    kind = _single_kind(header, path)
+    name_col = header.index('가입자명')
+    amount_col = header.index('결정보험료')
     out = {}
     for row in body:
-        if len(row) < 4 or not row[3].strip():
+        if len(row) <= amount_col or not row[name_col].strip():
             continue
-        name = row[3].strip()
-        per = out.setdefault(name, {})
-        for start in kinds:
-            kind = row[start].strip()
-            if not kind:
-                continue
-            # 구분 다음 칸이 산출보험료
-            per[kind] = int(float(row[start + 1] or 0))
+        out.setdefault(row[name_col].strip(), {})[kind] = int(float(row[amount_col] or 0))
     return out
 
 def main():
