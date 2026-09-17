@@ -41,14 +41,36 @@ export interface PortleEntitlement {
   updatedAt: string
 }
 
+// 앱 퍼널에서 이 사람이 도달한 가장 먼 단계. 앱 이벤트가 있어야 알 수 있다.
+export type PortleUserStage = 'install' | 'signin' | 'drive' | 'sheet'
+
+export const PORTLE_STAGE_LABELS: Record<PortleUserStage, string> = {
+  install: '설치',
+  signin: '로그인',
+  drive: '연동',
+  sheet: '시트',
+}
+
 export interface PortleUserRow {
   subject: string
   // 로그인 사용자(google)와 비로그인 기기(device) — VoiceCards처럼 둘 다 정상 사용자로 본다.
   type: 'google' | 'device' | 'other'
+  // 구글 계정 id(sub). 로그인이 확인된 사람만 채워진다 — 이 값이 있으면 '가입자'로 보여준다.
+  // 이름·이메일은 서버에 없다(앱이 보내지 않는다). 지금 가진 가입자 정보는 이 id 하나뿐이다.
+  accountId: string | null
+  // 이 사람에게 귀속된 기기. 앱 이벤트가 없는 사람(AI 로그만 있는 사람)은 빈 배열.
+  deviceIds: string[]
+  platform: 'ios' | 'android' | 'other' | null
+  appVersion: string | null
+  stage: PortleUserStage | null
+  // 앱을 처음 연 날(app_opened). 앱 이벤트가 없으면 null.
+  installedAt: string | null
+  // 첫 활동 — 앱 이벤트와 AI 호출을 통틀어 가장 이른 시각.
   firstAt: string
   lastAt: string
   activeDays: number
-  // 두 번째 활동일의 첫 기록 시각 — 퍼널 '재사용' 단계의 전환 시점. 활동일 1일이면 null.
+  // 두 번째 AI 사용일의 첫 호출 시각 — AI 재사용 전환 시점. 활동일(activeDays)은 앱
+  // 이벤트까지 세지만 이 값은 AI 호출만 본다.
   repeatAt: string | null
   calls: number
   success: number
@@ -76,7 +98,11 @@ export interface PortleStats {
   storeVisits: Array<{ date: string; visitors: number }>
   funnel: PortleAppFunnel
   totals: {
+    // AI를 한 번이라도 호출한 사람 수. users 행 수와 다르다 — users 에는 설치만 한
+    // 기기도 들어 있다(아래 deviceOnly 가 그 수).
     subjects: number
+    // 설치만 하고 AI 는 안 쓴 사람 수 (users.length - subjects)
+    deviceOnly: number
     subjectsToday: number
     subjects7d: number
     calls: number

@@ -8,7 +8,7 @@ import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
-import { PORTLE_KIND_LABELS } from '@/lib/portle-types'
+import { PORTLE_KIND_LABELS, PORTLE_STAGE_LABELS } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
@@ -170,13 +170,16 @@ function PortleAiTrendCard({ daily, days = 42 }: {
 
 // ─── User table (보이스카드/리뷰노트 사용자 테이블과 동일 스타일) ───────────────────
 
-type UserSortKey = 'first' | 'last' | 'subject' | 'calls' | 'success' | 'news' | 'ingest' | 'translate' | 'tokens' | 'days' | 'shared' | 'sub'
+type UserSortKey = 'first' | 'last' | 'subject' | 'platform' | 'version' | 'stage' | 'calls' | 'success' | 'news' | 'ingest' | 'translate' | 'tokens' | 'days' | 'shared' | 'sub'
 type SortDir = 'asc' | 'desc'
 
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
-  { key: 'first',     label: '첫 사용',   mobileLabel: '첫 사용',   align: 'center' },
-  { key: 'last',      label: '마지막',    mobileLabel: '마지막 사용', align: 'center' },
+  { key: 'first',     label: '첫 활동',   mobileLabel: '첫 활동',   align: 'center' },
+  { key: 'last',      label: '마지막',    mobileLabel: '마지막 활동', align: 'center' },
   { key: 'subject',   label: '사용자',    mobileLabel: '사용자',    align: 'left' },
+  { key: 'platform',  label: '플랫폼',    mobileLabel: '플랫폼',    align: 'center' },
+  { key: 'version',   label: '버전',      mobileLabel: '앱버전',    align: 'center' },
+  { key: 'stage',     label: '단계',      mobileLabel: '퍼널 단계', align: 'center' },
   { key: 'calls',     label: '호출',      mobileLabel: 'AI 호출',   align: 'center' },
   { key: 'success',   label: '성공률',    mobileLabel: '성공률',    align: 'center' },
   { key: 'news',      label: '뉴스',      mobileLabel: '에코 뉴스', align: 'center' },
@@ -188,15 +191,15 @@ const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string
   { key: 'sub',       label: '구독',      mobileLabel: '구독',      align: 'center' },
 ]
 
-const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['subject'])
+const ASC_DEFAULT_KEYS = new Set<UserSortKey>(['subject', 'platform'])
 const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key) ? 'asc' : 'desc')
 
 const USER_SORT_STORAGE_KEY = 'portle.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '72px 72px minmax(120px,1.4fr) 44px 52px 44px 44px 44px 52px 48px 40px 56px'
-// 컬럼 폭 합(672) + gap 6px×11(66) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 814
+const USER_TABLE_COLS = '72px 72px minmax(140px,1.4fr) 48px 56px 52px 44px 52px 44px 44px 44px 52px 48px 40px 56px'
+// 컬럼 폭 합(864) + gap 6px×14(84) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
+const USER_TABLE_MIN_WIDTH = 964
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -209,21 +212,59 @@ const userNumCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
 }
+const emptyCell: React.CSSProperties = {
+  fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
+}
 const userDateCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
 }
 
-// subject 표시: 유형 배지 + 접두사 뗀 축약 ID. device UUID는 앞 8자면 식별에 충분.
-function subjectShort(u: PortleUserRow): string {
-  const id = u.subject.replace(/^(google|device):/, '')
-  return id.length > 14 ? `${id.slice(0, 12)}…` : id
+// 사람 한 줄을 무엇으로 부를 것인가. 로그인한 사람은 계정으로, 아닌 사람은 기기로 부른다
+// (보이스카드 사용자 표와 같은 규칙). 포틀 서버에는 이름·이메일이 없어서 구글 계정도
+// 계정 id 축약이 이름 자리에 온다 — 앱이 로그인 이벤트에 이메일을 실어 보내면 그때 바뀐다.
+function identityOf(u: PortleUserRow): { label: string; full: string; account: boolean } {
+  if (u.accountId) {
+    return {
+      label: u.accountId.length > 12 ? `${u.accountId.slice(0, 10)}…` : u.accountId,
+      full: `구글 계정 ${u.accountId}`,
+      account: true,
+    }
+  }
+  const deviceId = u.deviceIds[0] ?? u.subject.replace(/^device:/, '')
+  return {
+    label: `#${deviceId.replace(/-/g, '').slice(0, 4) || '????'}`,
+    full: `기기 ${deviceId}`,
+    account: false,
+  }
 }
 
 const TYPE_TONES: Record<PortleUserRow['type'], { bg: string; fg: string; label: string }> = {
   google: { ...tonePalettes.info, label: '구글' },
   device: { bg: t.neutrals.inner, fg: t.neutrals.muted, label: '기기' },
   other:  { ...tonePalettes.neutral, label: '기타' },
+}
+
+// 퍼널 단계 배지 — 멀리 갈수록 진해진다. 앱 이벤트가 없는 사람은 단계를 모른다('—').
+const STAGE_TONES: Record<string, { bg: string; fg: string }> = {
+  install: { bg: t.neutrals.inner, fg: t.neutrals.muted },
+  signin: tonePalettes.info,
+  drive: tonePalettes.brand,
+  sheet: tonePalettes.pos,
+}
+const STAGE_ORDER: Record<string, number> = { install: 0, signin: 1, drive: 2, sheet: 3 }
+
+// 앱버전 비교 — 1.0.9 < 1.0.10 이 되도록 세그먼트 숫자로 본다. 버전 없음은 가장 오래된 것.
+function versionRank(v: string | null): number[] {
+  return v ? v.split(/[^0-9]+/).filter(Boolean).map(Number) : [-1]
+}
+function compareVersion(a: string | null, b: string | null): number {
+  const va = versionRank(a), vb = versionRank(b)
+  for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+    const d = (va[i] ?? 0) - (vb[i] ?? 0)
+    if (d) return d
+  }
+  return 0
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -253,7 +294,10 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
       switch (userSort) {
         case 'first':     return a.firstAt.localeCompare(b.firstAt)
         case 'last':      return a.lastAt.localeCompare(b.lastAt)
-        case 'subject':   return a.subject.localeCompare(b.subject)
+        case 'subject':   return identityOf(a).label.localeCompare(identityOf(b).label, 'ko')
+        case 'platform':  return (a.platform ?? '').localeCompare(b.platform ?? '')
+        case 'version':   return compareVersion(a.appVersion, b.appVersion)
+        case 'stage':     return (a.stage ? STAGE_ORDER[a.stage] : -1) - (b.stage ? STAGE_ORDER[b.stage] : -1)
         case 'calls':     return a.calls - b.calls
         case 'success':   return rate(a.success, a.calls) - rate(b.success, b.calls)
         case 'news':      return (a.byKind.echo_news ?? 0) - (b.byKind.echo_news ?? 0)
@@ -684,6 +728,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             </div>
             {sortedUsers.map(user => {
               const typeTone = TYPE_TONES[user.type]
+              const ident = identityOf(user)
               const okPct = rate(user.success, user.calls)
               const ent = user.entitlement
               return (
@@ -691,7 +736,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
-                  {/* 첫 사용 — 두 줄: 날짜 / (요일) 시각 (보이스카드와 동일) */}
+                  {/* 첫 활동 — 설치·로그인·AI 호출 중 가장 이른 것. 두 줄: 날짜 / (요일) 시각 */}
                   <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                     <span>{formatDateShort(user.firstAt)}</span>
                     <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.firstAt)}) {kstTime(user.firstAt)}</span>
@@ -700,13 +745,43 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                     <span>{formatDateShort(user.lastAt)}</span>
                     <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.lastAt)}) {kstTime(user.lastAt)}</span>
                   </div>
-                  {/* 사용자 — 유형 배지 + 축약 ID (전체 ID는 title로) */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }} title={user.subject}>
+                  {/* 사용자 — 로그인한 사람은 계정으로, 아닌 사람은 기기로 부른다.
+                      아바타 원은 구글 프로필 사진이 들어올 자리다(보이스카드와 같은 자리). */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}
+                       title={`${ident.full}${user.deviceIds.length > 1 ? ` · 기기 ${user.deviceIds.length}대` : ''}`}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 22, flexShrink: 0,
+                      background: ident.account ? typeTone.bg : '#E4E7EB',
+                      color: ident.account ? typeTone.fg : '#3A3D42',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
+                    }}>
+                      {ident.account ? 'G' : ident.label.replace(/^#/, '').charAt(0).toUpperCase() || '?'}
+                    </div>
                     <LTableBadge tone={typeTone}>{typeTone.label}</LTableBadge>
-                    <span style={{ ...userTextCell, fontFamily: t.font.mono }}>{subjectShort(user)}</span>
+                    <span style={{ ...userTextCell, fontFamily: t.font.mono }}>{ident.label}</span>
                   </div>
-                  <div style={userNumCell}>{user.calls.toLocaleString()}</div>
-                  <div style={{ ...userNumCell, color: okPct >= 80 ? t.neutrals.text : t.neutrals.muted }}>{okPct}%</div>
+                  {/* 플랫폼 · 앱버전 — 기기 이벤트에서 온다. 이벤트가 없는 사람은 '—' */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {user.platform ? (
+                      <LTableBadge tone={user.platform === 'ios' ? tonePalettes.neutral : user.platform === 'android' ? tonePalettes.pos : tonePalettes.neutral}>
+                        {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform.toUpperCase()}
+                      </LTableBadge>
+                    ) : <span style={emptyCell}>—</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {user.appVersion
+                      ? <LTableBadge tone={tonePalettes.neutral}>v{user.appVersion}</LTableBadge>
+                      : <span style={emptyCell}>—</span>}
+                  </div>
+                  {/* 단계 — 이 사람이 앱에서 가장 멀리 간 지점 */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    {user.stage
+                      ? <LTableBadge tone={STAGE_TONES[user.stage]}>{PORTLE_STAGE_LABELS[user.stage]}</LTableBadge>
+                      : <span style={emptyCell} title="앱 이벤트가 없는 사람 — AI 호출 로그로만 잡혔다">—</span>}
+                  </div>
+                  <div style={userNumCell}>{user.calls || '—'}</div>
+                  <div style={{ ...userNumCell, color: okPct >= 80 ? t.neutrals.text : t.neutrals.muted }}>{user.calls ? `${okPct}%` : '—'}</div>
                   <div style={userNumCell}>{(user.byKind.echo_news ?? 0) || '—'}</div>
                   <div style={userNumCell}>{(user.byKind.ingest_transactions ?? 0) || '—'}</div>
                   <div style={userNumCell}>{(user.byKind.translate_rule ?? 0) || '—'}</div>
@@ -726,7 +801,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             })}
             {sortedUsers.length === 0 && (
               <div style={{ padding: `${t.density.cardPad}px ${t.density.panelPadY}px`, textAlign: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                아직 AI를 호출한 사용자가 없습니다
+                아직 앱을 연 사람이 없습니다
               </div>
             )}
           </div>
@@ -735,7 +810,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
       )}
       {!loading && stats && (
         <LCardFoot
-          left="AI 호출 기준"
+          left={`AI 사용 ${stats.totals.subjects}명 · 설치만 ${stats.totals.deviceOnly}명`}
           right={`${sortedUsers.length}명`}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
