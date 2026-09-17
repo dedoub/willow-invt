@@ -163,6 +163,25 @@ node scripts/gangnam-attendance-send.mjs --send          # 실제 발송(승인 
 - 근무일·지급일·발송일·회신기한은 `scripts/lib/kr_workdays.py` 가 준다. 손으로 세지 않는다.
 - 자세한 배경과 덫은 `.claude/skills/gangnam-attendance-sheets/SKILL.md`.
 
+### 텐소프트웍스 월 급여
+`tensw-monthly-payroll` · 트리거: "급여 진행", "급여대장 요청", "급여명세서", "대량이체"
+
+급여일은 매월 25일, 주말·공휴일이면 직전 영업일. 두 토막으로 돈다.
+
+```bash
+# 1단계 — 4대보험 개인별 숫자를 서식에 담아 세무법인에 요청
+python3 scripts/tensw_payroll_register.py 2026 9 직전달.xlsx 출력_202609.xlsx 내려받은csv…
+node scripts/tensw-payroll-request.mjs --month 2026-09 --file 출력_202609.xlsx        # 초안
+node scripts/tensw-payroll-request.mjs --month 2026-09 --file … --send                # 승인 뒤
+
+# 2단계 — 확정 급여대장이 오면 대량이체 xls + 개인별 급여명세서 → 급여일 아침 발송
+```
+
+- 세무법인형운 `jjtaxro@daum.net`, 참조 `admin@tensoftworks.com`.
+- **급여일 오전까지 안 올라온 보험은 직전 달 숫자를 그대로 쓴다.** 이어쓴 칸은 메일에 적는다.
+- 우리가 보내는 건 계산서가 아니라 입력이다. 근로자 부담분을 계산하지 않는다.
+- 자세한 배경과 덫은 `.claude/skills/tensw-monthly-payroll/SKILL.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - wiki-attachments 버킷은 public으로 설정됨
