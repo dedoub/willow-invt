@@ -162,6 +162,18 @@ node scripts/tensw-payslip-send.mjs --month 2026-08 --send   # 승인 뒤
 조성민·이승무·전희나는 강남구 인턴십 지원금 대상이라 출근부가 따로 있다
 (`gangnam-attendance-sheets` 스킬). 기본급이 그 출근부의 지급액과 같아야 한다.
 
+## 윌리(CEO 봇)에서 부를 때
+
+봇 프롬프트에 `tensw_monthly_payroll` 섹션이 들어 있다. CEO가 "급여 진행", "급여대장 요청",
+"급여명세서 보내", "대량이체 만들어", "급여일" 이라고 하면 봇이 직접 답하지 않고 willow-invt 로
+`dispatch_command` 한다. instruction 에는 "AGENTS.md 의 텐소프트웍스 월 급여 레시피대로 …" 라고
+적혀서 온다.
+
+섹션은 5분마다 다시 읽히므로 고쳐도 봇을 재시작할 필요는 없다. `agent_prompt_sections` 의
+나머지 섹션은 `buildSystemPrompt` 끝의 루프가 통째로 밀어 넣는다 — 키를 코드에 따로 적지 않는다.
+
+**봇을 통해서도 승인 없이 발송하지 않는다.** 초안까지 만들고 물어본 뒤 `--send` 를 붙인다.
+
 ## 하면 안 되는 것
 
 - 근로자 부담분을 우리가 계산하지 않는다. 사이트 숫자를 그대로 옮긴다.
