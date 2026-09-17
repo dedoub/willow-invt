@@ -19,8 +19,12 @@ import { createClient } from '@supabase/supabase-js'
 const BUCKET = 'wiki-attachments'
 const SECTION = 'tensw-mgmt'
 const USER_ID = 'dw.kim@willowinvt.com'
-const CONTEXT = 'tensoftworks'          // dw.kim@tensoftworks.com 에서 보낸다
-const CC = 'ch.kim@tsw.im'
+const CONTEXT = 'tensoftworks'          // 메일함은 dw.kim@tensoftworks.com
+// 보내는 사람은 회사 주소로 한다. dw.kim 메일함에 별칭으로 등록돼 있어야 나간다
+// (Gmail 설정 > 계정 > 다른 주소에서 메일 보내기). 등록이 풀리면 여기서 멈춘다.
+const FROM = '(주)텐소프트웍스 <admin@tensoftworks.com>'
+const FROM_ADDRESS = 'admin@tensoftworks.com'
+// 명세서는 참조를 달지 않는다. 남의 급여가 보이는 메일이다(CEO).
 
 // 메일 헤더에서 실제로 확인한 주소만 적는다. 규칙으로 지어내지 않는다 —
 // 권지민은 jm.kwon 이 아니라 jimin.kwon 이고, 명세서를 엉뚱한 사람에게 보내면 끝이다.
@@ -46,12 +50,15 @@ if (!/^\d{4}-\d{2}$/.test(month ?? '')) throw new Error('--month 2026-08 꼴로 
 const [year, mm] = month.split('-')
 const label = `${year}${mm}`
 
-function mime({ from, to, cc, subject, text, filename, content }) {
+function mime({ from, to, subject, text, filename, content }) {
   const boundary = `b${Date.now().toString(36)}`
   const b64 = string => Buffer.from(string, 'utf8').toString('base64')
   const encoded = `=?UTF-8?B?${b64(filename)}?=`
+  // 헤더는 아스키만 담는다. "(주)텐소프트웍스 <admin@…>" 의 이름 쪽을 감싼다.
+  const sender = /^(.*?)\s*<([^>]+)>$/.exec(from)
+  const fromHeader = sender ? `=?UTF-8?B?${b64(sender[1])}?= <${sender[2]}>` : from
   return [
-    `From: ${from}`, `To: ${to}`, `Cc: ${cc}`,
+    `From: ${fromHeader}`, `To: ${to}`,
     `Subject: =?UTF-8?B?${b64(subject)}?=`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/mixed; boundary="${boundary}"`, '',
@@ -77,7 +84,7 @@ function body(name) {
     '감사합니다.',
     '',
     '',
-    '김동욱 드림.',
+    '(주)텐소프트웍스',
     '',
   ].join('\n')
 }
@@ -100,7 +107,15 @@ async function run() {
     expiry_date: token.token_expiry ? new Date(token.token_expiry).getTime() : undefined,
   })
   const gmail = google.gmail({ version: 'v1', auth })
-  const from = (await gmail.users.getProfile({ userId: 'me' })).data.emailAddress
+
+  // 별칭이 없으면 구글이 보내는 사람을 메일함 주소로 바꿔 버린다. 조용히 바뀌면 모르니 먼저 본다.
+  const { data: identities } = await gmail.users.settings.sendAs.list({ userId: 'me' })
+  const alias = (identities.sendAs ?? []).find(item => item.sendAsEmail === FROM_ADDRESS)
+  if (!alias || (alias.verificationStatus && alias.verificationStatus !== 'accepted')) {
+    throw new Error(`${FROM_ADDRESS} 이 발신 주소로 등록돼 있지 않아요.`
+      + ' Gmail 설정 > 계정 > 다른 주소에서 메일 보내기 에서 추가해 주세요.')
+  }
+  const from = FROM
 
   const missing = []
   const made = []
@@ -116,7 +131,7 @@ async function run() {
     const content = Buffer.from(await file.arrayBuffer())
 
     const raw = Buffer.from(mime({
-      from, to, cc: CC,
+      from, to,
       subject: `[텐소프트웍스] ${year}년 ${Number(mm)}월 급여명세서`,
       text: body(name), filename, content,
     })).toString('base64url')
