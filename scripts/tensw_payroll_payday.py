@@ -94,21 +94,31 @@ def read_register(path):
 
 
 def write_transfer(people, accounts, residents, year, month, destination):
-    """우리은행 대량이체 — 은행, 계좌, 금액, 이름, 생년월일6자리, 빈칸, 보내는이, 적요."""
+    """우리은행 대량이체 — 은행, 계좌, 금액, 이름, 생년월일6자리, 빈칸, 보내는이, 적요.
+
+    실제로 올라가는 파일은 여덟 칸이 모두 **글자**다. 금액을 숫자로 적으면 서식에 따라
+    다르게 읽힌다. 계좌번호도 앞의 0 이 날아간다.
+    """
     book = xlwt.Workbook(encoding='utf-8')
-    sheet = book.add_sheet('이체')
+    sheet = book.add_sheet('Sheet1')
     note = f'{month}월급여'
     missing = []
+    mismatched = []
     for index, person in enumerate(people):
         account = accounts.get(person['name'])
         if not account:
             missing.append(person['name'])
-            account = {'bank': '', 'number': ''}
-        birth = re.sub(r'\D', '', residents.get(person['name'], ''))[:6]
+            account = {}
+        # 생년월일은 계좌 장부에 적힌 것을 쓴다. 은행에 등록된 생년월일이 주민번호와
+        # 다른 사람이 있어서, 주민번호에서 잘라 만들면 조용히 틀린다.
+        resident = re.sub(r'\D', '', residents.get(person['name'], ''))[:6]
+        birth = account.get('birth') or resident
+        if account.get('birth') and resident and account['birth'] != resident:
+            mismatched.append((person['name'], account['birth'], resident))
         cells = [
-            account['bank'],
-            account['number'],
-            person['values']['차인지급액'],
+            account.get('bank', ''),
+            account.get('number', ''),
+            str(person['values']['차인지급액']),
             person['name'],
             birth,
             '',
@@ -118,7 +128,7 @@ def write_transfer(people, accounts, residents, year, month, destination):
         for column, value in enumerate(cells):
             sheet.write(index, column, value)
     book.save(destination)
-    return missing
+    return missing, mismatched
 
 
 def write_payslip(person, year, month, paid_on, destination, seal=None):
@@ -196,7 +206,7 @@ def main():
     parser.add_argument('month', type=int)
     parser.add_argument('ledger', help='세무법인이 보낸 확정 급여대장 PDF')
     parser.add_argument('--register', required=True, help='그 달 급여내역 xlsx (주민번호를 여기서 가져온다)')
-    parser.add_argument('--accounts', help='{"이름": {"bank": "우리은행", "number": "1002…"}} 형태의 json')
+    parser.add_argument('--accounts', help='{"이름": {"bank": "우리은행", "number": "1002…", "birth": "770818"}} 형태의 json')
     parser.add_argument('--seal', help='법인인감 png. 비공개 버킷에서 받아 온다:\n'
                         '  node scripts/fetch-private-file.mjs signatures tensw/corp-seal.png /tmp/seal.png')
     parser.add_argument('--out', required=True)
@@ -217,13 +227,15 @@ def main():
     label = f'{args.year}{args.month:02d}'
 
     transfer = out / f'{COMPANY}_대량이체_{label}.xls'
-    missing = write_transfer(people, accounts, residents, args.year, args.month, transfer)
+    missing, mismatched = write_transfer(people, accounts, residents, args.year, args.month, transfer)
 
     print(f'{args.year}년 {args.month}월 · 지급일 {paid_on}')
     print(f'\n대량이체 → {transfer.name}  ({len(people)}명, 합계 '
           f'{sum(p["values"]["차인지급액"] for p in people):,}원)')
     if missing:
         print(f'  계좌를 모르는 사람: {", ".join(missing)}  ← 채워 넣어야 올릴 수 있어요')
+    for name, birth, resident in mismatched:
+        print(f'  {name}: 계좌 장부의 생년월일 {birth} 이 주민번호 앞자리 {resident} 와 달라요 (장부를 따랐어요)')
 
     print('\n급여명세서')
     for person in people:
