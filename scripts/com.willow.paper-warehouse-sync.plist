@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.willow.paper-warehouse-sync</string>
+  <!-- 논문 웨어하우스 현황을 AWS 에서 직접 읽어 대시보드에 적는다.
+       매시간 도는 이유: 적재가 도는 동안 표가 하나씩 늘어나는 것을 보려는 것이고,
+       Athena count(*) 는 파케이 메타만 읽어 스캔이 0바이트라 공짜다.
+       자격증명(aws login 콘솔 세션)이 만료되면 조용히 1로 끝난다 — 화면은
+       "마지막 확인 N시간 전"으로 낡음을 스스로 말한다. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dongwookkim/scripts/drive-launcher.sh</string>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/paper-warehouse-sync.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Volumes/PRO-G40/app-dev/willow-invt</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Minute</key>
+    <integer>25</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/dongwookkim/logs/paper-warehouse-sync.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dongwookkim/logs/paper-warehouse-sync.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/dongwookkim</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

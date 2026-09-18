@@ -1,52 +1,48 @@
-// 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 적재 현황.
+// 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 현황.
 //
-// 진짜 상태는 AWS(Glue·S3·Athena)에 있다. 대시보드에는 AWS 자격증명이 없고
-// (브라우저 로그인이 필요해 에이전트가 대신 못 돌린다) 웨어하우스 세션에는 화면이 없다.
-// 그래서 그 세션이 scripts/paper-warehouse-report.mjs 로 적어 두고 이 화면이 읽는다.
+// 값은 사람이 적지 않는다. scripts/paper-warehouse-sync.mjs 가 AWS(Glue·S3·Athena)를
+// 직접 보고 덮어쓴다 — 어떤 표가 있고(Glue), 얼마나 쌓였고(S3), 몇 행인가(Athena).
 
-export type PaperWarehouseStageStatus = 'done' | 'running' | 'todo' | 'blocked'
-export type PaperWarehouseLoadStatus = 'done' | 'running' | 'todo' | 'failed'
+export type PaperDatasetStatus = 'done' | 'running' | 'todo' | 'failed'
 
-export const PAPER_STAGE_STATUS_LABEL: Record<PaperWarehouseStageStatus, string> = {
-  done: '완료',
-  running: '진행 중',
-  todo: '미착수',
-  blocked: '막힘',
-}
-
-export const PAPER_LOAD_STATUS_LABEL: Record<PaperWarehouseLoadStatus, string> = {
-  done: '완료',
+export const PAPER_DATASET_STATUS_LABEL: Record<PaperDatasetStatus, string> = {
+  done: '적재됨',
   running: '적재 중',
-  todo: '대기',
+  todo: '없음',
   failed: '실패',
 }
 
-export interface PaperWarehouseStage {
-  key: string
-  seq: number
-  title: string
-  status: PaperWarehouseStageStatus
+export interface PaperColumn {
+  name: string
+  type: string
+}
+
+export interface PaperDataset {
+  id: number
+  source: string
+  snapshot: string | null
+  table_name: string
+  label: string | null
+  location: string | null
+  row_count: number | null
+  bytes: number | null
+  objects: number | null
+  columns: PaperColumn[] | null
+  status: PaperDatasetStatus
   note: string | null
+  synced_at: string | null
   updated_at: string
 }
 
-export interface PaperWarehouseLoad {
-  id: number
-  source: string
-  table_name: string
-  label: string | null
-  snapshot: string | null
-  status: PaperWarehouseLoadStatus
-  row_count: number | null
-  scanned_gb: number | null
-  seconds: number | null
-  cost_usd: number | null
-  note: string | null
-  sort_order: number
-  updated_at: string
+/** 마지막 확인 — 언제 기준 숫자인지. 화면이 낡음을 스스로 말하게 한다. */
+export interface PaperSyncMeta {
+  at: string
+  scanned_bytes: number
+  ms: number
+  tables: number
 }
 
 export interface PaperWarehouseStatus {
-  stages: PaperWarehouseStage[]
-  loads: PaperWarehouseLoad[]
+  datasets: PaperDataset[]
+  lastSync: PaperSyncMeta | null
 }

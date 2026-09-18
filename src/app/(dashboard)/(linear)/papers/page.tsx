@@ -1,12 +1,11 @@
 'use client'
 
 /**
- * 논문 데이터 웨어하우스 — 적재 현황.
+ * 논문 데이터 웨어하우스 — 무엇이 얼마나 들어 있고, 스키마가 무엇이고, 갱신이 어디까지 왔나.
  *
- * 진짜 상태는 AWS(Glue·S3·Athena)에 있다. 이 화면은 그걸 받아 적은 판을 읽는다 —
- * 대시보드에는 AWS 자격증명이 없고(브라우저 로그인이 필요해 에이전트가 대신 못 돌린다)
- * 웨어하우스 세션에는 화면이 없어서다. 숫자는 그 세션이
- * `node scripts/paper-warehouse-report.mjs` 로 적고, 상태와 메모는 여기서도 고친다.
+ * 상태를 사람이 고르지 않는다. scripts/paper-warehouse-sync.mjs 가 AWS 를 직접 보고
+ * (Glue 카탈로그·S3 목록·Athena count) 표를 덮어쓰고, 이 화면은 그걸 읽기만 한다.
+ * 그래서 "마지막 확인"을 크게 적는다 — 숫자가 언제 기준인지가 곧 신뢰도다.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -15,110 +14,95 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import {
-  LTableBadge, LTableBody, LTableHead, LTableRow, LTableScroll, type LColumn,
+  LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableMono, LTableNumber, LTableRow, LTableScroll,
+  useTableSort, type LColumn,
 } from '@/app/(dashboard)/_components/linear-table'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import {
-  PAPER_LOAD_STATUS_LABEL, PAPER_STAGE_STATUS_LABEL,
-  type PaperWarehouseLoad, type PaperWarehouseLoadStatus,
-  type PaperWarehouseStage, type PaperWarehouseStageStatus,
+  PAPER_DATASET_STATUS_LABEL, type PaperDataset, type PaperDatasetStatus, type PaperSyncMeta,
 } from '@/types/paper-warehouse'
 
-// 배지 색은 다른 표와 같은 뜻으로 쓴다 — 완료는 초록, 도는 중은 파랑, 막힘·실패는 빨강.
-const STAGE_TONE: Record<PaperWarehouseStageStatus, { bg: string; fg: string }> = {
-  done: tonePalettes.done,
-  running: tonePalettes.progress,
-  todo: tonePalettes.neutral,
-  blocked: tonePalettes.danger,
-}
-const LOAD_TONE: Record<PaperWarehouseLoadStatus, { bg: string; fg: string }> = {
+const STATUS_TONE: Record<PaperDatasetStatus, { bg: string; fg: string }> = {
   done: tonePalettes.done,
   running: tonePalettes.progress,
   todo: tonePalettes.neutral,
   failed: tonePalettes.danger,
 }
 
-// 배지를 누르면 다음 상태로 돈다. 상태 넷을 고르는 데 뜬 창까지 띄울 일은 아니다.
-const STAGE_NEXT: Record<PaperWarehouseStageStatus, PaperWarehouseStageStatus> = {
-  todo: 'running', running: 'done', done: 'blocked', blocked: 'todo',
-}
-const LOAD_NEXT: Record<PaperWarehouseLoadStatus, PaperWarehouseLoadStatus> = {
-  todo: 'running', running: 'done', done: 'failed', failed: 'todo',
+const SOURCE_LABEL: Record<string, string> = {
+  openalex: 'OpenAlex',
+  kci: 'KCI',
+  unified: '공용',
 }
 
-const SOURCE_LABEL: Record<string, string> = { openalex: 'OpenAlex', kci: 'KCI' }
-
-function formatCount(value: number | null): string {
-  return value === null ? '—' : value.toLocaleString()
-}
-function formatGb(value: number | null): string {
-  return value === null ? '—' : `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 1 })} GB`
-}
-function formatSeconds(value: number | null): string {
-  if (value === null) return '—'
-  if (value < 60) return `${value}초`
-  return `${Math.floor(value / 60)}분 ${value % 60}초`
-}
-function formatCost(value: number | null): string {
-  return value === null ? '—' : `$${Number(value).toFixed(2)}`
-}
-function formatWhen(iso: string): string {
-  const d = new Date(iso)
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+function formatBytes(n: number | null): string {
+  if (n === null || n === undefined) return '-'
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)} TB`
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} GB`
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`
+  return `${Math.round(n).toLocaleString()} B`
 }
 
-const LOAD_COLUMNS: LColumn<PaperWarehouseLoad>[] = [
-  { key: 'source', label: '출처', width: '72px', hideMobile: true },
-  { key: 'table', label: '테이블', width: 'minmax(180px,1.4fr)' },
-  { key: 'label', label: '내용', width: 'minmax(80px,0.8fr)', hideMobile: true },
-  { key: 'status', label: '상태', width: '68px', align: 'center' },
-  { key: 'rows', label: '행', width: 'minmax(96px,0.8fr)', align: 'right' },
-  { key: 'scan', label: '스캔', width: '84px', align: 'right', hideMobile: true },
-  { key: 'seconds', label: '소요', width: '72px', align: 'right', hideMobile: true },
-  { key: 'cost', label: '비용', width: '64px', align: 'right' },
-  { key: 'note', label: '메모', width: 'minmax(140px,1.2fr)', hideMobile: true },
-  { key: 'updated', label: '갱신', width: '84px', align: 'right', hideMobile: true },
+function formatAgo(iso: string | null): string {
+  if (!iso) return '확인 전'
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (minutes < 1) return '방금'
+  if (minutes < 60) return `${minutes}분 전`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  return `${Math.round(hours / 24)}일 전`
+}
+
+// 폭은 전부 px 하한을 갖는다 — minmax(0,…) 로 두면 좁은 화면에서 열이 0까지 줄어
+// 가로 스크롤 대신 표가 찌그러진다(현금관리 표와 같은 규칙).
+const COLUMNS: LColumn<PaperDataset>[] = [
+  { key: 'table', label: '표', width: 'minmax(180px,1.4fr)', sortValue: d => d.table_name },
+  { key: 'label', label: '내용', width: 'minmax(90px,0.8fr)', sortValue: d => d.label ?? '', hideMobile: true },
+  { key: 'status', label: '상태', width: '60px', align: 'center', sortValue: d => d.status },
+  { key: 'rows', label: '행', width: 'minmax(104px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
+  { key: 'bytes', label: '용량', width: '84px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
+  { key: 'cols', label: '열', width: '44px', align: 'right', sortValue: d => d.columns?.length ?? -1, sortFirst: 'desc', hideMobile: true },
+  { key: 'snapshot', label: '스냅샷', width: '84px', sortValue: d => d.snapshot ?? '', hideMobile: true },
 ]
 
-/** 제자리에서 고치는 한 줄 메모. 누르면 입력칸이 되고 빠져나오면 저장한다. */
-function NoteCell({ value, onSave }: { value: string | null; onSave: (next: string) => void }) {
-  const [editing, setEditing] = useState(false)
-  // 들어갈 때 지금 값을 담는다. 밖에서 값이 바뀌어도 쓰던 글을 덮지 않는다.
-  const [draft, setDraft] = useState('')
-
-  if (!editing) {
-    return (
-      <span
-        onClick={e => { e.stopPropagation(); setDraft(value ?? ''); setEditing(true) }}
-        title={value ?? '메모 적기'}
-        style={{
-          color: value ? t.neutrals.muted : t.neutrals.subtle, cursor: 'text',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}
-      >
-        {value || '—'}
-      </span>
-    )
-  }
+/** 한 표의 스키마. 행을 누르면 그 자리에서 펼친다 — 뜬 창을 띄우면 표를 덮는다. */
+function SchemaPanel({ dataset }: { dataset: PaperDataset }) {
+  const columns = dataset.columns ?? []
   return (
-    <input
-      autoFocus
-      value={draft}
-      onClick={e => e.stopPropagation()}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={() => { setEditing(false); if (draft !== (value ?? '')) onSave(draft) }}
-      onKeyDown={e => {
-        if (e.key === 'Enter') e.currentTarget.blur()
-        if (e.key === 'Escape') { setDraft(value ?? ''); setEditing(false) }
-      }}
-      style={{
-        width: '100%', minWidth: 0, boxSizing: 'border-box',
-        background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.sm,
-        padding: '2px 6px', fontSize: 'inherit', fontFamily: t.font.sans, color: t.neutrals.text,
-      }}
-    />
+    <div style={{
+      padding: `${t.density.gapSm}px ${t.density.tableRowPadX}px ${t.density.gapMd}px`,
+      display: 'flex', flexDirection: 'column', gap: t.density.gapSm,
+    }}>
+      <div style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+        {dataset.location}
+      </div>
+      {columns.length === 0 ? (
+        <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+          열 정보를 아직 못 읽었어요.
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid', gap: `${t.density.tableRowGap}px ${t.density.gapMd}px`,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        }}>
+          {columns.map(c => (
+            <div key={c.name} style={{ display: 'flex', gap: t.density.gapSm, minWidth: 0 }}>
+              <span style={{
+                fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{c.name}</span>
+              <span style={{
+                fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                color: t.neutrals.subtle, marginLeft: 'auto', whiteSpace: 'nowrap',
+              }}>{c.type}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -126,8 +110,10 @@ export default function PapersPage() {
   const mobile = useIsMobile()
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [stages, setStages] = useState<PaperWarehouseStage[]>([])
-  const [loads, setLoads] = useState<PaperWarehouseLoad[]>([])
+  const [datasets, setDatasets] = useState<PaperDataset[]>([])
+  const [lastSync, setLastSync] = useState<PaperSyncMeta | null>(null)
+  const [openTable, setOpenTable] = useState<number | null>(null)
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<PaperDataset>('paper-datasets', COLUMNS)
 
   const load = useCallback(async () => {
     setError(null)
@@ -135,8 +121,8 @@ export default function PapersPage() {
       const res = await fetch('/api/paper-warehouse', { cache: 'no-store' })
       if (!res.ok) throw new Error(String(res.status))
       const json = await res.json()
-      setStages(json.stages ?? [])
-      setLoads(json.loads ?? [])
+      setDatasets(json.datasets ?? [])
+      setLastSync(json.lastSync ?? null)
     } catch {
       setError('적재 현황을 불러오지 못했습니다. 새로고침으로 다시 시도해 주세요.')
     } finally {
@@ -147,34 +133,43 @@ export default function PapersPage() {
   useEffect(() => { load() }, [load])
   useAgentRefresh(['paper_'], load)
 
-  const patch = useCallback(async (body: Record<string, unknown>) => {
-    try {
-      const res = await fetch('/api/paper-warehouse', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error(String(res.status))
-      const json = await res.json()
-      if (json.stage) setStages(prev => prev.map(s => (s.key === json.stage.key ? json.stage : s)))
-      if (json.load) setLoads(prev => prev.map(l => (l.id === json.load.id ? json.load : l)))
-    } catch {
-      setError('저장하지 못했습니다. 다시 시도해 주세요.')
-    }
-  }, [])
-
   const summary = useMemo(() => {
-    const stageDone = stages.filter(s => s.status === 'done').length
-    const loadDone = loads.filter(l => l.status === 'done').length
-    const scanned = loads.reduce((sum, l) => sum + Number(l.scanned_gb ?? 0), 0)
-    const cost = loads.reduce((sum, l) => sum + Number(l.cost_usd ?? 0), 0)
-    const rows = loads.reduce((sum, l) => sum + Number(l.row_count ?? 0), 0)
-    const snapshot = loads.find(l => l.snapshot)?.snapshot ?? null
-    const blocked = stages.filter(s => s.status === 'blocked').length
-      + loads.filter(l => l.status === 'failed').length
-    const running = stages.find(s => s.status === 'running')
-    return { stageDone, loadDone, scanned, cost, rows, snapshot, blocked, running }
-  }, [stages, loads])
+    const live = datasets.filter(d => d.status !== 'todo')
+    return {
+      tables: live.length,
+      rows: live.reduce((s, d) => s + Number(d.row_count ?? 0), 0),
+      bytes: live.reduce((s, d) => s + Number(d.bytes ?? 0), 0),
+      loading: datasets.filter(d => d.status === 'running').length,
+    }
+  }, [datasets])
+
+  // 갱신 회차 = 스냅샷. 원본 공개 스냅샷이 분기마다 바뀌므로, 그 단위로 몇 개 표가
+  // 들어왔는지가 곧 이번 갱신의 진행이다. 기대치는 직전 회차에 있던 표 수로 본다.
+  const rounds = useMemo(() => {
+    const groups = new Map<string, PaperDataset[]>()
+    for (const d of datasets) {
+      const key = `${d.source}\n${d.snapshot ?? ''}`
+      const arr = groups.get(key) ?? []
+      arr.push(d)
+      groups.set(key, arr)
+    }
+    const rows = [...groups.entries()].map(([key, items]) => {
+      const [source, snapshot] = key.split('\n')
+      const done = items.filter(d => d.status === 'done').length
+      return {
+        key, source, snapshot,
+        total: items.length,
+        done,
+        rows: items.reduce((s, d) => s + Number(d.row_count ?? 0), 0),
+        bytes: items.reduce((s, d) => s + Number(d.bytes ?? 0), 0),
+        updated: items.reduce((a, d) => (d.updated_at > a ? d.updated_at : a), ''),
+      }
+    })
+    // 최신 스냅샷이 위로. 스냅샷이 없는 공용 차원은 맨 아래.
+    return rows.sort((a, b) => (b.snapshot || '0').localeCompare(a.snapshot || '0'))
+  }, [datasets])
+
+  const sorted = useMemo(() => sortApply(datasets), [datasets, sortApply])
 
   if (!loaded) {
     return (
@@ -190,103 +185,101 @@ export default function PapersPage() {
       <LCard>
         <LSectionHead
           eyebrow="PAPER WAREHOUSE"
-          title="논문데이터 적재"
-          meta={summary.running ? `${summary.running.seq}단계 ${summary.running.title} 진행 중` : undefined}
+          title="논문데이터"
+          meta={`마지막 확인 ${formatAgo(lastSync?.at ?? null)}`}
+          tools={(
+            <LBtn variant="secondary" size="sm" onClick={() => { window.location.href = '/api/paper-warehouse/guide' }}>
+              사용법 문서
+            </LBtn>
+          )}
         />
         {error && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={error} /></div>}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: t.density.kpiGap }}>
+          <LStat label="적재 행" value={summary.rows.toLocaleString()} unit="행" />
+          <LStat label="용량" value={formatBytes(summary.bytes)} />
+          <LStat label="표" value={String(summary.tables)} unit="개" sub={summary.loading > 0 ? `${summary.loading}개 적재 중` : undefined} tone={summary.loading > 0 ? 'info' : 'default'} />
           <LStat
-            label="단계"
-            value={`${summary.stageDone}/${stages.length}`}
-            sub={summary.blocked > 0 ? `막힘 ${summary.blocked}건` : undefined}
-            tone={summary.blocked > 0 ? 'neg' : 'default'}
-          />
-          <LStat
-            label="적재 테이블"
-            value={`${summary.loadDone}/${loads.length}`}
-            sub={summary.snapshot ? `스냅샷 ${summary.snapshot}` : undefined}
-          />
-          <LStat
-            label="누적 스캔"
-            value={formatGb(summary.scanned)}
-            title="Athena 가 실제로 읽은 양. 비용은 스캔량으로 매겨지고, IAM 사용자에게 비용 조회 권한이 없어 이 합이 유일한 실측이다."
-          />
-          <LStat
-            label="누적 비용"
-            value={formatCost(summary.cost)}
-            sub={summary.rows > 0 ? `${summary.rows.toLocaleString()}행` : undefined}
+            label="마지막 확인"
+            value={formatAgo(lastSync?.at ?? null)}
+            sub={lastSync ? `${lastSync.tables}개 표 · 스캔 ${lastSync.scanned_bytes.toLocaleString()}B` : undefined}
+            title="AWS 를 직접 보고 적은 시각. count(*) 는 파케이 메타만 읽어 스캔이 0바이트라 자주 확인해도 Athena 비용이 붙지 않는다."
           />
         </div>
-        <LCardFoot left="AWS 965522962451 · us-east-1 · biblo-paper-data-warehouse" />
+        <LCardFoot left="AWS 965522962451 · us-east-1 · Glue biblo_warehouse · Athena biblo-warehouse-etl" />
       </LCard>
 
       <LCard>
-        <LSectionHead title="단계" mb={10} />
+        <LSectionHead title="갱신 진행" mb={10} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
-          {stages.map(s => (
-            <div key={s.key} style={{
-              display: 'grid',
-              gridTemplateColumns: mobile ? '20px 1fr 68px' : '20px minmax(140px,1fr) 68px minmax(160px,2fr) 84px',
-              gap: t.density.tableColGap, alignItems: 'center',
-              padding: `6px ${t.density.tableRowPadX}px`,
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-            }}>
-              <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle }}>{s.seq}</span>
-              <span style={{ color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
-              <span
-                onClick={() => patch({ kind: 'stage', key: s.key, status: STAGE_NEXT[s.status] })}
-                title="눌러서 상태 바꾸기"
-                style={{ cursor: 'pointer', display: 'block' }}
-              >
-                <LTableBadge tone={STAGE_TONE[s.status]}>{PAPER_STAGE_STATUS_LABEL[s.status]}</LTableBadge>
-              </span>
-              {!mobile && <NoteCell value={s.note} onSave={note => patch({ kind: 'stage', key: s.key, note })} />}
-              {!mobile && (
-                <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.subtle, textAlign: 'right' }}>
-                  {formatWhen(s.updated_at)}
+          {rounds.map(r => {
+            const pct = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0
+            return (
+              <div key={r.key} style={{
+                display: 'grid',
+                gridTemplateColumns: mobile ? '1fr 64px' : '120px 96px 1fr 120px 96px',
+                gap: t.density.tableColGap, alignItems: 'center',
+                padding: `7px ${t.density.tableRowPadX}px`,
+                background: t.neutrals.inner, borderRadius: t.radius.sm,
+                fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
+              }}>
+                <span style={{ color: t.neutrals.text }}>
+                  {SOURCE_LABEL[r.source] ?? r.source}
+                  {r.snapshot && <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle }}> {r.snapshot}</span>}
                 </span>
-              )}
-            </div>
-          ))}
-        </div>
-        <LCardFoot left="상태 배지를 누르면 미착수 → 진행 중 → 완료 → 막힘 순으로 돈다" />
-      </LCard>
-
-      <LCard>
-        <LSectionHead title="테이블별 적재" mb={10} />
-        <LTableScroll columns={LOAD_COLUMNS} mobile={mobile}>
-          <LTableHead columns={LOAD_COLUMNS} mobile={mobile} />
-          <LTableBody columns={LOAD_COLUMNS} mobile={mobile}>
-            {loads.map(l => (
-              <LTableRow key={l.id} columns={LOAD_COLUMNS} mobile={mobile}>
-                {!mobile && <span style={{ color: t.neutrals.muted }}>{SOURCE_LABEL[l.source] ?? l.source}</span>}
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.table_name}</span>
-                {!mobile && <span style={{ color: t.neutrals.muted }}>{l.label ?? '—'}</span>}
-                <span
-                  onClick={() => patch({ kind: 'load', source: l.source, table_name: l.table_name, status: LOAD_NEXT[l.status] })}
-                  title="눌러서 상태 바꾸기"
-                  style={{ cursor: 'pointer', display: 'block' }}
-                >
-                  <LTableBadge tone={LOAD_TONE[l.status]}>{PAPER_LOAD_STATUS_LABEL[l.status]}</LTableBadge>
-                </span>
-                <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatCount(l.row_count)}</span>
-                {!mobile && <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.muted, textAlign: 'right' }}>{formatGb(l.scanned_gb)}</span>}
-                {!mobile && <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.muted, textAlign: 'right' }}>{formatSeconds(l.seconds)}</span>}
-                <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.muted, textAlign: 'right' }}>{formatCost(l.cost_usd)}</span>
-                {!mobile && <NoteCell value={l.note} onSave={note => patch({ kind: 'load', source: l.source, table_name: l.table_name, note })} />}
                 {!mobile && (
-                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(11px * var(--fz, 1))`, color: t.neutrals.subtle, textAlign: 'right' }}>
-                    {formatWhen(l.updated_at)}
+                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted }}>
+                    {r.done}/{r.total} 표
                   </span>
                 )}
-              </LTableRow>
+                {!mobile && (
+                  <span style={{ display: 'block', height: 4, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
+                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: t.chart.mono }} />
+                  </span>
+                )}
+                {!mobile && (
+                  <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.muted, textAlign: 'right' }}>
+                    {r.rows.toLocaleString()}행
+                  </span>
+                )}
+                <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, textAlign: 'right' }}>
+                  {mobile ? `${r.done}/${r.total}` : formatBytes(r.bytes)}
+                </span>
+              </div>
+            )
+          })}
+          {rounds.length === 0 && <LTableEmpty>아직 확인된 스냅샷이 없어요.</LTableEmpty>}
+        </div>
+        <LCardFoot left="원본 공개 스냅샷은 분기 갱신이다. 새 스냅샷이 뜨면 여기 한 줄이 늘고, 표가 하나씩 채워진다" />
+      </LCard>
+
+      <LCard>
+        <LSectionHead title="데이터" meta="표를 누르면 스키마가 펼쳐진다" mb={10} />
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
+          <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
+          <LTableBody columns={COLUMNS} mobile={mobile}>
+            {sorted.map(d => (
+              <div key={d.id}>
+                <LTableRow
+                  columns={COLUMNS} mobile={mobile}
+                  onClick={() => setOpenTable(prev => (prev === d.id ? null : d.id))}
+                >
+                  <LTableMono>{d.table_name}</LTableMono>
+                  {!mobile && <span style={{ color: t.neutrals.muted }}>{d.label ?? '—'}</span>}
+                  <LTableBadge tone={STATUS_TONE[d.status]}>{PAPER_DATASET_STATUS_LABEL[d.status]}</LTableBadge>
+                  <LTableNumber value={d.row_count ?? 0} muted={d.row_count === null} />
+                  <LTableMono align="right" tone="muted">{formatBytes(d.bytes)}</LTableMono>
+                  {!mobile && <LTableMono align="right" tone="muted">{d.columns?.length ?? '-'}</LTableMono>}
+                  {!mobile && <LTableMono tone="muted">{d.snapshot ?? '—'}</LTableMono>}
+                </LTableRow>
+                {openTable === d.id && <SchemaPanel dataset={d} />}
+              </div>
             ))}
+            {sorted.length === 0 && <LTableEmpty>아직 적재된 표가 없어요.</LTableEmpty>}
           </LTableBody>
         </LTableScroll>
         <LCardFoot
-          left="행 수·스캔량·비용은 AWS 를 실제로 돌린 쪽이 적는다 (scripts/paper-warehouse-report.mjs)"
-          right={`${loads.length}개`}
+          left="행 수·용량·스키마는 AWS 에서 직접 읽은 값이다 (scripts/paper-warehouse-sync.mjs)"
+          right={`${sorted.length}개`}
         />
       </LCard>
     </div>
