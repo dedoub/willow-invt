@@ -49,6 +49,9 @@ export const NAV_GROUPS: NavGroup[] = [
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
       { id: 'b2b',        href: '/b2b',        label: '관계사간거래', icon: 'coin' },
+      // 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 적재 현황. 성균관대가 첫 사례일
+      // 뿐이라 학교별 항목이 아니라 하나로 둔다.
+      { id: 'papers',     href: '/papers',     label: '논문데이터', icon: 'file' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book', hidden: true },
@@ -109,9 +112,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'akros', href: '/akros', label: '아크로스', tag: 'Akros',        dot: '#5FAFDF', mark: '/akros-icon.png' },
       { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETC', dot: '#8FB6D8' },
-      // 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 적재 현황. 성균관대가 첫 사례일
-      // 뿐이라 학교별 항목이 아니라 하나로 둔다.
-      { id: 'papers', href: '/papers', label: '논문데이터', icon: 'book' },
     ],
   },
   {
