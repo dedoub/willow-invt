@@ -280,12 +280,14 @@ export function LTableBadge({ tone, children }: { tone: { bg: string; fg: string
  * 표 안 모노 칸의 공통 껍데기. 날짜·숫자·비율이 서로 다른 크기로 찍히던 것을
  * 여기 하나로 모은다.
  */
-export function LTableMono({ children, align = 'left', tone, strong, strike }: {
+export function LTableMono({ children, align = 'left', tone, strong, strike, title }: {
   children: React.ReactNode
   align?: 'left' | 'right'
   tone?: 'muted' | 'text' | 'warn' | 'neg' | 'pos'
   strong?: boolean
   strike?: boolean
+  /** 잘릴 수 있는 값의 원문. 숫자에는 쓰지 않는다 — 숫자는 잘리지 않게 폭을 잡는다. */
+  title?: string
 }) {
   const color = tone === 'text' ? t.neutrals.text
     : tone === 'warn' ? t.accent.warn
@@ -303,7 +305,7 @@ export function LTableMono({ children, align = 'left', tone, strong, strike }: {
       // 좁은 화면에서 두 열이 겹쳐 읽힌다(모바일 논문데이터 표, 2026-09-19).
       // 잘리는 것 자체가 그 열의 하한이 좁다는 신호다 — 열 정의에서 폭을 올린다.
       minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-    }}>
+    }} title={title}>
       {children}
     </span>
   )
