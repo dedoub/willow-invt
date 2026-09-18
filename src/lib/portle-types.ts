@@ -69,13 +69,23 @@ export interface PortleUserRow {
   appVersion: string | null
   // 국가코드 — 기기 설정 지역(앱) 우선, 없으면 접속 IP 나라(백엔드). 앱 이벤트가 없거나 옛 앱이면 null.
   country: string | null
+  // 기기 로케일 (앱이 보낸다, 1.0.3부터). 없으면 null.
+  locale: string | null
   stage: PortleUserStage | null
   // 앱을 처음 연 날(app_opened). 앱 이벤트가 없으면 null.
   installedAt: string | null
+  // 구글 로그인을 마친 시각(signin_completed). 로그인 전이면 null.
+  signedInAt: string | null
+  // 드라이브 연동을 마친 시각(drive_linked). 안 했으면 null.
+  driveLinkedAt: string | null
+  // 원장에 처음 기록한 시각 — 구글 시트든 기기 원장이든 이른 쪽. 안 했으면 null.
+  ledgerActivatedAt: string | null
   // 첫 활동 — 앱 이벤트와 AI 호출을 통틀어 가장 이른 시각.
   firstAt: string
   lastAt: string
   activeDays: number
+  // 최근 7일(오늘 포함) 중 활동한 날 수 — 지금 살아 있는 사람인지 보는 창.
+  activeDays7d: number
   // 두 번째 AI 사용일의 첫 호출 시각 — AI 재사용 전환 시점. 활동일(activeDays)은 앱
   // 이벤트까지 세지만 이 값은 AI 호출만 본다.
   repeatAt: string | null

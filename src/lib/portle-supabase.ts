@@ -83,6 +83,12 @@ interface PortleDeviceRecord {
   // 기기 설정의 지역(country, 앱이 보낸다) 우선, 없으면 접속 IP 의 나라(ip_country, 백엔드가 적는다).
   // 둘 다 1.0.3/백엔드 갱신 뒤부터 오므로 그 전 기기는 null — 파이에서 '미상'.
   country: string | null
+  // 기기 로케일 (앱이 보낸다, 1.0.3부터).
+  locale: string | null
+  // 퍼널 단계별 도달 시각 — 사용자 표가 "언제 거기까지 갔나"를 보여주는 재료.
+  signedInAt: string | null
+  driveLinkedAt: string | null
+  ledgerActivatedAt: string | null
   // 이 기기에서 로그인한 구글 계정. 앱이 signin 이벤트에 subject 를 실어 보낸 경우에만 안다
   // (1.0.1 이전 버전은 안 보낸다). 없으면 로그인했어도 누구인지는 모른다 — stage 가 말해 준다.
   subject: string | null
@@ -105,12 +111,12 @@ async function fetchAppEvents(): Promise<{
   const rows: Array<{
     created_at: string; device_id: string | null; subject: string | null
     event: string; platform: string | null; app_version: string | null
-    country: string | null; ip_country: string | null
+    country: string | null; ip_country: string | null; locale: string | null
   }> = []
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
     const { data, error } = await portleSupabase
       .from('portle_app_events')
-      .select('created_at, device_id, subject, event, platform, app_version, country, ip_country')
+      .select('created_at, device_id, subject, event, platform, app_version, country, ip_country, locale')
       .in('event', [...ACTIVITY_EVENTS])
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
@@ -151,7 +157,8 @@ async function fetchAppEvents(): Promise<{
     let d = devices.get(row.device_id)
     if (!d) {
       d = {
-        deviceId: row.device_id, platform: row.platform, appVersion: row.app_version, country: null,
+        deviceId: row.device_id, platform: row.platform, appVersion: row.app_version, country: null, locale: null,
+        signedInAt: null, driveLinkedAt: null, ledgerActivatedAt: null,
         subject: owner, firstAt: row.created_at, lastAt: row.created_at,
         installedAt: null, stage, days: new Set(),
       }
@@ -162,6 +169,11 @@ async function fetchAppEvents(): Promise<{
     if (row.platform) d.platform = row.platform
     if (row.country) d.country = row.country
     else if (row.ip_country && !d.country) d.country = row.ip_country
+    if (row.locale) d.locale = row.locale
+    // 오름차순 순회라 처음 본 것이 그 단계에 처음 닿은 시각이다
+    if (row.event === 'signin_completed' && !d.signedInAt) d.signedInAt = row.created_at
+    if (row.event === 'drive_linked' && !d.driveLinkedAt) d.driveLinkedAt = row.created_at
+    if (LEDGER_EVENTS.has(row.event) && !d.ledgerActivatedAt) d.ledgerActivatedAt = row.created_at
     if (row.event === 'app_opened' && !d.installedAt) d.installedAt = row.created_at
     if (STAGE_RANK[stage] > STAGE_RANK[d.stage]) d.stage = stage
     d.days.add(kstDateKey(row.created_at))
@@ -385,8 +397,9 @@ export async function getPortleStats(): Promise<PortleStats> {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
         email: emails.get(subject) ?? null,
-        deviceIds: [], platform: null, appVersion: null, country: null, stage: null, installedAt: null,
-        firstAt: row.created_at, lastAt: row.created_at, activeDays: 0, repeatAt: null,
+        deviceIds: [], platform: null, appVersion: null, country: null, locale: null, stage: null,
+        installedAt: null, signedInAt: null, driveLinkedAt: null, ledgerActivatedAt: null,
+        firstAt: row.created_at, lastAt: row.created_at, activeDays: 0, activeDays7d: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
         inputTokens: 0, outputTokens: 0,
         sharedSheets: sharedSheetsOf(subject),
@@ -421,8 +434,9 @@ export async function getPortleStats(): Promise<PortleStats> {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
         email: emails.get(subject) ?? null,
-        deviceIds: [], platform: null, appVersion: null, country: null, stage: null, installedAt: null,
-        firstAt: d.firstAt, lastAt: d.lastAt, activeDays: 0, repeatAt: null,
+        deviceIds: [], platform: null, appVersion: null, country: null, locale: null, stage: null,
+        installedAt: null, signedInAt: null, driveLinkedAt: null, ledgerActivatedAt: null,
+        firstAt: d.firstAt, lastAt: d.lastAt, activeDays: 0, activeDays7d: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
         inputTokens: 0, outputTokens: 0,
         sharedSheets: sharedSheetsOf(subject),
@@ -435,6 +449,12 @@ export async function getPortleStats(): Promise<PortleStats> {
     if (d.platform) u.platform = d.platform === 'ios' || d.platform === 'android' ? d.platform : 'other'
     if (d.appVersion) u.appVersion = d.appVersion
     if (d.country && !u.country) u.country = d.country
+    if (d.locale && !u.locale) u.locale = d.locale
+    // 사람이 기기 여러 대면 가장 이른 도달 시각을 쓴다 — 그 사람이 언제 거기까지 갔는가다
+    const earlier = (a: string | null, b: string | null) => (!a ? b : !b ? a : a < b ? a : b)
+    u.signedInAt = earlier(u.signedInAt, d.signedInAt)
+    u.driveLinkedAt = earlier(u.driveLinkedAt, d.driveLinkedAt)
+    u.ledgerActivatedAt = earlier(u.ledgerActivatedAt, d.ledgerActivatedAt)
     if (!u.stage || STAGE_RANK[d.stage] > STAGE_RANK[u.stage]) u.stage = d.stage
     if (d.installedAt && (!u.installedAt || d.installedAt < u.installedAt)) u.installedAt = d.installedAt
     if (d.firstAt < u.firstAt) u.firstAt = d.firstAt
@@ -519,7 +539,11 @@ export async function getPortleStats(): Promise<PortleStats> {
       .map(({ subjectSet, ...k }) => ({ ...k, subjects: subjectSet.size }))
       .sort((a, b) => b.calls - a.calls),
     users: Array.from(users.values())
-      .map(({ daySet, ...u }) => ({ ...u, activeDays: daySet.size }))
+      .map(({ daySet, ...u }) => ({
+        ...u,
+        activeDays: daySet.size,
+        activeDays7d: Array.from(daySet).filter(day => day >= sevenAgo).length,
+      }))
       .sort((a, b) => b.lastAt.localeCompare(a.lastAt)),
     fetchedAt: new Date().toISOString(),
   }
