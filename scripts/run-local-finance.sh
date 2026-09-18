@@ -52,6 +52,7 @@ for script in \
   import-finance-tax-obligations.mjs \
   match-finance-tax-obligations.mjs \
   sync-akros-invoices.mjs \
+  sync-etc-referral-revenue.mjs \
   sync-tensw-finance-schedules.mjs \
   notify-local-finance.mjs \
   close-cert-dialogs.mjs \
@@ -70,9 +71,9 @@ for lib in \
   tax-invoice-promotion.mjs \
   woori-card-local.mjs woori-card-statement.mjs \
   kb-card-local.mjs kb-card-statement.mjs kb-card-keypad.mjs \
-  finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs commercial-schedule-sync.mjs tensw-finance-schedule-sync.mjs \
+  finance-session.mjs finance-notify.mjs akros-invoice-sync.mjs commercial-schedule-sync.mjs tensw-finance-schedule-sync.mjs etc-referral-revenue.mjs \
   cert-dialog.mjs cert-sites.mjs cert-attempt-lock.mjs desktop.mjs \
-  shinhan-bank.mjs wetax.mjs nhis.mjs secure-keypad.mjs \
+  shinhan-bank.mjs wetax.mjs nhis.mjs nhis-session.mjs secure-keypad.mjs \
   hometax-session.mjs hometax-national-tax.mjs cert-cleanup.mjs
 do
   [ -f "$ROOT/scripts/lib/$lib" ] && cp "$ROOT/scripts/lib/$lib" "$RUNTIME/scripts/lib/"
@@ -85,8 +86,10 @@ for package in playwright playwright-core dotenv tslib ws iceberg-js sharp @img 
     cp -R "$ROOT/node_modules/$package" "$RUNTIME/node_modules/"
   fi
 done
-rm -rf "$RUNTIME/node_modules/@supabase"
-cp -R "$ROOT/node_modules/@supabase" "$RUNTIME/node_modules/"
+# 다른 예약 실행이 락을 기다리며 런타임을 동기화해도, 실행 중인 프로세스의
+# @supabase 를 잠깐 지우지 않는다. 디렉터리를 제자리에서 덮어써 import 공백을 막는다.
+mkdir -p "$RUNTIME/node_modules/@supabase"
+cp -R "$ROOT/node_modules/@supabase/." "$RUNTIME/node_modules/@supabase/"
 
 if [ ! -x "$RUNTIME/bin/select-abc-input-source" ] \
   || [ "$RUNTIME/scripts/select-abc-input-source.swift" -nt "$RUNTIME/bin/select-abc-input-source" ]; then
@@ -143,8 +146,7 @@ close_cert_dialogs() {
   $NODE "$RUNTIME/scripts/close-cert-dialogs.mjs" >> "$LOG_FILE" 2>&1
 }
 
-restart_chrome() {
-  close_cert_dialogs
+quit_chrome() {
   /usr/bin/osascript -e 'tell application "Google Chrome" to quit' >/dev/null 2>&1
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     /usr/bin/pgrep -x 'Google Chrome' >/dev/null || break
@@ -153,8 +155,30 @@ restart_chrome() {
   # 정상 종료를 기다렸는데도 남아 있으면 내린다. 남은 창이 다음 단계를 막는다.
   /usr/bin/pgrep -x 'Google Chrome' >/dev/null && /usr/bin/pkill -x 'Google Chrome'
   sleep 2
+}
+
+# 이번 실행이 화면을 썼나. 안 썼으면 끝에서 Chrome 을 건드리지 않는다 —
+# 락을 못 잡아 건너뛴 실행이나 --sync-only 는 남의 화면이다.
+BROWSER_USED=0
+
+restart_chrome() {
+  BROWSER_USED=1
+  close_cert_dialogs
+  quit_chrome
   /usr/bin/open -a 'Google Chrome'
   sleep 6
+}
+
+# 다 끝나면 화면을 원래대로 비운다. 창만 닫으면 은행 보안 프로그램이 배경에 그대로
+# 남아 있어서, Chrome 을 내린 다음 모듈까지 함께 내린다(CEO 2026-09-18).
+# 순서가 있다: 인증서 창 정리 → Chrome 종료 → 보안 프로그램 종료. Chrome 이 살아
+# 있을 때 모듈을 죽이면 열려 있던 페이지가 곧바로 다시 띄운다.
+finish_browser() {
+  [ "$BROWSER_USED" = 1 ] || return 0
+  close_cert_dialogs
+  quit_chrome
+  $NODE "$RUNTIME/scripts/close-cert-dialogs.mjs" --quit-modules >> "$LOG_FILE" 2>&1
+  BROWSER_USED=0
 }
 
 # 브라우저를 쓰는 단계. DB 만 만지는 적재·분류는 run_step 그대로 둔다.
@@ -211,7 +235,13 @@ release_lock() {
   fi
   LOCK_HELD=0
 }
-trap release_lock EXIT
+# 어느 길로 끝나든 화면을 비우고 락을 놓는다. Chrome 을 먼저 내린다 — 기다리던
+# 다른 실행이 우리가 내리는 중인 Chrome 을 물려받으면 안 된다.
+finish_run() {
+  finish_browser
+  release_lock
+}
+trap finish_run EXIT
 
 # 앞 실행이 돌고 있으면 기다린다. 건너뛰면 그날 그 소스가 통째로 빈다 — 겹치는
 # 시간은 길어야 몇 분이라 기다리는 편이 싸다.
@@ -331,6 +361,8 @@ run_willow() {
   group match "세금 지급 매칭" run_step "세금 지급 매칭" \
     $NODE "$RUNTIME/scripts/match-finance-tax-obligations.mjs"
   group classify "자동 분류" run_step "자동 분류" npx tsx "$ROOT/scripts/local-finance-classify.ts" --company willow
+  group etc-referral "ETC Referral Fee 매출 반영" run_step "ETC Referral Fee 매출 반영" \
+    $NODE "$RUNTIME/scripts/sync-etc-referral-revenue.mjs"
 }
 
 # --only <묶음[,묶음...]>: 지정한 묶음만 돈다. 홈택스처럼 다른 시각에 도는 잡이 쓰고,
@@ -368,8 +400,12 @@ run_only() {
         fi ;;
       reconcile) group reconcile "수금 대사" run_step "수금 대사" \
         npx tsx "$ROOT/scripts/tensw-reconcile-payments.ts" ;;
-      akros) group akros "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
-        $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs" ;;
+      akros)
+        if [ "$COMPANY" = willow ]; then group etc-referral "ETC Referral Fee 매출 반영" run_step "ETC Referral Fee 매출 반영" \
+          $NODE "$RUNTIME/scripts/sync-etc-referral-revenue.mjs"
+        fi
+        group akros "아크로스 인보이스 반영" run_step "아크로스 인보이스 반영" \
+          $NODE "$RUNTIME/scripts/sync-akros-invoices.mjs" ;;
       *)
         echo "$(date '+%Y-%m-%d %H:%M:%S') [$COMPANY] 알 수 없는 묶음이에요: $name" >> "$LOG_FILE"
         FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }알 수 없는 묶음 $name" ;;
@@ -446,7 +482,8 @@ if [ "${2:-}" = "--sync-only" ]; then
     "$RUNTIME/scripts/collect-hometax-tax-invoices.mjs" \
     "$RUNTIME/scripts/import-local-bank.mjs" \
     "$RUNTIME/scripts/lib/tensw-local-finance.mjs" \
-    "$RUNTIME/scripts/lib/finance-session.mjs"
+    "$RUNTIME/scripts/lib/finance-session.mjs" \
+    "$RUNTIME/scripts/lib/nhis-session.mjs"
   do
     [ -f "$required" ] || { echo "빠짐: $required" >&2; missing=1; }
   done

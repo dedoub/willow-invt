@@ -11,14 +11,32 @@
 // 취소가 보이면 취소만 누른다. 취소가 창 어디에도 없을 때만 — 즉 단추가 확인뿐인
 // 오류 알림일 때만 — 확인을 눌러 치운다.
 // ────────────────────────────────────────────────────────────────────
+import { execFile } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { appleScript, appleScriptLiteral, captureScreen, click, nativeWindows, ocrScreenshot, sleep } from './desktop.mjs'
 import { findOcrText, windowRect } from './cert-dialog.mjs'
+
+const execFileAsync = promisify(execFile)
 
 export const CERT_PROCESSES = [
   'INISAFECrossWebEXSvc', 'bizapp', 'AnySign', 'AnySign.ex',
   'delfino', 'veraport', 'nProtect', 'CrossEXService', 'TouchEn',
+]
+
+// 수집이 끝난 뒤 내리는 보안 프로그램. 위 목록은 창을 띄우는 것들이고, 여기에는
+// 창 없이 배경에만 사는 것들이 더 있다 — Chrome 을 내려도 이것들은 그대로 남아
+// 다음 접속 때까지 떠 있다. 2026-09-18 실측으로 떠 있던 것: AnySign.ex,
+// CrossEXService, INISAFECrossWebEXSvc, MagicLine4NX, astxAgent·astxStatus·astxd,
+// delfino, veraport. 목록에 없는 이름은 pkill 이 그냥 아무것도 안 하므로,
+// 아직 안 만난 모듈도 미리 적어 둔다.
+export const SECURITY_PROCESSES = [
+  ...CERT_PROCESSES,
+  'MagicLine4NX', 'MagicLine4NX.ex',
+  'astxAgent', 'astxStatus', 'astxd',
+  'WizVera', 'Veraport', 'XecureWeb', 'IPinside', 'Interezen',
+  'nProtect Netizen', 'TouchEnKey', 'TouchEnNxKey',
 ]
 const CANCEL_LABELS = ['취소', '취소하기', '닫기', 'Cancel']
 const DISMISS_LABELS = ['확인', 'OK']
@@ -134,4 +152,40 @@ export async function closeCertDialogs({ log = () => {} } = {}) {
     log(`${processName} "${name}" — 닫지 못했어요. pos=(${rect.x},${rect.y}) size=${rect.w}x${rect.h}`)
   }
   return closed
+}
+
+/** 그 이름의 프로세스가 떠 있나. pkill 과 같은 -x(이름 정확히 일치) 기준으로 본다. */
+async function isRunning(processName) {
+  try {
+    await execFileAsync('/usr/bin/pgrep', ['-x', processName])
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 은행 보안 프로그램을 내린다. 브라우저 창만 닫으면 이것들은 배경에 남는다 —
+ * 수집이 다 끝난 뒤에는 인증서 모듈도 같이 꺼져야 한다(CEO 2026-09-18).
+ * Chrome 을 먼저 내리고 부를 것. Chrome 이 살아 있으면 페이지가 다시 띄운다.
+ */
+export async function quitSecurityModules({ log = () => {} } = {}) {
+  const stopped = []
+  for (const processName of SECURITY_PROCESSES) {
+    if (!(await isRunning(processName))) continue
+    await execFileAsync('/usr/bin/pkill', ['-x', processName]).catch(() => {})
+    // 스스로 정리할 틈을 준다. 그래도 남으면 끊는다 — 남은 모듈이 다음 실행의
+    // 인증서 창을 가로챈다.
+    for (let i = 0; i < 5; i += 1) {
+      if (!(await isRunning(processName))) break
+      await sleep(1_000)
+    }
+    if (await isRunning(processName)) {
+      await execFileAsync('/usr/bin/pkill', ['-9', '-x', processName]).catch(() => {})
+      await sleep(500)
+    }
+    stopped.push(processName)
+    log(`${processName} 내렸어요.`)
+  }
+  return stopped
 }
