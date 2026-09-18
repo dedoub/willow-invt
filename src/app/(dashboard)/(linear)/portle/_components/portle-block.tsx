@@ -9,10 +9,16 @@ import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-sec
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import type { PortleStats, PortleUserRow } from '@/lib/portle-types'
 import { PORTLE_KIND_LABELS, PORTLE_STAGE_LABELS } from '@/lib/portle-types'
+import type { PortleDailyActive } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
+import { formatCountryName } from '@/lib/country-format'
+
+// 분포 파이 공통 팔레트 — 보이스카드·리뷰노트와 같은 명도 사다리
+const PIE_PALETTE = ['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,90 +57,116 @@ const rateExtra = (label: string, pct: number) => (
   </span>
 )
 
-// ─── 일별 AI 호출 차트 (리뷰노트 DauTrendCard 포틀판) ─────────────────────────────
-// 성공/빈응답/실패 3계열 스택 + 7일 이동평균. Echo News 안정성 문제가 핵심 관찰 대상이라
-// 결과(outcome)를 계열로 쓴다 — 실패가 붉게 쌓이면 바로 보인다.
-
 const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
 function withWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${WEEKDAYS_KO[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
 }
 
-function PortleAiTrendCard({ daily, days = 42 }: {
-  daily: Array<{ date: string; success: number; empty: number; failure: number; subjects: number }>
-  days?: number
-}) {
+// 일별 활동자 — 보이스카드 DauTrendCard 의 포틀판. 하루 한 바를 4단 스택: 아래에서 위로
+// 로그인·기존 → 로그인·신규 → 기기·기존 → 기기·신규. 합 = total. 활동 = 그날 앱 이벤트 또는
+// AI 호출(서버 dailyActive, 관리자·테스트 제외). 명도 사다리도 보이스카드와 같다 — 같은 계열
+// 안에서 신규가 밝은 쪽이라 위로 갈수록 '새 사람'이고, 스택 방향과 읽는 방향이 맞는다.
+function PortleDauTrendCard({ daily, days = 42 }: { daily: PortleDailyActive[]; days?: number }) {
   const rows = (daily ?? []).slice(-days)
-  const totalOf = (r: { success: number; empty: number; failure: number }) => r.success + r.empty + r.failure
-  const max = rows.reduce((m, r) => Math.max(m, totalOf(r)), 0)
+  const max = rows.reduce((m, r) => Math.max(m, r.total), 0)
   const latest = rows.length ? rows[rows.length - 1] : null
-  // 색이 아니라 짙기로 가른다 — 성공이 짙고 실패가 옅다(2026-09-11 카드 문법)
-  const OK = '#0E415A'
-  const EMPTY = '#8D959D'
-  const FAIL = '#C7CCD3'
+  const MEMBER = '#0E415A'
+  const NEW = '#5B6B74'
+  const DEV_MEMBER = '#A8B0B6'
+  const DEV_NEW = '#D3D7DD'
   const MA_COLOR = '#17181C'
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const barPct = (v: number) => (max > 0 ? (v / max) * 100 : 0)
+  // 7일 이동평균(총 활동자) — 바 위에 가볍게 얹는 추세선
   const ma = rows.map((_, i) => {
     const win = rows.slice(Math.max(0, i - 6), i + 1)
-    return win.reduce((sum, r) => sum + totalOf(r), 0) / win.length
+    return win.reduce((sum, r) => sum + r.total, 0) / win.length
   })
+  const chip = (color: string, label: string, value: number | string, line = false) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted, whiteSpace: 'nowrap' as const }}>
+      <span style={{ width: line ? 10 : 6, height: line ? 2 : 6, borderRadius: 1, background: color }} />{label} {value}
+    </span>
+  )
+  const tipRow = (color: string, label: string, value: number) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+      <span style={{ width: 7, height: 7, borderRadius: 1, background: color }} />{label} {value}
+    </div>
+  )
   return (
     <div data-panel="" style={{
       background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
       height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs, marginBottom: t.density.gapSm }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: t.density.gapXs, marginBottom: t.density.gapSm, flexWrap: 'wrap' as const, rowGap: t.density.gapXs,
+      }}>
         <div data-panel-title="" style={{
           fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
           textTransform: 'uppercase' as const, color: t.neutrals.subtle, whiteSpace: 'nowrap' as const,
         }}>
-          일별 AI 호출
+          일별 활동자
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, whiteSpace: 'nowrap' as const }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: OK }} />성공 {latest?.success ?? 0}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: EMPTY }} />빈응답 {latest?.empty ?? 0}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: FAIL }} />실패 {latest?.failure ?? 0}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
-            <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
-          </span>
+        {/* 칩 5개 — 모바일 폭에서 칩 경계로만 접히고, flex-end 라 접혀도 우측 정렬 유지 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: t.density.kpiGap,
+          flexWrap: 'wrap' as const, justifyContent: 'flex-end', rowGap: t.density.gapXs, minWidth: 0,
+          fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono,
+        }}>
+          {chip(MEMBER, '로그인·기존', latest?.loggedMember ?? 0)}
+          {chip(NEW, '로그인·신규', latest?.loggedNew ?? 0)}
+          {chip(DEV_MEMBER, '기기·기존', latest?.deviceMember ?? 0)}
+          {chip(DEV_NEW, '기기·신규', latest?.deviceNew ?? 0)}
+          {chip(MA_COLOR, '7일평균', ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0, true)}
         </div>
       </div>
       {rows.length === 0 || max === 0 ? (
-        <div style={{ flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
+        <div style={{
+          flex: 1, minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle,
+        }}>
           데이터 없음
         </div>
       ) : (
         <div style={{ flex: 1, minHeight: 96, display: 'flex', alignItems: 'stretch', gap: t.density.tableRowGap, position: 'relative' }}>
           {rows.map((r, i) => {
-            const failH = barPct(r.failure)
-            const emptyH = barPct(r.empty)
-            const okH = barPct(r.success)
+            const devNewH = barPct(r.deviceNew)
+            const devMemberH = barPct(r.deviceMember)
+            const newH = barPct(r.loggedNew)
+            const memberH = barPct(r.loggedMember)
             const dim = hoverIdx !== null && hoverIdx !== i
             return (
-              <div key={r.date}
+              <div
+                key={r.date}
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx(prev => (prev === i ? null : prev))}
-                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}>
-                {failH > 0 && <div style={{ height: `${failH}%`, background: FAIL, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {emptyH > 0 && <div style={{ height: `${emptyH}%`, background: EMPTY, borderRadius: failH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
-                {okH > 0 && <div style={{ height: `${okH}%`, background: OK, borderRadius: (failH > 0 || emptyH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                style={{ flex: 1, minWidth: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', cursor: 'default' }}
+              >
+                {/* 바 위 총합 — 바가 좁아지는 만큼 글자를 줄여 옆 바와 안 부딪히게 */}
+                {r.total > 0 && (
+                  <span style={{
+                    fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
+                    fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, alignSelf: 'center', marginBottom: t.density.tableRowGap,
+                    whiteSpace: 'nowrap' as const, opacity: dim ? 0.25 : 0.7, transition: 'opacity 120ms ease',
+                  }}>{r.total}</span>
+                )}
+                {devNewH > 0 && <div style={{ height: `${devNewH}%`, background: DEV_NEW, borderRadius: '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {devMemberH > 0 && <div style={{ height: `${devMemberH}%`, background: DEV_MEMBER, borderRadius: devNewH > 0 ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {newH > 0 && <div style={{ height: `${newH}%`, background: NEW, borderRadius: (devNewH > 0 || devMemberH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
+                {memberH > 0 && <div style={{ height: `${memberH}%`, background: MEMBER, borderRadius: (devNewH > 0 || devMemberH > 0 || newH > 0) ? 0 : '1px 1px 0 0', opacity: dim ? 0.4 : 1, transition: 'opacity 120ms ease' }} />}
               </div>
             )
           })}
           {max > 0 && rows.length > 1 && (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
+            <svg
+              viewBox="0 0 100 100" preserveAspectRatio="none"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}
+            >
               <polyline
                 points={ma.map((v, i) => `${(((i + 0.5) / rows.length) * 100).toFixed(2)},${(100 - (v / max) * 100).toFixed(2)}`).join(' ')}
                 fill="none" stroke={MA_COLOR} strokeWidth={1.2} opacity={0.75}
-                vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+                vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
+              />
             </svg>
           )}
           {hoverIdx !== null && rows[hoverIdx] && (() => {
@@ -143,22 +175,17 @@ function PortleAiTrendCard({ daily, days = 42 }: {
             return (
               <div style={{
                 position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)',
-                bottom: `calc(${barPct(totalOf(r)).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
+                bottom: `calc(${barPct(r.total).toFixed(1)}% + 8px)`, pointerEvents: 'none', zIndex: 10,
                 background: '#1E293B', color: '#F8FAFC',
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
                 <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: OK }} />성공 {r.success}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: EMPTY }} />빈응답 {r.empty}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: FAIL }} />실패 {r.failure}
-                </div>
-                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>사용자 {r.subjects}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
+                {tipRow(MEMBER, '기존 로그인', r.loggedMember)}
+                {tipRow(NEW, '신규 로그인', r.loggedNew)}
+                {tipRow(DEV_MEMBER, '기존 기기', r.deviceMember)}
+                {tipRow(DEV_NEW, '신규 기기', r.deviceNew)}
+                <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>총 {r.total} · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
             )
           })()}
@@ -254,14 +281,29 @@ const STAGE_TONES: Record<string, { bg: string; fg: string }> = {
   install: { bg: t.neutrals.inner, fg: t.neutrals.muted },
   signin: tonePalettes.info,
   drive: tonePalettes.brand,
-  sheet: tonePalettes.pos,
+  ledger: tonePalettes.pos,
 }
-const STAGE_ORDER: Record<string, number> = { install: 0, signin: 1, drive: 2, sheet: 3 }
+const STAGE_ORDER: Record<string, number> = { install: 0, signin: 1, drive: 2, ledger: 3 }
 
 // 앱버전 비교 — 1.0.9 < 1.0.10 이 되도록 세그먼트 숫자로 본다. 버전 없음은 가장 오래된 것.
 function versionRank(v: string | null): number[] {
   return v ? v.split(/[^0-9]+/).filter(Boolean).map(Number) : [-1]
 }
+// 앱버전 파이 데이터: 최신 버전순 상위 3개 + 나머지(구버전·미상)는 기타 — 업데이트 전파 파악용
+// (보이스카드 versionPieData 와 같은 규칙). 앱 이벤트가 없어 버전을 모르는 사람은 미상으로 기타에 든다.
+function versionPieData(rows: PortleUserRow[]): Array<{ name: string; value: number }> {
+  const byVersion = new Map<string, number>()
+  let unknown = 0
+  for (const u of rows) {
+    if (u.appVersion) byVersion.set(u.appVersion, (byVersion.get(u.appVersion) ?? 0) + 1)
+    else unknown++
+  }
+  const named = Array.from(byVersion.entries()).sort((a, b) => compareVersion(b[0], a[0]))
+  const top = named.slice(0, 3).map(([version, value]) => ({ name: `v${version}`, value }))
+  const rest = named.slice(3).reduce((sum, [, v]) => sum + v, 0) + unknown
+  return rest > 0 ? [...top, { name: '기타', value: rest }] : top
+}
+
 function compareVersion(a: string | null, b: string | null): number {
   const va = versionRank(a), vb = versionRank(b)
   for (let i = 0; i < Math.max(va.length, vb.length); i++) {
@@ -338,201 +380,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     <>
     {/* AI 사용 · 기능별 — 두 섹션이 한 열로 붙어 다닌다 */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-    {/* 카드1: AI 사용 · 안정성 */}
-    <LCard pad={0}>
-      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-        <LSectionHead
-          title="결제 전환"
-          mb={t.density.panelPadY + t.density.panelPadX}
-          action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
-        />
-
-        {error && <LNotice tone="danger" text={error} />}
-
-        {loading && (() => {
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
-                {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
-              </div>
-              <Bone h={splitLayout ? undefined : 190} style={{ minWidth: 0, height: splitLayout ? '100%' : 190 }} />
-            </div>
-          )
-        })()}
-
-        {!loading && stats && (() => {
-          const totals = stats.totals
-          // 퍼널: 스토어 방문 → 설치 기기 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독 가입.
-          // 보이스카드와 동일 단계. 스토어 방문은 portle_store_visits(스토어 리포트 수집 잡),
-          // 설치/로그인/연동/활성화는 portle_app_events(앱 텔레메트리) — 수집 전 단계는 '수집 대기'.
-          // 퍼널 축은 AI 사용일이 아니라 "이 퍼널에 무슨 일이든 있었던 기간"이어야 한다.
-          // stats.daily(AI 호출)만 쓰면 AI를 아무도 안 쓴 날부터 축이 끊겨, 그 뒤에 들어온
-          // 설치·로그인·활성화가 스파크라인에서 사라진다 — 카드 숫자는 57인데 선은 47에서
-          // 나흘 전에 멈춰 있었다 (2026-08-27). 모든 계열의 날짜를 합쳐 오늘까지 채운다.
-          const axis = (() => {
-            const marks = [
-              ...stats.daily.map(d => d.date),
-              ...stats.storeVisits.map(v => v.date),
-              ...stats.funnel.installs, ...stats.funnel.signins,
-              ...stats.funnel.driveLinks, ...stats.funnel.sheetActivations,
-            ].filter(Boolean).sort()
-            const todayKst = kstToday()
-            if (marks.length === 0) return [todayKst]
-            const out: string[] = []
-            for (let d = new Date(`${marks[0]}T00:00:00+09:00`); ; d.setDate(d.getDate() + 1)) {
-              const key = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-              out.push(key)
-              if (key >= todayKst) break
-            }
-            return out
-          })()
-          const today = axis.length ? axis[axis.length - 1] : ''
-          const sevenAgo = axis.length >= 7 ? axis[axis.length - 7] : (axis[0] ?? '')
-          const cumOf = (dates: string[]) => {
-            const sorted = [...dates].sort()
-            return axis.map(date => ({ date, value: sorted.filter(d => d <= date).length }))
-          }
-          const countToday = (dates: string[]) => dates.filter(d => d === today).length
-          const count7 = (dates: string[]) => dates.filter(d => d >= sevenAgo).length
-          const todaySub = (dates: string[]) =>
-            `오늘 ${countToday(dates).toLocaleString()}명 · 7일 ${count7(dates).toLocaleString()}명`
-
-          // 스토어 방문 — 일별 합산을 축으로 재샘플해 누적 (보이스카드 storeVisitsData 문법)
-          const sv = stats.storeVisits
-          const svTotal = sv.reduce((sum, r) => sum + r.visitors, 0)
-          const svLast = sv[sv.length - 1]
-          // 스토어 리포트는 ~1주 지연 → '7일'은 마지막 데이터일 기준 최근 7일
-          const sv7From = svLast ? new Date(new Date(svLast.date + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10) : ''
-          const sv7 = sv.filter(r => r.date >= sv7From).reduce((sum, r) => sum + r.visitors, 0)
-          let svCum = 0, svIdx = 0
-          const storeVisitsData = axis.map(date => {
-            while (svIdx < sv.length && sv[svIdx].date <= date) { svCum += sv[svIdx].visitors; svIdx++ }
-            return { date, value: svCum }
-          })
-
-          const { installs, signins, driveLinks, sheetActivations } = stats.funnel
-          const installsCum = cumOf(installs)
-          const signinsCum = cumOf(signins)
-          const driveCum = cumOf(driveLinks)
-          const sheetCum = cumOf(sheetActivations)
-
-          // 단계별 전환율 — 직전 단계 대비. 앞 단계가 수집 전(0)이면 전환을 적지 않는다.
-          // 뒤 단계가 앞 단계보다 크면(=앞 단계 이벤트가 덜 걷힌 상태) 100%로 눌러 적지 않는다.
-          // 지금 drive_linked 는 1건인데 sheet_activated 는 57건이라, 그대로 두면 "전환 100%"라는
-          // 거짓이 나온다. 계측이 메워지기 전까지는 비워 두는 편이 정직하다.
-          const conv = (n: number, d: number): number | null => (d > 0 && n <= d ? rate(n, d) : null)
-          const installConv = conv(installs.length, svTotal)
-          const loginConv = conv(signins.length, installs.length)
-          const driveConv = conv(driveLinks.length, signins.length)
-          const sheetConv = conv(sheetActivations.length, driveLinks.length)
-          const subConv = conv(totals.activeEntitlements, sheetActivations.length)
-          // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정) — 분모 단계가 수집돼야 그린다
-          const rateSeries = (num: Array<{ value: number }>, den: Array<{ value: number }>) =>
-            axis.map((date, i) => ({ date, value: den[i].value > 0 ? Math.round((num[i].value / den[i].value) * 1000) / 10 : 0 }))
-          // 전환율 숫자를 못 적는 단계(분모가 덜 걷혀 뒤 단계가 더 큰 경우)는 점선도 그리지 않는다.
-          // 드라이브 연동 1건 대비 시트 활성화 57건이던 구간에서 5700% 점선이 카드 밖으로 튀었다.
-          const loginRateData = loginConv !== null ? rateSeries(signinsCum, installsCum) : undefined
-          const driveRateData = driveConv !== null ? rateSeries(driveCum, signinsCum) : undefined
-          const sheetRateData = sheetConv !== null ? rateSeries(sheetCum, driveCum) : undefined
-
-          const PENDING_STORE = '수집 대기 (스토어 리포트)'
-          const PENDING_APP = '수집 대기 (앱 이벤트)'
-
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
-            {/* 좌: 퍼널 6카드(3×2) · 우: 일별 AI 호출 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
-            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
-              <LStat
-                label="스토어 방문"
-                title="플레이·앱스토어 등록정보 방문자 누적 (portle_store_visits). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문 → 설치 → 구글 로그인 → 드라이브 연동 → 시트 활성화 → 구독."
-                value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
-                valueExtra={svLast ? (
-                  <span style={{
-                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
-                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
-                  }}>
-                    {svLast.date.slice(5)} 기준
-                  </span>
-                ) : undefined}
-                sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : PENDING_STORE}
-                sparkline={mobile || svTotal === 0 ? undefined : storeVisitsData}
-              />
-              <LStat
-                label="설치 기기"
-                title="앱을 설치해 실행까지 온 고유 기기 누적 (portle_app_events: app_opened). 전환 = 스토어 방문 대비."
-                value={installs.length > 0 ? installs.length.toLocaleString() : '—'}
-                valueExtra={installConv !== null ? rateExtra('전환', installConv) : undefined}
-                sub={installs.length > 0 ? todaySub(installs) : PENDING_APP}
-                sparkline={mobile || installs.length === 0 ? undefined : installsCum}
-              />
-              <LStat
-                label="구글 로그인"
-                title="구글 계정으로 로그인한 사용자 누적. 앱 이벤트(signin_completed) 수집 전에는 AI 사용 로그의 google 계정 첫 사용일로 근사. 전환 = 설치 기기 대비. 점선 = 로그인율 추이."
-                value={signins.length.toLocaleString()}
-                valueExtra={loginConv !== null ? rateExtra('전환', loginConv) : undefined}
-                sub={todaySub(signins)}
-                tone={signins.length > 0 ? 'pos' : 'default'}
-                sparkline={mobile || signins.length === 0 ? undefined : signinsCum}
-                sparkline2={mobile ? undefined : loginRateData}
-                sparkColor={t.chart.mono}
-                spark2Color={t.neutrals.subtle}
-                sparkFormat2={(v) => `${v}%`}
-                spark2Domain={[0, 100]}
-                dualScale
-              />
-              <LStat
-                label="드라이브 연동"
-                title="Google Drive 연동(원장 저장소)까지 마친 기기 누적 (portle_app_events: drive_linked). 전환 = 구글 로그인 대비."
-                value={driveLinks.length > 0 ? driveLinks.length.toLocaleString() : '—'}
-                valueExtra={driveConv !== null ? rateExtra('전환', driveConv) : undefined}
-                sub={driveLinks.length > 0 ? todaySub(driveLinks) : PENDING_APP}
-                sparkline={mobile || driveLinks.length === 0 ? undefined : driveCum}
-                sparkline2={mobile ? undefined : driveRateData}
-                sparkColor={t.chart.mono}
-                spark2Color={t.neutrals.subtle}
-                sparkFormat2={(v) => `${v}%`}
-                spark2Domain={[0, 100]}
-                dualScale
-              />
-              <LStat
-                label="시트 활성화"
-                title="원장 시트를 만들어 실제 기록을 시작한 기기 누적 (portle_app_events: sheet_activated). 전환 = 드라이브 연동 대비."
-                value={sheetActivations.length > 0 ? sheetActivations.length.toLocaleString() : '—'}
-                valueExtra={sheetConv !== null ? rateExtra('전환', sheetConv) : undefined}
-                sub={sheetActivations.length > 0 ? todaySub(sheetActivations) : PENDING_APP}
-                sparkline={mobile || sheetActivations.length === 0 ? undefined : sheetCum}
-                sparkline2={mobile ? undefined : sheetRateData}
-                sparkColor={t.chart.mono}
-                spark2Color={t.neutrals.subtle}
-                sparkFormat2={(v) => `${v}%`}
-                spark2Domain={[0, 100]}
-                dualScale
-              />
-              <LStat
-                label="구독 가입"
-                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP). 결제율 = 구독 ÷ 시트 활성화 (활성화 수집 전엔 미표시)."
-                value={totals.activeEntitlements.toLocaleString()}
-                valueExtra={subConv !== null ? rateExtra('결제', subConv) : undefined}
-                sub="스토어 IAP 기준"
-                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
-              />
-            </StatRows>
-            {/* 일별 AI 호출 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 */}
-            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
-              <PortleAiTrendCard daily={stats.daily} />
-            </div>
-            </div>
-          )
-        })()}
-      </div>
-      <LCardFoot
-        left="서버 AI 로그 기준"
-        right="원장: 기기/Drive"
-        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
-      />
-    </LCard>
-
-    {/* 카드2: AI 안정성 · 기능별 — 호출량/성공률/토큰 + kind별 분해 */}
+    {/* 카드1: 활동 지표 — 호출량/성공률/토큰 + kind별 분해 */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
@@ -649,6 +497,260 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
       )}
+    </LCard>
+
+    {/* 카드2: 결제 전환 퍼널 */}
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
+        <LSectionHead
+          title="결제 전환"
+          mb={t.density.panelPadY + t.density.panelPadX}
+          action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={onRefresh} busy={refreshing} />}
+        />
+
+        {error && <LNotice tone="danger" text={error} />}
+
+        {loading && (() => {
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: t.density.kpiGap, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap, minWidth: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+                  {[0, 1, 2, 3, 4, 5].map(i => <Bone key={i} h={64} />)}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+                  {[0, 1, 2].map(i => <Bone key={i} h={150} />)}
+                </div>
+              </div>
+              <Bone h={splitLayout ? undefined : 190} style={{ minWidth: 0, height: splitLayout ? '100%' : 190 }} />
+            </div>
+          )
+        })()}
+
+        {!loading && stats && (() => {
+          const totals = stats.totals
+          // 퍼널: 스토어 방문 → 설치 기기 → 구글 로그인 → 드라이브 연동 → 원장 활성화 → 구독 가입.
+          // 원장 활성화는 구글 시트(sheet_activated)와 기기 원장(local_ledger_activated)을 합친 것이다.
+          // 기기 원장은 로그인·연동 없이도 열리므로 그 칸의 전환은 드라이브 연동이 아니라 설치 기기 대비다.
+          // 보이스카드와 동일 단계. 스토어 방문은 portle_store_visits(스토어 리포트 수집 잡),
+          // 설치/로그인/연동/활성화는 portle_app_events(앱 텔레메트리) — 수집 전 단계는 '수집 대기'.
+          // 퍼널 축은 AI 사용일이 아니라 "이 퍼널에 무슨 일이든 있었던 기간"이어야 한다.
+          // stats.daily(AI 호출)만 쓰면 AI를 아무도 안 쓴 날부터 축이 끊겨, 그 뒤에 들어온
+          // 설치·로그인·활성화가 스파크라인에서 사라진다 — 카드 숫자는 57인데 선은 47에서
+          // 나흘 전에 멈춰 있었다 (2026-08-27). 모든 계열의 날짜를 합쳐 오늘까지 채운다.
+          const axis = (() => {
+            const marks = [
+              ...stats.daily.map(d => d.date),
+              ...stats.storeVisits.map(v => v.date),
+              ...stats.funnel.installs, ...stats.funnel.signins,
+              ...stats.funnel.driveLinks, ...stats.funnel.ledgerActivations,
+            ].filter(Boolean).sort()
+            const todayKst = kstToday()
+            if (marks.length === 0) return [todayKst]
+            const out: string[] = []
+            for (let d = new Date(`${marks[0]}T00:00:00+09:00`); ; d.setDate(d.getDate() + 1)) {
+              const key = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
+              out.push(key)
+              if (key >= todayKst) break
+            }
+            return out
+          })()
+          const today = axis.length ? axis[axis.length - 1] : ''
+          const sevenAgo = axis.length >= 7 ? axis[axis.length - 7] : (axis[0] ?? '')
+          const cumOf = (dates: string[]) => {
+            const sorted = [...dates].sort()
+            return axis.map(date => ({ date, value: sorted.filter(d => d <= date).length }))
+          }
+          const countToday = (dates: string[]) => dates.filter(d => d === today).length
+          const count7 = (dates: string[]) => dates.filter(d => d >= sevenAgo).length
+          const todaySub = (dates: string[]) =>
+            `오늘 ${countToday(dates).toLocaleString()}명 · 7일 ${count7(dates).toLocaleString()}명`
+
+          // 스토어 방문 — 일별 합산을 축으로 재샘플해 누적 (보이스카드 storeVisitsData 문법)
+          const sv = stats.storeVisits
+          const svTotal = sv.reduce((sum, r) => sum + r.visitors, 0)
+          const svLast = sv[sv.length - 1]
+          // 스토어 리포트는 ~1주 지연 → '7일'은 마지막 데이터일 기준 최근 7일
+          const sv7From = svLast ? new Date(new Date(svLast.date + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10) : ''
+          const sv7 = sv.filter(r => r.date >= sv7From).reduce((sum, r) => sum + r.visitors, 0)
+          let svCum = 0, svIdx = 0
+          const storeVisitsData = axis.map(date => {
+            while (svIdx < sv.length && sv[svIdx].date <= date) { svCum += sv[svIdx].visitors; svIdx++ }
+            return { date, value: svCum }
+          })
+
+          const { installs, signins, driveLinks, ledgerActivations, sheetActivations, localActivations } = stats.funnel
+          const installsCum = cumOf(installs)
+          const signinsCum = cumOf(signins)
+          const driveCum = cumOf(driveLinks)
+          const ledgerCum = cumOf(ledgerActivations)
+
+          // 단계별 전환율 — 직전 단계 대비. 앞 단계가 수집 전(0)이면 전환을 적지 않는다.
+          // 뒤 단계가 앞 단계보다 크면(=앞 단계 이벤트가 덜 걷힌 상태) 100%로 눌러 적지 않는다.
+          // 한때 drive_linked 1건에 sheet_activated 57건이라, 그대로 두면 "전환 100%"라는
+          // 거짓이 나왔다. 계측이 메워지기 전까지는 비워 두는 편이 정직하다.
+          const conv = (n: number, d: number): number | null => (d > 0 && n <= d ? rate(n, d) : null)
+          const installConv = conv(installs.length, svTotal)
+          const loginConv = conv(signins.length, installs.length)
+          const driveConv = conv(driveLinks.length, signins.length)
+          const ledgerConv = conv(ledgerActivations.length, installs.length)
+          const subConv = conv(totals.activeEntitlements, ledgerActivations.length)
+          // 점선 = 전환율 추이 (dualScale 우측 축, 0~100 고정) — 분모 단계가 수집돼야 그린다
+          const rateSeries = (num: Array<{ value: number }>, den: Array<{ value: number }>) =>
+            axis.map((date, i) => ({ date, value: den[i].value > 0 ? Math.round((num[i].value / den[i].value) * 1000) / 10 : 0 }))
+          // 전환율 숫자를 못 적는 단계(분모가 덜 걷혀 뒤 단계가 더 큰 경우)는 점선도 그리지 않는다.
+          // 드라이브 연동 1건 대비 시트 활성화 57건이던 구간에서 5700% 점선이 카드 밖으로 튀었다.
+          const loginRateData = loginConv !== null ? rateSeries(signinsCum, installsCum) : undefined
+          const driveRateData = driveConv !== null ? rateSeries(driveCum, signinsCum) : undefined
+          const ledgerRateData = ledgerConv !== null ? rateSeries(ledgerCum, installsCum) : undefined
+
+          const PENDING_STORE = '수집 대기 (스토어 리포트)'
+          const PENDING_APP = '수집 대기 (앱 이벤트)'
+
+          // 분포 파이 3장 — 보이스카드와 같은 구성(플랫폼 · 국가 · 앱버전), 같은 탭(기기 · 활성 · 결제).
+          // 기기 = 앱 이벤트가 있는 사람(설치 기기 카드와 같은 모집단). 활성 = 원장 활성화까지 간 사람.
+          // 결제 = 만료 전 구독이 있는 사람. AI 로그만 있는 사람은 플랫폼·버전을 몰라 기기 탭에서 뺀다.
+          const appUsers = stats.users.filter(u => u.deviceIds.length > 0)
+          const activeUsers = appUsers.filter(u => u.stage === 'ledger')
+          const payingUsers = stats.users.filter(u => u.entitlement?.active)
+          const distOf = (rows: PortleUserRow[], label: (u: PortleUserRow) => string) => {
+            const m = new Map<string, number>()
+            for (const u of rows) m.set(label(u), (m.get(label(u)) ?? 0) + 1)
+            return Array.from(m, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+          }
+          const platformOf = (u: PortleUserRow) => u.platform === 'ios' ? 'iOS' : u.platform === 'android' ? 'Android' : '미상'
+          const countryOf = (u: PortleUserRow) => formatCountryName(u.country ?? 'unknown')
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: splitLayout ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px`, alignItems: 'stretch' }}>
+            {/* 좌: 퍼널 6카드(3×2) + 플랫폼/국가/앱버전 파이 · 우: 일별 활동자 전체높이 (1열 모드 전용, 보이스카드와 동일) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.pagePadBottom, minWidth: 0 }}>
+            <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
+              <LStat
+                label="스토어 방문"
+                title="플레이·앱스토어 등록정보 방문자 누적 (portle_store_visits). 스토어 리포트 특성상 ~1주 지연. 퍼널: 방문 → 설치 → 구글 로그인 → 드라이브 연동 → 원장 활성화 → 구독."
+                value={svTotal > 0 ? svTotal.toLocaleString() : '—'}
+                valueExtra={svLast ? (
+                  <span style={{
+                    fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginLeft: t.density.gapSm, fontWeight: t.weight.medium,
+                    fontFamily: t.font.mono, color: t.neutrals.subtle, fontVariantNumeric: 'tabular-nums' as const,
+                  }}>
+                    {svLast.date.slice(5)} 기준
+                  </span>
+                ) : undefined}
+                sub={svTotal > 0 ? `최근 ${(svLast?.visitors ?? 0).toLocaleString()}명 · 7일 ${sv7.toLocaleString()}명` : PENDING_STORE}
+                sparkline={mobile || svTotal === 0 ? undefined : storeVisitsData}
+              />
+              <LStat
+                label="설치 기기"
+                title="앱을 설치해 실행까지 온 고유 기기 누적 (portle_app_events: app_opened). 전환 = 스토어 방문 대비."
+                value={installs.length > 0 ? installs.length.toLocaleString() : '—'}
+                valueExtra={installConv !== null ? rateExtra('전환', installConv) : undefined}
+                sub={installs.length > 0 ? todaySub(installs) : PENDING_APP}
+                sparkline={mobile || installs.length === 0 ? undefined : installsCum}
+              />
+              <LStat
+                label="구글 로그인"
+                title="구글 계정으로 로그인한 사용자 누적. 앱 이벤트(signin_completed) 수집 전에는 AI 사용 로그의 google 계정 첫 사용일로 근사. 전환 = 설치 기기 대비. 점선 = 로그인율 추이."
+                value={signins.length.toLocaleString()}
+                valueExtra={loginConv !== null ? rateExtra('전환', loginConv) : undefined}
+                sub={todaySub(signins)}
+                tone={signins.length > 0 ? 'pos' : 'default'}
+                sparkline={mobile || signins.length === 0 ? undefined : signinsCum}
+                sparkline2={mobile ? undefined : loginRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
+              />
+              <LStat
+                label="드라이브 연동"
+                title="Google Drive 연동(원장 저장소)까지 마친 기기 누적 (portle_app_events: drive_linked). 전환 = 구글 로그인 대비."
+                value={driveLinks.length > 0 ? driveLinks.length.toLocaleString() : '—'}
+                valueExtra={driveConv !== null ? rateExtra('전환', driveConv) : undefined}
+                sub={driveLinks.length > 0 ? todaySub(driveLinks) : PENDING_APP}
+                sparkline={mobile || driveLinks.length === 0 ? undefined : driveCum}
+                sparkline2={mobile ? undefined : driveRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
+              />
+              <LStat
+                label="원장 활성화"
+                title="원장에 실제 기록을 시작한 기기 누적 — 구글 시트(sheet_activated)와 기기 원장(local_ledger_activated) 둘 다. 한 기기는 어느 쪽이든 처음 기록한 날 한 번만 센다. 전환 = 설치 기기 대비(기기 원장은 로그인·연동 없이도 열린다). 기기 원장 이벤트는 앱 1.0.3 부터 온다."
+                value={ledgerActivations.length > 0 ? ledgerActivations.length.toLocaleString() : '—'}
+                valueExtra={ledgerConv !== null ? rateExtra('전환', ledgerConv) : undefined}
+                sub={ledgerActivations.length > 0
+                  ? `시트 ${sheetActivations.length.toLocaleString()} · 기기 ${localActivations.length.toLocaleString()} · 오늘 ${countToday(ledgerActivations).toLocaleString()}명`
+                  : PENDING_APP}
+                sparkline={mobile || ledgerActivations.length === 0 ? undefined : ledgerCum}
+                sparkline2={mobile ? undefined : ledgerRateData}
+                sparkColor={t.chart.mono}
+                spark2Color={t.neutrals.subtle}
+                sparkFormat2={(v) => `${v}%`}
+                spark2Domain={[0, 100]}
+                dualScale
+              />
+              <LStat
+                label="구독 가입"
+                title="portle_entitlements 중 만료 전 구독 (Apple/Google IAP). 결제율 = 구독 ÷ 원장 활성화 (활성화 수집 전엔 미표시)."
+                value={totals.activeEntitlements.toLocaleString()}
+                valueExtra={subConv !== null ? rateExtra('결제', subConv) : undefined}
+                sub="스토어 IAP 기준"
+                tone={totals.activeEntitlements > 0 ? 'pos' : 'default'}
+              />
+            </StatRows>
+            {/* 플랫폼 / 국가 / 앱버전 — 국가는 1.0.3·백엔드 갱신 뒤부터 채워진다(그 전 기기는 미상) */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))', gap: `${t.density.pagePadBottom}px ${t.density.pagePadX}px` }}>
+              <DistributionPie
+                title="플랫폼"
+                tabs={[
+                  { key: 'devices', label: '기기', data: distOf(appUsers, platformOf) },
+                  { key: 'active', label: '활성', data: distOf(activeUsers, platformOf) },
+                  { key: 'paying', label: '결제', data: distOf(payingUsers, platformOf) },
+                ]}
+                palette={PIE_PALETTE}
+                unit="명"
+              />
+              <DistributionPie
+                title="국가"
+                tabs={[
+                  { key: 'devices', label: '기기', data: distOf(appUsers, countryOf) },
+                  { key: 'active', label: '활성', data: distOf(activeUsers, countryOf) },
+                  { key: 'paying', label: '결제', data: distOf(payingUsers, countryOf) },
+                ]}
+                palette={PIE_PALETTE}
+                unit="명"
+                topN={3}
+                monoFlags
+              />
+              <DistributionPie
+                title="앱버전"
+                tabs={[
+                  { key: 'all', label: '전체', data: versionPieData(appUsers) },
+                  { key: 'ios', label: 'iOS', data: versionPieData(appUsers.filter(u => u.platform === 'ios')) },
+                  { key: 'and', label: 'AND', data: versionPieData(appUsers.filter(u => u.platform === 'android')) },
+                ]}
+                palette={PIE_PALETTE}
+                unit="대"
+              />
+            </div>
+            </div>
+            {/* 일별 활동자 — 1열 모드는 우측 전체높이, 그 외(2열·모바일) 타일 아래 전체폭 (보이스카드와 동일) */}
+            <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
+              <PortleDauTrendCard daily={stats.dailyActive} />
+            </div>
+            </div>
+          )
+        })()}
+      </div>
+      <LCardFoot
+        left="서버 AI 로그 기준"
+        right="원장: 기기/Drive"
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
     </div>
 

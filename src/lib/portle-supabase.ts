@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { kstDateKey, kstToday, kstDaysAgo } from '@/lib/kst'
 import type {
   PortleStats, PortleDailyUsage, PortleKindStats, PortleUserRow, PortleEntitlement,
-  PortleAppFunnel, PortleUserStage,
+  PortleAppFunnel, PortleUserStage, PortleDailyActive,
 } from '@/lib/portle-types'
 
 export * from '@/lib/portle-types'
@@ -56,21 +56,33 @@ async function fetchAllAiUsage(): Promise<AiUsageRow[]> {
 
 // 앱 퍼널 이벤트 — 이벤트별 기기 첫 발생일(KST) 목록. 테이블이 비어 있으면 전부 빈 배열.
 // 행 수가 커지면 RPC 집계로 옮긴다 (현재는 수집 시작 전이라 전량 페이지 조회로 충분).
-const FUNNEL_EVENTS = ['app_opened', 'signin_completed', 'drive_linked', 'sheet_activated'] as const
+// 원장 활성화는 두 이벤트다 — 시트에 기록(sheet_activated)이든 기기 원장에 기록
+// (local_ledger_activated)이든 원장을 쓰기 시작한 것은 같다. 퍼널은 둘을 합쳐 한 칸으로 센다.
+// session_started 는 퍼널 칸이 아니라 실행마다 오는 재방문 신호다 — 일별 활동자의 재료라 같이 읽는다.
+const FUNNEL_EVENTS = [
+  'app_opened', 'signin_completed', 'drive_linked', 'sheet_activated', 'local_ledger_activated',
+] as const
+const ACTIVITY_EVENTS = [...FUNNEL_EVENTS, 'session_started'] as const
+const LEDGER_EVENTS = new Set<string>(['sheet_activated', 'local_ledger_activated'])
 
 const STAGE_OF_EVENT: Record<string, PortleUserStage> = {
   app_opened: 'install',
+  session_started: 'install',
   signin_completed: 'signin',
   drive_linked: 'drive',
-  sheet_activated: 'sheet',
+  sheet_activated: 'ledger',
+  local_ledger_activated: 'ledger',
 }
-const STAGE_RANK: Record<PortleUserStage, number> = { install: 0, signin: 1, drive: 2, sheet: 3 }
+const STAGE_RANK: Record<PortleUserStage, number> = { install: 0, signin: 1, drive: 2, ledger: 3 }
 
 // 앱 이벤트로 본 기기 하나. 사용자 표는 이걸 사람(계정 또는 기기)에 귀속시킨다.
 interface PortleDeviceRecord {
   deviceId: string
   platform: string | null
   appVersion: string | null
+  // 기기 설정의 지역(country, 앱이 보낸다) 우선, 없으면 접속 IP 의 나라(ip_country, 백엔드가 적는다).
+  // 둘 다 1.0.3/백엔드 갱신 뒤부터 오므로 그 전 기기는 null — 파이에서 '미상'.
+  country: string | null
   // 이 기기에서 로그인한 구글 계정. 앱이 signin 이벤트에 subject 를 실어 보낸 경우에만 안다
   // (1.0.1 이전 버전은 안 보낸다). 없으면 로그인했어도 누구인지는 모른다 — stage 가 말해 준다.
   subject: string | null
@@ -85,17 +97,21 @@ async function fetchAppEvents(): Promise<{
   funnel: PortleAppFunnel
   devices: PortleDeviceRecord[]
 }> {
-  const empty = { funnel: { installs: [], signins: [], driveLinks: [], sheetActivations: [] }, devices: [] }
+  const empty = {
+    funnel: { installs: [], signins: [], driveLinks: [], ledgerActivations: [], sheetActivations: [], localActivations: [] },
+    devices: [],
+  }
   if (!portleSupabase) return empty
   const rows: Array<{
     created_at: string; device_id: string | null; subject: string | null
     event: string; platform: string | null; app_version: string | null
+    country: string | null; ip_country: string | null
   }> = []
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
     const { data, error } = await portleSupabase
       .from('portle_app_events')
-      .select('created_at, device_id, subject, event, platform, app_version')
-      .in('event', [...FUNNEL_EVENTS])
+      .select('created_at, device_id, subject, event, platform, app_version, country, ip_country')
+      .in('event', [...ACTIVITY_EVENTS])
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
     if (error) {
@@ -125,12 +141,17 @@ async function fetchAppEvents(): Promise<{
     if (isInternalEvent(row.platform, row.created_at, owner)) continue // 우리 손으로 만든 트래픽
     const key = `${row.event}\n${row.device_id}`
     if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
+    // 원장 활성화는 두 이벤트를 한 키로 — 어느 쪽이든 처음 온 날이 그 기기의 활성화일
+    if (LEDGER_EVENTS.has(row.event)) {
+      const lkey = `ledger\n${row.device_id}`
+      if (!firstAt.has(lkey)) firstAt.set(lkey, kstDateKey(row.created_at))
+    }
 
     const stage = STAGE_OF_EVENT[row.event] ?? 'install'
     let d = devices.get(row.device_id)
     if (!d) {
       d = {
-        deviceId: row.device_id, platform: row.platform, appVersion: row.app_version,
+        deviceId: row.device_id, platform: row.platform, appVersion: row.app_version, country: null,
         subject: owner, firstAt: row.created_at, lastAt: row.created_at,
         installedAt: null, stage, days: new Set(),
       }
@@ -139,6 +160,8 @@ async function fetchAppEvents(): Promise<{
     d.lastAt = row.created_at                       // 오름차순이라 마지막 값이 최신
     if (row.app_version) d.appVersion = row.app_version
     if (row.platform) d.platform = row.platform
+    if (row.country) d.country = row.country
+    else if (row.ip_country && !d.country) d.country = row.ip_country
     if (row.event === 'app_opened' && !d.installedAt) d.installedAt = row.created_at
     if (STAGE_RANK[stage] > STAGE_RANK[d.stage]) d.stage = stage
     d.days.add(kstDateKey(row.created_at))
@@ -153,7 +176,9 @@ async function fetchAppEvents(): Promise<{
       installs: datesOf('app_opened'),
       signins: datesOf('signin_completed'),
       driveLinks: datesOf('drive_linked'),
+      ledgerActivations: datesOf('ledger'),
       sheetActivations: datesOf('sheet_activated'),
+      localActivations: datesOf('local_ledger_activated'),
     },
     devices: Array.from(devices.values()),
   }
@@ -360,7 +385,7 @@ export async function getPortleStats(): Promise<PortleStats> {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
         email: emails.get(subject) ?? null,
-        deviceIds: [], platform: null, appVersion: null, stage: null, installedAt: null,
+        deviceIds: [], platform: null, appVersion: null, country: null, stage: null, installedAt: null,
         firstAt: row.created_at, lastAt: row.created_at, activeDays: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
         inputTokens: 0, outputTokens: 0,
@@ -396,7 +421,7 @@ export async function getPortleStats(): Promise<PortleStats> {
         subject, type: subjectType(subject),
         accountId: subject.startsWith('google:') ? subject.slice('google:'.length) : null,
         email: emails.get(subject) ?? null,
-        deviceIds: [], platform: null, appVersion: null, stage: null, installedAt: null,
+        deviceIds: [], platform: null, appVersion: null, country: null, stage: null, installedAt: null,
         firstAt: d.firstAt, lastAt: d.lastAt, activeDays: 0, repeatAt: null,
         calls: 0, success: 0, empty: 0, failure: 0, byKind: {},
         inputTokens: 0, outputTokens: 0,
@@ -409,6 +434,7 @@ export async function getPortleStats(): Promise<PortleStats> {
     u.deviceIds.push(d.deviceId)
     if (d.platform) u.platform = d.platform === 'ios' || d.platform === 'android' ? d.platform : 'other'
     if (d.appVersion) u.appVersion = d.appVersion
+    if (d.country && !u.country) u.country = d.country
     if (!u.stage || STAGE_RANK[d.stage] > STAGE_RANK[u.stage]) u.stage = d.stage
     if (d.installedAt && (!u.installedAt || d.installedAt < u.installedAt)) u.installedAt = d.installedAt
     if (d.firstAt < u.firstAt) u.firstAt = d.firstAt
@@ -427,6 +453,37 @@ export async function getPortleStats(): Promise<PortleStats> {
       dailyOut.push(row
         ? { date: key, success: row.success, empty: row.empty, failure: row.failure, subjects: row.subjectSet.size }
         : { date: key, success: 0, empty: 0, failure: 0, subjects: 0 })
+    }
+  }
+
+  // ── 일별 활동자 — 보이스카드 '일별 활동자'와 같은 네 칸 ──────────────────────
+  // 사람 단위는 위 users 와 같다(로그인 기기는 계정에 합쳐진 뒤). 활동 = 그날 앱 이벤트 또는
+  // AI 호출. 로그인 = google 계정 사람, 기기 = 로그인 없는 기기. 신규 = 그 사람의 첫 활동일.
+  // 축은 첫 활동일부터 오늘까지 빈 날도 채운다 — 차트가 실제 기간을 보여야 한다.
+  const activeByDay = new Map<string, PortleDailyActive>()
+  const activeRow = (date: string): PortleDailyActive => {
+    let r = activeByDay.get(date)
+    if (!r) { r = { date, total: 0, loggedMember: 0, loggedNew: 0, deviceMember: 0, deviceNew: 0 }; activeByDay.set(date, r) }
+    return r
+  }
+  for (const u of users.values()) {
+    if (u.daySet.size === 0) continue
+    const firstDay = Array.from(u.daySet).sort()[0]
+    const logged = u.type === 'google'
+    for (const day of u.daySet) {
+      const r = activeRow(day)
+      r.total++
+      if (logged) { if (day === firstDay) r.loggedNew++; else r.loggedMember++ }
+      else { if (day === firstDay) r.deviceNew++; else r.deviceMember++ }
+    }
+  }
+  const activeKeys = Array.from(activeByDay.keys()).sort()
+  const dailyActive: PortleDailyActive[] = []
+  if (activeKeys.length > 0) {
+    for (let d = new Date(`${activeKeys[0]}T00:00:00Z`); ; d.setUTCDate(d.getUTCDate() + 1)) {
+      const key = d.toISOString().slice(0, 10)
+      if (key > today) break
+      dailyActive.push(activeByDay.get(key) ?? { date: key, total: 0, loggedMember: 0, loggedNew: 0, deviceMember: 0, deviceNew: 0 })
     }
   }
 
@@ -457,6 +514,7 @@ export async function getPortleStats(): Promise<PortleStats> {
       sharedSheets: sharedSheetsCount,
     },
     daily: dailyOut,
+    dailyActive,
     byKind: Array.from(byKind.values())
       .map(({ subjectSet, ...k }) => ({ ...k, subjects: subjectSet.size }))
       .sort((a, b) => b.calls - a.calls),

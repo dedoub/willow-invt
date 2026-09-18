@@ -42,13 +42,15 @@ export interface PortleEntitlement {
 }
 
 // 앱 퍼널에서 이 사람이 도달한 가장 먼 단계. 앱 이벤트가 있어야 알 수 있다.
-export type PortleUserStage = 'install' | 'signin' | 'drive' | 'sheet'
+// ledger = 원장에 첫 기록 (구글 시트든 기기 원장이든). 기기 원장은 로그인·연동 없이도
+// 열리므로, 단계 순서는 "얼마나 멀리 갔나"의 편의상 순서지 반드시 거치는 계단은 아니다.
+export type PortleUserStage = 'install' | 'signin' | 'drive' | 'ledger'
 
 export const PORTLE_STAGE_LABELS: Record<PortleUserStage, string> = {
   install: '설치',
   signin: '로그인',
   drive: '연동',
-  sheet: '시트',
+  ledger: '원장',
 }
 
 export interface PortleUserRow {
@@ -65,6 +67,8 @@ export interface PortleUserRow {
   deviceIds: string[]
   platform: 'ios' | 'android' | 'other' | null
   appVersion: string | null
+  // 국가코드 — 기기 설정 지역(앱) 우선, 없으면 접속 IP 나라(백엔드). 앱 이벤트가 없거나 옛 앱이면 null.
+  country: string | null
   stage: PortleUserStage | null
   // 앱을 처음 연 날(app_opened). 앱 이벤트가 없으면 null.
   installedAt: string | null
@@ -93,7 +97,24 @@ export interface PortleAppFunnel {
   installs: string[]          // app_opened 기기 첫 발생일
   signins: string[]           // signin_completed (폴백: google subject 첫 AI 사용일)
   driveLinks: string[]        // drive_linked
+  // 원장 활성화 — 기기가 어느 원장에든 처음 기록한 날. sheet_activated(구글 시트)와
+  // local_ledger_activated(기기 원장) 중 이른 쪽. 두 갈래 각각도 함께 준다 (합은 겹칠 수 있다 —
+  // 한 기기가 기기 원장으로 시작해 나중에 시트로 옮기면 양쪽에 다 선다).
+  ledgerActivations: string[]
   sheetActivations: string[]  // sheet_activated
+  localActivations: string[]  // local_ledger_activated
+}
+
+// 일별 활동자 — 보이스카드 '일별 활동자' 차트와 같은 네 칸. 활동 = 그날 앱 이벤트(실행·퍼널)
+// 또는 AI 호출이 하나라도 있었던 사람. 사람 단위는 사용자 표와 같다(로그인 기기는 계정에 합친다).
+// 로그인 = google 계정 사람, 기기 = 로그인 없는 기기. 신규 = 그날이 그 사람의 첫 활동일.
+export interface PortleDailyActive {
+  date: string
+  total: number
+  loggedMember: number   // 로그인 · 기존
+  loggedNew: number      // 로그인 · 신규
+  deviceMember: number   // 기기 · 기존
+  deviceNew: number      // 기기 · 신규
 }
 
 export interface PortleStats {
@@ -119,6 +140,7 @@ export interface PortleStats {
     sharedSheets: number
   }
   daily: PortleDailyUsage[]
+  dailyActive: PortleDailyActive[]
   byKind: PortleKindStats[]
   users: PortleUserRow[]
   fetchedAt: string
