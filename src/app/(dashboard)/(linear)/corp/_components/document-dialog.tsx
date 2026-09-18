@@ -136,10 +136,13 @@ export function DocumentDialog({ company, document: doc, onClose }: Props) {
             {events === null && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>불러오는 중</div>}
             {events && events.length === 0 && <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>기록이 없습니다</div>}
             {events?.map(ev => (
-              <div key={ev.id} style={{ display: 'flex', gap: t.density.gapMd, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
-                <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap' }}>{formatDateTime(ev.at)}</span>
-                <span style={{ color: t.neutrals.text, fontWeight: t.weight.medium }}>{EVENT_LABEL[ev.event] ?? ev.event}</span>
-                <span style={{ color: t.neutrals.muted, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              /* 폭이 모자라면 줄바꿈은 내용 한 줄에서만 일어난다. 날짜와 사건 이름은 줄지 않는다 —
+                 안 그러면 좁은 화면에서 '문서 생성' 이 글자마다 줄이 바뀌어 세로로 선다(CEO 2026-09-18).
+                 내용은 160px 이 안 나오면 통째로 아랫줄로 내려가 그 줄을 다 쓰고, 그래도 길면 말줄임. */
+              <div key={ev.id} style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapMd, padding: `${t.density.gapSm}px 0`, borderTop: `1px solid ${t.neutrals.line}`, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
+                <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatDateTime(ev.at)}</span>
+                <span style={{ color: t.neutrals.text, fontWeight: t.weight.medium, whiteSpace: 'nowrap', flexShrink: 0 }}>{EVENT_LABEL[ev.event] ?? ev.event}</span>
+                <span style={{ color: t.neutrals.muted, flex: '1 1 160px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {eventDetail(ev)}
                 </span>
               </div>
