@@ -42,7 +42,33 @@ export interface PaperSyncMeta {
   tables: number
 }
 
+/** 갱신 파이프라인 — 설계 문서의 다섯 단계를 확인된 사실로만 채운 것. */
+export interface PaperPipelineCheck {
+  table: string
+  entity: string
+  expected: number | null
+  actual: number | null
+  ok: boolean
+}
+
+export interface PaperPipeline {
+  checked_at: string
+  upstream: {
+    snapshot: string | null
+    works: { snapshot: string; records: number; files: number; bytes: number } | null
+    authors: { snapshot: string; records: number; files: number; bytes: number } | null
+  }
+  our_snapshot: string | null
+  /** 원본이 우리보다 새 스냅샷을 내놓았나 — 이번 분기 갱신을 시작할 신호. */
+  behind: boolean
+  staged: string[]
+  tables_done: number
+  tables_total: number
+  checks: PaperPipelineCheck[]
+}
+
 export interface PaperWarehouseStatus {
   datasets: PaperDataset[]
   lastSync: PaperSyncMeta | null
+  pipeline: PaperPipeline | null
 }

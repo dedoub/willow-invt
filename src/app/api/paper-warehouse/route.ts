@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { denyUnlessDashboardAccess } from '@/lib/api-auth'
 import { getServiceSupabase } from '@/lib/supabase'
-import type { PaperDataset, PaperSyncMeta } from '@/types/paper-warehouse'
+import type { PaperDataset, PaperPipeline, PaperSyncMeta } from '@/types/paper-warehouse'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,13 +17,15 @@ export async function GET(request: Request) {
         .order('source', { ascending: true })
         .order('snapshot', { ascending: false, nullsFirst: false })
         .order('table_name', { ascending: true }),
-      supabase.from('paper_warehouse_meta').select('value').eq('key', 'last_sync').maybeSingle(),
+      supabase.from('paper_warehouse_meta').select('key, value').in('key', ['last_sync', 'pipeline']),
     ])
     if (dataRes.error) throw dataRes.error
     if (metaRes.error) throw metaRes.error
+    const meta = new Map((metaRes.data ?? []).map(r => [r.key as string, r.value]))
     return NextResponse.json({
       datasets: (dataRes.data ?? []) as PaperDataset[],
-      lastSync: (metaRes.data?.value ?? null) as PaperSyncMeta | null,
+      lastSync: (meta.get('last_sync') ?? null) as PaperSyncMeta | null,
+      pipeline: (meta.get('pipeline') ?? null) as PaperPipeline | null,
     })
   } catch (error) {
     console.error('paper warehouse status:', error)

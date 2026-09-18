@@ -142,6 +142,35 @@ async function rowCounts(tableNames) {
   }
 }
 
+/**
+ * 원본(OpenAlex 공개 버킷)의 매니페스트. 갱신 파이프라인의 watch·validate 가 여기서 나온다 —
+ * 새 스냅샷이 떴는지, 우리 행 수가 원본 레코드 수와 맞는지.
+ * 공개 버킷이라 우리 계정 자격증명으로 그대로 읽힌다(사본 불필요, 2026-09-18 검증).
+ */
+async function upstreamManifests() {
+  const out = {}
+  for (const entity of ['works', 'authors']) {
+    try {
+      const raw = await aws(['s3', 'cp', `s3://openalex/data/parquet/${entity}/manifest.json`, '-', '--quiet'])
+      const m = JSON.parse(raw)
+      out[entity] = { snapshot: m.date, records: m.record_count, files: (m.files ?? []).length, bytes: m.content_length }
+    } catch (error) {
+      console.error(`[upstream] ${entity} 매니페스트를 못 읽었어요:`, error.message)
+    }
+  }
+  return out
+}
+
+/** 원본을 읽을 수 있게 등록해 둔 외부 테이블(stage 단계). 없으면 변환을 시작할 수 없다. */
+async function stagedTables() {
+  try {
+    const out = JSON.parse(await aws(['glue', 'get-tables', '--database-name', 'biblo_source', '--output', 'json']))
+    return (out.TableList ?? []).map(tb => tb.Name)
+  } catch {
+    return []
+  }
+}
+
 /** s3://bucket/warehouse/openalex/snapshot=2026-06-26/work_core/ → { source, snapshot, prefix } */
 function parseLocation(location) {
   const prefix = location ? location.replace(`s3://${BUCKET}/`, '') : ''
@@ -155,6 +184,7 @@ function parseLocation(location) {
 async function main() {
   const tables = await glueTables()
   const sizes = await s3Sizes()
+  const [upstream, staged] = await Promise.all([upstreamManifests(), stagedTables()])
   const { counts, scannedBytes, ms } = await rowCounts(tables.map(t => t.table_name))
   const now = new Date().toISOString()
 
@@ -218,8 +248,36 @@ async function main() {
       .update({ status: 'todo', updated_at: now }).eq('id', prev.id)
   }
 
+  // 갱신 파이프라인 — 설계 문서의 다섯 단계를 확인된 사실로만 채운다.
+  //   watch     원본 매니페스트 날짜 vs 우리 최신 스냅샷
+  //   stage     원본 외부 테이블 등록 여부
+  //   transform 표가 몇 개나 섰나
+  //   validate  우리 행 수 == 원본 레코드 수 (works·authors)
+  //   publish   카탈로그에 올라와 조회되는가
+  const ourSnapshot = rows.map(r => r.snapshot).filter(Boolean).sort().at(-1) ?? null
+  const upstreamSnapshot = upstream.works?.snapshot ?? null
+  const checks = [
+    { table: 'oa_work_core', entity: 'works', expected: upstream.works?.records ?? null },
+    { table: 'oa_author_core', entity: 'authors', expected: upstream.authors?.records ?? null },
+  ].map(c => {
+    const actual = counts.get(c.table) ?? null
+    return { ...c, actual, ok: c.expected !== null && actual !== null && Number(c.expected) === Number(actual) }
+  })
+  const pipeline = {
+    checked_at: now,
+    upstream: { snapshot: upstreamSnapshot, works: upstream.works ?? null, authors: upstream.authors ?? null },
+    our_snapshot: ourSnapshot,
+    // 원본이 우리보다 새 스냅샷을 내놓았으면 이번 분기 갱신이 시작돼야 한다는 뜻이다.
+    behind: !!(upstreamSnapshot && ourSnapshot && upstreamSnapshot > ourSnapshot),
+    staged,
+    tables_done: rows.filter(r => r.status === 'done').length,
+    tables_total: rows.length,
+    checks,
+  }
+
   const meta = [
     { key: 'last_sync', value: { at: now, scanned_bytes: scannedBytes, ms, tables: rows.length }, updated_at: now },
+    { key: 'pipeline', value: pipeline, updated_at: now },
   ]
   const { error: metaErr } = await supabase.from('paper_warehouse_meta').upsert(meta, { onConflict: 'key' })
   if (metaErr) throw metaErr
@@ -228,6 +286,11 @@ async function main() {
   const totalBytes = rows.reduce((s, r) => s + Number(r.bytes ?? 0), 0)
   console.log(`테이블 ${rows.length}개 · ${totalRows.toLocaleString()}행 · ${(totalBytes / 1e9).toFixed(1)} GB 적었어요.`)
   console.log(`Athena 스캔 ${scannedBytes} 바이트 · ${(ms / 1000).toFixed(1)}초`)
+  console.log(`원본 스냅샷 ${upstreamSnapshot ?? '?'} · 우리 ${ourSnapshot ?? '?'}` +
+    `${pipeline.behind ? ' — 새 스냅샷이 떴어요' : ' — 최신'}`)
+  for (const c of checks) {
+    console.log(`  검증 ${c.table}: 원본 ${c.expected?.toLocaleString() ?? '?'} / 우리 ${c.actual?.toLocaleString() ?? '?'} ${c.ok ? '일치' : '불일치'}`)
+  }
 }
 
 try {
