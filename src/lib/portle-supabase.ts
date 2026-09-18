@@ -232,20 +232,22 @@ const EXCLUDED_PORTLE_SUBJECTS = new Set([
 // 출시 후 로컬 테스트는 관리자 계정으로 로그인해서 하거나 EXCLUDED_PORTLE_SUBJECTS 에 추가할 것.
 const PORTLE_TEST_CUTOFF_MS = Date.parse('2026-08-22T03:00:00+09:00')
 
-// iOS 이벤트는 통째로 뺀다. 출시는 이미 됐다(1.0.1, 2026-09-10 07:01 KST) — 그런데도 빼는
-// 이유는 포틀 Jest 스위트가 운영 /api/events 로 쏜 가짜 행 때문이다. jest 의 Platform.OS
-// 기본값이 'ios' 라 전부 iOS 로 들어왔고, 스토리지 목이 파일마다 새 uuid 를 줘서 기기가
-// 1,694대로 불어났다(2026-09-17 포틀 세션 진단, fetch 기록기로 입증).
+// iOS 출시 시각(1.0.1, 2026-09-10 07:01 KST). 이 앞의 iOS 이벤트는 우리 것으로 본다.
 //
-// 확인한 수(8/22 컷오프 이후): ios 기기 1,400대 중 subject 를 한 번이라도 실은 기기는 4대뿐이고
-// 그 4대가 실기기다(3대는 관리자, 1대는 9/1 사전 테스터). 나머지 1,396대 중 810대는 이벤트가
-// 딱 1건이라 "앱 한 번 열고 만 실사용자"와 구분이 안 된다. 그래서 행 모양으로 가려내는 임시
-// 규칙은 두지 않는다 — 진짜 해법은 가짜 행을 지우는 것이다.
+// **2026-09-18 에 채웠다.** 그전까지 null 이었던 것은 포틀 Jest 스위트가 운영 /api/events 로
+// 쏜 가짜 행 때문이다 — jest 의 Platform.OS 기본값이 'ios' 라 전부 iOS 로 들어왔고, 스토리지
+// 목이 파일마다 새 uuid 를 줘서 기기가 1,694대로 불어났다(2026-09-17 포틀 세션 진단).
 //
-// 이 상수를 푸는 순서: (1) 포틀이 테스트에서 목 없는 fetch 를 막은 변경을 머지, (2) 운영 DB 의
-// Jest 행 삭제, (3) 여기에 출시 시각을 적는다. 순서를 건너뛰면 가짜 기기가 퍼널로 쏟아진다.
+// 풀기로 한 순서 셋을 다 밟았다: (1) 목 없는 fetch 를 막은 변경이 포틀 main 에 들어갔고(4c0aa95),
+// (2) 운영 DB 에서 가짜 행 4,041개·1,692대를 지웠고(백업 portle_app_events_jest_backup_20260918),
+// (3) 이 줄이다. 남은 iOS 는 12행·5대뿐이고 전부 관리자이거나 출시 전 기록이다.
+//
+// 채우면서 함께 바로잡히는 것: 9/1 사전 테스터(google:10556…)가 임시 규칙 아래에서는 계정을
+// 실었다는 이유로 실사용자로 세어지고 있었다. 출시 전이므로 이제 빠진다. 그리고 **로그인하지
+// 않은 실제 iOS 사용자가 이제 보인다** — 임시 규칙이 가리던 쪽이다.
+//
 // 1.0.3 부터는 이벤트에 build·simulator 가 실려서 이 상수 자체가 필요 없어진다.
-const PORTLE_IOS_RELEASE_MS: number | null = null
+const PORTLE_IOS_RELEASE_MS = Date.parse('2026-09-10T07:01:00+09:00')
 
 function isTestPeriod(createdAt: string): boolean {
   return new Date(createdAt).getTime() < PORTLE_TEST_CUTOFF_MS
@@ -258,16 +260,9 @@ function isTestPeriod(createdAt: string): boolean {
 function isInternalEvent(platform: string | null, createdAt: string, owner: string | null): boolean {
   if (isTestPeriod(createdAt)) return true
   if (owner && EXCLUDED_PORTLE_SUBJECTS.has(owner)) return true   // 관리자 기기
-  if (platform === 'ios') {
-    // Jest 행을 지우기 전까지의 임시 기준(포틀 세션 제안, 2026-09-17): 계정을 한 번이라도
-    // 실어 보낸 iOS 기기만 실기기로 본다. 가짜 기기 1,396대는 전부 계정이 없고, 로그인한
-    // 실사용자는 drive_linked 에 계정이 실려 통과한다. 대신 **로그인 안 한 실제 iOS 사용자는
-    // 여전히 안 보인다** — 이벤트 1건짜리 가짜 기기 810대와 생김새가 같아서 가를 수가 없다.
-    // 지금도 iOS 를 통째로 빼고 있으니 이 규칙이 덜 가리는 쪽이고, 아래 출시 시각을 적는
-    // 순간(=Jest 행 삭제 뒤) 규칙 자체가 사라진다.
-    if (PORTLE_IOS_RELEASE_MS === null) return !owner
-    return new Date(createdAt).getTime() < PORTLE_IOS_RELEASE_MS
-  }
+  // 출시 전 iOS 는 우리 것이다. 계정을 실었는지로 가르던 임시 기준은 없앴다 — 그것이
+  // 가리려던 가짜 행은 이제 DB 에 없고, 그 기준은 로그인 안 한 실사용자까지 함께 가렸다.
+  if (platform === 'ios') return new Date(createdAt).getTime() < PORTLE_IOS_RELEASE_MS
   return false
 }
 
