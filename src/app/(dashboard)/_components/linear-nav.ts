@@ -109,6 +109,9 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'akros', href: '/akros', label: '아크로스', tag: 'Akros',        dot: '#5FAFDF', mark: '/akros-icon.png' },
       { id: 'etc',   href: '/etc',   label: 'ETC',      tag: 'ETC', dot: '#8FB6D8' },
+      // 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 적재 현황. 성균관대가 첫 사례일
+      // 뿐이라 학교별 항목이 아니라 하나로 둔다.
+      { id: 'papers', href: '/papers', label: '논문데이터', icon: 'book' },
     ],
   },
   {
