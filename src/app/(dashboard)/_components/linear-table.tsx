@@ -299,6 +299,10 @@ export function LTableMono({ children, align = 'left', tone, strong, strike }: {
       fontVariantNumeric: 'tabular-nums',
       fontSize: `calc(${TABLE_NUMERIC_SIZE}px * var(--fz, 1))`, whiteSpace: 'nowrap',
       textDecoration: strike ? 'line-through' : undefined,
+      // 칸보다 긴 값은 잘린다. 이게 없으면 nowrap 인 글자가 옆 칸 위에 그대로 그려져
+      // 좁은 화면에서 두 열이 겹쳐 읽힌다(모바일 논문데이터 표, 2026-09-19).
+      // 잘리는 것 자체가 그 열의 하한이 좁다는 신호다 — 열 정의에서 폭을 올린다.
+      minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
     }}>
       {children}
     </span>

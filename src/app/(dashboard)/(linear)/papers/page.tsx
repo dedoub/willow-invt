@@ -95,11 +95,11 @@ function zoneOf(d: PaperDataset): string {
 // 가로 스크롤 대신 표가 찌그러진다(현금관리 표와 같은 규칙).
 // 배지 열은 늘 1열이다 — 다른 표들과 배지 자리를 맞춘다.
 const COLUMNS: LColumn<PaperDataset>[] = [
-  { key: 'zone', label: '영역', width: '68px', sortValue: zoneOf },
+  { key: 'zone', label: '영역', width: '68px', sortValue: zoneOf, hideMobile: true },
   { key: 'table', label: '표', width: 'minmax(150px,1.4fr)', sortValue: d => d.table_name },
   { key: 'label', label: '내용', width: 'minmax(78px,0.8fr)', sortValue: d => d.label ?? '', hideMobile: true },
-  { key: 'rows', label: '행', width: 'minmax(96px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
-  { key: 'bytes', label: '용량', width: '74px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
+  { key: 'rows', label: '행', width: 'minmax(104px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
+  { key: 'bytes', label: '용량', width: '78px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
 ]
 
 interface StageRow {
@@ -128,11 +128,11 @@ interface SourceRow {
 }
 
 const SOURCE_COLUMNS: LColumn<SourceRow>[] = [
-  { key: 'source', label: '출처', width: 'minmax(78px,1fr)', sortValue: r => r.label },
-  { key: 'snapshot', label: '스냅샷', width: '76px', sortValue: r => r.snapshot, sortFirst: 'desc' },
-  { key: 'tables', label: '표', width: '52px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
-  { key: 'rows', label: '행', width: 'minmax(92px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
-  { key: 'bytes', label: '용량', width: '72px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
+  { key: 'source', label: '출처', width: 'minmax(76px,1fr)', sortValue: r => r.label },
+  { key: 'snapshot', label: '스냅샷', width: '74px', sortValue: r => r.snapshot, sortFirst: 'desc' },
+  { key: 'tables', label: '표', width: '48px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
+  { key: 'rows', label: '행', width: 'minmax(104px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
+  { key: 'bytes', label: '용량', width: '76px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
 ]
 
 const DECISION_COLUMNS: LColumn<DecisionRow>[] = [
@@ -441,7 +441,7 @@ export default function PapersPage() {
                           columns={COLUMNS} mobile={mobile}
                           onClick={() => setOpenTable(prev => (prev === d.id ? null : d.id))}
                         >
-                          <LTableMono tone="muted">{zoneOf(d)}</LTableMono>
+                          {!mobile && <LTableMono tone="muted">{zoneOf(d)}</LTableMono>}
                           <LTableMono>{d.table_name}</LTableMono>
                           {!mobile && (
                             <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
