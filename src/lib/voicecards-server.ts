@@ -1714,6 +1714,34 @@ export async function getVoicecardsDataAsOf(): Promise<string | null> {
   return typeof data === 'string' && data ? new Date(data).toISOString() : null
 }
 
+// 오늘 하루치 활동자 — 일별 활동자 차트의 마지막 칸만 원본에서 바로 센 값.
+// daily 의 한 행과 같은 모양이라 차트가 그대로 갈아끼운다.
+export interface VoicecardsDauToday {
+  date: string                 // KST 날짜 (YYYY-MM-DD)
+  devices: number
+  loggedDevices: number
+  anonDevices: number
+  newLoggedDevices: number
+  memberLoggedDevices: number
+  newDeviceDevices: number
+  memberDeviceDevices: number
+  asOf: string                 // 이 숫자를 센 시각
+}
+
+// 나머지 집계(vc_event_stats)는 매시 갱신되는 MV 스냅샷이라 오늘 칸이 최대 두 시간까지
+// 제자리였다. 하루치 막대가 자라는 걸 보려고 여는 차트라 오늘만 따로 센다 — 오늘 이벤트만
+// 훑으므로 1초 안쪽이고, 어제까지는 그대로 MV 가 정본이다. 정의는 vc_dau_today() 주석 참고.
+export async function getVoicecardsDauToday(): Promise<VoicecardsDauToday | null> {
+  if (!voicecardsSupabase) return null
+  const { data, error } = await voicecardsSupabase.rpc('vc_dau_today')
+  if (error || !data) {
+    console.error('[VoiceCards] vc_dau_today RPC failed:', error)
+    return null
+  }
+  const row = data as VoicecardsDauToday
+  return { ...row, asOf: new Date(row.asOf).toISOString() }
+}
+
 // 마지막 정상 집계 (프로세스 메모리) — RPC가 일시적으로 느려지거나(mv_real_users 리프레시 창)
 // 실패할 때 인사이트 블록이 통째로 빠지는 대신 직전 값을 서빙한다.
 let lastGoodAnonStats: AnonymousEventStats | null = null

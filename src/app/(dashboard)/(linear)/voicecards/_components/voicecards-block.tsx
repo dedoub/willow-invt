@@ -193,6 +193,17 @@ export interface VoicecardsBlockProps {
   stats: CombinedStats | null
   userStats: UserStats | null
   anonymousStats: AnonymousEventStats | null
+  /** 일별 활동자 차트의 오늘 칸 — MV 스냅샷 대신 원본을 바로 센 값(5분 주기). 없으면 MV 값을 쓴다. */
+  dauToday?: {
+    date: string
+    devices: number
+    loggedDevices: number
+    anonDevices: number
+    newLoggedDevices: number
+    memberLoggedDevices: number
+    newDeviceDevices: number
+    memberDeviceDevices: number
+  } | null
   chartData?: Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>
   onRefresh: () => void
   // 파트별 새로고침 상태. 섹션마다 실제로 기다리는 소스가 달라서 하나로 묶으면
@@ -582,7 +593,7 @@ function dataAsOfLabel(at?: string | null) {
 
 export function VoicecardsBlock({
   usersLoading, eventsLoading, revenueLoading,
-  stats, userStats, anonymousStats, chartData,
+  stats, userStats, anonymousStats, dauToday, chartData,
   onRefresh, refreshingUsers, refreshingEvents, refreshingRevenue, cols, dataAsOf,
 }: VoicecardsBlockProps) {
   const mobile = useIsMobile()
@@ -1603,7 +1614,7 @@ export function VoicecardsBlock({
             </div>
             {/* 우측(와이드): 좌측 열 전체 높이로 stretch · 스택 모드: 아래 전폭 + 최소 높이 */}
             <div style={{ minWidth: 0, minHeight: splitLayout ? undefined : 190 }}>
-              <DauTrendCard daily={anonymousStats.daily} />
+              <DauTrendCard daily={mergeDauToday(anonymousStats.daily, dauToday)} liveDate={dauToday?.date ?? null} />
             </div>
             </div>
 
@@ -1917,6 +1928,28 @@ export function VoicecardsBlock({
 
 
 
+// 오늘 칸만 갈아끼운다. 나머지 날짜는 매시 갱신되는 MV(vc_event_stats)가 정본이고,
+// 오늘은 원본을 바로 센 값(vc_dau_today, 5분 주기)이 온다 — 한 시간 동안 막대가 제자리인
+// 게 하루를 지켜보는 자리에서는 고장으로 읽혔다(CEO 2026-09-18).
+// MV 가 아직 오늘 행을 만들기 전(자정 직후)이면 뒤에 새로 붙인다. 차트가 쓰는 칸은 기기 수
+// 넷뿐이라 그 행의 나머지(앱 실행·학습 수)는 0으로 둔다 — 이 배열은 차트만 쓴다.
+function mergeDauToday(
+  daily: AnonymousEventStats['daily'],
+  today?: VoicecardsBlockProps['dauToday'],
+): AnonymousEventStats['daily'] {
+  if (!today) return daily
+  const rows = daily ?? []
+  const last = rows[rows.length - 1]
+  if (last && last.date === today.date) {
+    return [...rows.slice(0, -1), { ...last, ...today }]
+  }
+  if (last && last.date > today.date) return rows
+  return [...rows, {
+    ...today,
+    appOpened: 0, cardsLearned: 0, promptShown: 0, signinCompleted: 0,
+  }]
+}
+
 // 일별 활동자 추이 — 하루 한 바를 4단 스택: 기존 로그인/신규 로그인/기존 기기/신규 기기.
 // 아래에서 위로 기존 로그인 → 신규 로그인 → 기존 기기 → 신규 기기. 합 = daily.devices.
 // 로그인(블루 계열)과 기기(그린 계열)를 색 계열로 묶어 두 경로가 한눈에 갈라지게 했다.
@@ -1924,9 +1957,11 @@ export function VoicecardsBlock({
 // 정착해 재방문하는 사용자와 오늘 처음 온 사람이 같은 칸에 섞여 있었다.
 // 서버 집계(vc_event_stats)를 그대로 재사용해 대시보드 정의와 일치. 봇/관리자 제외 뷰 기준.
 // 새 필드가 없는 옛 캐시 payload는 기기 신규=0, 기기 기존=비로그인 전체로 강등(기존 강등 규칙과 동형).
-function DauTrendCard({ daily, days = 42 }: {
+function DauTrendCard({ daily, days = 42, liveDate = null }: {
   daily: Array<{ date: string; devices: number; loggedDevices: number; anonDevices: number; newLoggedDevices?: number; memberLoggedDevices?: number; newDeviceDevices?: number; memberDeviceDevices?: number; memberActive30?: number }>
   days?: number
+  /** 이 날짜의 칸은 MV 스냅샷이 아니라 지금까지 쌓인 실시간 값이다 — 툴팁에 그렇게 적는다. */
+  liveDate?: string | null
 }) {
   const rows = (daily ?? []).slice(-days)
   const max = rows.reduce((m, r) => Math.max(m, r.devices), 0)
@@ -2085,7 +2120,9 @@ function DauTrendCard({ daily, days = 42 }: {
                 fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, lineHeight: 1.4,
                 borderRadius: t.radius.md, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`, whiteSpace: 'nowrap',
               }}>
-                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>{withWeekday(r.date)}</div>
+                <div style={{ opacity: 0.7, marginBottom: t.density.gapXs }}>
+                  {withWeekday(r.date)}{r.date === liveDate ? ' · 지금까지' : ''}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: MEMBER }} />기존 로그인 {memberOf(r)}
                 </div>

@@ -149,6 +149,20 @@ interface AnonymousEventStats {
   versionsAndroid?: Array<{ version: string; devices: number }>
 }
 
+// 일별 활동자 차트의 오늘 칸. daily 한 행과 같은 모양이고, 값은 MV 가 아니라 원본을
+// 바로 센 것이다(vc_dau_today). 다른 카드는 매시 갱신 그대로고 이 칸만 5분마다 따라온다.
+interface DauToday {
+  date: string
+  devices: number
+  loggedDevices: number
+  anonDevices: number
+  newLoggedDevices: number
+  memberLoggedDevices: number
+  newDeviceDevices: number
+  memberDeviceDevices: number
+  asOf: string
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function VoicecardsNewPage() {
@@ -166,6 +180,7 @@ export default function VoicecardsNewPage() {
   const [vcStats, setVcStats] = useState<CombinedStats | null>(null)
   const [vcUserStats, setVcUserStats] = useState<UserStats | null>(null)
   const [vcAnonStats, setVcAnonStats] = useState<AnonymousEventStats | null>(null)
+  const [vcDauToday, setVcDauToday] = useState<DauToday | null>(null)
   const [vcChartData, setVcChartData] = useState<Array<{ date: string; ios: number; android: number; total: number; credits: number; paidUsers?: number }>>([])
   // 각 API 가 집계를 만든 시각(캐시 안에서 찍혀 함께 돌아온다). 카드 푸터는 이 중 가장 오래된
   // 값을 적는다 — 세 소스를 함께 읽는 카드라 가장 뒤처진 쪽이 그 숫자의 나이다.
@@ -174,6 +189,19 @@ export default function VoicecardsNewPage() {
   const [vcStatsAt, setVcStatsAt] = useState<string | null>(null)
   const [vcUsersAt, setVcUsersAt] = useState<string | null>(null)
   const [vcEventsAt, setVcEventsAt] = useState<string | null>(null)
+
+  // 오늘 칸만 따로 — 가벼운 호출이라 다른 세 집계와 같이 묶지 않는다. 실패하면 조용히
+  // 두고 MV 값(매시 갱신)을 그대로 쓴다.
+  const loadDauToday = useCallback(async (refresh = false) => {
+    try {
+      const res = await fetch(`/api/voicecards/stats/dau-today${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data?.today) setVcDauToday(data.today as DauToday)
+    } catch (err) {
+      console.error('VoiceCards DAU today load error:', err)
+    }
+  }, [])
 
   const loadVoicecards = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -221,8 +249,8 @@ export default function VoicecardsNewPage() {
       .catch(err => console.error('VoiceCards revenue load error:', err))
       .finally(() => { setVcRevenueLoading(false); setVcRefreshRevenue(false) })
 
-    await Promise.all([usersP, eventsP, revenueP])
-  }, [])
+    await Promise.all([usersP, eventsP, revenueP, loadDauToday(refresh)])
+  }, [loadDauToday])
 
   useEffect(() => {
     const id = window.setTimeout(() => { void loadVoicecards() }, 0)
@@ -247,6 +275,22 @@ export default function VoicecardsNewPage() {
     document.addEventListener('visibilitychange', tick)
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
   }, [refresh])
+
+  // 오늘 칸만 5분마다 따라온다 — 하루가 차오르는 걸 보는 자리라 한 시간은 너무 길다.
+  // 서버도 5분 캐시라 이 주기보다 자주 원본을 세지 않는다.
+  useEffect(() => {
+    const DAU_MS = 5 * 60 * 1000
+    let last = Date.now()
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - last < DAU_MS) return
+      last = Date.now()
+      void loadDauToday()
+    }
+    const id = setInterval(tick, 60_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
+  }, [loadDauToday])
 
   return (
     /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리와 같은 카드 문법(2026-09-11). */
@@ -275,6 +319,7 @@ export default function VoicecardsNewPage() {
         stats={vcStats}
         userStats={vcUserStats}
         anonymousStats={vcAnonStats}
+        dauToday={vcDauToday}
         chartData={vcChartData}
         onRefresh={() => loadVoicecards(true)}
         refreshingUsers={vcRefreshUsers}
