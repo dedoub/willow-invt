@@ -29,17 +29,11 @@ import {
   LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableMono, LTableNumber, LTableRow, LTableScroll,
   useTableSort, type LColumn,
 } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
-import {
-  PAPER_DATASET_STATUS_LABEL, type PaperDataset, type PaperDatasetStatus, type PaperPipeline, type PaperSyncMeta,
-} from '@/types/paper-warehouse'
-
-const STATUS_TONE: Record<PaperDatasetStatus, { bg: string; fg: string }> = {
-  done: tonePalettes.done,
-  running: tonePalettes.progress,
-  todo: tonePalettes.neutral,
-  failed: tonePalettes.danger,
-}
+import type { PaperDataset, PaperPipeline, PaperSyncMeta } from '@/types/paper-warehouse'
 
 const SOURCE_LABEL: Record<string, string> = {
   openalex: 'OpenAlex',
@@ -101,14 +95,11 @@ function zoneOf(d: PaperDataset): string {
 // 가로 스크롤 대신 표가 찌그러진다(현금관리 표와 같은 규칙).
 // 배지 열은 늘 1열이다 — 다른 표들과 배지 자리를 맞춘다.
 const COLUMNS: LColumn<PaperDataset>[] = [
-  { key: 'status', label: '상태', width: '60px', align: 'center', sortValue: d => d.status },
-  { key: 'zone', label: '영역', width: '76px', sortValue: zoneOf, hideMobile: true },
-  { key: 'table', label: '표', width: 'minmax(180px,1.4fr)', sortValue: d => d.table_name },
-  { key: 'label', label: '내용', width: 'minmax(90px,0.8fr)', sortValue: d => d.label ?? '', hideMobile: true },
-  { key: 'rows', label: '행', width: 'minmax(104px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
-  { key: 'bytes', label: '용량', width: '84px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
-  { key: 'cols', label: '열', width: '44px', align: 'right', sortValue: d => d.columns?.length ?? -1, sortFirst: 'desc', hideMobile: true },
-  { key: 'snapshot', label: '스냅샷', width: '84px', sortValue: d => d.snapshot ?? '', hideMobile: true },
+  { key: 'zone', label: '영역', width: '68px', sortValue: zoneOf },
+  { key: 'table', label: '표', width: 'minmax(150px,1.4fr)', sortValue: d => d.table_name },
+  { key: 'label', label: '내용', width: 'minmax(78px,0.8fr)', sortValue: d => d.label ?? '', hideMobile: true },
+  { key: 'rows', label: '행', width: 'minmax(96px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
+  { key: 'bytes', label: '용량', width: '74px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
 ]
 
 interface StageRow {
@@ -120,10 +111,9 @@ interface StageRow {
 }
 
 const STAGE_COLUMNS: LColumn<StageRow>[] = [
-  { key: 'state', label: '상태', width: '60px', align: 'center' },
-  { key: 'step', label: '단계', width: '96px' },
-  { key: 'what', label: '하는 일', width: 'minmax(170px,1fr)', hideMobile: true },
-  { key: 'detail', label: '근거', width: 'minmax(200px,1.6fr)' },
+  { key: 'state', label: '상태', width: '56px', align: 'center' },
+  { key: 'step', label: '단계', width: '78px' },
+  { key: 'detail', label: '근거', width: 'minmax(180px,1fr)' },
 ]
 
 interface SourceRow {
@@ -138,19 +128,16 @@ interface SourceRow {
 }
 
 const SOURCE_COLUMNS: LColumn<SourceRow>[] = [
-  { key: 'source', label: '출처', width: '96px', sortValue: r => r.label },
-  { key: 'snapshot', label: '스냅샷', width: '92px', sortValue: r => r.snapshot, sortFirst: 'desc' },
-  { key: 'progress', label: '적재', width: 'minmax(120px,1fr)' },
-  { key: 'tables', label: '표', width: '64px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
-  { key: 'rows', label: '행', width: 'minmax(104px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc', hideMobile: true },
-  { key: 'bytes', label: '용량', width: '84px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
-  { key: 'note', label: '비고', width: 'minmax(140px,1fr)', hideMobile: true },
+  { key: 'source', label: '출처', width: 'minmax(78px,1fr)', sortValue: r => r.label },
+  { key: 'snapshot', label: '스냅샷', width: '76px', sortValue: r => r.snapshot, sortFirst: 'desc' },
+  { key: 'tables', label: '표', width: '52px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
+  { key: 'rows', label: '행', width: 'minmax(92px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
+  { key: 'bytes', label: '용량', width: '72px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
 ]
 
 const DECISION_COLUMNS: LColumn<DecisionRow>[] = [
-  { key: 'state', label: '상태', width: '72px', align: 'center' },
-  { key: 'item', label: '항목', width: 'minmax(130px,1fr)' },
-  { key: 'detail', label: '내용', width: 'minmax(220px,2.6fr)', hideMobile: true },
+  { key: 'state', label: '상태', width: '68px', align: 'center' },
+  { key: 'item', label: '항목', width: 'minmax(110px,1fr)' },
 ]
 
 /** 한 표의 스키마. 행을 누르면 그 자리에서 펼친다 — 뜬 창을 띄우면 표를 덮는다. */
@@ -197,8 +184,19 @@ function SchemaPanel({ dataset }: { dataset: PaperDataset }) {
   )
 }
 
+const PAGE_SIZE_KEY = 'paper-datasets-page-size'
+
+function storedPageSize(): number {
+  if (typeof window === 'undefined') return 15
+  const n = Number(localStorage.getItem(PAGE_SIZE_KEY))
+  return n >= 1 && n <= 100 ? n : 15
+}
+
 export default function PapersPage() {
   const mobile = useIsMobile()
+  const cols = useDashCols()
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(storedPageSize)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [datasets, setDatasets] = useState<PaperDataset[]>([])
@@ -226,6 +224,12 @@ export default function PapersPage() {
 
   useEffect(() => { load() }, [load])
   useAgentRefresh(['paper_'], load)
+
+  const applyPageSize = (n: number) => {
+    setPageSize(n)
+    setPage(0)
+    try { localStorage.setItem(PAGE_SIZE_KEY, String(n)) } catch { /* 저장 실패 무시 */ }
+  }
 
   const summary = useMemo(() => {
     const live = datasets.filter(d => d.status !== 'todo')
@@ -272,6 +276,11 @@ export default function PapersPage() {
 
   const sortedSources = useMemo(() => srcApply(sources), [sources, srcApply])
   const sorted = useMemo(() => sortApply(datasets), [datasets, sortApply])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const paged = useMemo(
+    () => sorted.slice(page * pageSize, (page + 1) * pageSize),
+    [sorted, page, pageSize],
+  )
 
   if (!loaded) {
     return (
@@ -380,190 +389,218 @@ export default function PapersPage() {
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      {/* 1) 요약 — 전 세계 논문 원본을 상시 보유하고 정기 갱신한다. 원본과 통합 계층이
-           우리 몫이고 파생·서비스 DB 는 소비 팀 몫이다(설계 문서 역할 구분). */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <div style={{ paddingBottom: t.density.panelPadY }}>
-            <LSectionHead
-              title="논문데이터"
-              tools={(
-                <LBtn variant="secondary" size="sm" onClick={() => { window.location.href = '/api/paper-warehouse/guide' }}>
-                  사용법 문서
-                </LBtn>
-              )}
-              toolsInline
-              mb={0}
-            />
-          </div>
-          {error && <div style={{ paddingBottom: t.density.panelPadY }}><LNotice tone="danger" text={error} /></div>}
-          {pipeline?.behind && (
+    /* theme-outline 이 카드와 거기서 열리는 모달의 껍데기를 함께 덮는다. 사업관리 카드 문법. */
+    <div className="theme-outline">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+
+        {/* 요약 — 사업관리의 일정 카드처럼 맨 위 전폭. 전 세계 논문 원본을 상시 보유하고
+            정기 갱신한다. 원본과 통합 계층이 우리 몫, 파생·서비스 DB 는 소비 팀 몫이다. */}
+        <LCard pad={0}>
+          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
             <div style={{ paddingBottom: t.density.panelPadY }}>
-              <LNotice tone="warn" text={`원본에 새 스냅샷 ${upstream?.snapshot} 이 떴습니다. 우리 최신은 ${pipeline.our_snapshot} 입니다.`} />
+              <LSectionHead
+                title="논문데이터"
+                tools={(
+                  <LBtn variant="secondary" size="sm" onClick={() => { window.location.href = '/api/paper-warehouse/guide' }}>
+                    사용법 문서
+                  </LBtn>
+                )}
+                toolsInline
+                mb={0}
+              />
             </div>
-          )}
-          <FigureGrid items={summaryFigures} cols={mobile ? 2 : 4} />
-        </div>
-      </LCard>
-
-      {/* 2) 갱신 파이프라인 — 원본 공개 스냅샷은 분기 갱신이다. 새 스냅샷이 뜨면
-           watch·stage·transform·validate·publish 다섯 단계가 한 바퀴 돈다. */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="갱신 파이프라인" mb={0} />
-        </div>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-          <LTableScroll columns={STAGE_COLUMNS} mobile={mobile}>
-            <LTableHead columns={STAGE_COLUMNS} mobile={mobile} />
-            <LTableBody columns={STAGE_COLUMNS} mobile={mobile}>
-              {stages.map(r => (
-                <LTableRow key={r.key} columns={STAGE_COLUMNS} mobile={mobile}>
-                  <LTableBadge tone={r.ok === null ? tonePalettes.neutral : r.ok ? tonePalettes.done : tonePalettes.warn}>
-                    {r.ok === null ? '확인 전' : r.ok ? '정상' : '할 일'}
-                  </LTableBadge>
-                  <LTableMono>{r.step}</LTableMono>
-                  {!mobile && (
-                    <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {r.what}
-                    </span>
-                  )}
-                  <span
-                    style={{ color: t.neutrals.muted, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                    title={r.detail}
-                  >
-                    {r.detail}
-                  </span>
-                </LTableRow>
-              ))}
-            </LTableBody>
-          </LTableScroll>
-        </div>
-      </LCard>
-
-      {/* 3) 출처 — 국문 논문은 OpenAlex 로 채울 수 없다. 2022년 이후 국문 유입이
-           멈췄고 그래서 KCI 가 2차 소스다. 아직 없다는 사실을 한 줄로 남긴다. */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="출처" mb={0} />
-        </div>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-          <LTableScroll columns={SOURCE_COLUMNS} mobile={mobile}>
-            <LTableHead columns={SOURCE_COLUMNS} mobile={mobile} sort={srcSort} onSort={toggleSrcSort} />
-            {sortedSources.length === 0 && <LTableEmpty>확인된 출처가 없습니다</LTableEmpty>}
-            <LTableBody columns={SOURCE_COLUMNS} mobile={mobile}>
-              {sortedSources.map(r => {
-                const pct = r.tables > 0 ? Math.round((r.done / r.tables) * 100) : 0
-                return (
-                  <LTableRow key={r.key} columns={SOURCE_COLUMNS} mobile={mobile}>
-                    <span style={{ fontWeight: t.weight.medium }}>{r.label}</span>
-                    <LTableMono tone="muted">{r.snapshot || '—'}</LTableMono>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
-                      <span style={{ flex: 1, height: 4, borderRadius: 2, background: t.neutrals.line, overflow: 'hidden' }}>
-                        <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: t.chart.mono }} />
-                      </span>
-                      <span style={{
-                        fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
-                        color: t.neutrals.subtle, whiteSpace: 'nowrap',
-                      }}>{pct}%</span>
-                    </span>
-                    <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
-                    {!mobile && <LTableNumber value={r.rows} muted={r.rows === 0} />}
-                    <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
-                    {!mobile && (
-                      <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.note}>
-                        {r.note}
-                      </span>
-                    )}
-                  </LTableRow>
-                )
-              })}
-            </LTableBody>
-          </LTableScroll>
-        </div>
-      </LCard>
-
-      {/* 4) 데이터 — 표를 누르면 스키마가 그 자리에서 펼쳐진다.
-           행 수·용량·열은 전부 AWS 에서 직접 읽은 값이다. */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="데이터" mb={0} />
-        </div>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-          <LTableScroll columns={COLUMNS} mobile={mobile}>
-            <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
-            {sorted.length === 0 && <LTableEmpty>아직 적재된 표가 없습니다</LTableEmpty>}
-            <LTableBody columns={COLUMNS} mobile={mobile}>
-              {sorted.map(d => (
-                <div key={d.id}>
-                  <LTableRow
-                    columns={COLUMNS} mobile={mobile}
-                    onClick={() => setOpenTable(prev => (prev === d.id ? null : d.id))}
-                  >
-                    <LTableBadge tone={STATUS_TONE[d.status]}>{PAPER_DATASET_STATUS_LABEL[d.status]}</LTableBadge>
-                    {!mobile && <LTableMono tone="muted">{zoneOf(d)}</LTableMono>}
-                    <LTableMono>{d.table_name}</LTableMono>
-                    {!mobile && (
-                      <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {d.label ?? '—'}
-                      </span>
-                    )}
-                    <LTableNumber value={d.row_count ?? 0} muted={d.row_count === null} />
-                    <LTableMono align="right" tone="muted">{formatBytes(d.bytes)}</LTableMono>
-                    {!mobile && <LTableMono align="right" tone="muted">{d.columns?.length ?? '-'}</LTableMono>}
-                    {!mobile && <LTableMono tone="muted">{d.snapshot ?? '—'}</LTableMono>}
-                  </LTableRow>
-                  {openTable === d.id && <SchemaPanel dataset={d} />}
-                </div>
-              ))}
-            </LTableBody>
-          </LTableScroll>
-        </div>
-      </LCard>
-
-      {/* 5) 비용 — IAM 사용자에게 비용 조회 권한이 없다. 보관비는 실측 용량에 단가를
-           곱해 내고, 나머지는 설계 문서가 실측해 둔 값이다. */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <div style={{ paddingBottom: t.density.panelPadY }}>
-            <LSectionHead title="비용" mb={0} />
+            {error && <div style={{ paddingBottom: t.density.panelPadY }}><LNotice tone="danger" text={error} /></div>}
+            {pipeline?.behind && (
+              <div style={{ paddingBottom: t.density.panelPadY }}>
+                <LNotice tone="warn" text={`원본에 새 스냅샷 ${upstream?.snapshot} 이 떴습니다. 우리 최신은 ${pipeline.our_snapshot} 입니다.`} />
+              </div>
+            )}
+            <FigureGrid items={summaryFigures} cols={mobile ? 2 : 4} />
           </div>
-          <FigureGrid items={costFigures} cols={mobile ? 2 : 4} />
-        </div>
-      </LCard>
+        </LCard>
 
-      {/* 6) 결정이 필요한 것 — 설계 문서에서 옮겨 왔다. 값이 아니라 판단이라
-           AWS 에서 읽어 올 수 없다. 문서가 바뀌면 DECISIONS 를 함께 고친다. */}
-      <LCard pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="결정이 필요한 것" mb={0} />
-        </div>
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-          <LTableScroll columns={DECISION_COLUMNS} mobile={mobile}>
-            <LTableHead columns={DECISION_COLUMNS} mobile={mobile} />
-            <LTableBody columns={DECISION_COLUMNS} mobile={mobile}>
-              {DECISIONS.map(d => (
-                <LTableRow key={d.item} columns={DECISION_COLUMNS} mobile={mobile}>
-                  <LTableBadge tone={d.state === 'open' ? tonePalettes.pending : tonePalettes.done}>
-                    {d.state === 'open' ? '결정 필요' : '정해짐'}
-                  </LTableBadge>
-                  <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {d.item}
-                  </span>
-                  {!mobile && (
-                    <span
-                      style={{ color: t.neutrals.muted, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                      title={d.detail}
-                    >
-                      {d.detail}
-                    </span>
+        {/* 왼쪽은 무엇이 얼마나 들어 있나(데이터·파이프라인), 오른쪽은 얼마가 드나 무엇을
+            정해야 하나(출처·비용·결정). 사업관리와 같은 1.5 대 1 배치다. */}
+        <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+
+            {/* 데이터 — 표를 누르면 스키마가 그 자리에서 펼쳐진다.
+                행 수·용량·열은 전부 AWS 에서 직접 읽은 값이다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <LSectionHead title="데이터" mb={0} />
+              </div>
+              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+                <LTableScroll columns={COLUMNS} mobile={mobile}>
+                  <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
+                  {sorted.length === 0 && <LTableEmpty>아직 적재된 표가 없습니다</LTableEmpty>}
+                  <LTableBody columns={COLUMNS} mobile={mobile}>
+                    {paged.map(d => (
+                      <div key={d.id}>
+                        <LTableRow
+                          columns={COLUMNS} mobile={mobile}
+                          onClick={() => setOpenTable(prev => (prev === d.id ? null : d.id))}
+                        >
+                          <LTableMono tone="muted">{zoneOf(d)}</LTableMono>
+                          <LTableMono>{d.table_name}</LTableMono>
+                          {!mobile && (
+                            <span style={{ color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {d.label ?? '—'}
+                            </span>
+                          )}
+                          <LTableNumber value={d.row_count ?? 0} muted={d.row_count === null} />
+                          <LTableMono align="right" tone="muted">{formatBytes(d.bytes)}</LTableMono>
+                        </LTableRow>
+                        {openTable === d.id && <SchemaPanel dataset={d} />}
+                      </div>
+                    ))}
+                  </LTableBody>
+                </LTableScroll>
+
+                {/* 개수 선택과 페이저 — 사업관리 표들과 같은 자리, 같은 모양 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  paddingTop: t.density.gapSm,
+                }}>
+                  <LPageSize value={pageSize} onChange={applyPageSize} />
+                  {totalPages > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+                      <button
+                        disabled={page === 0}
+                        onClick={() => setPage(p => p - 1)}
+                        style={{
+                          background: 'transparent', border: 'none',
+                          padding: t.density.gapXs, borderRadius: t.radius.sm,
+                          cursor: page === 0 ? 'default' : 'pointer',
+                          color: page === 0 ? t.neutrals.line : t.neutrals.muted,
+                          opacity: page === 0 ? 0.4 : 1,
+                        }}
+                      >
+                        <LIcon name="chevronLeft" size={13} stroke={2} />
+                      </button>
+                      <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                        {page * pageSize + 1}-{Math.min((page + 1) * pageSize, sorted.length)} / {sorted.length}
+                      </span>
+                      <button
+                        disabled={page >= totalPages - 1}
+                        onClick={() => setPage(p => p + 1)}
+                        style={{
+                          background: 'transparent', border: 'none',
+                          padding: t.density.gapXs, borderRadius: t.radius.sm,
+                          cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                          color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
+                          opacity: page >= totalPages - 1 ? 0.4 : 1,
+                        }}
+                      >
+                        <LIcon name="chevronRight" size={13} stroke={2} />
+                      </button>
+                    </div>
                   )}
-                </LTableRow>
-              ))}
-            </LTableBody>
-          </LTableScroll>
+                </div>
+              </div>
+            </LCard>
+
+            {/* 갱신 파이프라인 — 원본 공개 스냅샷은 분기 갱신이다. 새 스냅샷이 뜨면
+                watch·stage·transform·validate·publish 다섯 단계가 한 바퀴 돈다.
+                단계가 무엇을 하는지는 근거 칸에 마우스를 올리면 나온다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <LSectionHead title="갱신 파이프라인" mb={0} />
+              </div>
+              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+                <LTableScroll columns={STAGE_COLUMNS} mobile={mobile}>
+                  <LTableHead columns={STAGE_COLUMNS} mobile={mobile} />
+                  <LTableBody columns={STAGE_COLUMNS} mobile={mobile}>
+                    {stages.map(r => (
+                      <LTableRow key={r.key} columns={STAGE_COLUMNS} mobile={mobile}>
+                        <LTableBadge tone={r.ok === null ? tonePalettes.neutral : r.ok ? tonePalettes.done : tonePalettes.warn}>
+                          {r.ok === null ? '확인 전' : r.ok ? '정상' : '할 일'}
+                        </LTableBadge>
+                        <LTableMono>{r.step}</LTableMono>
+                        <span
+                          style={{ color: t.neutrals.muted, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          title={`${r.what} — ${r.detail}`}
+                        >
+                          {r.detail}
+                        </span>
+                      </LTableRow>
+                    ))}
+                  </LTableBody>
+                </LTableScroll>
+              </div>
+            </LCard>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+
+            {/* 출처 — 국문 논문은 OpenAlex 로 채울 수 없다. 2022년 이후 국문 유입이
+                멈췄고 그래서 KCI 가 2차 소스다. 아직 없다는 사실을 한 줄로 남긴다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <LSectionHead title="출처" mb={0} />
+              </div>
+              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+                <LTableScroll columns={SOURCE_COLUMNS} mobile={mobile}>
+                  <LTableHead columns={SOURCE_COLUMNS} mobile={mobile} sort={srcSort} onSort={toggleSrcSort} />
+                  {sortedSources.length === 0 && <LTableEmpty>확인된 출처가 없습니다</LTableEmpty>}
+                  <LTableBody columns={SOURCE_COLUMNS} mobile={mobile}>
+                    {sortedSources.map(r => (
+                      <LTableRow key={r.key} columns={SOURCE_COLUMNS} mobile={mobile}>
+                        <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.note}>
+                          {r.label}
+                        </span>
+                        <LTableMono tone="muted">{r.snapshot || '—'}</LTableMono>
+                        <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
+                        <LTableNumber value={r.rows} muted={r.rows === 0} />
+                        <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
+                      </LTableRow>
+                    ))}
+                  </LTableBody>
+                </LTableScroll>
+              </div>
+            </LCard>
+
+            {/* 비용 — IAM 사용자에게 비용 조회 권한이 없다. 보관비는 실측 용량에 단가를
+                곱해 내고, 나머지는 설계 문서가 실측해 둔 값이다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <div style={{ paddingBottom: t.density.panelPadY }}>
+                  <LSectionHead title="비용" mb={0} />
+                </div>
+                <FigureGrid items={costFigures} cols={2} />
+              </div>
+            </LCard>
+
+            {/* 결정이 필요한 것 — 설계 문서에서 옮겨 왔다. 값이 아니라 판단이라
+                AWS 에서 읽어 올 수 없다. 내용은 항목에 마우스를 올리면 나온다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <LSectionHead title="결정이 필요한 것" mb={0} />
+              </div>
+              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+                <LTableScroll columns={DECISION_COLUMNS} mobile={mobile}>
+                  <LTableHead columns={DECISION_COLUMNS} mobile={mobile} />
+                  <LTableBody columns={DECISION_COLUMNS} mobile={mobile}>
+                    {DECISIONS.map(d => (
+                      <LTableRow key={d.item} columns={DECISION_COLUMNS} mobile={mobile}>
+                        <LTableBadge tone={d.state === 'open' ? tonePalettes.pending : tonePalettes.done}>
+                          {d.state === 'open' ? '결정 필요' : '정해짐'}
+                        </LTableBadge>
+                        <span
+                          style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          title={d.detail}
+                        >
+                          {d.item}
+                        </span>
+                      </LTableRow>
+                    ))}
+                  </LTableBody>
+                </LTableScroll>
+              </div>
+            </LCard>
+          </div>
         </div>
-      </LCard>
+      </div>
     </div>
   )
 }

@@ -22,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 // /english 는 카드가 한 줄로 서지만 연습하기 카드 안이 힌트|쓰기 두 칸이라, 그 칸을 가른다.
 const COLS_TOGGLE_PATHS = new Set([
   '/mgmt', '/invest', '/realestate', '/akros', '/etc', '/tensw', '/ryuha', '/email', '/valuechain', '/voicecards', '/reviewnotes', '/scripta', '/portle',
-  '/english', '/admin/rates',
+  '/english', '/admin/rates', '/papers',
 ])
 
 export default function LinearRouteLayout({
