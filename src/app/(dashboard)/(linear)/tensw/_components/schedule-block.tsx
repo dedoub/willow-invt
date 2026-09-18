@@ -7,6 +7,7 @@ import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { krHolidayName } from '@/lib/kr-holidays'
 import { TenswMgmtSchedule } from '@/types/tensw-mgmt'
 import { getScheduleCategory, SCHEDULE_CATEGORIES, SCHEDULE_CATEGORY_LABEL, type ScheduleCategory } from '@/lib/tensw-mgmt/schedule-category'
 
@@ -142,6 +143,7 @@ function DayCell({
   isSelected?: boolean
   borderRight: boolean; minHeight: number
 }) {
+  const holiday = krHolidayName(dateStr)
   const [hovered, setHovered] = useState(false)
   // 셀 안에서 그대로 펼친다 — 뜬 창을 띄우면 달력 위에 겹쳐 읽기가 끊긴다(2026-09-11)
   const [expanded, setExpanded] = useState(false)
@@ -164,9 +166,11 @@ function DayCell({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: compact ? 3 : 6,
       }}>
-        <span style={{
+        {/* 공휴일은 날짜를 빨갛게만 한다 — 종이 달력과 같은 표시라 따로 배울 게 없다.
+            무슨 날인지는 숫자에 마우스를 올리면 나온다(CEO 2026-09-18). */}
+        <span title={holiday ?? undefined} style={{
           fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-          color: isToday ? t.chart.mono : t.neutrals.subtle,
+          color: holiday ? t.accent.neg : isToday ? t.chart.mono : t.neutrals.subtle,
           letterSpacing: 0.3,
         }}>
           {day.getDate()}
