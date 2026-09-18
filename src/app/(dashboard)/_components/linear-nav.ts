@@ -25,6 +25,11 @@ export interface NavItem {
    */
   mark?: string
   tag?: string
+  /**
+   * 관리자에게만 보이는 항목. 그룹 전체가 아니라 항목 하나만 잠글 때 쓴다 —
+   * 앱서비스 한 묶음 안에 고객 문의 본문 같은 관리자용 화면이 섞여 있다.
+   */
+  adminOnly?: boolean
 }
 
 export interface NavGroup {
@@ -49,9 +54,6 @@ export const NAV_GROUPS: NavGroup[] = [
       // 문서함 — 위키·법인서류함·이메일을 한 페이지에 모았다(CEO 2026-09-10, 2026-09-11 이름 변경).
       { id: 'work',       href: '/work',       label: '문서함',    icon: 'book' },
       { id: 'b2b',        href: '/b2b',        label: '관계사간거래', icon: 'coin' },
-      // 논문 데이터 웨어하우스(biblo-paper-data-warehouse) 적재 현황. 성균관대가 첫 사례일
-      // 뿐이라 학교별 항목이 아니라 하나로 둔다.
-      { id: 'papers',     href: '/papers',     label: '논문데이터', icon: 'file' },
       // 옛 단일 화면은 경로만 남긴다: /corp는 '전체 법인서류함' 링크 대상, 나머지는 북마크·링크 보존용.
       { id: 'email',      href: '/email',      label: '이메일',    icon: 'mail', hidden: true },
       { id: 'wiki',       href: '/wiki',       label: '업무위키',  icon: 'book', hidden: true },
@@ -68,40 +70,32 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // 앱서비스(통합) — 앱 하나가 아니라 네 앱에 걸쳐 보는 화면들. 앱 안 1:1
-    // 문의가 여기 모이고(자체 관리자 화면이 없는 보이스카드·포틀은 이곳이
-    // 유일한 답변 창구다), 크레딧 요율도 같은 판매가를 쓰는 앱들을 나란히
-    // 놓고 본다. 고객 문의 본문이 걸린 자리라 관리자에게만 보인다
-    // (화면도 서버에서 따로 잠근다).
-    key: 'inquiries',
-    label: '앱서비스 - 통합관리',
-    adminOnly: true,
-    items: [
-      { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message' },
-      // 세 앱 요율을 한 화면에서. 각 앱의 자체 화면은 그대로 두고, 여기는 같은
-      // 판매가를 쓰는 셋을 나란히 놓고 보는 자리다.
-      { id: 'rates', href: '/admin/rates', label: 'AI 크레딧', icon: 'coin' },
-    ],
-  },
-  {
-    // 앱서비스(금융) — 직접 운영하는 자체 서비스 중 금융 도메인
-    key: 'apps-finance',
-    label: '앱서비스 - 금융',
-    orderKey: 'sidebar-app-finance-order',
+    // 앱서비스 — 직접 운영하는 자체 서비스와, 그 앱들을 가로질러 보는 화면들.
+    // 금융·교육으로 갈라 두었더니 섹션 머리만 세 줄이고 정작 항목은 두셋씩이었다.
+    // 한 묶음으로 두고 순서는 드래그로 맞춘다(CEO 2026-09-18).
+    // 고객 문의 본문이 걸린 화면은 항목 단위로 잠근다 — 화면도 서버에서 따로 잠근다.
+    key: 'apps',
+    label: '앱서비스',
+    orderKey: 'sidebar-apps-order',
     items: [
       { id: 'portle',     href: '/portle',     label: '포틀',       tag: 'Portle',     dot: '#E8927C', mark: '/portle-mark.png' },
       { id: 'valuechain', href: '/valuechain', label: '밸류체인',   tag: 'ValueChain',       icon: 'link' },
-    ],
-  },
-  {
-    // 앱서비스(교육) — 직접 운영하는 자체 서비스 중 교육 도메인
-    key: 'apps-edu',
-    label: '앱서비스 - 교육',
-    orderKey: 'sidebar-app-edu-order',
-    items: [
       { id: 'voicecards',  href: '/voicecards',  label: '보이스카드',  tag: 'VoiceCards',  dot: '#4FBE84', mark: '/voicecards-mark.png' },
       { id: 'reviewnotes', href: '/reviewnotes', label: '리뷰노트',    tag: 'ReviewNotes', dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
       { id: 'scripta',     href: '/scripta',     label: '스크립타',    tag: 'Scripta',     dot: '#E894B0', mark: '/scripta-mark.png' },
+      // 앱 하나가 아니라 여러 앱에 걸쳐 보는 화면. 앱 뒤에 선다.
+      { id: 'inquiries', href: '/inquiries', label: '고객문의함', icon: 'message', adminOnly: true },
+      { id: 'rates', href: '/admin/rates', label: 'AI 크레딧', icon: 'coin', adminOnly: true },
+    ],
+  },
+  {
+    // 데이터웨어하우스 — 서비스가 아니라 데이터 자체를 파는 쪽. 앱서비스 바로 뒤에 둔다.
+    key: 'warehouse',
+    label: '데이터웨어하우스',
+    items: [
+      // biblo-paper-data-warehouse 적재 현황. 성균관대는 첫 사례일 뿐이라
+      // 학교별 항목이 아니라 하나로 둔다.
+      { id: 'papers', href: '/papers', label: '논문데이터', icon: 'file' },
     ],
   },
   {

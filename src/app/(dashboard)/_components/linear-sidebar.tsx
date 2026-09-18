@@ -317,10 +317,9 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const willow = navGroup('willow')
   const assets = navGroup('assets')
   const admin = navGroup('admin')
-  const appsFinance = navGroup('apps-finance')
-  const appsEdu = navGroup('apps-edu')
+  const apps = navGroup('apps')
+  const warehouse = navGroup('warehouse')
   const clients = navGroup('clients')
-  const inquiries = navGroup('inquiries')
   // 섹션 접기 — rail(아이콘 전용)에서는 머리글이 없으므로 접기도 없다.
   const { collapsed: collapsedGroups, toggle: toggleGroup } = useCollapsedGroups()
   const isFolded = (key: string) => !rail && collapsedGroups.has(key)
@@ -329,8 +328,8 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   )
 
   const willowOrder = useOrderedGroup(willow.items.filter(i => !i.hidden), willow.orderKey!)
-  const appsFinanceOrder = useOrderedGroup(appsFinance.items, appsFinance.orderKey!)
-  const appsEduOrder = useOrderedGroup(appsEdu.items, appsEdu.orderKey!)
+  // 관리자 전용 항목은 목록에서 아예 뺀다 — 순서 저장에도 안 들어간다.
+  const appsOrder = useOrderedGroup(apps.items.filter(i => !i.hidden && (isAdmin || !i.adminOnly)), apps.orderKey!)
   const clientsOrder = useOrderedGroup(clients.items, clients.orderKey!)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -396,17 +395,13 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
         {!isFolded(assets.key) && assets.items.filter(i => !i.hidden).map(navLink)}
 
-        {sortableGroup(appsFinance.key, appsFinance.label, appsFinanceOrder)}
-        {sortableGroup(appsEdu.key, appsEdu.label, appsEduOrder)}
+        {/* 앱서비스 — 앱과, 앱을 가로지르는 화면을 한 묶음으로(CEO 2026-09-18) */}
+        {sortableGroup(apps.key, apps.label, appsOrder)}
 
-        {/* 앱서비스 통합관리 — 네 앱을 가로지르는 화면. 앱 그룹들 뒤에 선다. 관리자만. */}
-        {isAdmin && (
-          <>
-            {!rail && groupHead(inquiries.key, inquiries.label)}
-            {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
-            {!isFolded(inquiries.key) && inquiries.items.filter(i => !i.hidden).map(navLink)}
-          </>
-        )}
+        {/* 데이터웨어하우스 — 앱서비스 바로 뒤 */}
+        {!rail && groupHead(warehouse.key, warehouse.label)}
+        {rail && <div style={{ height: 1, background: t.sidebar.line, margin: `${t.density.kpiGap}px ${t.density.gapSm}px` }} />}
+        {!isFolded(warehouse.key) && warehouse.items.filter(i => !i.hidden).map(navLink)}
 
         {sortableGroup(clients.key, clients.label, clientsOrder)}
 
