@@ -919,13 +919,42 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                     </div>
                   )}
 
+                  {/* 채점 전에도 담고 넘어갈 수 있다. 쓸 말이 안 떠오르는 문항을 붙들고 있을
+                      이유가 없고, 담기는 문항만 있으면 되는 일이라 점수를 기다릴 까닭이 없다
+                      (CEO 2026-09-18). 맨 오른쪽은 지금 할 일 자리다 — 채점 전에는 채점,
+                      채점 뒤에는 다음 문제가 그 자리에 선다. */}
                   {!result && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: t.density.gapSm, marginTop: t.density.gapXs }}>
-                      <LBtn variant="brand" onClick={grade}
-                        disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
-                        style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
-                        {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : `채점 (${keys.modEnter})`}
-                      </LBtn>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+                      gap: t.density.gapSm, marginTop: t.density.gapXs,
+                    }}>
+                      <span
+                        title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}
+                        style={mobile ? { flex: '1 1 100%' } : undefined}
+                      >
+                        <LBtn variant="secondary" onClick={toVoiceCards} disabled={!current || vcState !== 'idle'}
+                          style={mobile ? { width: '100%', justifyContent: 'center' } : undefined}>
+                          {vcState === 'sending' ? '담는 중…'
+                            : vcState !== 'done' ? '보이스카드 담기'
+                            : vcCount?.added === 0 ? '이미 담겨 있어요'
+                            : '보이스카드 담김 ✓'}
+                        </LBtn>
+                      </span>
+
+                      <div style={{ display: 'flex', gap: t.density.gapSm, marginLeft: 'auto', ...(mobile ? { flex: '1 1 100%' } : {}) }}>
+                        <LBtn variant="secondary" onClick={next} disabled={grading}
+                          style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                          다음 문제
+                        </LBtn>
+                        {/* ⌘↵ 는 여기서 채점이다 — 넘어가기에는 단축키를 적지 않는다. */}
+                        <span data-primary-action="" style={mobile ? { flex: 1, display: 'flex' } : undefined}>
+                          <LBtn variant="brand" onClick={grade}
+                            disabled={(inputMode === 'draw' ? !hasInk : !answer.trim()) || grading}
+                            style={mobile ? { flex: 1, justifyContent: 'center' } : undefined}>
+                            {grading ? '채점 중…' : inputMode === 'draw' || mobile ? '채점' : `채점 (${keys.modEnter})`}
+                          </LBtn>
+                        </span>
+                      </div>
                     </div>
                   )}
 
