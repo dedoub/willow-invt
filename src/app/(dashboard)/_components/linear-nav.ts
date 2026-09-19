@@ -79,7 +79,6 @@ export const NAV_GROUPS: NavGroup[] = [
     orderKey: 'sidebar-apps-order',
     items: [
       { id: 'portle',     href: '/portle',     label: '포틀',       tag: 'Portle',     dot: '#E8927C', mark: '/portle-mark.png' },
-      { id: 'valuechain', href: '/valuechain', label: '밸류체인',   tag: 'ValueChain',       icon: 'link' },
       { id: 'voicecards',  href: '/voicecards',  label: '보이스카드',  tag: 'VoiceCards',  dot: '#4FBE84', mark: '/voicecards-mark.png' },
       { id: 'reviewnotes', href: '/reviewnotes', label: '리뷰노트',    tag: 'ReviewNotes', dot: '#5FAFDF', mark: '/reviewnotes-mark.svg' },
       { id: 'scripta',     href: '/scripta',     label: '스크립타',    tag: 'Scripta',     dot: '#E894B0', mark: '/scripta-mark.png' },
@@ -96,6 +95,9 @@ export const NAV_GROUPS: NavGroup[] = [
       // biblo-paper-data-warehouse 적재 현황. 성균관대는 첫 사례일 뿐이라
       // 학교별 항목이 아니라 하나로 둔다.
       { id: 'papers', href: '/papers', label: '논문데이터', icon: 'file' },
+      // 밸류체인도 앱이 아니라 데이터다 — 회사·카테고리를 조사해 쌓는 쪽이라
+      // 앱서비스보다 여기가 맞다(CEO 2026-09-19).
+      { id: 'valuechain', href: '/valuechain', label: '밸류체인', tag: 'ValueChain', icon: 'link' },
     ],
   },
   {
