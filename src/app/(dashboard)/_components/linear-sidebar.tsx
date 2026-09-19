@@ -267,6 +267,29 @@ function useCollapsedGroups() {
   return { collapsed, toggle }
 }
 
+// 메뉴 순서 잠금 (localStorage 영속, 기기별). 기본은 잠김이다 — 순서를 바꾸는 건
+// 가끔 하는 일인데, 풀어 두면 메뉴를 누르려다 끌어서 순서가 바뀐다. 특히 손가락으로
+// 스크롤할 때 그렇다(CEO 2026-09-19). 자물쇠를 열어 둔 동안에만 끌 수 있다.
+const SIDEBAR_LOCK_KEY = 'sidebar-order-locked'
+
+function useSidebarLock() {
+  const [locked, setLocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    try {
+      const raw = localStorage.getItem(SIDEBAR_LOCK_KEY)
+      return raw === null ? true : raw === '1'
+    } catch { return true }
+  })
+
+  const toggle = () => setLocked(prev => {
+    const next = !prev
+    try { localStorage.setItem(SIDEBAR_LOCK_KEY, next ? '1' : '0') } catch { /* 저장 실패 무시 */ }
+    return next
+  })
+
+  return { locked, toggle }
+}
+
 // 그룹 하나의 드래그 정렬 상태 (localStorage 영속) — 앱서비스/관계회사/컨설팅이 각각 사용
 function useOrderedGroup(items: NavItem[], storageKey: string) {
   const [order, setOrder] = useState<string[]>(() => items.map(c => c.id))
@@ -322,6 +345,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   const clients = navGroup('clients')
   // 섹션 접기 — rail(아이콘 전용)에서는 머리글이 없으므로 접기도 없다.
   const { collapsed: collapsedGroups, toggle: toggleGroup } = useCollapsedGroups()
+  const { locked: orderLocked, toggle: toggleOrderLock } = useSidebarLock()
   const isFolded = (key: string) => !rail && collapsedGroups.has(key)
   const groupHead = (key: string, label: string) => (
     <GroupLabel label={label} collapsed={collapsedGroups.has(key)} onToggle={() => toggleGroup(key)} />
@@ -343,7 +367,13 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
           <NavRow key={c.id} href={c.href} icon={c.icon} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
             isActive={isActiveHref(c.href)} rail={rail} onClose={onClose} />
         ))
-      ) : isFolded(key) ? null : (
+      ) : isFolded(key) ? null : orderLocked ? (
+        // 잠김 — 끌 수 없는 보통 줄. 드래그 문맥을 세우지 않으므로 누르는 맛도 평소와 같다.
+        group.ordered.map(c => (
+          <NavRow key={c.id} href={c.href} icon={c.icon} dot={c.dot} mark={c.mark} label={c.label} tag={c.tag}
+            isActive={isActiveHref(c.href)} rail={false} onClose={onClose} />
+        ))
+      ) : (
         <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={group.onDragEnd}>
           <SortableContext items={group.ordered.map(c => c.id)} strategy={verticalListSortingStrategy}>
             {group.ordered.map(c => (
@@ -367,7 +397,7 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
       {/* Logo */}
       <div style={{
         height: t.density.headerH, padding: rail ? '0' : `0 ${t.density.cardPad}px`, display: 'flex', alignItems: 'center',
-        justifyContent: rail ? 'center' : (mobile ? 'space-between' : undefined),
+        justifyContent: rail ? 'center' : 'space-between',
         borderBottom: `1px solid ${t.sidebar.line}`,
       }}>
         {rail ? (
@@ -375,13 +405,29 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
         ) : (
           <img src="/willow-text.png" alt="willowinvt" style={{ height: mobile ? 15 : 16.5 }} />
         )}
-        {mobile && !rail && (
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-            color: t.brand[200],
-          }}>
-            <LIcon name="x" size={16} />
-          </button>
+        {!rail && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+            {/* 메뉴 순서 잠금. 접기와 달리 자주 건드릴 것이 아니라 로고 줄 끝에 작게 둔다. */}
+            <button
+              onClick={toggleOrderLock}
+              aria-pressed={!orderLocked}
+              title={orderLocked ? '메뉴 순서 잠김 — 눌러서 풀면 끌어서 옮길 수 있어요' : '메뉴 순서 열림 — 끌어서 옮길 수 있어요. 눌러서 잠급니다'}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
+                display: 'flex', color: orderLocked ? t.brand[300] : t.brand[100],
+              }}
+            >
+              <LIcon name={orderLocked ? 'lock' : 'unlock'} size={14} stroke={1.8} />
+            </button>
+            {mobile && (
+              <button onClick={onClose} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
+                color: t.brand[200],
+              }}>
+                <LIcon name="x" size={16} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
