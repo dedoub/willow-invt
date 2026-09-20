@@ -18,7 +18,7 @@ const getCachedUserStats = unstable_cache(
     return { stats, generatedAt: new Date().toISOString(), dataAsOf }
   },
   [VOICECARDS_USER_STATS_CACHE_KEY],
-  { revalidate: 3600, tags: ['voicecards-stats'] }
+  { revalidate: 600, tags: ['voicecards-stats'] }
 )
 
 // 새로고침 버튼(?refresh=1)은 1시간 캐시를 건너뛴다. 그냥 재요청만 하면 같은 캐시가

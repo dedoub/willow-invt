@@ -576,9 +576,10 @@ function SkelUserRow() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-/** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 1시간이라 최대 그만큼 지난 값일 수 있다 */
+/** 카드 푸터 우측 — 이 숫자가 만들어진 시각. 캐시가 10분이라 최대 그만큼 지난 값일 수 있다 */
 // 푸터 우측: 이 숫자들이 반영한 원천 데이터의 시각. 이벤트가 mv_real_users 로 넘어온 워터마크라
-// 매시 07분에 한 번 앞으로 간다. API 계산 시각을 적던 때는 새로고침을 누르면
+// 10분마다 앞으로 간다(2026-09-20 증분 동기화 전환 전에는 매시 07분이었다).
+// API 계산 시각을 적던 때는 새로고침을 누르면
 // 곧 누른 시각이 찍혀 신선도를 말해주지 못했다(2026-09-12 CEO).
 function dataAsOfLabel(at?: string | null) {
   if (!at) return undefined
@@ -587,7 +588,7 @@ function dataAsOfLabel(at?: string | null) {
   const day = d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\.$/, '').replace(/\. /, '-')
   const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
   return (
-    <span title="원천 이벤트가 집계에 반영된 시각. 매시 07분 동기화 뒤 10~14분에 집계가 갱신된다. 새로고침은 이 시각을 앞당기지 않는다.">
+    <span title="원천 이벤트가 집계에 반영된 시각. 10분마다 동기화되고 그 직후 집계가 갱신된다. 일별 활동자 차트는 매시 갱신이라 조금 더 뒤처질 수 있다. 새로고침은 이 시각을 앞당기지 않는다.">
       데이터 기준 {day} {time}
     </span>
   )
@@ -1930,7 +1931,7 @@ export function VoicecardsBlock({
 
 
 
-// 오늘 칸만 갈아끼운다. 나머지 날짜는 매시 갱신되는 MV(vc_event_stats)가 정본이고,
+// 오늘 칸만 갈아끼운다. 나머지 날짜는 매시 갱신되는 집계(vc_event_stats)가 정본이고,
 // 오늘은 원본을 바로 센 값(vc_dau_today, 5분 주기)이 온다 — 한 시간 동안 막대가 제자리인
 // 게 하루를 지켜보는 자리에서는 고장으로 읽혔다(CEO 2026-09-18).
 // MV 가 아직 오늘 행을 만들기 전(자정 직후)이면 뒤에 새로 붙인다. 차트가 쓰는 칸은 기기 수

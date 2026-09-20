@@ -5,7 +5,8 @@ import { getAnonymousEventStats, getVoicecardsDataAsOf } from '@/lib/voicecards-
 export const maxDuration = 300
 
 // anonymous_events 집계(vc_event_stats)는 운영 분석 지표라 실시간성이 필요하지 않다.
-// Disk IO 예산 보호를 위해 5분→1시간 캐싱 (2026-08-20).
+// Disk IO 예산 보호를 위해 5분→1시간으로 늘렸었다(2026-08-20).
+// 집계를 증분 동기화로 바꿔 10분마다 갱신되므로 캐시도 10분으로 되돌린다(2026-09-20).
 // 일시 실패(null)를 캐싱하면 그동안 '다시 시도'까지 전부 실패 — throw로 캐시를 막는다.
 // 집계 시각과 데이터 기준 시각(MV 워터마크)도 캐시에 함께 담는다 — users 라우트와 같은 규칙.
 const getCachedAnonStats = unstable_cache(
@@ -15,10 +16,10 @@ const getCachedAnonStats = unstable_cache(
     return { stats, generatedAt: new Date().toISOString(), dataAsOf }
   },
   ['voicecards-anon-stats'],
-  { revalidate: 3600, tags: ['voicecards-stats'] }
+  { revalidate: 600, tags: ['voicecards-stats'] }
 )
 
-// ?refresh=1 이면 1시간 캐시를 건너뛴다 (users 라우트와 같은 규칙).
+// ?refresh=1 이면 10분 캐시를 건너뛴다 (users 라우트와 같은 규칙).
 export async function GET(request: Request) {
   const refresh = new URL(request.url).searchParams.get('refresh') === '1'
   try {

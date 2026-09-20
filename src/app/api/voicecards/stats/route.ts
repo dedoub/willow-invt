@@ -55,7 +55,7 @@ const buildStatsPayload = async (startDate: string, endDate: string) => {
 const getCachedStatsPayload = unstable_cache(
   buildStatsPayload,
   ['voicecards-combined-stats'],
-  { revalidate: 3600, tags: ['voicecards-stats'] }
+  { revalidate: 600, tags: ['voicecards-stats'] }
 )
 
 // GET: 매출/차트 통계 (사용자 통계는 /users, 익명 이벤트는 /events 사용)

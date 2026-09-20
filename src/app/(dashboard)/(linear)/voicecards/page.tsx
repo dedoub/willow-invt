@@ -149,8 +149,8 @@ interface AnonymousEventStats {
   versionsAndroid?: Array<{ version: string; devices: number }>
 }
 
-// 일별 활동자 차트의 오늘 칸. daily 한 행과 같은 모양이고, 값은 MV 가 아니라 원본을
-// 바로 센 것이다(vc_dau_today). 다른 카드는 매시 갱신 그대로고 이 칸만 5분마다 따라온다.
+// 일별 활동자 차트의 오늘 칸. daily 한 행과 같은 모양이고, 값은 집계표가 아니라 원본을
+// 바로 센 것이다(vc_dau_today). 다른 카드는 10분마다, 이 칸만 5분마다 따라온다.
 interface DauToday {
   date: string
   devices: number
@@ -191,7 +191,7 @@ export default function VoicecardsNewPage() {
   const [vcEventsAt, setVcEventsAt] = useState<string | null>(null)
 
   // 오늘 칸만 따로 — 가벼운 호출이라 다른 세 집계와 같이 묶지 않는다. 실패하면 조용히
-  // 두고 MV 값(매시 갱신)을 그대로 쓴다.
+  // 두고 집계표 값(10분 갱신)을 그대로 쓴다.
   const loadDauToday = useCallback(async (refresh = false) => {
     try {
       const res = await fetch(`/api/voicecards/stats/dau-today${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' })
@@ -219,7 +219,7 @@ export default function VoicecardsNewPage() {
     const start = `${end.slice(0, 4)}-01-01`
 
     // 3개 API 병렬 호출 — 각 응답이 도착하는 대로 즉시 화면 반영
-    // 새로고침 버튼은 서버 캐시(1시간)까지 건너뛰게 ?refresh=1 을 붙인다.
+    // 새로고침 버튼은 서버 캐시(10분)까지 건너뛰게 ?refresh=1 을 붙인다.
     const q = refresh ? '?refresh=1' : ''
     const usersP = fetch(`/api/voicecards/stats/users${q}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
@@ -260,10 +260,11 @@ export default function VoicecardsNewPage() {
   const refresh = useCallback(() => loadVoicecards(true), [loadVoicecards])
   useAgentRefresh(['voicecards_'], refresh)
 
-  // 페이지를 보고 있는 동안 1시간마다 자동 새로고침 — 운영 분석 지표라 실시간성보다
-  // VoiceCards Supabase Disk IO 예산 보호를 우선한다.
+  // 페이지를 보고 있는 동안 10분마다 자동 새로고침. 집계를 전체 재계산에서 증분 동기화로
+  // 바꿔 DB 쪽이 10분마다 갱신되므로, 그보다 오래 묵힐 이유가 없다(2026-09-20).
+  // 서버 캐시도 같은 10분이라 이 주기가 DB 를 더 때리지 않는다.
   useEffect(() => {
-    const REFRESH_MS = 60 * 60 * 1000
+    const REFRESH_MS = 10 * 60 * 1000
     let last = Date.now()
     const tick = () => {
       if (document.visibilityState !== 'visible') return
@@ -276,7 +277,7 @@ export default function VoicecardsNewPage() {
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
   }, [refresh])
 
-  // 오늘 칸만 5분마다 따라온다 — 하루가 차오르는 걸 보는 자리라 한 시간은 너무 길다.
+  // 오늘 칸만 5분마다 따라온다 — 하루가 차오르는 걸 보는 자리라 10분도 길다.
   // 서버도 5분 캐시라 이 주기보다 자주 원본을 세지 않는다.
   useEffect(() => {
     const DAU_MS = 5 * 60 * 1000
