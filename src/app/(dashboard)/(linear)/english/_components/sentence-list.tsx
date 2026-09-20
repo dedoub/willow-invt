@@ -60,6 +60,15 @@ const STATE_LABEL: Record<Exclude<StateKey, 'all'>, string> = {
   review: '복습', fresh: '안 풂', passed: '합격',
 }
 
+type VcHave = Record<string, { total: number; present: number }>
+/** 이 문장이 덱에 얼마나 들어가 있나 */
+function vcOf(have: VcHave, it: { id: string }) { return have[it.id] }
+/** 청크가 다 들어가 있나 */
+function vcFull(have: VcHave, it: { id: string }) {
+  const v = have[it.id]
+  return !!v && v.present >= v.total
+}
+
 function stateOf(it: ListItem): Exclude<StateKey, 'all'> {
   if (it.tries === 0) return 'fresh'
   return it.last_passed ? 'passed' : 'review'
@@ -69,6 +78,7 @@ const COLUMNS: LColumn<ListItem>[] = [
   { key: 'state', label: '상태', width: '58px' },
   { key: 'sentence', label: '문장', width: 'minmax(200px,1fr)' },
   { key: 'hint', label: '힌트', width: '72px', hideMobile: true },
+  { key: 'vc', label: '카드', width: '40px', align: 'center', hideMobile: true },
   { key: 'tries', label: '시도', width: '44px', align: 'right' },
   { key: 'score', label: '마지막', width: '52px', align: 'right' },
   { key: 'date', label: '최근', width: '56px', hideMobile: true },
@@ -92,6 +102,8 @@ export function SentenceList({ target }: { target: PracticeTarget }) {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(storedPageSize)
   const [openId, setOpenId] = useState<string | null>(null)
+  // 어떤 문장이 이미 보이스카드 덱에 담겼나. 덱 시트를 한 번 읽어 통째로 받는다.
+  const [vcHave, setVcHave] = useState<Record<string, { total: number; present: number }>>({})
 
   const load = useCallback(async () => {
     try {
@@ -104,6 +116,16 @@ export function SentenceList({ target }: { target: PracticeTarget }) {
 
   // 탭으로 들어올 때마다 새로 붙으므로, 붙을 때 한 번 읽으면 방금 푼 문장까지 들어 있다.
   useEffect(() => { load() }, [load])
+
+  // 담김 표시. 실패하면 표시만 안 뜬다 — 목록 자체는 그대로 보인다.
+  useEffect(() => {
+    let alive = true
+    fetch(`/api/english/to-voicecards?profile=${target.id}`)
+      .then(r => (r.ok ? r.json() : { items: {} }))
+      .then(d => { if (alive) setVcHave(d.items ?? {}) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [target.id])
 
   const filtered = useMemo(() => {
     let out = items
@@ -227,6 +249,16 @@ export function SentenceList({ target }: { target: PracticeTarget }) {
                     <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
                       {HINT_LABEL[it.hint_level]}
                     </span>
+                    {/* 보이스카드에 담겼나. 다 담긴 것만 또렷하게, 일부만 담긴 것은 흐리게. */}
+                    <span
+                      title={vcOf(vcHave, it) ? `보이스카드 ${vcOf(vcHave, it)!.present}/${vcOf(vcHave, it)!.total} 조각` : undefined}
+                      style={{
+                        textAlign: 'center',
+                        color: vcFull(vcHave, it) ? t.accent.pos : t.neutrals.subtle,
+                      }}
+                    >
+                      {vcOf(vcHave, it) ? '✓' : ''}
+                    </span>
                     <span style={{ fontFamily: t.font.mono, color: t.neutrals.subtle, textAlign: 'right' }}>
                       {it.tries || ''}
                     </span>
@@ -276,7 +308,7 @@ export function SentenceList({ target }: { target: PracticeTarget }) {
       />
     </LCard>
 
-    {open && <DetailModal item={open} onClose={() => setOpenId(null)} />}
+    {open && <DetailModal item={open} vc={vcHave[open.id]} onClose={() => setOpenId(null)} />}
     </>
   )
 }
@@ -292,7 +324,7 @@ function pagerBtn(disabled: boolean): React.CSSProperties {
 }
 
 /** 한 문장의 기록 전부. 카드 밖 형제로 열린다 — 카드 안이면 테마가 테두리를 지운다. */
-function DetailModal({ item, onClose }: { item: ListItem; onClose: () => void }) {
+function DetailModal({ item, vc, onClose }: { item: ListItem; vc?: { total: number; present: number }; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -318,9 +350,20 @@ function DetailModal({ item, onClose }: { item: ListItem; onClose: () => void })
         </button>
 
         <div style={{ padding: t.density.cardPad, paddingRight: 40, paddingBottom: t.density.panelPadY }}>
+          {/* 담김은 분류가 아니라 부호다 — theme-outline 이 회색으로 못 박는 배지 대신 표와 같은 체크를 쓴다 */}
           <LSectionHead
             title={item.topic || '문장'}
             meta={`${item.tries}회 시도 · 힌트 ${HINT_LABEL[item.hint_level]}${item.streak > 0 ? ` · 연속 ${item.streak}회` : ''}`}
+            tools={vc ? (
+              <span title={`청크 ${vc.total}개 중 ${vc.present}개`} style={{
+                display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
+                fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, whiteSpace: 'nowrap',
+                color: vc.present >= vc.total ? t.accent.pos : t.neutrals.subtle,
+              }}>
+                {vc.present >= vc.total ? '✓ 보이스카드 담김' : `보이스카드 ${vc.present}/${vc.total}`}
+              </span>
+            ) : undefined}
+            toolsInline
             mb={0}
           />
         </div>

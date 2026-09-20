@@ -146,6 +146,9 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   // 서버가 시트를 먼저 읽어 이미 있는 짝은 건너뛴다. 그 수를 받아 두지 않으면
   // 아무것도 안 담겼는데 "담김"이라고 말하게 된다(CEO 2026-09-14).
   const [vcCount, setVcCount] = useState<{ added: number; skipped: number } | null>(null)
+  // 큐를 열 때 덱을 한 번 읽어, 이미 담긴 문장에는 담겼다고 적어 둔다. 누르기 전에 알 수
+  // 있어야 한다 — 단추가 "이미 담겨 있어요"라고 답하려고 누르게 할 이유가 없다(CEO 2026-09-20).
+  const [vcHave, setVcHave] = useState<Record<string, { total: number; present: number }>>({})
   // 류하는 영문 키보드가 서툴러 펜슬 손글씨가 기본. CEO는 타이핑 고정.
   const [inputMode, setInputMode] = useState<'type' | 'draw'>(target.defaultInput)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
@@ -253,6 +256,29 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
   useEffect(() => { loadQueue(mode, order) }, [loadQueue, mode, order])
 
   const current = queue[idx] ?? null
+
+  // 확인에 실패하면 배지만 안 뜬다. 담기는 그대로 되고, 서버가 중복을 다시 거른다.
+  useEffect(() => {
+    const ids = queue.map(q => q.id)
+    if (!ids.length) { setVcHave({}); return }
+    let alive = true
+    fetch(`/api/english/to-voicecards?ids=${ids.join(',')}`)
+      .then(r => (r.ok ? r.json() : { items: {} }))
+      .then(d => { if (alive) setVcHave(d.items ?? {}) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [queue])
+
+  // 이 문항이 덱에 얼마나 들어가 있나. 청크가 다 있으면 담긴 것으로 본다.
+  const vcMine = current ? vcHave[current.id] : undefined
+  const vcDone = vcState === 'done' || (!!vcMine && vcMine.present >= vcMine.total)
+  const vcLabel = vcState === 'sending' ? '담는 중…'
+    : vcDone ? '보이스카드 담김 ✓'
+    : vcMine ? `보이스카드 담기 (${vcMine.total - vcMine.present}조각 남음)`
+    : '보이스카드 담기'
+  const vcTitle = vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것`
+    : vcMine ? `청크 ${vcMine.total}개 중 ${vcMine.present}개가 이미 덱에 있어요`
+    : undefined
 
   // 이 문항의 힌트 단계. 서버가 연속 정답 수로 정해 주고, 힌트를 누른 만큼 되돌린다.
   const baseLevel: HintLevel = current?.hint_level ?? HINT_CHUNKS
@@ -441,7 +467,11 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `voicecards ${res.status}`)
-      setVcCount({ added: Number(data.added ?? 0), skipped: Number(data.skipped ?? 0) })
+      const added = Number(data.added ?? 0)
+      const skipped = Number(data.skipped ?? 0)
+      setVcCount({ added, skipped })
+      // 방금 담은 문항도 "담김"으로 남는다 — 다음 문제로 갔다 돌아와도 다시 묻지 않는다.
+      setVcHave(prev => ({ ...prev, [current.id]: { total: added + skipped, present: added + skipped } }))
       setVcState('done')
     } catch (e) {
       setVcState('idle')
@@ -627,6 +657,22 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                         {current.is_review ? '복습' : '신규'}
                       </LBadge>
                       {current.topic && <LBadge tone="neutral">{current.topic}</LBadge>}
+                      {/* 이미 담긴 문장은 담겼다고 말한다. 담기 단추가 있는 줄은 저 아래라,
+                          문항을 읽는 자리에서 바로 보이는 편이 낫다.
+                          배지로 쓰지 않는다 — theme-outline 은 배지를 회색으로 못 박아(2026-09-10)
+                          옆의 신규·주제와 같은 회색이 되어 분류로 읽힌다. 이건 분류가 아니라 부호다. */}
+                      {vcDone && (
+                        <span title={vcTitle ?? '보이스카드에 담긴 문장'} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs,
+                          fontSize: `calc(${t.type.helper}px * var(--fz, 1))`,
+                          color: t.accent.pos, whiteSpace: 'nowrap',
+                          // 오른쪽의 "3 / 20" 과 붙으면 체크가 그 숫자의 것처럼 읽힌다
+                          marginRight: t.density.gapXs,
+                        }}>
+                          {/* 좁은 화면에서는 체크만 — 글자까지 넣으면 이 줄이 넘쳐 카드 제목이 잘린다 */}
+                          {mobile ? '✓' : '✓ 보이스카드'}
+                        </span>
+                      )}
                     </div>
                   }
                   toolsInline
@@ -928,16 +974,10 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       display: 'flex', alignItems: 'center', flexWrap: 'wrap',
                       gap: t.density.gapSm, marginTop: t.density.gapXs,
                     }}>
-                      <span
-                        title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}
-                        style={mobile ? { flex: '1 1 100%' } : undefined}
-                      >
-                        <LBtn variant="secondary" onClick={toVoiceCards} disabled={!current || vcState !== 'idle'}
+                      <span title={vcTitle} style={mobile ? { flex: '1 1 100%' } : undefined}>
+                        <LBtn variant="secondary" onClick={toVoiceCards} disabled={!current || vcState !== 'idle' || vcDone}
                           style={mobile ? { width: '100%', justifyContent: 'center' } : undefined}>
-                          {vcState === 'sending' ? '담는 중…'
-                            : vcState !== 'done' ? '보이스카드 담기'
-                            : vcCount?.added === 0 ? '이미 담겨 있어요'
-                            : '보이스카드 담김 ✓'}
+                          {vcLabel}
                         </LBtn>
                       </span>
 
@@ -1059,17 +1099,10 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                       {/* LBtn 은 title 을 받지 않는다 — 자세한 수는 감싼 자리에 붙인다.
                           강조색은 할 일이 남아 있을 때만 보인다. 담고 나면 disabled 로 회색이
                           되어 끝난 일처럼 읽힌다. */}
-                      <span
-                        data-primary-action=""
-                        title={vcCount ? `${vcCount.added}개 추가 · ${vcCount.skipped}개는 이미 있던 것` : undefined}
-                        style={mobile ? { flex: '1 1 100%' } : undefined}
-                      >
-                        <LBtn variant="brand" onClick={toVoiceCards} disabled={vcState !== 'idle'}
+                      <span data-primary-action="" title={vcTitle} style={mobile ? { flex: '1 1 100%' } : undefined}>
+                        <LBtn variant={vcDone ? 'secondary' : 'brand'} onClick={toVoiceCards} disabled={vcState !== 'idle' || vcDone}
                           style={mobile ? { width: '100%', justifyContent: 'center' } : undefined}>
-                          {vcState === 'sending' ? '담는 중…'
-                            : vcState !== 'done' ? '보이스카드 담기'
-                            : vcCount?.added === 0 ? '이미 담겨 있어요'
-                            : '보이스카드 담김 ✓'}
+                          {vcLabel}
                         </LBtn>
                       </span>
 
