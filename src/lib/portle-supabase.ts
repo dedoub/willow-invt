@@ -102,21 +102,28 @@ interface PortleDeviceRecord {
 async function fetchAppEvents(): Promise<{
   funnel: PortleAppFunnel
   devices: PortleDeviceRecord[]
+  /** 시뮬레이터·디버그 빌드라 통째로 뺀 기기 */
+  internalDevices: Set<string>
+  /** 앱 이벤트를 한 줄이라도 남긴 기기 (내부 기기 포함) */
+  seenDevices: Set<string>
 }> {
   const empty = {
     funnel: { installs: [], signins: [], driveLinks: [], ledgerActivations: [], sheetActivations: [], localActivations: [] },
     devices: [],
+    internalDevices: new Set<string>(),
+    seenDevices: new Set<string>(),
   }
   if (!portleSupabase) return empty
   const rows: Array<{
     created_at: string; device_id: string | null; subject: string | null
     event: string; platform: string | null; app_version: string | null
     country: string | null; ip_country: string | null; locale: string | null
+    simulator: boolean | null; build: string | null
   }> = []
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
     const { data, error } = await portleSupabase
       .from('portle_app_events')
-      .select('created_at, device_id, subject, event, platform, app_version, country, ip_country, locale')
+      .select('created_at, device_id, subject, event, platform, app_version, country, ip_country, locale, simulator, build')
       .in('event', [...ACTIVITY_EVENTS])
       .order('created_at', { ascending: true })
       .range(from, from + PAGE - 1)
@@ -138,12 +145,24 @@ async function fetchAppEvents(): Promise<{
     }
   }
 
+  // 앱이 스스로 알려 주는 것도 기기 단위다. 1.0.3 부터 모든 이벤트에 실려 온다.
+  //   simulator: true  — 시뮬레이터·에뮬레이터 (모르면 null 이다. null 은 실기기로 둔다)
+  //   build: 'debug'   — 우리 개발 빌드
+  // 한 줄이라도 그렇게 말하면 그 기기는 통째로 우리 것이다(2026-09-21 CEO 지적:
+  // 대표님 iOS 시뮬레이터와 안드로이드 에뮬레이터 한 대가 실사용자로 세어지고 있었다).
+  const internalDevices = new Set<string>()
+  for (const row of rows) {
+    if (!row.device_id) continue
+    if (row.simulator === true || row.build === 'debug') internalDevices.add(row.device_id)
+  }
+
   // 이벤트별 (기기, 첫 발생) — 오름차순 스캔이라 처음 본 조합이 곧 첫 발생
   const firstAt = new Map<string, string>() // `${event}\n${device}` → date
   const devices = new Map<string, PortleDeviceRecord>()
   for (const row of rows) {
     if (!row.device_id) continue
     const owner = deviceSubject.get(row.device_id) ?? null
+    if (internalDevices.has(row.device_id)) continue                   // 시뮬레이터·디버그 빌드
     if (isInternalEvent(row.platform, row.created_at, owner)) continue // 우리 손으로 만든 트래픽
     const key = `${row.event}\n${row.device_id}`
     if (!firstAt.has(key)) firstAt.set(key, kstDateKey(row.created_at))
@@ -193,6 +212,8 @@ async function fetchAppEvents(): Promise<{
       localActivations: datesOf('local_ledger_activated'),
     },
     devices: Array.from(devices.values()),
+    internalDevices,
+    seenDevices: new Set(rows.map(r => r.device_id).filter((d): d is string => !!d)),
   }
 }
 
@@ -328,6 +349,25 @@ export async function getPortleStats(): Promise<PortleStats> {
     return deviceOwner.get(subject.slice('device:'.length)) ?? subject
   }
 
+  /**
+   * AI 호출만 있고 앱 이벤트가 한 줄도 없는 기기는 사용자로 세지 않는다.
+   *
+   * 앱은 실행할 때마다 app_opened 를 보내고, 한 번 성공할 때까지 계속 다시 보낸다
+   * (funnelEvents.ts 의 기기 플래그). AI 호출이 갔다는 것은 그 순간 망이 살아 있었다는
+   * 뜻이므로, 호출은 있는데 이벤트가 0건인 기기는 앱을 연 사람이 아니다. 2026-09-21
+   * 기준 그런 기기 셋은 모두 호출이 딱 1건, 그것도 에코 화면이 무료 사용자에게 자동으로
+   * 한 건 띄우는 echo_news(detail='sample') 였고 한국 평일 업무시간에 찍혔다. 그중 한
+   * 대는 이미 손으로 EXCLUDED_PORTLE_SUBJECTS 에 넣어 둔 기기다 — 같은 무리다.
+   *
+   * 시뮬레이터·디버그 빌드 기기도 여기서 함께 뺀다. 이벤트는 위에서 빠지지만 로그인 전
+   * device: 로 찍힌 호출은 ownerOf 가 계정으로 못 옮겨 이 표에 남는다.
+   */
+  const isInternalUsageSubject = (subject: string): boolean => {
+    if (!subject.startsWith('device:')) return false
+    const deviceId = subject.slice('device:'.length)
+    return appEvents.internalDevices.has(deviceId) || !appEvents.seenDevices.has(deviceId)
+  }
+
   const today = kstToday()
   const sevenAgo = kstDaysAgo(6) // 오늘 포함 7일
 
@@ -341,10 +381,13 @@ export async function getPortleStats(): Promise<PortleStats> {
   let inputTokens = 0, outputTokens = 0
   const subjectsTodaySet = new Set<string>()
   const subjects7dSet = new Set<string>()
+  // 표 아래에 몇 대를 뺐는지 적기 위해 센다. 조용히 빠지면 "기기 수가 왜 다르지"가 반복된다.
+  const internalSubjects = new Set<string>()
 
   for (const row of usage) {
     const raw = row.subject || 'unknown'
     if (isExcludedUsage(raw, row.created_at)) continue
+    if (isInternalUsageSubject(raw)) { internalSubjects.add(raw); continue }
     const subject = ownerOf(raw)
     if (EXCLUDED_PORTLE_SUBJECTS.has(subject)) continue
     const kind = row.kind || 'unknown'
@@ -527,6 +570,7 @@ export async function getPortleStats(): Promise<PortleStats> {
       inputTokens, outputTokens,
       activeEntitlements: Array.from(entitlements.values()).filter(e => e.active).length,
       sharedSheets: sharedSheetsCount,
+      internalDevices: new Set([...appEvents.internalDevices, ...Array.from(internalSubjects, x => x.slice('device:'.length))]).size,
     },
     daily: dailyOut,
     dailyActive,

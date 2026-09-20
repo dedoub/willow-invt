@@ -148,6 +148,8 @@ export interface PortleStats {
     outputTokens: number
     activeEntitlements: number
     sharedSheets: number
+    // 표에서 뺀 우리 기기 수 — 시뮬레이터·디버그 빌드, 그리고 앱 이벤트 없이 AI 만 찍힌 기기.
+    internalDevices: number
   }
   daily: PortleDailyUsage[]
   dailyActive: PortleDailyActive[]

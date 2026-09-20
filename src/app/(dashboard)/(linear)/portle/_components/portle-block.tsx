@@ -974,7 +974,9 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
       )}
       {!loading && stats && (
         <LCardFoot
-          left={`AI 사용 ${stats.totals.subjects}명 · 설치만 ${stats.totals.deviceOnly}명`}
+          left={`AI 사용 ${stats.totals.subjects}명 · 설치만 ${stats.totals.deviceOnly}명${
+            stats.totals.internalDevices > 0 ? ` · 내부 기기 ${stats.totals.internalDevices}대 제외` : ''
+          }`}
           right={`${sortedUsers.length}명`}
           style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
         />
