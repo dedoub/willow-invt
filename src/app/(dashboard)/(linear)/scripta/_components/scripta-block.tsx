@@ -16,7 +16,7 @@ import {
 import type { ScriptaStats, ScriptaUser, ScMetric } from '@/lib/scripta-types'
 import type { CreditSalesStats } from '@/lib/lemonsqueezy'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -253,9 +253,12 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'scripta.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '72px 72px minmax(72px,1fr) minmax(84px,1.1fr) 48px 44px 52px 48px 48px 56px 48px 40px'
-// 컬럼 폭 합(668) + gap 6px×11(66) + 좌우 패딩(16). 이 아래로는 가로 스크롤이 걸린다.
-const USER_TABLE_MIN_WIDTH = 810
+// 열 폭은 데스크톱에서 눈으로 맞춘 값이다. 실제 폭은 글자 배율(--fz)을 따라 함께 늘어난다 —
+// 칸을 px 로 못박으면 모바일(1.3배)에서 글자만 커져 값이 옆 칸 위에 그려진다(fzCols 주석).
+// 래퍼 최소 폭도 이 정의에서 뽑는다. 손으로 더하면 열을 추가할 때 어긋난다.
+const USER_TABLE_COL_SPEC = '72px 72px minmax(72px,1fr) minmax(84px,1.1fr) 48px 44px 52px 48px 48px 56px 48px 40px'
+const USER_TABLE_COLS = fzCols(USER_TABLE_COL_SPEC)
+const USER_TABLE_MIN_WIDTH = fzTableMinWidth(USER_TABLE_COL_SPEC, t.density.gapMd, t.density.panelPadY)
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -267,10 +270,16 @@ const userTextCell: React.CSSProperties = {
 const userNumCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 const userDateCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 
 // 총값 + 오늘 변동 2줄 셀 — 리뷰노트 NumDeltaCell과 동일 문법

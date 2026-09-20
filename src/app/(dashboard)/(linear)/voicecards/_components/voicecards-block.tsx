@@ -18,7 +18,7 @@ import {
   isVoicecardsDeviceAccountRow,
   isVoicecardsGoogleUserRow,
 } from '@/lib/voicecards-device-journey'
-import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LPageSize, LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
@@ -246,18 +246,14 @@ function formatTimeShort(dateString?: string | null): string {
 // 설치 | 로그인 | 활동 | 닉네임 | 플랫폼 | 앱버전 | 언어 | 국가 | 드라이브 | 활성화 | 덱 | 카드 | …
 // 설치가 맨 앞인 이유: 로그인 없이 쓰는 기기 계정이 생기면서 로그인일이 더 이상
 // 여정의 시작점이 아니다. 설치 → (구글 로그인) → (드라이브) 순으로 읽힌다.
-const USER_TABLE_COLS = '72px 72px 72px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 44px 78px 60px 54px 72px 72px 48px 52px 44px 48px 44px'
-// 좁은 카드 폭에서 컬럼이 뭉개지지 않도록 가로 스크롤 허용. 컬럼 정의에서 자동 산출 —
-// 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져 마지막 열들이 회색 행 배경
-// 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
-const USER_TABLE_MIN_WIDTH = (() => {
-  const cols = USER_TABLE_COLS.split(' ')
-  const px = cols.reduce((sum, c) => {
-    const m = c.match(/minmax\((\d+)px/) || c.match(/^(\d+)px$/)
-    return sum + (m ? Number(m[1]) : 0)
-  }, 0)
-  return px + (cols.length - 1) * 10 /* grid gap */ + 16 /* 행 좌우 padding */
-})()
+// 열 폭은 데스크톱에서 눈으로 맞춘 값이다. 실제 폭은 글자 배율(--fz)을 따라 함께 늘어난다 —
+// 칸을 px 로 못박으면 모바일(1.3배)에서 글자만 커져 값이 옆 칸 위에 그려진다(fzCols 주석).
+// 듣기 열은 그 상태로 데스크톱에서도 4px 모자랐다 — 52px 로 올린다.
+// 래퍼 최소 폭은 열 정의에서 뽑는다. 하드코딩하면 열 추가 때 래퍼 폭이 그리드보다 좁아져
+// 마지막 열들이 회색 행 배경 밖으로 삐져나온다(2026-07-11 활성화 열 추가 때 실제 발생).
+const USER_TABLE_COL_SPEC = '72px 72px 72px minmax(120px,1fr) 44px 64px 44px 52px 56px 48px 36px 48px 48px 52px 52px 78px 60px 54px 72px 72px 48px 52px 44px 48px 44px'
+const USER_TABLE_COLS = fzCols(USER_TABLE_COL_SPEC)
+const USER_TABLE_MIN_WIDTH = fzTableMinWidth(USER_TABLE_COL_SPEC, t.density.gapMd, t.density.panelPadY)
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -265,6 +261,9 @@ const userHeadCell: React.CSSProperties = {
 const userNumCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 
 // 총값 + 오늘 변동(전일대비) 2줄 셀. delta 양수=초록(+), 음수=빨강(−), 0=미표시
@@ -287,6 +286,9 @@ function NumDeltaCell({ total, delta, dim, note }: { total: number; delta: numbe
 const userDateCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 
 // 정렬용 점수: 구매 가능성(purchaseScore) 최우선 — 헤비 TTS(듣기 볼륨)를 기저로 한

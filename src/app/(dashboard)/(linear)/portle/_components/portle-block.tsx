@@ -12,7 +12,7 @@ import type { PortleDailyActive } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
-import { LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import { LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { formatCountryName, countryName } from '@/lib/country-format'
 
@@ -259,9 +259,13 @@ const defaultSortDir = (key: UserSortKey): SortDir => (ASC_DEFAULT_KEYS.has(key)
 const USER_SORT_STORAGE_KEY = 'portle.userSort'
 const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 
-const USER_TABLE_COLS = '72px 72px 72px 72px minmax(180px,1.6fr) 48px 56px 52px 56px 56px 52px 44px 52px 44px 44px 44px 52px 40px 56px 68px 48px 44px'
-// 컬럼 폭 합(1324, 사용자 열은 최소 180) + gap 6px×21(126) + 좌우 패딩(16). 이 아래로는 가로 스크롤.
-const USER_TABLE_MIN_WIDTH = 1466
+// 열 폭은 데스크톱에서 눈으로 맞춘 값이다. 실제 폭은 글자 배율(--fz)을 따라 함께 늘어난다 —
+// 칸을 px 로 못박으면 모바일(1.3배)에서 글자만 커져 값이 옆 칸 위에 그려진다(fzCols 주석).
+// 래퍼 최소 폭도 이 정의에서 뽑는다. 손으로 더하면 열을 추가할 때 어긋난다.
+// 언어 열은 'ko-KR' 이 52px 를 넘겨(69px) 잘리고 있었다 — 72px 로 올린다.
+const USER_TABLE_COL_SPEC = '72px 72px 72px 72px minmax(180px,1.6fr) 48px 56px 72px 56px 56px 52px 44px 52px 44px 44px 44px 52px 40px 56px 68px 48px 44px'
+const USER_TABLE_COLS = fzCols(USER_TABLE_COL_SPEC)
+const USER_TABLE_MIN_WIDTH = fzTableMinWidth(USER_TABLE_COL_SPEC, t.density.gapMd, t.density.panelPadY)
 const userHeadCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.subtle,
   letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden',
@@ -273,6 +277,9 @@ const userTextCell: React.CSSProperties = {
 const userNumCell: React.CSSProperties = {
   fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.text,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 const emptyCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono,
@@ -280,6 +287,9 @@ const emptyCell: React.CSSProperties = {
 const userDateCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
   fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+  // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
+  // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
+  minWidth: 0, overflow: 'hidden',
 }
 
 // 사람 한 줄을 무엇으로 부를 것인가. 로그인한 사람은 계정으로, 아닌 사람은 기기로 부른다

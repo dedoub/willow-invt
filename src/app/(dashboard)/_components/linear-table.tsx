@@ -42,6 +42,35 @@ export interface LColumn<T = never> {
 /** 표 안의 날짜·숫자는 본문보다 한 단계 작은 모노로 맞춘다. */
 const TABLE_NUMERIC_SIZE = 11
 
+// ─── 손으로 짠 그리드 표의 열 폭 ────────────────────────────────────────────────
+// 사용자 표들은 LTable* 이 아니라 grid-template-columns 문자열을 직접 쓴다. 그 폭을
+// px 로 못박으면 글자만 커지는 배율(--fz: 데스크톱 1.2 · 모바일 1.3, globals.css)에서
+// 칸은 그대로인데 값이 8% 넓어져, nowrap 인 숫자가 옆 칸 위에 그려진다
+// (2026-09-20 모바일 리뷰노트·스크립타·포틀 사용자 표에서 실제로 겹쳤다).
+// 그래서 열 폭도 같은 배율에 매단다. 아래 두 함수에 넣는 px 값은 지금까지처럼
+// "데스크톱에서 눈으로 맞춘 폭"이고, 화면에 그려지는 값은 그것을 배율로 환산한 것이다.
+const FZ_DESKTOP = 1.2
+const fzPx = (px: number) => `calc(${Number((px / FZ_DESKTOP).toFixed(2))}px * var(--fz, 1))`
+
+/** 'minmax(72px,1fr) 44px …' 의 px 폭을 글자 배율에 매단다. 데스크톱 렌더는 그대로다. */
+export function fzCols(spec: string): string {
+  return spec.replace(/(\d+(?:\.\d+)?)px/g, (_, n) => fzPx(Number(n)))
+}
+
+/**
+ * 같은 열 정의에서 가로 스크롤 래퍼의 최소 폭을 뽑는다. 손으로 더하면 열을 추가할 때
+ * 래퍼가 그리드보다 좁아져 마지막 열들이 행 배경 밖으로 삐져나온다
+ * (2026-09-20 포틀 사용자 표가 76px 삐져나와 있었다. gap 을 6px 로 잘못 세어 둔 탓).
+ */
+export function fzTableMinWidth(spec: string, gap: number, padX: number): string {
+  const cols = spec.trim().split(/\s+/)
+  const px = cols.reduce((sum, c) => {
+    const m = c.match(/minmax\((\d+(?:\.\d+)?)px/) || c.match(/^(\d+(?:\.\d+)?)px$/)
+    return sum + (m ? Number(m[1]) : 0)
+  }, 0)
+  return `calc(${Number((px / FZ_DESKTOP).toFixed(2))}px * var(--fz, 1) + ${(cols.length - 1) * gap + padX * 2}px)`
+}
+
 export type SortDir = 'asc' | 'desc'
 export interface TableSort { key: string; dir: SortDir }
 
