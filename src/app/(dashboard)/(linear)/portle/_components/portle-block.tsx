@@ -12,7 +12,8 @@ import type { PortleDailyActive } from '@/lib/portle-types'
 import { kstDateKey, kstToday, kstWeekday, kstTime } from '@/lib/kst'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
-import { LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LPageSize, LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
 import { formatCountryName, countryName } from '@/lib/country-format'
 
@@ -199,17 +200,18 @@ function PortleDauTrendCard({ daily, days = 42 }: { daily: PortleDailyActive[]; 
 // 열 구성은 보이스카드 사용자 표를 바탕으로 한다 — 날짜 3종(설치·로그인·활동) · 사람 · 기기
 // (플랫폼·앱버전·언어·국가) · 도달(드라이브·원장) · 결제 · 7일 활동. 보이스카드 고유인
 // 덱·카드·뒤집기·말하기·듣기·구매신호·오퍼·보장종료와 크레딧 4열은 뺐다 — 포틀은 크레딧제가
-// 아니라 구독제고 학습 지표가 없다. 그 자리에 포틀 고유인 첫 활동·AI 호출 5열·공유·구독 만료가 온다.
+// 아니라 구독제고 학습 지표가 없다. 그 자리에 포틀 고유인 AI 호출 5열·공유·구독 만료가 온다.
+// '첫 활동'(설치·로그인·AI 중 가장 이른 것) 열이 있었는데 뺐다 — 내부 기기를 거른 뒤로는 모든
+// 행이 앱 이벤트를 갖게 돼 설치일과 같은 날짜가 된다(2026-09-21 20대 중 19대 일치. 나머지 1대는
+// app_opened 가 없는 옛 기기인데, 그 날짜는 로그인 열에 그대로 있다).
 type UserSortKey =
-  | 'first' | 'installed' | 'signin' | 'last' | 'subject'
+  | 'installed' | 'signin' | 'last' | 'subject'
   | 'platform' | 'version' | 'locale' | 'country' | 'drive' | 'ledger'
   | 'calls' | 'success' | 'news' | 'ingest' | 'translate' | 'tokens' | 'shared'
   | 'sub' | 'expires' | 'days' | 'active7'
 type SortDir = 'asc' | 'desc'
 
 const USER_COLUMNS: Array<{ key: UserSortKey; label: string; mobileLabel: string; align: 'left' | 'center' | 'right' }> = [
-  // 첫 활동은 포틀 고유다 — 앱 이벤트 없이 AI 로그로만 잡힌 사람은 설치일을 모른다.
-  { key: 'first',     label: '첫 활동',   mobileLabel: '첫 활동',   align: 'center' },
   { key: 'installed', label: '설치',      mobileLabel: '설치일',    align: 'center' },
   { key: 'signin',    label: '로그인',    mobileLabel: '로그인일',  align: 'center' },
   { key: 'last',      label: '활동',      mobileLabel: '마지막 활동', align: 'center' },
@@ -263,7 +265,7 @@ const USER_SORT_KEY_SET = new Set<UserSortKey>(USER_COLUMNS.map(o => o.key))
 // 칸을 px 로 못박으면 모바일(1.3배)에서 글자만 커져 값이 옆 칸 위에 그려진다(fzCols 주석).
 // 래퍼 최소 폭도 이 정의에서 뽑는다. 손으로 더하면 열을 추가할 때 어긋난다.
 // 언어 열은 'ko-KR' 이 52px 를 넘겨(69px) 잘리고 있었다 — 72px 로 올린다.
-const USER_TABLE_COL_SPEC = '72px 72px 72px 72px minmax(180px,1.6fr) 48px 56px 72px 56px 56px 52px 44px 52px 44px 44px 44px 52px 40px 56px 68px 48px 44px'
+const USER_TABLE_COL_SPEC = '72px 72px 72px minmax(180px,1.6fr) 48px 56px 72px 56px 56px 52px 44px 52px 44px 44px 44px 52px 40px 56px 68px 48px 44px'
 const USER_TABLE_COLS = fzCols(USER_TABLE_COL_SPEC)
 const USER_TABLE_MIN_WIDTH = fzTableMinWidth(USER_TABLE_COL_SPEC, t.density.gapMd, t.density.panelPadY)
 const userHeadCell: React.CSSProperties = {
@@ -382,6 +384,14 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
   const dashCols = cols
   const [userSort, setUserSort] = useState<UserSortKey>('last')
   const [userSortDir, setUserSortDir] = useState<SortDir>('desc')
+  const [userPage, setUserPage] = useState(1)
+  const [userPerPage, setUserPerPage] = useState(10)
+
+  // 쪽 크기를 바꾸면 첫 쪽으로 돌아간다. 3쪽을 보던 중에 한 쪽을 키우면 그 3쪽은 다른 사람들이다.
+  const applyUserPerPage = (n: number) => {
+    setUserPerPage(n)
+    setUserPage(1)
+  }
 
   // 마운트 시 localStorage에서 정렬 상태 복원. 형식: "key:dir"
   useEffect(() => {
@@ -400,7 +410,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     type U = typeof arr[number]
     const primary = (a: U, b: U): number => {
       switch (userSort) {
-        case 'first':     return a.firstAt.localeCompare(b.firstAt)
         // 없는 날짜는 언제나 맨 아래로 — 빈 칸이 '가장 오래된 것'처럼 줄 맨 위에 서면 안 된다
         case 'installed': return cmpDate(a.installedAt, b.installedAt)
         case 'signin':    return cmpDate(a.signedInAt, b.signedInAt)
@@ -440,10 +449,16 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
     return arr
   }, [stats, userSort, userSortDir])
 
+  const totalUsers = sortedUsers.length
+  const totalUserPages = Math.max(1, Math.ceil(totalUsers / userPerPage))
+  const safeUserPage = Math.min(userPage, totalUserPages)
+  const pagedUsers = sortedUsers.slice((safeUserPage - 1) * userPerPage, safeUserPage * userPerPage)
+
   const handleSortChange = (key: UserSortKey) => {
     const nextDir: SortDir = key === userSort ? (userSortDir === 'asc' ? 'desc' : 'asc') : defaultSortDir(key)
     setUserSort(key)
     setUserSortDir(nextDir)
+    setUserPage(1) // 정렬이 바뀌면 지금 보던 쪽 번호는 뜻이 없다
     window.localStorage.setItem(USER_SORT_STORAGE_KEY, `${key}:${nextDir}`)
   }
 
@@ -858,7 +873,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                 )
               })}
             </div>
-            {sortedUsers.map(user => {
+            {pagedUsers.map(user => {
               const typeTone = TYPE_TONES[user.type]
               const ident = identityOf(user)
               const okPct = rate(user.success, user.calls)
@@ -868,11 +883,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   display: 'grid', gridTemplateColumns: USER_TABLE_COLS, gap: t.density.gapMd, alignItems: 'center',
                   padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderRadius: t.radius.sm, background: t.neutrals.inner,
                 }}>
-                  {/* 첫 활동 — 설치·로그인·AI 호출 중 가장 이른 것. 두 줄: 날짜 / (요일) 시각 */}
-                  <div style={{ ...userDateCell, display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                    <span>{formatDateShort(user.firstAt)}</span>
-                    <span style={{ fontSize: `calc(${t.type.chartLabel}px * var(--fz, 1))`, color: t.neutrals.subtle }}>({kstWeekday(user.firstAt)}) {kstTime(user.firstAt)}</span>
-                  </div>
                   {/* 설치 · 로그인 — 앱 이벤트가 없는 사람(AI 로그로만 잡힌 사람)은 모른다 */}
                   <DateCell at={user.installedAt} />
                   <DateCell at={user.signedInAt} />
@@ -970,6 +980,48 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
             )}
           </div>
           </div>
+
+          {/* 페이지네이션 (스크립타·리뷰노트 사용자 표와 같은 모양). 가로 스크롤 래퍼 바깥이다 —
+              안에 두면 표를 옆으로 민 만큼 쪽 이동 단추도 같이 밀려 화면에서 사라진다. */}
+          {totalUsers > 0 && (
+            <div data-panel-foot="" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
+              borderTop: `1px solid ${t.neutrals.line}`,
+            }}>
+              <LPageSize value={userPerPage} onChange={applyUserPerPage} />
+
+              {totalUserPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+                  <button disabled={safeUserPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      cursor: safeUserPage === 1 ? 'default' : 'pointer',
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
+                      color: safeUserPage === 1 ? t.neutrals.line : t.neutrals.muted,
+                      opacity: safeUserPage === 1 ? 0.4 : 1,
+                    }}>
+                    <LIcon name="chevronLeft" size={13} stroke={2} />
+                  </button>
+                  <span style={{
+                    fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
+                  }}>
+                    {(safeUserPage - 1) * userPerPage + 1}-{Math.min(safeUserPage * userPerPage, totalUsers)} / {totalUsers}
+                  </span>
+                  <button disabled={safeUserPage >= totalUserPages} onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      cursor: safeUserPage >= totalUserPages ? 'default' : 'pointer',
+                      padding: t.density.gapXs, borderRadius: t.radius.sm,
+                      color: safeUserPage >= totalUserPages ? t.neutrals.line : t.neutrals.muted,
+                      opacity: safeUserPage >= totalUserPages ? 0.4 : 1,
+                    }}>
+                    <LIcon name="chevronRight" size={13} stroke={2} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       {!loading && stats && (
