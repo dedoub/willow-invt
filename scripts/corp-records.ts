@@ -43,6 +43,12 @@ function opt(name: string): string | null {
   const v = (flags as Record<string, unknown>)[name]
   return v === undefined ? null : String(v)
 }
+// opt() 는 없는 플래그를 null 로 바꾼다 — 부분 수정에서는 "비우라"와 "건드리지 마라"가
+// 갈라져야 하므로, 없는 플래그를 undefined 그대로 넘기는 raw() 를 따로 둔다.
+function raw(name: string): string | undefined {
+  const v = (flags as Record<string, unknown>)[name]
+  return v === undefined ? undefined : String(v)
+}
 function out(v: unknown) { console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 2)) }
 
 async function readTextFlag(): Promise<string | null> {
@@ -76,6 +82,16 @@ async function main() {
       validFrom: opt('valid-from'), validTo: opt('valid-to'), counterparty: opt('counterparty'), contractStart: opt('contract-start'), contractEnd: opt('contract-end'),
       tags: opt('tags')?.split(',').map(s => s.trim()).filter(Boolean) ?? [], sourceKey: opt('key'),
     }))
+    // 문서를 설명하는 칸만 고친다(원본 버전은 손대지 않는다). 준 칸만 바뀐다.
+    case 'doc set': {
+      if (!arg) throw new Error('doc_no required')
+      return out(await db.updateDocument(arg, {
+        title: raw('title'), category: raw('category'), issued_by: raw('issued-by'), issued_at: raw('issued'),
+        valid_from: raw('valid-from'), valid_to: raw('valid-to'), counterparty: raw('counterparty'),
+        contract_start: raw('contract-start'), contract_end: raw('contract-end'),
+        tags: raw('tags')?.split(',').map(s => s.trim()).filter(Boolean),
+      }))
+    }
     case 'doc add-version': {
       if (!arg) throw new Error('doc_no required')
       let path = need('file')

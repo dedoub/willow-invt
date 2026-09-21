@@ -113,6 +113,40 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
     return { version, document: updated[0] }
   }
 
+  // 문서 자체를 바꾸는 게 아니라 문서를 설명하는 칸을 고친다. 원본(버전)은 그대로다.
+  //
+  // 초안으로 먼저 등록한 문서는 계약일이 비어 있거나 초안을 받은 날로 적혀 있다. 나중에
+  // 날인본이 붙어도 그 날짜는 저절로 따라오지 않아서, 표의 '발급·체결' 이 초안 날짜에
+  // 머물고 날짜순으로 보면 새 계약이 옛 자리에 묻힌다 (2026-09-21 TS-DOC-2026-010:
+  // 09-15 날인본이 붙었는데 체결일은 04-01 초안 날짜 그대로였다).
+  //
+  // 바뀐 칸은 before/after 를 통째로 이벤트에 남긴다 — 원장은 append-only 라, 덮어쓴
+  // 값을 되찾을 곳이 이벤트밖에 없다.
+  const DOC_META_FIELDS = new Set([
+    'title', 'category', 'issued_by', 'issued_at', 'valid_from', 'valid_to',
+    'counterparty', 'contract_start', 'contract_end', 'tags', 'note',
+  ])
+
+  async function updateDocument(docNo, patch) {
+    const doc = await getDocument(docNo)
+    const changes = {}
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) continue
+      if (!DOC_META_FIELDS.has(key)) throw new Error(`cannot update field: ${key}`)
+      if (key === 'category') assertIn(CATEGORIES, value, 'category')
+      if (JSON.stringify(doc[key] ?? null) === JSON.stringify(value ?? null)) continue
+      changes[key] = value
+    }
+    if (Object.keys(changes).length === 0) return doc
+    const before = Object.fromEntries(Object.keys(changes).map(k => [k, doc[k] ?? null]))
+    const rows = unwrap(await sb.from('willow_corp_documents').update(changes).eq('id', doc.id).select(), 'update document')
+    await appendEvent({
+      company: doc.company, entityType: 'document', entityId: docNo,
+      event: 'metadata_updated', payload: { before, after: changes },
+    })
+    return rows[0]
+  }
+
   async function setCounterparty(docNo, company) {
     assertIn(COUNTERPARTY_COMPANIES, company, 'counterparty company')
     const rows = unwrap(await sb.from('willow_corp_documents').update({ counterparty_company: company }).eq('doc_no', docNo).select(), 'set counterparty')
@@ -280,7 +314,7 @@ export function createCorpDb({ url, key, actor = 'cli' }) {
 
   return {
     client: sb, ensureBucket, nextRefNo, appendEvent,
-    getDocumentByKey, getDocument, listDocuments, createDocument, listVersions, addVersion, signedUrl, setCounterparty,
+    getDocumentByKey, getDocument, listDocuments, createDocument, updateDocument, listVersions, addVersion, signedUrl, setCounterparty,
     getRuleByKey, listRules, rulesEffectiveAt, registerRule,
     snapshotProfile, latestProfile, getByKey,
     addAction, listActions, doneAction,
