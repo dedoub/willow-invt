@@ -11,8 +11,11 @@
 -- 제외 규칙 (rn_traffic_stats와 동일하게 유지할 것):
 --   관리자 = role='ADMIN' 또는 test@reviewnotes.app (스토어 심사용)
 --   비로그인 쪽은 userId가 없으므로 관리자 userId가 쓴 sessionId를 통째로 뺀다.
---   비로그인 활동자는 랜딩 조회가 아니라 학습·콘텐츠 생성 등 제품 행동이 있는 세션만 센다.
---   이 기준으로 일반 봇과 자동화 랜딩 세션도 활동자에서 제외된다.
+--   비로그인(anon)은 랜딩에 왔는데 그 세션에 로그인 활동이 없던 사람이다.
+--   2026-09-21 이전에는 '제품 행동이 있는 비로그인 세션'을 셌는데, 로그인 없이 할 수 있는
+--   행동이 랜딩 데모(demo_*)와 template_print 뿐이라 사실상 데모 체험자 수였다. 로그인이
+--   필요한 11종은 비로그인으로 찍힌 적이 0건이었다. 지금은 랜딩까지 포함해, 하루를
+--   회원 / 신규 / 랜딩만 보고 간 사람 세 갈래로 나눈다.
 --
 -- 2026-07-28: anon 계열 추가. 반환 컬럼이 늘어 drop 후 재생성해야 한다.
 -- 2026-09-01: active30(롤링 30일 순 활동자 = MAU) 추가. 반환 컬럼이 늘어 또 drop 후 재생성.
@@ -68,19 +71,54 @@ rolling as (
   left join day_user du on du.d > days.d - 30 and du.d <= days.d
   group by days.d
 ),
+-- 랜딩에 왔지만 그 세션에 로그인 활동이 없던 사람. 제외 규칙은 rn_traffic_stats 와 같아야
+-- 한다 — 다르면 같은 하루를 두 카드가 다른 수로 말한다.
+linked_sessions as (
+  select distinct "sessionId" from "EventLog"
+  where "userId" is not null and coalesce("sessionId", '') <> ''
+),
+session_quality as (
+  select "sessionId",
+    count(*) filter (where name = 'section_view' and meta->>'section' = 'hero') as hero_events,
+    max(coalesce((meta->>'seconds')::int, 0)) filter (where name = 'page_engage') as max_seconds,
+    max(coalesce((meta->>'maxScrollPct')::int, 0)) filter (where name = 'page_engage') as max_scroll,
+    count(*) filter (where name not in ('page_view', 'section_view', 'page_engage')) as meaningful_events
+  from "EventLog"
+  group by 1
+),
+low_quality_sessions as (
+  select distinct pv."sessionId",
+    ((pv."createdAt" at time zone 'UTC') at time zone 'Asia/Seoul')::date as kdate,
+    coalesce(pv.country, 'Unknown') as country,
+    coalesce(pv.device, 'unknown') as device,
+    coalesce(nullif(pv.referrer, ''), 'direct') as referrer
+  from "PageView" pv
+  join session_quality sq using ("sessionId")
+  where pv."sessionId" not in (select "sessionId" from linked_sessions)
+    and sq.hero_events > 0
+    and sq.meaningful_events = 0
+    and coalesce(sq.max_scroll, 0) = 0
+    and coalesce(sq.max_seconds, 0) <= 10
+),
+automation_groups as (
+  select kdate, country, device, referrer
+  from low_quality_sessions
+  group by 1, 2, 3, 4
+  having count(*) >= 10
+),
+automated_sessions as (
+  select distinct lqs."sessionId"
+  from low_quality_sessions lqs
+  join automation_groups ag using (kdate, country, device, referrer)
+),
 anon_day as (
   select (("createdAt" at time zone 'UTC') at time zone 'Asia/Seoul')::date as d,
          count(distinct "sessionId")::bigint as anon
-  from "EventLog"
-  where "userId" is null
-    and coalesce("sessionId", '') <> ''
+  from "PageView"
+  where coalesce("sessionId", '') <> ''
     and "sessionId" not in (select "sessionId" from admin_sessions)
-    and name in (
-      'bulk_import_save', 'ai_generate', 'solve_submit', 'schedule_start',
-      'note_set_create', 'note_create', 'review_set_create', 'retry_set_create',
-      'set_create', 'set_add_problems', 'assignment_copy', 'practice_import_success',
-      'demo_start', 'demo_complete', 'demo_round2_start', 'template_print'
-    )
+    and "sessionId" not in (select "sessionId" from automated_sessions)
+    and "sessionId" not in (select "sessionId" from linked_sessions)
     and "createdAt" >= now() - make_interval(days => range_days)
   group by 1
 )

@@ -189,9 +189,14 @@ const rateExtra = (label: string, pct: number) => (
 )
 
 // 일별 활동자 차트 — 보이스카드 DauTrendCard 리뷰노트판.
-// 회원(기존 가입자)/신규(그날 가입)/비로그인 3계열 + 7일 이동평균.
-// 비로그인은 세션 수라 로그인 활동자(유저 수)와 세는 단위가 다르다. 막대는 같이 쌓되
-// 툴팁에서 구분해 적는다. 관리자·봇 제외는 RPC(rn_daily_active)에서 처리한다.
+// 회원(기존 가입자)/신규(그날 가입)/랜딩만(왔다 간 사람) 3계열 + 7일 이동평균.
+// 앞의 둘은 유저 수, '랜딩만'은 세션 수라 세는 단위가 다르다. 막대는 같이 쌓되 툴팁에서
+// 구분해 적는다. 관리자·봇 제외는 RPC(rn_daily_active)에서 처리한다.
+//
+// 2026-09-21 이전 세 번째 계열은 '비로그인'이었고 제품 행동이 있는 비로그인 세션을 셌다.
+// 로그인 없이 할 수 있는 행동이 랜딩 데모뿐이라 거의 늘 0이었고(로그인이 필요한 이벤트
+// 11종은 비로그인으로 찍힌 적이 0건), 옆 '순 방문자'가 8인 날에도 0이라 두 카드가 서로를
+// 부정하는 것처럼 보였다. 지금은 랜딩에 왔지만 로그인 활동이 없던 세션을 센다.
 const RN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 function rnWithWeekday(d: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d} (${RN_WEEKDAYS[new Date(d + 'T00:00:00Z').getUTCDay()]})` : d
@@ -235,7 +240,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
             <span style={{ width: 6, height: 6, borderRadius: 1, background: NEW }} />신규 {latest?.newUsers ?? 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />비로그인 {latest?.anon ?? 0}
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: ANON }} />랜딩만 {latest?.anon ?? 0}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs, color: t.neutrals.muted }}>
             <span style={{ width: 10, height: 2, borderRadius: 1, background: MA_COLOR }} />7일평균 {ma.length ? (Math.round(ma[ma.length - 1] * 10) / 10).toLocaleString() : 0}
@@ -292,7 +297,7 @@ function RnDauTrendCard({ daily, days = 42 }: {
                   <span style={{ width: 7, height: 7, borderRadius: 1, background: NEW }} />신규 {r.newUsers}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />비로그인 {r.anon}<span style={{ opacity: 0.6 }}> 세션</span>
+                  <span style={{ width: 7, height: 7, borderRadius: 1, background: ANON }} />랜딩만 {r.anon}<span style={{ opacity: 0.6 }}> 세션</span>
                 </div>
                 <div style={{ opacity: 0.7, marginTop: t.density.gapXs }}>로그인 {r.active}명 · 7일 평균 {Math.round(ma[hoverIdx] * 10) / 10}</div>
               </div>
@@ -617,6 +622,9 @@ export function ReviewnotesBlock({
             // DAU/MAU 를 그리려면 분모도 날짜별로 있어야 하고, 배지와 점선이 서로 다른 분모를
             // 쓰면 같은 이름의 두 값이 어긋난다.
             const activeRows = trafficStats.dailyActive ?? []
+            // 오늘 가입 수는 '일별 활동자'와 같은 RPC에서 가져온다. 다른 출처로 세면 같은 이름의
+            // 두 값이 화면에서 어긋난다(2026-09-21 순 방문자 8명 vs 활동자 1명 문의).
+            const todaySignups = activeRows.find(r => r.date === kstToday())?.newUsers ?? 0
             const mau = activeRows.length ? activeRows[activeRows.length - 1].active30 : 0
             // DAU — 오늘은 아직 안 끝난 하루라 빼고 직전 30일 평균. 옆 '일별 활동자' 바와 같은 모집단.
             // 컷은 트래픽 축의 마지막 날(todayKey)이 아니라 실제 오늘로 잡는다 — 두 축은 서로
@@ -652,9 +660,9 @@ export function ReviewnotesBlock({
           <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
             <LStat
               label="순 방문자"
-              title="랜딩 유니크 방문자 누적 (기기 기준, 집계 시작 이후)"
+              title="랜딩(/ko, /en) 유니크 방문자 누적 — 세션 기준, 관리자·봇 제외. 랜딩에 온 사람만 센다. 앱 안에서 일어난 일은 옆 '일별 활동자'가 따로 세므로 두 숫자는 원래 다르다 (랜딩을 거치지 않고 앱으로 바로 들어오는 회원이 있고, 랜딩만 보고 가는 사람이 있다)."
               value={trafficStats.totals.visitors.toLocaleString()}
-              sub={`오늘 ${todayVisitors.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
+              sub={`오늘 ${todayVisitors.toLocaleString()}명 → 가입 ${todaySignups.toLocaleString()}명 · 7일 ${last7Visitors.toLocaleString()}명`}
               sparkline={mobile ? undefined : cumVisitors}
             />
             <LStat
