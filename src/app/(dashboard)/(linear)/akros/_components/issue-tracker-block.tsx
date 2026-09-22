@@ -6,12 +6,14 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
-import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import {
+  LPageSize, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty, LTableBadge, LTableDate,
+  useTableSort, type LColumn,
+} from '@/app/(dashboard)/_components/linear-table'
 
 // 단계 → 배지 톤/라벨 + 정렬 우선순위(작을수록 위, 상장에 가까운 쪽이 먼저)
 //
@@ -29,6 +31,17 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string; rank:
 }
 
 type StatusFilter = 'all' | 'live' | 'near' | 'filing' | 'dev' | 'fyi' | 'resolved'
+
+const COLUMNS: LColumn<AkrosEmailIssue>[] = [
+  { key: 'code',    label: '코드',   width: '58px',             sortValue: r => r.issue_code ?? '' },
+  { key: 'stage',   label: '단계',   width: '74px',             sortValue: r => STATUS_META[r.status]?.rank ?? 9 },
+  { key: 'title',   label: '이슈',   width: 'minmax(200px,1.3fr)', sortValue: r => r.title },
+  { key: 'detail',  label: '현황',   width: 'minmax(160px,1fr)', hideMobile: true, sortValue: r => r.detail ?? '' },
+  { key: 'party',   label: '상대',   width: '100px',            hideMobile: true, sortValue: r => r.counterparty ?? '' },
+  { key: 'mail',    label: '최근메일', width: '64px',           hideMobile: true, sortValue: r => r.last_email_date ?? '', sortFirst: 'desc' },
+  { key: 'due',     label: '마감',   width: '64px',             hideMobile: true, sortValue: r => r.deadline ?? '', sortFirst: 'desc' },
+  { key: 'link',    label: '',       width: '24px' },
+]
 
 function fmtDate(d?: string | null): string {
   if (!d) return ''
@@ -64,6 +77,8 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<AkrosEmailIssue>('akros-issues', COLUMNS)
 
   const applyPageSize = (n: number) => {
     setPageSize(n)
@@ -92,9 +107,12 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
     })
   }, [issues, filter])
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
+  // 머리를 누르기 전까지는 위 기본 순서(단계 → 마감 → 최근 갱신)를 쓴다.
+  const sorted = useMemo(() => sortApply(rows), [rows, sortApply])
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const safePage = Math.min(page, totalPages - 1)
-  const paged = rows.slice(safePage * pageSize, (safePage + 1) * pageSize)
+  const paged = sorted.slice(safePage * pageSize, (safePage + 1) * pageSize)
 
   const FILTERS: { key: StatusFilter; label: string }[] = [
     { key: 'all', label: `전체 ${issues.length}` },
@@ -159,119 +177,100 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         />
       </div>
 
-      {/* 이슈 목록 */}
-      <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: t.density.gapSm }}>
-        {loading ? (
-          // 로딩 스켈레톤 — 앱 전체 shimmer(.l-skeleton)와 동일, 페이지당 개수만큼 행 표시
-          Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'flex-start', gap: t.density.gapMd,
-              padding: '11px 14px', borderTop: `1px solid ${t.neutrals.line}`,
-            }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
-                <Bone w={`${58 + (i % 3) * 12}%`} h={12} />
-                <Bone w="42%" h={9} />
-                <Bone w="88%" h={9} />
-              </div>
-              <Bone w={40} h={16} r={4} />
-            </div>
-          ))
-        ) : rows.length === 0 ? (
-          <div style={{ padding: '28px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>해당 상태의 이슈가 없습니다</div>
-        ) : paged.map(issue => {
-          const sm = STATUS_META[issue.status] || { label: issue.status, ...tonePalettes.neutral, rank: 9 }
-          const n = issue.status === 'resolved' ? null : dday(issue.deadline)
-          const overdue = n !== null && n < 0
-          const soon = n !== null && n >= 0 && n <= 3
-
-          const codeChip = issue.issue_code ? (
-            <LBadge
-              palette={{ bg: t.neutrals.inner, fg: t.neutrals.subtle }}
-              style={{ fontFamily: t.font.mono, flexShrink: 0 }}
-            >{issue.issue_code}</LBadge>
-          ) : null
-
-          // 2열 요소: 마감 D-day + 상태 배지 + Gmail 링크
-          const controls = (
-            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexShrink: 0 }}>
-              {n !== null && (
-                <span style={{
-                  fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.medium,
-                  color: overdue ? t.accent.neg : soon ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
-                }}>
-                  {overdue ? `초과 ${Math.abs(n)}일` : n === 0 ? '오늘' : `D-${n}`}
-                </span>
-              )}
-              <LBadge pill palette={{ bg: sm.bg, fg: sm.fg }}>{sm.label}</LBadge>
-              {issue.thread_url && (
-                /* 회색 판을 깔지 않는다 — 같은 화면의 다른 아이콘 단추는 전부 맨바닥이다. */
-                <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기" style={{
-                  width: 26, height: 26, borderRadius: t.radius.sm,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted, flexShrink: 0,
-                }}>
-                  <LIcon name="mail" size={12} />
-                </a>
-              )}
-            </div>
-          )
-
-          const titleEl = (
-            <span style={{
-              fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.text, lineHeight: 1.35,
-            }}>{issue.title}</span>
-          )
-
-          const body = (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap', fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                {issue.cluster && <span style={{ color: t.brand[600] }}>{issue.cluster}</span>}
-                {issue.counterparty && <span>· {issue.counterparty}</span>}
-                {issue.last_email_date && <span style={{ fontFamily: t.font.mono }}>· 최근메일 {fmtDate(issue.last_email_date)}</span>}
-              </div>
-              {issue.detail && (
-                <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, marginTop: t.density.gapSm, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-                  {issue.detail}
-                </div>
-              )}
-              {issue.next_action && issue.status !== 'resolved' && (
-                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: t.density.gapXs, fontWeight: t.weight.medium }}>
-                  → {issue.next_action}
-                </div>
-              )}
-            </>
-          )
-
-          return (
-            <div key={issue.id} style={{ padding: `${t.density.panelPadX}px ${t.density.controlPadXMd}px`, borderTop: `1px solid ${t.neutrals.line}` }}>
-              {mobile ? (
-                <>
-                  {/* 상단: 이슈번호(좌) + 2열 요소(우) */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap, marginBottom: t.density.gapXs }}>
-                    {codeChip || <span />}
-                    {controls}
-                  </div>
-                  <div style={{ marginBottom: t.density.gapXs }}>{titleEl}</div>
-                  {body}
-                </>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.density.gapMd }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.density.gapSm, marginBottom: t.density.gapXs }}>
-                      {codeChip}
-                      {titleEl}
+      {/* 이슈 목록 — 다른 카드와 같은 표(LTable*). 머리를 눌러 정렬한다. */}
+      <div style={{ padding: `0 ${t.density.cardPad}px` }}>
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
+          <LTableHead columns={COLUMNS} mobile={mobile} sort={sort} onSort={toggleSort} />
+          <LTableBody columns={COLUMNS} mobile={mobile}>
+            {loading ? (
+              Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
+                <LTableRow key={i} columns={COLUMNS} mobile={mobile}>
+                  <Bone w="80%" h={11} />
+                  <Bone w={40} h={14} r={4} />
+                  <Bone w={`${58 + (i % 3) * 12}%`} h={11} />
+                  {!mobile && <Bone w="70%" h={9} />}
+                  {!mobile && <Bone w="60%" h={9} />}
+                  {!mobile && <Bone w={34} h={9} />}
+                  {!mobile && <Bone w={34} h={9} />}
+                  <span />
+                </LTableRow>
+              ))
+            ) : paged.map(issue => {
+              const sm = STATUS_META[issue.status] || { label: issue.status, ...tonePalettes.neutral, rank: 9 }
+              const n = issue.status === 'resolved' ? null : dday(issue.deadline)
+              const open = expanded === issue.id
+              return (
+                <div key={issue.id}>
+                  <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpanded(open ? null : issue.id)}>
+                    <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
+                      {issue.issue_code || '-'}
+                    </span>
+                    <LTableBadge tone={{ bg: sm.bg, fg: sm.fg }}>{sm.label}</LTableBadge>
+                    <span style={{ minWidth: 0, fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {issue.title}
+                      {issue.cluster && <span style={{ color: t.brand[600], fontWeight: t.weight.regular }}> · {issue.cluster}</span>}
+                    </span>
+                    {!mobile && (
+                      <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {issue.detail || '-'}
+                      </span>
+                    )}
+                    {!mobile && (
+                      <span style={{ minWidth: 0, color: t.neutrals.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {issue.counterparty || '-'}
+                      </span>
+                    )}
+                    {!mobile && (issue.last_email_date
+                      ? <LTableDate value={issue.last_email_date} />
+                      : <span style={{ color: t.neutrals.subtle }}>-</span>)}
+                    {!mobile && (issue.deadline
+                      ? (
+                        // 마감이 지난 것은 날짜만 둔다. 남의 마감이라 '초과 N일' 은 우리가 쓸 신호가
+                        // 아니고, 운영 중인 건에도 붙어 빨갛게 우는 칸이 됐다(E-029 초과 71일).
+                        <span style={{
+                          fontFamily: t.font.mono, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`,
+                          color: n !== null && n >= 0 && n <= 3 ? t.accent.warn : t.neutrals.muted, whiteSpace: 'nowrap',
+                        }}>
+                          {n !== null && n === 0 ? '오늘' : n !== null && n > 0 && n <= 3 ? `D-${n}` : fmtDate(issue.deadline)}
+                        </span>
+                      )
+                      : <span style={{ color: t.neutrals.subtle }}>-</span>)}
+                    {issue.thread_url ? (
+                      <a href={issue.thread_url} target="_blank" rel="noopener noreferrer" title="Gmail 스레드 열기"
+                        onClick={e => e.stopPropagation()}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted }}>
+                        <LIcon name="mail" size={12} />
+                      </a>
+                    ) : <span />}
+                  </LTableRow>
+                  {open && (issue.detail || issue.next_action) && (
+                    <div style={{
+                      padding: `${t.density.gapSm}px ${t.density.panelPadX}px ${t.density.panelPadX}px`,
+                      background: t.neutrals.inner, borderRadius: t.radius.sm, marginBottom: t.density.tableRowGap,
+                    }}>
+                      {issue.detail && (
+                        <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                          {issue.detail}
+                        </div>
+                      )}
+                      {issue.next_action && issue.status !== 'resolved' && (
+                        <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: t.density.gapXs, fontWeight: t.weight.medium }}>
+                          → {issue.next_action}
+                        </div>
+                      )}
                     </div>
-                    {body}
-                  </div>
-                  {controls}
+                  )}
                 </div>
-              )}
-            </div>
-          )
-        })}
+              )
+            })}
+          </LTableBody>
+          {!loading && sorted.length === 0 && <LTableEmpty>해당 단계의 이슈가 없습니다</LTableEmpty>}
+        </LTableScroll>
       </div>
 
+
       {/* 페이지네이션 (wiki-list 패턴 참조) — N개씩 선택 + 이전/다음 */}
-      {!loading && rows.length > 0 && (
+      {!loading && sorted.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap,
           padding: `${t.density.panelPadY}px ${t.density.controlPadXMd}px`, borderTop: `1px solid ${t.neutrals.line}`,
@@ -285,7 +284,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
           {totalPages > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
               <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
-                {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, rows.length)} / {rows.length}
+                {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, sorted.length)} / {sorted.length}
               </span>
               <button disabled={safePage === 0} onClick={() => setPage(safePage - 1)} style={{
                 background: 'transparent', border: 'none', cursor: safePage === 0 ? 'default' : 'pointer',
