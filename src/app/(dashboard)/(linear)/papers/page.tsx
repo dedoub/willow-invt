@@ -98,8 +98,12 @@ const COLUMNS: LColumn<PaperDataset>[] = [
   { key: 'zone', label: '영역', width: '68px', sortValue: zoneOf, hideMobile: true },
   { key: 'table', label: '표', width: 'minmax(172px,1.4fr)', sortValue: d => d.table_name },
   { key: 'label', label: '내용', width: 'minmax(78px,0.8fr)', sortValue: d => d.label ?? '', hideMobile: true },
-  { key: 'rows', label: '행', width: 'minmax(122px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
+  { key: 'rows', label: '행', width: 'minmax(110px,1fr)', align: 'right', sortValue: d => d.row_count ?? -1, sortFirst: 'desc' },
   { key: 'bytes', label: '용량', width: '84px', align: 'right', sortValue: d => d.bytes ?? -1, sortFirst: 'desc' },
+  // 이 표가 언제 것이고(기준일=원본 스냅샷) 언제 확인했나(갱신). 요약 카드의 '마지막 확인'
+  // 하나로는 표마다 다른 기준일을 못 말한다 — KCI 는 09-20, OpenAlex 는 06-26 이다.
+  { key: 'snapshot', label: '기준일', width: '88px', hideMobile: true, sortValue: d => d.snapshot ?? '', sortFirst: 'desc' },
+  { key: 'synced', label: '갱신', width: '72px', hideMobile: true, sortValue: d => d.synced_at ?? '', sortFirst: 'desc' },
 ]
 
 interface StageRow {
@@ -120,6 +124,8 @@ interface SourceRow {
   key: string
   label: string
   snapshot: string
+  /** 그 출처의 표들을 마지막으로 확인한 시각. 가장 최근 것으로 잡는다. */
+  syncedAt: string | null
   tables: number
   done: number
   rows: number
@@ -128,10 +134,13 @@ interface SourceRow {
 }
 
 const SOURCE_COLUMNS: LColumn<SourceRow>[] = [
-  { key: 'source', label: '출처', width: 'minmax(76px,1fr)', sortValue: r => r.label },
-  { key: 'snapshot', label: '스냅샷', width: '74px', sortValue: r => r.snapshot, sortFirst: 'desc' },
+  { key: 'source', label: '출처', width: 'minmax(64px,0.6fr)', sortValue: r => r.label },
+  // 기준일 = 원본 스냅샷 날짜, 갱신 = 우리가 AWS 를 마지막으로 본 시각. 둘은 다른 것이고
+  // 둘 다 없으면 "이 숫자가 언제 것이냐"에 답할 수 없다. 'YYYY-MM-DD' 가 74px 에서 잘렸다.
+  { key: 'snapshot', label: '기준일', width: '88px', sortValue: r => r.snapshot, sortFirst: 'desc' },
+  { key: 'synced', label: '갱신', width: '72px', sortValue: r => r.syncedAt ?? '', sortFirst: 'desc' },
   { key: 'tables', label: '표', width: '48px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
-  { key: 'rows', label: '행', width: 'minmax(122px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
+  { key: 'rows', label: '행', width: 'minmax(110px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
   { key: 'bytes', label: '용량', width: '82px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
 ]
 
@@ -257,6 +266,9 @@ export default function PapersPage() {
       key: source,
       label: SOURCE_LABEL[source] ?? source,
       snapshot: items.find(d => d.snapshot)?.snapshot ?? '',
+      syncedAt: items.reduce<string | null>((max, d) => (
+        d.synced_at && (!max || d.synced_at > max) ? d.synced_at : max
+      ), null),
       tables: items.length,
       done: items.filter(d => d.status === 'done').length,
       rows: items.reduce((s, d) => s + Number(d.row_count ?? 0), 0),
@@ -267,7 +279,7 @@ export default function PapersPage() {
     }))
     if (!groups.has('kci')) {
       rows.push({
-        key: 'kci', label: 'KCI', snapshot: '', tables: 0, done: 0, rows: 0, bytes: 0,
+        key: 'kci', label: 'KCI', snapshot: '', syncedAt: null, tables: 0, done: 0, rows: 0, bytes: 0,
         note: '국문 243만 건 · OAI-PMH · 미착수',
       })
     }
@@ -419,8 +431,8 @@ export default function PapersPage() {
           </div>
         </LCard>
 
-        {/* 왼쪽은 무엇이 얼마나 들어 있나(데이터·파이프라인), 오른쪽은 얼마가 드나 무엇을
-            정해야 하나(출처·비용·결정). 사업관리와 같은 1.5 대 1 배치다. */}
+        {/* 왼쪽은 무엇이 얼마나 들어 있나(데이터), 오른쪽은 어디서 오고 얼마가 들고 어떻게
+            도는가(출처·비용·파이프라인·결정). 사업관리와 같은 1.5 대 1 배치다. */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
 
@@ -450,6 +462,12 @@ export default function PapersPage() {
                           )}
                           <LTableNumber value={d.row_count ?? 0} muted={d.row_count === null} />
                           <LTableMono align="right" tone="muted">{formatBytes(d.bytes)}</LTableMono>
+                          {!mobile && <LTableMono tone="muted">{d.snapshot ?? '—'}</LTableMono>}
+                          {!mobile && (
+                            <LTableMono tone="muted" title={d.synced_at ? new Date(d.synced_at).toLocaleString('ko-KR') : undefined}>
+                              {formatAgo(d.synced_at)}
+                            </LTableMono>
+                          )}
                         </LTableRow>
                         {openTable === d.id && <SchemaPanel dataset={d} />}
                       </div>
@@ -500,6 +518,51 @@ export default function PapersPage() {
               </div>
             </LCard>
 
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
+
+            {/* 출처 — 국문 논문은 OpenAlex 로 채울 수 없다. 2022년 이후 국문 유입이
+                멈췄고 그래서 KCI 가 2차 소스다. 아직 없다는 사실을 한 줄로 남긴다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <LSectionHead title="출처" mb={0} />
+              </div>
+              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+                <LTableScroll columns={SOURCE_COLUMNS} mobile={mobile}>
+                  <LTableHead columns={SOURCE_COLUMNS} mobile={mobile} sort={srcSort} onSort={toggleSrcSort} />
+                  {sortedSources.length === 0 && <LTableEmpty>확인된 출처가 없습니다</LTableEmpty>}
+                  <LTableBody columns={SOURCE_COLUMNS} mobile={mobile}>
+                    {sortedSources.map(r => (
+                      <LTableRow key={r.key} columns={SOURCE_COLUMNS} mobile={mobile}>
+                        <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.note}>
+                          {r.label}
+                        </span>
+                        <LTableMono tone="muted">{r.snapshot || '—'}</LTableMono>
+                        <LTableMono tone="muted" title={r.syncedAt ? new Date(r.syncedAt).toLocaleString('ko-KR') : undefined}>
+                          {formatAgo(r.syncedAt)}
+                        </LTableMono>
+                        <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
+                        <LTableNumber value={r.rows} muted={r.rows === 0} />
+                        <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
+                      </LTableRow>
+                    ))}
+                  </LTableBody>
+                </LTableScroll>
+              </div>
+            </LCard>
+
+            {/* 비용 — IAM 사용자에게 비용 조회 권한이 없다. 보관비는 실측 용량에 단가를
+                곱해 내고, 나머지는 설계 문서가 실측해 둔 값이다. */}
+            <LCard pad={0}>
+              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+                <div style={{ paddingBottom: t.density.panelPadY }}>
+                  <LSectionHead title="비용" mb={0} />
+                </div>
+                <FigureGrid items={costFigures} cols={2} />
+              </div>
+            </LCard>
+
             {/* 갱신 파이프라인 — 원본 공개 스냅샷은 분기 갱신이다. 새 스냅샷이 뜨면
                 watch·stage·transform·validate·publish 다섯 단계가 한 바퀴 돈다.
                 단계가 무엇을 하는지는 근거 칸에 마우스를 올리면 나온다. */}
@@ -527,47 +590,6 @@ export default function PapersPage() {
                     ))}
                   </LTableBody>
                 </LTableScroll>
-              </div>
-            </LCard>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-
-            {/* 출처 — 국문 논문은 OpenAlex 로 채울 수 없다. 2022년 이후 국문 유입이
-                멈췄고 그래서 KCI 가 2차 소스다. 아직 없다는 사실을 한 줄로 남긴다. */}
-            <LCard pad={0}>
-              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-                <LSectionHead title="출처" mb={0} />
-              </div>
-              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-                <LTableScroll columns={SOURCE_COLUMNS} mobile={mobile}>
-                  <LTableHead columns={SOURCE_COLUMNS} mobile={mobile} sort={srcSort} onSort={toggleSrcSort} />
-                  {sortedSources.length === 0 && <LTableEmpty>확인된 출처가 없습니다</LTableEmpty>}
-                  <LTableBody columns={SOURCE_COLUMNS} mobile={mobile}>
-                    {sortedSources.map(r => (
-                      <LTableRow key={r.key} columns={SOURCE_COLUMNS} mobile={mobile}>
-                        <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.note}>
-                          {r.label}
-                        </span>
-                        <LTableMono tone="muted">{r.snapshot || '—'}</LTableMono>
-                        <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
-                        <LTableNumber value={r.rows} muted={r.rows === 0} />
-                        <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
-                      </LTableRow>
-                    ))}
-                  </LTableBody>
-                </LTableScroll>
-              </div>
-            </LCard>
-
-            {/* 비용 — IAM 사용자에게 비용 조회 권한이 없다. 보관비는 실측 용량에 단가를
-                곱해 내고, 나머지는 설계 문서가 실측해 둔 값이다. */}
-            <LCard pad={0}>
-              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-                <div style={{ paddingBottom: t.density.panelPadY }}>
-                  <LSectionHead title="비용" mb={0} />
-                </div>
-                <FigureGrid items={costFigures} cols={2} />
               </div>
             </LCard>
 
