@@ -39,6 +39,9 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { useAgentRefresh } from '@/hooks/use-agent-refresh'
 import type { PaperDataset, PaperPipeline, PaperSyncMeta } from '@/types/paper-warehouse'
 
+// 데이터팀이 만든 사용법 PDF. 파일이 바뀌면 같은 경로에 덮어쓰고 날짜만 올린다.
+const PAPER_GUIDE_HREF = '/api/files/tensw-project-docs/paper-warehouse/paper-warehouse-guide-2026-09-22.pdf'
+
 const SOURCE_LABEL: Record<string, string> = {
   openalex: 'OpenAlex',
   kci: 'KCI',
@@ -399,7 +402,15 @@ export default function PapersPage() {
               <LSectionHead
                 title="논문데이터"
                 tools={(
-                  <LBtn variant="secondary" size="sm" onClick={() => { window.location.href = '/api/paper-warehouse/guide' }}>
+                  /* 사용법 문서 — 비공개 버킷의 PDF 를 5분짜리 서명 URL 로 연다(/api/files 규칙).
+                     전에는 /api/paper-warehouse/guide 가 카탈로그에서 마크다운을 만들어 내려
+                     줬는데, 한글이 깨져 읽을 수가 없었다(charset 은 붙어 있었지만 받는 쪽
+                     편집기가 UTF-8 로 못 열었다). 그 라우트는 살아 있으니 자동 생성본이
+                     필요하면 그대로 쓴다. */
+                  <LBtn
+                    variant="secondary" size="sm"
+                    onClick={() => { window.open(PAPER_GUIDE_HREF, '_blank', 'noopener') }}
+                  >
                     사용법 문서
                   </LBtn>
                 )}
