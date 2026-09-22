@@ -201,7 +201,7 @@ export default function WorkPage() {
             detailMode="modal"
           />
         </div>
-        <CorpDocsBlock company="willow" style={{ minWidth: 0 }} />
+        <CorpDocsBlock style={{ minWidth: 0 }} />
       </div>
 
       <div style={{
