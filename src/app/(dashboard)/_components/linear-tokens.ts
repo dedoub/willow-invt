@@ -105,9 +105,11 @@ export const t = {
     pagePadBottom: 24,
     blockGap: 12,
     kpiGap: 8,
-    tableColGap: 6,
+    // 열 사이는 6이면 값끼리 붙어 어디까지가 한 칸인지 눈이 못 가른다. 숫자 열이 여럿인
+    // 표에서 특히 그랬다(CEO 2026-09-22). 손으로 짠 사용자 표들이 이미 쓰던 10 에 맞춘다.
+    tableColGap: 10,
     tableRowGap: 2,
-    tableRowPadX: 8,
+    tableRowPadX: 10,
     gapXs: 4,
     gapSm: 6,
     gapMd: 10,

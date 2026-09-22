@@ -46,6 +46,16 @@ const LABELS = {
   oa_author_yearly: '저자 연도별',
   institution: '기관',
   institution_alias: '기관 별칭',
+  institution_alias_manual: '기관 별칭 수기',
+  kci_article: '국문 논문 기본',
+  kci_article_abstract: '국문 초록',
+  kci_article_author: '국문 저자',
+  kci_article_probe: '국문 논문 시험',
+  kci_article_author_probe: '국문 저자 시험',
+  kci_journal_metric: '국문 학술지 지표',
+  kci_article_detail: '국문 논문 상세',
+  kci_article_author_detail: '국문 저자 상세',
+  kci_article_reference: '국문 참고문헌',
 }
 
 function env(key) {
@@ -176,7 +186,9 @@ function parseLocation(location) {
   const prefix = location ? location.replace(`s3://${BUCKET}/`, '') : ''
   const snapshot = prefix.match(/snapshot=([^/]+)/)?.[1] ?? null
   const source = prefix.startsWith('warehouse/openalex/') ? 'openalex'
-    : prefix.startsWith('warehouse/kci/') ? 'kci'
+    // KCI 는 프리픽스가 셋이다 — kci(기본) · kci_detail(상세·참고문헌) · kci_journal(지표).
+    // warehouse/kci/ 만 보면 2026-09-22 에 들어온 상세 세 표가 '기타'로 떨어진다.
+    : /^warehouse\/kci(_|\/)/.test(prefix) ? 'kci'
       : prefix.startsWith('unified/') ? 'unified' : 'other'
   return { source, snapshot, prefix: prefix.endsWith('/') ? prefix : `${prefix}/` }
 }
@@ -227,7 +239,10 @@ async function main() {
   const { data: existing, error: readErr } = await supabase
     .from('paper_warehouse_datasets').select('id, source, table_name, snapshot, label, note')
   if (readErr) throw readErr
-  const keyOf = r => `${r.source}\n${r.table_name}\n${r.snapshot ?? ''}`
+  // 같은 줄인지는 표 이름과 스냅샷으로만 가른다. 출처는 위치에서 뽑아 낸 분류라 규칙이
+  // 바뀌면 값도 바뀌는데, 키에 넣어 두면 그때마다 같은 표가 두 줄로 갈라진다
+  // (2026-09-22 kci_detail 세 표가 other → kci 로 바뀌며 실제로 갈라졌다).
+  const keyOf = r => `${r.table_name}\n${r.snapshot ?? ''}`
   const known = new Map((existing ?? []).map(r => [keyOf(r), r]))
 
   for (const row of rows) {

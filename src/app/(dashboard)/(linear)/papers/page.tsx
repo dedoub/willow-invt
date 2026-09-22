@@ -4,7 +4,11 @@
  * 논문 데이터 웨어하우스 관리 화면.
  *
  * 구성은 설계 문서(비공개 Artifact PmZU3LLA1r2oPJvmaFGiXh)의 뼈대를 그대로 따른다 —
- * 요약 · 갱신 파이프라인 다섯 단계 · 출처 · 데이터와 스키마 · 비용 · 결정이 필요한 것.
+ * 요약 · 데이터와 스키마 · 출처 · 비용 · 갱신 파이프라인.
+ *
+ * 2026-09-22 '결정이 필요한 것' 카드를 뺐다. 일곱 줄 중 셋이 이미 정해진 것이었고, 값이
+ * 아니라 판단이라 코드에 박아 둘 수밖에 없어 문서가 바뀌어도 화면이 따라가지 않았다.
+ * 이 페이지는 AWS 에서 확인한 사실만 보여 준다. 판단은 설계 문서에 남는다.
  *
  * 카드 문법은 윌로우 사업관리(/mgmt)와 같다:
  *   LCard pad={0}
@@ -49,20 +53,6 @@ const COST = {
   queryLow: 20,
   queryHigh: 80,
 }
-
-interface DecisionRow { item: string; detail: string; state: 'open' | 'settled' }
-
-// 설계 문서 "결정이 필요한 것". 값이 아니라 판단이라 AWS 에서 읽어 올 수 없다 —
-// 문서가 바뀌면 여기도 함께 고친다.
-const DECISIONS: DecisionRow[] = [
-  { item: '갱신 주기', detail: '원본이 분기 갱신이라 월 1회 계획은 조정이 필요하다. 더 자주 필요하면 유료 플랜 검토', state: 'open' },
-  { item: 'KCI 보강 API', detail: '참고문헌·ORCID 를 위해 키를 받아 논문당 추가 호출을 할지. 243만 건이면 호출량이 크다', state: 'open' },
-  { item: '버전 보존 기간', detail: `과거 스냅샷을 몇 개까지 남길지. 개당 월 $${COST.archivePerSnapshot}`, state: 'open' },
-  { item: 'concepts 테이블', detail: '가장 크지만 OpenAlex 가 topics 로 대체 중이다. 버릴지 판단 필요', state: 'open' },
-  { item: 'Athena 직접 읽기', detail: '서명 요청으로 정상 읽힘. 사본 불필요 — 월 $2.9 절감', state: 'settled' },
-  { item: '기관 사전', detail: 'OpenAlex 가 한글 표기 90.8% 를 이미 제공한다. 1회 구축으로 끝나며 수작업은 9곳', state: 'settled' },
-  { item: '초록 보관', detail: '보관하기로 확정. 자리를 많이 먹지만 임베딩과 AI 요약의 재료가 된다', state: 'settled' },
-]
 
 function formatBytes(n: number | null): string {
   if (n === null || n === undefined) return '-'
@@ -135,18 +125,14 @@ interface SourceRow {
 
 const SOURCE_COLUMNS: LColumn<SourceRow>[] = [
   { key: 'source', label: '출처', width: 'minmax(64px,0.6fr)', sortValue: r => r.label },
-  // 기준일 = 원본 스냅샷 날짜, 갱신 = 우리가 AWS 를 마지막으로 본 시각. 둘은 다른 것이고
-  // 둘 다 없으면 "이 숫자가 언제 것이냐"에 답할 수 없다. 'YYYY-MM-DD' 가 74px 에서 잘렸다.
-  { key: 'snapshot', label: '기준일', width: '88px', sortValue: r => r.snapshot, sortFirst: 'desc' },
-  { key: 'synced', label: '갱신', width: '72px', sortValue: r => r.syncedAt ?? '', sortFirst: 'desc' },
   { key: 'tables', label: '표', width: '48px', align: 'right', sortValue: r => r.done, sortFirst: 'desc' },
   { key: 'rows', label: '행', width: 'minmax(110px,1fr)', align: 'right', sortValue: r => r.rows, sortFirst: 'desc' },
   { key: 'bytes', label: '용량', width: '82px', align: 'right', sortValue: r => r.bytes, sortFirst: 'desc' },
-]
-
-const DECISION_COLUMNS: LColumn<DecisionRow>[] = [
-  { key: 'state', label: '상태', width: '68px', align: 'center' },
-  { key: 'item', label: '항목', width: 'minmax(110px,1fr)' },
+  // 기준일 = 원본 스냅샷 날짜, 갱신 = 우리가 AWS 를 마지막으로 본 시각. 둘은 다른 것이고
+  // 둘 다 없으면 "이 숫자가 언제 것이냐"에 답할 수 없다. 이 페이지의 모든 표에서 마지막
+  // 두 열로 고정한다 — 표마다 자리가 다르면 눈이 매번 찾아야 한다.
+  { key: 'snapshot', label: '기준일', width: '88px', sortValue: r => r.snapshot, sortFirst: 'desc' },
+  { key: 'synced', label: '갱신', width: '72px', sortValue: r => r.syncedAt ?? '', sortFirst: 'desc' },
 ]
 
 /** 한 표의 스키마. 행을 누르면 그 자리에서 펼친다 — 뜬 창을 띄우면 표를 덮는다. */
@@ -432,7 +418,7 @@ export default function PapersPage() {
         </LCard>
 
         {/* 왼쪽은 무엇이 얼마나 들어 있나(데이터), 오른쪽은 어디서 오고 얼마가 들고 어떻게
-            도는가(출처·비용·파이프라인·결정). 사업관리와 같은 1.5 대 1 배치다. */}
+            도는가(출처·비용·파이프라인). 사업관리와 같은 1.5 대 1 배치다. */}
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1.5fr 1fr'), gap: t.density.blockGap }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
 
@@ -538,13 +524,13 @@ export default function PapersPage() {
                         <span style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.note}>
                           {r.label}
                         </span>
+                        <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
+                        <LTableNumber value={r.rows} muted={r.rows === 0} />
+                        <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
                         <LTableMono tone="muted">{r.snapshot || '—'}</LTableMono>
                         <LTableMono tone="muted" title={r.syncedAt ? new Date(r.syncedAt).toLocaleString('ko-KR') : undefined}>
                           {formatAgo(r.syncedAt)}
                         </LTableMono>
-                        <LTableMono align="right" tone="muted">{r.done}/{r.tables}</LTableMono>
-                        <LTableNumber value={r.rows} muted={r.rows === 0} />
-                        <LTableMono align="right" tone="muted">{r.bytes > 0 ? formatBytes(r.bytes) : '—'}</LTableMono>
                       </LTableRow>
                     ))}
                   </LTableBody>
@@ -593,33 +579,6 @@ export default function PapersPage() {
               </div>
             </LCard>
 
-            {/* 결정이 필요한 것 — 설계 문서에서 옮겨 왔다. 값이 아니라 판단이라
-                AWS 에서 읽어 올 수 없다. 내용은 항목에 마우스를 올리면 나온다. */}
-            <LCard pad={0}>
-              <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-                <LSectionHead title="결정이 필요한 것" mb={0} />
-              </div>
-              <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
-                <LTableScroll columns={DECISION_COLUMNS} mobile={mobile}>
-                  <LTableHead columns={DECISION_COLUMNS} mobile={mobile} />
-                  <LTableBody columns={DECISION_COLUMNS} mobile={mobile}>
-                    {DECISIONS.map(d => (
-                      <LTableRow key={d.item} columns={DECISION_COLUMNS} mobile={mobile}>
-                        <LTableBadge tone={d.state === 'open' ? tonePalettes.pending : tonePalettes.done}>
-                          {d.state === 'open' ? '결정 필요' : '정해짐'}
-                        </LTableBadge>
-                        <span
-                          style={{ fontWeight: t.weight.medium, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                          title={d.detail}
-                        >
-                          {d.item}
-                        </span>
-                      </LTableRow>
-                    ))}
-                  </LTableBody>
-                </LTableScroll>
-              </div>
-            </LCard>
           </div>
         </div>
       </div>
