@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
+import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
 import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
@@ -77,8 +78,16 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [selected, setSelected] = useState<AkrosEmailIssue | null>(null)
   const { sort, toggle: toggleSort, apply: sortApply } = useTableSort<AkrosEmailIssue>('akros-issues', COLUMNS)
+
+  // LDialog 는 배경 클릭과 닫기 단추만 받는다. Esc 는 법인 서류함 상세와 같은 규칙으로 여기서 단다.
+  useEffect(() => {
+    if (!selected) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected])
 
   const applyPageSize = (n: number) => {
     setPageSize(n)
@@ -198,10 +207,8 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
             ) : paged.map(issue => {
               const sm = STATUS_META[issue.status] || { label: issue.status, ...tonePalettes.neutral, rank: 9 }
               const n = issue.status === 'resolved' ? null : dday(issue.deadline)
-              const open = expanded === issue.id
               return (
-                <div key={issue.id}>
-                  <LTableRow columns={COLUMNS} mobile={mobile} onClick={() => setExpanded(open ? null : issue.id)}>
+                  <LTableRow key={issue.id} columns={COLUMNS} mobile={mobile} onClick={() => setSelected(issue)}>
                     <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted, whiteSpace: 'nowrap' }}>
                       {issue.issue_code || '-'}
                     </span>
@@ -243,24 +250,6 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
                       </a>
                     ) : <span />}
                   </LTableRow>
-                  {open && (issue.detail || issue.next_action) && (
-                    <div style={{
-                      padding: `${t.density.gapSm}px ${t.density.panelPadX}px ${t.density.panelPadX}px`,
-                      background: t.neutrals.inner, borderRadius: t.radius.sm, marginBottom: t.density.tableRowGap,
-                    }}>
-                      {issue.detail && (
-                        <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-                          {issue.detail}
-                        </div>
-                      )}
-                      {issue.next_action && issue.status !== 'resolved' && (
-                        <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], marginTop: t.density.gapXs, fontWeight: t.weight.medium }}>
-                          → {issue.next_action}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
               )
             })}
           </LTableBody>
@@ -310,6 +299,58 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
         right={`${issues.length}건`}
         style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
       />
+
+      {/* 상세 — 현황과 다음 액션은 긴 서술이라 행에 두면 표가 무너진다. 행을 누르면 여기서 편다. */}
+      {selected && (
+        <LDialog title={selected.issue_code ? `${selected.issue_code} · ${selected.title}` : selected.title} width={560} onClose={() => setSelected(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+              <LTableBadge tone={{
+                bg: (STATUS_META[selected.status] ?? tonePalettes.neutral).bg,
+                fg: (STATUS_META[selected.status] ?? tonePalettes.neutral).fg,
+              }}>
+                {STATUS_META[selected.status]?.label ?? selected.status}
+              </LTableBadge>
+              {selected.cluster && <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.brand[600] }}>{selected.cluster}</span>}
+              {selected.counterparty && <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, color: t.neutrals.muted }}>· {selected.counterparty}</span>}
+              {selected.last_email_date && (
+                <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                  · 최근메일 {fmtDate(selected.last_email_date)}
+                </span>
+              )}
+              {selected.deadline && (
+                <span style={{ fontSize: `calc(${t.type.label}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                  · 마감 {fmtDate(selected.deadline)}
+                </span>
+              )}
+            </div>
+
+            {selected.detail && (
+              <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {selected.detail}
+              </div>
+            )}
+
+            {selected.next_action && selected.status !== 'resolved' && (
+              <div style={{
+                background: t.neutrals.inner, borderRadius: t.radius.sm, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.brand[700], fontWeight: t.weight.medium,
+              }}>
+                → {selected.next_action}
+              </div>
+            )}
+
+            {selected.thread_url && (
+              <a href={selected.thread_url} target="_blank" rel="noopener noreferrer" style={{
+                display: 'inline-flex', alignItems: 'center', gap: t.density.gapSm, alignSelf: 'flex-start',
+                fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted, textDecoration: 'none',
+              }}>
+                <LIcon name="mail" size={12} /> Gmail 스레드 열기
+              </a>
+            )}
+          </div>
+        </LDialog>
+      )}
     </LCard>
   )
 }
