@@ -76,7 +76,9 @@ def _heading(document, text):
 
 
 def _won(amount):
-    return f'{amount:,}원' if amount else '원'
+    # 항목이 없는 칸은 비운다. 서식의 줄은 고정이라 안 쓰는 항목이 늘 남는데, 거기에 '원'
+    # 만 찍히면 0원을 지급하거나 공제한 것처럼 읽힌다(CEO 2026-09-22).
+    return f'{amount:,}원' if amount else ''
 
 
 def build_payslip(*, path, name, department, title, period, paid_on,
