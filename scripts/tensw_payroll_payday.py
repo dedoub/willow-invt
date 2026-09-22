@@ -4,6 +4,10 @@
   python3 scripts/tensw_payroll_payday.py 2026 8 8월급여대장.pdf \
       --register 급여내역_202608.xlsx --accounts 계좌.json --out 폴더
 
+법인인감은 따로 주지 않으면 공식문서함에서 직접 받아 온다. 못 받으면 멈춘다 —
+도장 없는 명세서가 조용히 만들어지면 그대로 아홉 명에게 나간다(2026-09-22 실제로 그럴 뻔했다.
+파일이 164KB 에서 46KB 로 줄어 눈치챘다).
+
   1) 우리은행 대량이체 .xls — 머리글 없는 여덟 칸, 한 줄에 한 사람
   2) 개인별 급여명세서 — 워드(.docx, 고쳐 쓰라고)와 PDF(.pdf, 보내라고) 한 벌씩
 
@@ -14,7 +18,10 @@ import argparse
 import datetime
 import json
 import re
+import subprocess
 import sys
+import tempfile
+import urllib.request
 from pathlib import Path
 
 import openpyxl
@@ -181,6 +188,35 @@ ROSTER = {
 }
 
 
+# 법인인감 정본. 서류함의 이 문서 하나만 본다 — 로컬 파일을 믿으면 언제 것인지 알 수 없다.
+SEAL_DOC = 'TS-DOC-2026-003'
+
+
+def fetch_seal():
+    """공식문서함에서 법인인감 png 를 받아 임시파일로 놓는다. 못 받으면 멈춘다."""
+    try:
+        url = subprocess.run(
+            ['npx', 'tsx', 'scripts/corp-records.ts', 'doc', 'url', SEAL_DOC, '--company', 'tensw'],
+            capture_output=True, text=True, check=True, timeout=120,
+        ).stdout.strip().strip('"')
+        if not url.startswith('http'):
+            raise RuntimeError(f'문서함이 URL 대신 이걸 줬어요: {url[:80]}')
+        with urllib.request.urlopen(url, timeout=60) as response:
+            body = response.read()
+        if not body.startswith(b'\x89PNG'):
+            raise RuntimeError('받은 파일이 png 가 아니에요')
+    except Exception as error:
+        sys.exit(
+            f'법인인감({SEAL_DOC})을 못 받았어요: {error}\n'
+            '  명세서에 도장이 빠지면 그대로 나가니 여기서 멈춥니다.\n'
+            '  파일이 따로 있으면 --seal 로 주고, 도장 없이 뽑아 볼 것이면 --no-seal 을 붙이세요.'
+        )
+    path = Path(tempfile.gettempdir()) / f'tensw-seal-{SEAL_DOC}.png'
+    path.write_bytes(body)
+    print(f'법인인감 {SEAL_DOC} ({len(body):,}바이트)')
+    return str(path)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('year', type=int)
@@ -188,10 +224,13 @@ def main():
     parser.add_argument('ledger', help='세무법인이 보낸 확정 급여대장 PDF')
     parser.add_argument('--register', required=True, help='그 달 급여내역 xlsx (주민번호를 여기서 가져온다)')
     parser.add_argument('--accounts', help='{"이름": {"bank": "우리은행", "number": "1002…", "birth": "770818"}} 형태의 json')
-    parser.add_argument('--seal', help='법인인감 png. 공식문서함에서 받아 온다:\n'
-                        '  curl -s "$(npx tsx scripts/corp-records.ts doc url TS-DOC-2026-003 | tr -d \'"\')" -o /tmp/seal.png')
+    parser.add_argument('--seal', help='법인인감 png. 주지 않으면 공식문서함에서 직접 받아 온다.')
+    parser.add_argument('--no-seal', action='store_true',
+                        help='도장 없이 만든다. 초안을 뽑아 볼 때만 쓴다 — 보낼 명세서에는 쓰지 않는다.')
     parser.add_argument('--out', required=True)
     args = parser.parse_args()
+
+    seal = None if args.no_seal else (args.seal or fetch_seal())
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -221,7 +260,7 @@ def main():
     print('\n급여명세서')
     for person in people:
         destination = out / f'급여명세서_{label}_{person["name"]}.docx'
-        pay_rest, deduct_rest = write_payslip(person, args.year, args.month, paid_on, destination, args.seal)
+        pay_rest, deduct_rest = write_payslip(person, args.year, args.month, paid_on, destination, seal)
         extra = []
         if pay_rest:
             extra.append(f'지급 기타 {pay_rest:,}')
