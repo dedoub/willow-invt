@@ -13,14 +13,22 @@ import { kstToday } from '@/lib/kst'
 import type { AkrosEmailIssue, AkrosEmailDeadline } from '@/lib/supabase-etf'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
 
-// 상태 → 배지 톤/라벨 + 정렬 우선순위(작을수록 위)
+// 단계 → 배지 톤/라벨 + 정렬 우선순위(작을수록 위, 상장에 가까운 쪽이 먼저)
+//
+// 2026-09-22 축을 바꿨다. 전에는 처리필요·대기·완료였는데, 그건 Akros 가 답할 차례인지를
+// 우리 할 일처럼 보여 준 것이다. 우리는 지켜보는 쪽이라 궁금한 건 "어디까지 갔나"다.
+// 슬러그는 email_issues.status 의 CHECK 여섯 값과 같다. 누가 답할 차례인지는 '현황' 열에
+// 글로 남아 있다.
 const STATUS_META: Record<string, { label: string; bg: string; fg: string; rank: number }> = {
-  'needs-action': { label: '처리필요', ...tonePalettes.danger, rank: 0 },
-  'waiting':      { label: '대기',     ...tonePalettes.info,   rank: 1 },
-  'resolved':     { label: '완료',     ...tonePalettes.done,   rank: 2 },
+  live:     { label: '⓪ 운영', ...tonePalettes.done,     rank: 0 }, // 상장·산출 중 (운영·정산·라이선스)
+  near:     { label: '① 임박', ...tonePalettes.warn,     rank: 1 }, // 임시심볼 배정·런칭 셋업
+  filing:   { label: '② 심사', ...tonePalettes.progress, rank: 2 }, // 예비심사·filing
+  dev:      { label: '③ 개발', ...tonePalettes.brand,    rank: 3 }, // 방법론·초안·제안·BD 리드
+  fyi:      { label: '참고',   ...tonePalettes.neutral,  rank: 4 },
+  resolved: { label: '해결',   ...tonePalettes.neutral,  rank: 5 }, // 종결 (14일 보관)
 }
 
-type StatusFilter = 'all' | 'needs-action' | 'waiting' | 'resolved'
+type StatusFilter = 'all' | 'live' | 'near' | 'filing' | 'dev' | 'fyi' | 'resolved'
 
 function fmtDate(d?: string | null): string {
   if (!d) return ''
@@ -53,7 +61,7 @@ function getStoredPageSize(): number {
 
 export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Props) {
   const mobile = useIsMobile()
-  const [filter, setFilter] = useState<StatusFilter>('needs-action')
+  const [filter, setFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(getStoredPageSize)
 
@@ -64,7 +72,7 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   }
 
   const counts = useMemo(() => {
-    const c = { 'needs-action': 0, waiting: 0, resolved: 0 } as Record<string, number>
+    const c = Object.fromEntries(Object.keys(STATUS_META).map(k => [k, 0])) as Record<string, number>
     for (const i of issues) c[i.status] = (c[i.status] || 0) + 1
     return c
   }, [issues])
@@ -89,10 +97,10 @@ export function IssueTrackerBlock({ issues, deadlines, loading, onRefresh }: Pro
   const paged = rows.slice(safePage * pageSize, (safePage + 1) * pageSize)
 
   const FILTERS: { key: StatusFilter; label: string }[] = [
-    { key: 'needs-action', label: `처리필요 ${counts['needs-action'] || 0}` },
-    { key: 'waiting', label: `대기 ${counts['waiting'] || 0}` },
-    { key: 'resolved', label: `완료 ${counts['resolved'] || 0}` },
     { key: 'all', label: `전체 ${issues.length}` },
+    ...Object.entries(STATUS_META)
+      .filter(([key]) => (counts[key] || 0) > 0 || filter === key)
+      .map(([key, meta]) => ({ key: key as StatusFilter, label: `${meta.label} ${counts[key] || 0}` })),
   ]
 
   return (

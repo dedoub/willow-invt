@@ -964,7 +964,14 @@ export interface AkrosEmailIssue {
   title: string
   cluster: string | null
   counterparty: string | null
-  status: string // 'needs-action' | 'waiting' | 'resolved'
+  /**
+   * 상품 생애주기 단계. email_issues.status 의 CHECK 와 같은 여섯 값이다.
+   * live(상장·산출 중) · near(상장 임박) · filing(거래소 심사) · dev(개발·조율·BD)
+   * · fyi(참고) · resolved(종결, 14일 보관).
+   * 2026-09-22 이전에는 needs-action/waiting/resolved 였다 — 그건 Akros 가 답할 차례인지를
+   * 우리 할 일처럼 보여 준 축이라, 지켜보는 쪽에 맞게 진행 단계로 바꿨다.
+   */
+  status: string
   last_email_date: string | null
   next_action: string | null
   deadline: string | null
