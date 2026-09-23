@@ -209,27 +209,31 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               value={view}
               onChange={(v) => handleViewChange(v as View)}
             />
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: t.density.gapXs,
-              background: t.neutrals.inner, borderRadius: t.radius.sm,
-              padding: `${t.density.gapXs}px ${t.density.panelPadY}px`, minWidth: mobile ? 120 : 180,
-            }}>
-              <LIcon name="search" size={12} color={t.neutrals.subtle} />
+            {/* 윌로우 매출관리 검색창과 같은 모양 — 감싸개에는 배경이 없고 input 이 흰 바탕과 선을 갖는다.
+                감싸개에 회색 판을 깔면 카드 안에 회색 판 하나가 남는다(CEO 2026-09-23). */}
+            <div style={{ position: 'relative', minWidth: mobile ? 120 : 180 }}>
+              <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+                <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
+              </div>
               <input
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
                 placeholder={view === 'trades' ? '티커·종목명·증권사·메모' : '티커·종목명'}
                 style={{
-                  border: 'none', background: 'transparent', outline: 'none',
-                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text, fontFamily: t.font.sans,
-                  width: '100%',
+                  width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
+                  padding: `0 ${search ? 26 : t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+                  fontFamily: t.font.sans, color: t.neutrals.text,
+                  background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                  borderRadius: t.radius.sm, outline: 'none',
                 }}
               />
               {search && (
                 <button
                   onClick={() => handleSearchChange('')}
+                  title="지우기"
                   style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                    position: 'absolute', right: t.density.gapXs, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
                     color: t.neutrals.subtle, display: 'inline-flex',
                   }}
                 >

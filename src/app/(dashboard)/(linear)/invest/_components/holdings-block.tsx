@@ -671,8 +671,11 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                   const isBuyCandidate = (isBuySignal || isBreakout) && pyramiding?.status !== 'FULL'
                   return (
                     <div key={h.ticker} style={{
-                      // 매수 후보(추매구간/돌파)는 옅은 녹색 배경, 강한 매수는 진한 녹색 배경 — 선 대신 색 계층으로 구분 (FULL 제외)
-                      background: isStrongBuy ? '#BCE6C9' : isBuyCandidate ? tonePalettes.done.bg : t.neutrals.inner,
+                      // 기본 카드는 회색 판을 깔지 않는다 — 카드 문법(윌로우·보이스카드)은 카드 안에
+                      // 회색 판을 두지 않고 선으로 가른다(CEO 2026-09-23). 매수 후보만 옅은 녹색,
+                      // 강한 매수(추매+돌파)는 진한 녹색으로 뜻을 말한다(FULL 제외).
+                      background: isStrongBuy ? '#BCE6C9' : isBuyCandidate ? tonePalettes.done.bg : 'transparent',
+                      border: `1px solid ${t.neutrals.line}`,
                       borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
                     }}>
                       {/* Row 1: name + ticker + themes + daily % */}

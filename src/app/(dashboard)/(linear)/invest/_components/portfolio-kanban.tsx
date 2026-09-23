@@ -591,7 +591,7 @@ export function PortfolioKanban({
         <div style={colStyle('portfolio')} {...dropHandlers('portfolio')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderBottom: `1px solid ${t.neutrals.line}`,
           }}>
             {headerCount('포트폴리오', portfolioCards.length)}
           </div>
@@ -608,7 +608,7 @@ export function PortfolioKanban({
         <div style={colStyle('watchlist')} {...dropHandlers('watchlist')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderBottom: `1px solid ${t.neutrals.line}`,
           }}>
             {headerCount('워치리스트', watchlistCards.length)}
           </div>
@@ -629,7 +629,7 @@ export function PortfolioKanban({
         <div style={colStyle('research')} {...dropHandlers('research')}>
           <div style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text,
-            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, background: t.neutrals.inner, borderRadius: t.radius.sm,
+            padding: `${t.density.gapSm}px ${t.density.panelPadY}px`, borderBottom: `1px solid ${t.neutrals.line}`,
           }}>
             {headerCount('리서치', researchCards.length)}
           </div>

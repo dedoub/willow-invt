@@ -100,13 +100,14 @@ function fmtTargetPrice(price: number, currency?: string): string {
 
 /* ── Component ── */
 
-export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPin, pinned, draggable, bordered }: {
+export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPin, pinned, draggable }: {
   data: StockCardData
   onClick?: () => void
   onRemove?: () => void
   onPin?: () => void
   pinned?: boolean
   draggable?: boolean
+  /** 인쇄용이 넘기던 테두리 스위치. 이제 기본 카드가 늘 선을 두르므로 받기만 하고 쓰지 않는다. */
   bordered?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
@@ -130,13 +131,14 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       style={{
         padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
         borderRadius: t.radius.md,
-        // 추매+돌파(강한 매수)면 배경 하이라이트(진한 녹색 틴트, 추매구간과 구분), 핀이면 노랑, 기본은 inner
+        // 기본 카드는 회색 판 없이 선 하나로 선다 — 카드 안에 회색 판을 두지 않는 카드 문법
+        // (CEO 2026-09-23). 추매+돌파(강한 매수)는 진한 녹색 틴트, 핀은 노랑으로 상태만 말한다.
         background: (data.pyramiding?.status === 'BUY' && data.breakout) ? '#BCE6C9'
-          : data.pinned ? '#FFFBF0' : t.neutrals.inner,
-        // 매수 후보(추매구간/돌파)는 녹색 테두리. FULL(원금 한도, 추매 안 함) 제외. bordered 기본보다 우선.
+          : data.pinned ? '#FFFBF0' : 'transparent',
+        // 매수 후보(추매구간/돌파)는 녹색 테두리. FULL(원금 한도, 추매 안 함) 제외. 나머지는 회색 선.
         border: ((data.pyramiding?.status === 'BUY' || data.breakout) && data.pyramiding?.status !== 'FULL')
           ? `1px solid ${t.accent.pos}`
-          : bordered ? `1px solid ${t.neutrals.line}` : undefined,
+          : `1px solid ${t.neutrals.line}`,
         cursor: draggable ? 'grab' : onClick ? 'pointer' : 'default',
         transition: 'background .1s',
         position: 'relative',
