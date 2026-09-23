@@ -5,7 +5,7 @@ import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/line
 import { SectorRotationChartModal } from './sector-rotation-chart'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LTableHead, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableScroll, type LColumn } from '@/app/(dashboard)/_components/linear-table'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 
@@ -161,7 +161,9 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
       )}
 
       {!loading && sorted.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.tableRowGap }}>
+        /* 머리와 본문을 한 가로 스크롤 안에 함께 둔다 — 6열이라 좁은 폭에서 그냥 두면
+           열이 눌려 수익률 칸의 숫자가 잘린다. 최소 폭은 컬럼 정의에서 나온다. */
+        <LTableScroll columns={COLUMNS} mobile={mobile}>
           {/* Header row — 각 헤더 클릭 시 정렬 (같은 헤더 재클릭 시 방향 토글) */}
           <LTableHead
             columns={COLUMNS}
@@ -169,6 +171,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             sort={{ key: sortBy, dir: sortDir }}
             onSort={(k) => handleSort(k as SortKey)}
           />
+          <LTableBody columns={COLUMNS} mobile={mobile}>
           {/* Data rows */}
           {sorted.map(etf => {
             const axesForEtf = ETF_AXES[etf.ticker] || []
@@ -233,7 +236,8 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             </LTableRow>
             )
           })}
-        </div>
+          </LTableBody>
+        </LTableScroll>
       )}
 
       {!loading && sorted.length === 0 && (

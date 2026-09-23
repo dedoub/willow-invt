@@ -678,14 +678,20 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                       {/* Row 1: name + ticker + themes + daily % */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapXs }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
-                          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium }}>{h.company_name}</span>
-                          <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono }}>{h.ticker}</span>
+                          {/* 이름은 줄임표로 자른다. 옆 배지가 flexShrink 0 이라 nowrap 이 없으면
+                              좁은 칸에서 한 글자씩 세로로 쌓인다 — 카드 문법이 배지에 테두리를
+                              두르며 머리줄이 넓어지자 '삼성전자'가 넉 줄이 됐다(2026-09-23). */}
+                          <span title={h.company_name} style={{
+                            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.medium,
+                            minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          }}>{h.company_name}</span>
+                          <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, fontFamily: t.font.mono, flexShrink: 0 }}>{h.ticker}</span>
                           {/* sub-group 헤더와의 중복을 피하기 위해 카드에는 DB의 세부 sector만 표시 (예: 'AI 메모리', '광 인터커넥트'). */}
                           {(() => {
                             const detail = tickerSectors[h.ticker] || tickerSectors[h.ticker.replace('.KS', '')]
                             if (!detail) return null
                             return (
-                              <LBadge palette={{ bg: t.neutrals.card, fg: t.neutrals.muted }}>{detail}</LBadge>
+                              <LBadge palette={{ bg: t.neutrals.card, fg: t.neutrals.muted }} style={{ flexShrink: 0 }}>{detail}</LBadge>
                             )
                           })()}
                           {/* 돌파: 현재가가 직전 20일 고가(매물대)를 상향 돌파 — CEO 핵심 매수 트리거 */}
@@ -709,7 +715,8 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
                       </div>
 
                       {/* Row 2: 2-col grid — buy/invest/hold vs current/value/pnl */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${t.density.tableRowGap}px ${t.density.gapLg}px`, marginTop: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
+                      {/* 칸 안에서 숫자가 토막 나지 않게 한 줄로 둔다 — 넘치면 줄임표. */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: `${t.density.tableRowGap}px ${t.density.gapLg}px`, marginTop: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, whiteSpace: 'nowrap' }}>
                         <span style={{ color: t.neutrals.muted }}>
                           <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>매수 </span>
                           {fmtPrice(h.avgBuyPrice, h.currency)} × {h.netQty.toLocaleString()}주

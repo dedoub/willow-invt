@@ -181,13 +181,22 @@ export const StockCard = memo(function StockCard({ data, onClick, onRemove, onPi
       )}
       {/* Row 1: ticker + name + price/mcap */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.gapSm }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0 }}>
-          <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.bold, fontFamily: t.font.mono, color: t.neutrals.text }}>
+        {/* overflow: hidden 이 없으면 flexShrink 0 인 배지들 때문에 이 묶음이 제 칸보다
+            넓어져, 오른쪽의 가격 위에 겹쳐 그려진다. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, minWidth: 0, overflow: 'hidden' }}>
+          {/* 이름은 줄이지 않고 줄임표로 자른다. 옆 배지들이 flexShrink 0 이라, 여기에 nowrap 이
+              없으면 좁은 칸에서 한 글자씩 세로로 쌓인다 — 카드 문법이 배지에 테두리를 두르면서
+              머리줄이 넓어지자 '삼성전자'가 넉 줄이 됐다(2026-09-23). */}
+          <span style={{
+            fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.bold,
+            fontFamily: t.font.mono, color: t.neutrals.text,
+            minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }} title={data.ticker.replace('.KS', '')}>
             {data.ticker.replace('.KS', '')}
           </span>
           <span style={{
             fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
           }}>{data.name}</span>
           {(data.structuralThesis || data.valueChainPosition) && (
             <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }} className="info-tip">

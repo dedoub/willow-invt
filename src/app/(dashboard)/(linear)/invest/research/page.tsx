@@ -16,9 +16,11 @@ export default function InvestResearchPage() {
     stockResearch, stockThemes, usdKrw, qldTransition, breakoutMap, reloadQuiet,
   } = useInvestData()
 
-  if (loadPhase === 0) return <InvestResearchSkeleton />
+  if (loadPhase === 0) return <div className="theme-outline"><InvestResearchSkeleton /></div>
 
   return (
+    /* 주식포트폴리오와 같은 카드 문법을 쓴다 — 두 화면이 한 쌍이라 한쪽만 옛 껍데기면 갈라져 보인다. */
+    <div className="theme-outline">
     <PortfolioKanban
       watchlistData={watchlistData}
       signalData={signalData}
@@ -39,5 +41,6 @@ export default function InvestResearchPage() {
         />
       }
     />
+    </div>
   )
 }

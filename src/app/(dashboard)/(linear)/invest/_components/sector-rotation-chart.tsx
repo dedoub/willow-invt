@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceLine } from 'recharts'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
-import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LDialog } from '@/app/(dashboard)/_components/linear-dialog'
 
 const PERIOD_LABEL: Record<string, string> = {
   '1m': '1개월', '3m': '3개월', '6m': '6개월', '1y': '1년',
@@ -52,38 +52,14 @@ export function SectorRotationChartModal({
   const isBenchEtf = ticker === 'SPY' || ticker === 'QQQ' || ticker === 'QLD'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(14,15,18,0.35)', backdropFilter: 'blur(3px)' }} />
-      <div style={{
-        position: 'relative', width: mobile ? '92vw' : 720, maxWidth: '92vw',
-        background: t.neutrals.card, borderRadius: t.radius.lg + 2,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        fontFamily: t.font.sans,
-      }}>
-        {/* Header */}
-        <div style={{ padding: `${t.density.cardPad}px ${t.density.pagePadX}px ${t.density.panelPadY}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-              TRAILING {period.toUpperCase()} RETURN · LAST 1Y
-            </div>
-            <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text }}>
-              {ticker} <span style={{ color: t.neutrals.muted, fontWeight: t.weight.regular }}>· {etfName}</span>
-            </div>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginTop: t.density.tableRowGap }}>
-              매일 시점의 {PERIOD_LABEL[period]} 수익률 추이 — 벤치마크와 비교
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: t.density.controlHSm, borderRadius: t.radius.sm,
-            background: t.neutrals.inner, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.muted,
-          }}>
-            <LIcon name="x" size={14} stroke={2} />
-          </button>
+    /* 모달 껍데기는 LDialog 하나만 쓴다 — 생 div 에 카드색을 칠하면 카드 문법의 테두리를
+       못 받고 막 농도까지 다른 창이 된다(linear-dialog.tsx 머리말). */
+    <LDialog title={`${ticker} · ${etfName}`} width={720} onClose={onClose}>
+      <div>
+        <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.gapSm }}>
+          매일 시점의 {PERIOD_LABEL[period]} 수익률 추이 — 벤치마크와 비교
         </div>
-
-        {/* Chart */}
-        <div style={{ padding: `0 ${t.density.pagePadX}px ${t.density.pagePadX}px`, height: mobile ? 280 : 360 }}>
+        <div style={{ height: mobile ? 280 : 360 }}>
           {loading && (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.neutrals.subtle, fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))` }}>
               데이터 로딩 중…
@@ -127,6 +103,6 @@ export function SectorRotationChartModal({
           )}
         </div>
       </div>
-    </div>
+    </LDialog>
   )
 }

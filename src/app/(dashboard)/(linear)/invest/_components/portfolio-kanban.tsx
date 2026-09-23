@@ -578,11 +578,13 @@ export function PortfolioKanban({
 
       <div style={{
         display: 'grid',
+        // 모바일은 한 칸씩 세로로 쌓는다. 220px 짜리 칸 둘을 세우면 카드 머리줄의
+        // 배지와 가격이 서로 위에 그려진다(2026-09-23 실제로 겹쳤다). 가로로 미는 것보다
+        // 세로로 잇는 편이 엄지로 읽기 쉽다.
         gridTemplateColumns: mobile
-          ? `repeat(${SHOW_PORTFOLIO_COLUMN ? 3 : 2}, minmax(220px, 1fr))`
+          ? '1fr'
           : SHOW_PORTFOLIO_COLUMN ? '1fr 1fr 1fr' : '1fr 1fr',
         gap: t.density.gapMd, padding: `0 ${t.density.panelPadX}px ${t.density.controlPadXMd}px`,
-        overflowX: mobile ? 'auto' : undefined,
       }}>
         {/* Portfolio (임시 숨김 — SHOW_PORTFOLIO_COLUMN 로 토글) */}
         {SHOW_PORTFOLIO_COLUMN && (

@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -37,6 +37,16 @@ export function LDialog({
   foot?: ReactNode
 }) {
   const mobile = useIsMobile()
+
+  // Escape 로 닫는다. 이 껍데기가 들고 있어야 한다 — 열네 군데가 LDialog 를 쓰는데
+  // 제 손으로 이 처리를 단 곳은 한 곳뿐이었다. 나머지는 막을 누르거나 X 를 찾아야만
+  // 닫혔다(2026-09-23 전수 확인).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: z,

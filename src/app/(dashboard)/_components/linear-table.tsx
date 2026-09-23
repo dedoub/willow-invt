@@ -143,7 +143,11 @@ export function useTableSort<T>(storageKey: string, columns: LColumn<T>[]) {
 }
 
 export function templateOf(columns: LColumn<never>[], mobile = false): string {
-  return columns.filter(c => !(mobile && c.hideMobile)).map(c => c.width).join(' ')
+  // 열 폭도 글자 배율(--fz)에 매단다. px 로 못박아 두면 배율이 오를 때 글자만 커지고
+  // 칸은 그대로라 nowrap 인 숫자가 잘린다 — fz 1.3 에서 비중 칸의 '100.0%' 가 '100.…'
+  // 로 나왔다(2026-09-23). 손으로 짠 표는 fzCols 로 이미 같은 일을 하고 있었는데
+  // LColumn 표만 이 경로를 타지 않았다. 데스크톱(1.2) 렌더 값은 그대로다.
+  return fzCols(visibleColumns(columns, mobile).map(c => c.width).join(' '))
 }
 
 export function visibleColumns(columns: LColumn<never>[], mobile = false): LColumn<never>[] {
@@ -235,12 +239,15 @@ export function LTableRow<T>({
  * 열을 하나 추가할 때마다 마지막 열이 행 배경 밖으로 삐져나온다.
  */
 /** 컬럼 정의에서 표가 찌그러지지 않는 최소 폭을 구한다. */
-export function tableMinWidth(columns: LColumn<never>[] | LColumn<unknown>[], mobile = false): number {
+export function tableMinWidth(columns: LColumn<never>[] | LColumn<unknown>[], mobile = false): string {
+  // templateOf 와 같은 배율을 탄다. 한쪽만 늘어나면 래퍼가 그리드보다 좁아져
+  // 마지막 열들이 행 배경 밖으로 삐져나온다(fzTableMinWidth 주석의 포틀 사례).
   const cols = visibleColumns(columns as LColumn<never>[], mobile)
-  return cols.reduce((sum, c) => {
-    const m = c.width.match(/minmax\((\d+)px/) || c.width.match(/^(\d+)px$/)
-    return sum + (m ? Number(m[1]) : 0)
-  }, 0) + GAP * Math.max(0, cols.length - 1) + ROW_PAD_X * 2
+  return fzTableMinWidth(
+    cols.map(c => c.width).join(' '),
+    GAP,
+    ROW_PAD_X,
+  )
 }
 
 /**
@@ -251,7 +258,8 @@ export function LTableScroll({ columns, mobile = false, minWidth, children }: {
   /** LColumn 기반 표. 직접 짠 grid 표는 대신 minWidth를 넘긴다. */
   columns?: LColumn<never>[] | LColumn<unknown>[]
   mobile?: boolean
-  minWidth?: number
+  /** 직접 짠 grid 표가 넘기는 폭. 배율을 타야 하면 fzTableMinWidth 가 준 calc 문자열을 넘긴다. */
+  minWidth?: number | string
   children: React.ReactNode
 }) {
   const min = minWidth ?? (columns ? tableMinWidth(columns, mobile) : 0)

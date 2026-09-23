@@ -223,7 +223,10 @@ export default function InvestPage() {
               tickerSectors={tickerSectors}
               qldTransition={qldTransition}
               breakoutMap={breakoutMap}
-              cardColumns={mobile ? 1 : 2}
+              // 종목 카드를 한 줄에 둘 넣는 것은 이 카드가 전폭일 때뿐이다. 2열 모드에서는
+              // 카드가 반폭이라 한 장이 ~310px 밖에 못 받아, 머리줄의 배지들에 밀려 이름이
+              // 한 글자로 줄어든다(2026-09-23).
+              cardColumns={mobile || cols !== 1 ? 1 : 2}
             />
             <TradeLog trades={stockTrades} fxHistory={fxHistory} usdKrwRate={usdKrw} />
           </div>
