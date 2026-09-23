@@ -64,8 +64,8 @@ type CurrencyMode = 'native' | 'krw'
 const COLUMNS: LColumn<HoldingRow>[] = [
   { key: 'theme',  label: '분류',   width: '100px', sortValue: r => r.theme },
   { key: 'name',   label: '종목',   width: 'minmax(110px,1fr)', sortValue: r => r.company_name },
-  { key: 'value',  label: '평가액', width: 'minmax(80px,96px)', align: 'right', sortValue: r => r.valKrw, sortFirst: 'desc' },
-  { key: 'pnl',    label: '손익',   width: 'minmax(80px,96px)', align: 'right', sortValue: r => r.pnlKrw, sortFirst: 'desc' },
+  { key: 'value',  label: '평가액', width: 'minmax(90px,108px)', align: 'right', sortValue: r => r.valKrw, sortFirst: 'desc' },
+  { key: 'pnl',    label: '손익',   width: 'minmax(90px,108px)', align: 'right', sortValue: r => r.pnlKrw, sortFirst: 'desc' },
   { key: 'pct',    label: '수익률', width: '60px',  align: 'right', sortValue: r => r.pnlPercent, sortFirst: 'desc' },
   { key: 'state',  label: '상태',   width: '72px',  sortValue: r => r.pyr.rank },
   { key: 'chevron', label: '', width: '14px' },
@@ -301,7 +301,7 @@ export function HoldingsTableBlock({
       {/* 필터 + 검색 — 매출관리와 같은 줄 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
-        padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px`,
+        padding: `0 ${t.density.cardPad}px ${t.density.kpiGap}px`,
       }}>
         <LFilterChip options={MARKET_FILTERS} value={marketFilter} onChange={v => { setMarketFilter(v); setPage(0) }} gap={t.density.gapXs} />
         <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>

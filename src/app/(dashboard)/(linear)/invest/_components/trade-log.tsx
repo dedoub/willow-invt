@@ -222,7 +222,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
       </div>
 
       {/* 검색 — 윌로우 매출관리와 같은 자리·모양. 감싸개에는 배경이 없고 input 이 흰 바탕과 선을 갖는다. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap', padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap', padding: `0 ${t.density.cardPad}px ${t.density.kpiGap}px` }}>
         <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>
           <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
@@ -315,11 +315,10 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
         )}
       </div>
 
-      {/* Pagination bar (공통) */}
+      {/* 발 줄 — 페이지 크기·이동. 매출관리와 같은 여백(위 0, 아래 cardPad), 선은 긋지 않는다. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`,
-        borderTop: `1px solid ${t.neutrals.line}`,
+        padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
           <LPageSize value={pageSize} onChange={applyPageSize} />
@@ -327,31 +326,24 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
             {search && filteredCount !== totalCount ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
           </span>
         </div>
-
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
               style={{
-                background: 'transparent', border: 'none',
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page === 0 ? 'default' : 'pointer',
-                padding: t.density.gapXs, borderRadius: t.radius.sm,
-                color: page === 0 ? t.neutrals.line : t.neutrals.muted,
-                opacity: page === 0 ? 0.4 : 1,
+                color: page === 0 ? t.neutrals.line : t.neutrals.muted, opacity: page === 0 ? 0.4 : 1,
               }}>
               <LIcon name="chevronLeft" size={13} stroke={2} />
             </button>
-            <span style={{
-              fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
-            }}>
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
               {page * pageSize + 1}-{Math.min((page + 1) * pageSize, filteredCount)} / {filteredCount}
             </span>
             <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
               style={{
-                background: 'transparent', border: 'none',
+                background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
                 cursor: page >= totalPages - 1 ? 'default' : 'pointer',
-                padding: t.density.gapXs, borderRadius: t.radius.sm,
-                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted,
-                opacity: page >= totalPages - 1 ? 0.4 : 1,
+                color: page >= totalPages - 1 ? t.neutrals.line : t.neutrals.muted, opacity: page >= totalPages - 1 ? 0.4 : 1,
               }}>
               <LIcon name="chevronRight" size={13} stroke={2} />
             </button>

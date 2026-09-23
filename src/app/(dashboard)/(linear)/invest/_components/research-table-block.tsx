@@ -201,7 +201,7 @@ export function ResearchTableBlock({
       {/* 분류 칩 + 검색 — 매출관리와 같은 줄 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
-        padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px`,
+        padding: `0 ${t.density.cardPad}px ${t.density.kpiGap}px`,
       }}>
         <LFilterChip options={parentOptions} value={parentFilter} onChange={v => { setParentFilter(v); setPage(0) }} gap={t.density.gapXs} />
         <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>

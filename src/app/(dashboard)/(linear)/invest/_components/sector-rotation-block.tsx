@@ -71,7 +71,7 @@ type SortDir = 'asc' | 'desc'
 const COLUMNS: LColumn<SectorEtf>[] = [
   { key: 'group', label: '티커', width: '72px', sortValue: e => e.group },
   { key: 'name', label: '이름', width: 'minmax(0,1fr)', hideMobile: true, sortValue: e => e.name },
-  ...PERIODS.map((p): LColumn<SectorEtf> => ({ key: p, label: p.toUpperCase(), width: 'minmax(56px,78px)', align: 'center', sortValue: e => e.returns[p] })),
+  ...PERIODS.map((p): LColumn<SectorEtf> => ({ key: p, label: p.toUpperCase(), width: 'minmax(78px,96px)', align: 'center', sortValue: e => e.returns[p] })),
 ]
 
 interface SectorRotationBlockProps {
