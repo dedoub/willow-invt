@@ -153,8 +153,8 @@ export function InvestSkeleton() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      {/* Signal bar: 지표 여섯을 3칸씩 두 줄로 — 실제 카드와 같은 격자라야 로딩이 끝날 때 안 튄다 */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap }}>
+      {/* Signal bar: 지표 여섯을 한 줄로 — 실제 카드와 같은 격자라야 로딩이 끝날 때 안 튄다 */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(6, 1fr)', gap: t.density.kpiGap }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Bone key={i} h={t.density.statH} r={t.radius.sm} />
         ))}

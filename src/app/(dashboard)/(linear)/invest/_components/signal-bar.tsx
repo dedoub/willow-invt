@@ -24,9 +24,9 @@ interface SignalBarProps {
 
 export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, usdKrw, loading, actions }: SignalBarProps) {
   const mobile = useIsMobile()
-  // 지표 격자는 사업관리·보이스카드와 같은 리듬으로 3칸씩 접는다 — 여섯을 한 줄에 세우면
-  // 종목 이름이 든 보조줄이 칸마다 다른 높이로 접혀 줄이 들쭉날쭉해진다.
-  const cols = mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'
+  // 여섯 지표를 한 줄에 — 카드가 전폭이라 자리가 있고, 한눈에 훑는 게 우선이다(CEO 2026-09-23).
+  // 모바일만 두 칸씩 접는다.
+  const cols = mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(6, minmax(0,1fr))'
 
   if (loading) {
     return (
