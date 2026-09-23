@@ -4,6 +4,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { ReactNode } from 'react'
 
 interface SignalBarProps {
@@ -23,13 +24,15 @@ interface SignalBarProps {
 
 export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, usdKrw, loading, actions }: SignalBarProps) {
   const mobile = useIsMobile()
-  const cols = mobile ? 'repeat(2, 1fr)' : 'repeat(6, 1fr)'
+  // 지표 격자는 사업관리·보이스카드와 같은 리듬으로 3칸씩 접는다 — 여섯을 한 줄에 세우면
+  // 종목 이름이 든 보조줄이 칸마다 다른 높이로 접혀 줄이 들쭉날쭉해진다.
+  const cols = mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'
 
   if (loading) {
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
+          <LSectionHead title="포트폴리오 시그널" tools={actions} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 6 }).map((_, i) => (
@@ -47,20 +50,23 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
   // 미국식: 수익=pos(녹색), 손실=neg(빨강)
   const retTone = retPct > 0 ? 'pos' as const : retPct < 0 ? 'neg' as const : 'default' as const
 
-  const join = (arr: string[]) => arr.length > 0 ? arr.join(', ') : '-'
+  // 비어 있으면 보조줄 자체를 두지 않는다. '-' 한 글자를 남기면 그 줄이 값처럼 읽힌다.
+  const join = (arr: string[]) => arr.length > 0 ? arr.join(', ') : undefined
 
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead eyebrow="OVERVIEW" title="포트폴리오 시그널" tools={actions} />
+        <LSectionHead title="포트폴리오 시그널" tools={actions} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-        <LStat label="평가액 (세후)" value={totalValue || '-'} tone="default" />
-        <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
-        <LStat label="추매+돌파" value={String(buyBreakoutTickers.length)} tone={buyBreakoutTickers.length > 0 ? 'pos' : 'default'} sub={join(buyBreakoutTickers)} wrap />
-        <LStat label="추매구간" value={String(buyOnlyTickers.length)} tone="default" sub={join(buyOnlyTickers)} wrap />
-        <LStat label="돌파" value={String(breakoutOnlyTickers.length)} tone={breakoutOnlyTickers.length > 0 ? 'pos' : 'default'} sub={join(breakoutOnlyTickers)} wrap />
-        <LStat label="USD/KRW" value={usdKrw.toLocaleString()} tone="default" />
+      <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+        <StatRows cols={cols}>
+          <LStat label="평가액 (세후)" value={totalValue || '-'} />
+          <LStat label="누적수익률" value={`${retPct > 0 ? '+' : ''}${retPct.toFixed(1)}%`} tone={retTone} sub={gainSub} />
+          <LStat label="USD/KRW" value={usdKrw.toLocaleString()} />
+          <LStat label="추매+돌파" value={String(buyBreakoutTickers.length)} tone={buyBreakoutTickers.length > 0 ? 'pos' : 'default'} sub={join(buyBreakoutTickers)} wrap />
+          <LStat label="추매구간" value={String(buyOnlyTickers.length)} sub={join(buyOnlyTickers)} wrap />
+          <LStat label="돌파" value={String(breakoutOnlyTickers.length)} tone={breakoutOnlyTickers.length > 0 ? 'pos' : 'default'} sub={join(breakoutOnlyTickers)} wrap />
+        </StatRows>
       </div>
     </LCard>
   )

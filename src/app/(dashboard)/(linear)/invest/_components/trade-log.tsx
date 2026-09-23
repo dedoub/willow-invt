@@ -6,7 +6,10 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
-import { LPageSize, LTableBadge } from '@/app/(dashboard)/_components/linear-table'
+import {
+  LPageSize, LTableBadge, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty,
+  LTableMono, LTableNumber, type LColumn,
+} from '@/app/(dashboard)/_components/linear-table'
 
 // 표 안 구분 배지(전량/일부, 매수/매도) — 행 배경 위에서 한 단계 눌린 중립 톤.
 const CELL_TONE = { bg: t.neutrals.inner, fg: t.neutrals.muted }
@@ -173,16 +176,30 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
     return `₩${s}`
   }
   const toneColor = (v: number) => v > 0 ? t.accent.pos : v < 0 ? t.accent.neg : t.neutrals.muted
+  // 표 셀은 색을 직접 고르지 않고 토큰 이름으로 말한다 — 표 전체가 같은 팔레트를 쓴다.
+  const cellTone = (v: number): 'pos' | 'neg' | 'muted' => v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'
 
-  const tradeCols = `70px 50px minmax(${mobile ? 80 : 160}px, 1fr) 70px 100px 110px`
-  const closedCols = `minmax(${mobile ? 90 : 160}px, 1fr) 46px 100px 110px 70px`
-  const tradeMinW = mobile ? 480 : 560
-  const closedMinW = mobile ? 440 : 520
+  // 머리와 행이 같은 정의를 나눠 쓴다 — 칸 너비를 따로 들고 있으면 열을 하나 더할 때 어긋난다.
+  const TRADE_COLUMNS: LColumn[] = [
+    { key: 'date',   label: '날짜',  width: '70px' },
+    { key: 'type',   label: '구분',  width: '50px' },
+    { key: 'name',   label: '종목',  width: `minmax(${mobile ? 80 : 160}px, 1fr)` },
+    { key: 'qty',    label: '수량',  width: '70px',  align: 'right' },
+    { key: 'price',  label: '단가',  width: '100px', align: 'right' },
+    { key: 'amount', label: '금액',  width: '110px', align: 'right' },
+  ]
+  const CLOSED_COLUMNS: LColumn[] = [
+    { key: 'name',     label: '종목',     width: `minmax(${mobile ? 90 : 160}px, 1fr)` },
+    { key: 'state',    label: '상태',     width: '46px' },
+    { key: 'cost',     label: '청산원가', width: '100px', align: 'right' },
+    { key: 'realized', label: '실현손익', width: '110px', align: 'right' },
+    { key: 'ret',      label: '수익률',   width: '70px',  align: 'right' },
+  ]
 
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead eyebrow="TRADES" title="매매기록" tools={
+        <LSectionHead title="매매기록" tools={
           <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <LSegmented
               options={[
@@ -229,133 +246,63 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
         } />
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ padding: `0 ${t.density.panelPadX}px ${t.density.gapSm}px` }}>
         {view === 'closed' ? (
-          /* ── 청산손익 테이블 ── */
-          <>
-            <div style={{
-              display: 'grid', gridTemplateColumns: closedCols,
-              gap: t.density.kpiGap, padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-              color: t.neutrals.subtle, fontFamily: t.font.mono,
-              textTransform: 'uppercase' as const, letterSpacing: 0.5,
-              minWidth: closedMinW, whiteSpace: 'nowrap' as const,
-            }}>
-              <span>종목</span>
-              <span>상태</span>
-              <span style={{ textAlign: 'right' }}>청산원가</span>
-              <span style={{ textAlign: 'right' }}>실현손익</span>
-              <span style={{ textAlign: 'right' }}>수익률</span>
-            </div>
-            <div>
+          /* ── 청산손익 ── */
+          <LTableScroll columns={CLOSED_COLUMNS} mobile={mobile}>
+            <LTableHead columns={CLOSED_COLUMNS} mobile={mobile} />
+            <LTableBody columns={CLOSED_COLUMNS} mobile={mobile}>
               {pagedClosed.map(r => {
                 const retPct = r.costKrw > 0 ? (r.realizedKrw / r.costKrw) * 100 : 0
                 return (
-                  <div key={r.ticker} style={{
-                    display: 'grid', gridTemplateColumns: closedCols, gap: t.density.kpiGap,
-                    padding: `${t.density.panelPadY}px ${t.density.controlPadXMd}px`, alignItems: 'center',
-                    borderTop: `1px solid ${t.neutrals.line}`,
-                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                    minWidth: closedMinW, whiteSpace: 'nowrap' as const,
-                  }}>
-                    <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <LTableRow key={r.ticker} columns={CLOSED_COLUMNS} mobile={mobile}>
+                    <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       <span style={{ fontWeight: t.weight.medium }}>{r.ticker}</span>
                       <span style={{ color: t.neutrals.muted, marginLeft: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>{r.name}</span>
                     </div>
                     <LTableBadge tone={CELL_TONE}>{r.fullyClosed ? '전량' : '일부'}</LTableBadge>
-                    <span style={{
-                      textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                    }}>{fmtKrwPlain(r.costKrw)}</span>
-                    <span style={{
-                      textAlign: 'right', fontWeight: t.weight.medium,
-                      fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums', color: toneColor(r.realizedKrw),
-                    }}>{fmtKrwSigned(r.realizedKrw)}</span>
-                    <span style={{
-                      textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: toneColor(r.realizedKrw),
-                    }}>{retPct >= 0 ? '+' : ''}{retPct.toFixed(1)}%</span>
-                  </div>
+                    <LTableMono align="right" tone="muted">{fmtKrwPlain(r.costKrw)}</LTableMono>
+                    <LTableMono align="right" strong tone={cellTone(r.realizedKrw)}>{fmtKrwSigned(r.realizedKrw)}</LTableMono>
+                    <LTableMono align="right" tone={cellTone(r.realizedKrw)}>{retPct >= 0 ? '+' : ''}{retPct.toFixed(1)}%</LTableMono>
+                  </LTableRow>
                 )
               })}
               {filteredClosed.length === 0 && (
-                <div style={{
-                  padding: `${t.density.pagePadX}px ${t.density.controlPadXMd}px`, textAlign: 'center',
-                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
-                }}>{search ? '검색 결과가 없습니다' : '청산된 종목이 없습니다'}</div>
+                <LTableEmpty>{search ? '검색 결과가 없습니다' : '청산된 종목이 없습니다'}</LTableEmpty>
               )}
-            </div>
-          </>
+            </LTableBody>
+          </LTableScroll>
         ) : (
-          /* ── 거래내역 테이블 ── */
-          <>
-            <div style={{
-              display: 'grid', gridTemplateColumns: tradeCols,
-              gap: t.density.kpiGap, padding: `${t.density.gapSm}px ${t.density.controlPadXMd}px`, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
-              color: t.neutrals.subtle, fontFamily: t.font.mono,
-              textTransform: 'uppercase' as const, letterSpacing: 0.5,
-              minWidth: tradeMinW, whiteSpace: 'nowrap' as const,
-            }}>
-              <span>날짜</span>
-              <span>구분</span>
-              <span>종목</span>
-              <span style={{ textAlign: 'right' }}>수량</span>
-              <span style={{ textAlign: 'right' }}>단가</span>
-              <span style={{ textAlign: 'right' }}>금액</span>
-            </div>
-            <div>
+          /* ── 거래내역 ── */
+          <LTableScroll columns={TRADE_COLUMNS} mobile={mobile}>
+            <LTableHead columns={TRADE_COLUMNS} mobile={mobile} />
+            <LTableBody columns={TRADE_COLUMNS} mobile={mobile}>
               {pagedTrades.map((tr, i) => {
                 const isBuy = tr.trade_type === 'buy'
                 const amount = tr.total_amount ?? tr.quantity * tr.price
                 const isKRW = tr.currency === 'KRW'
+                const money = (v: number) => isKRW
+                  ? v.toLocaleString()
+                  : `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 return (
-                  <div key={tr.id || i} style={{
-                    display: 'grid', gridTemplateColumns: tradeCols,
-                    gap: t.density.kpiGap, padding: `${t.density.panelPadY}px ${t.density.controlPadXMd}px`, alignItems: 'center',
-                    borderTop: `1px solid ${t.neutrals.line}`,
-                    fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`,
-                    minWidth: tradeMinW, whiteSpace: 'nowrap' as const,
-                  }}>
-                    <span style={{ fontFamily: t.font.mono, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.muted }}>
-                      {(tr.trade_date || '').slice(5)}
-                    </span>
+                  <LTableRow key={tr.id || i} columns={TRADE_COLUMNS} mobile={mobile}>
+                    <LTableMono tone="muted">{(tr.trade_date || '').slice(5)}</LTableMono>
                     <LTableBadge tone={CELL_TONE}>{isBuy ? '매수' : '매도'}</LTableBadge>
-                    <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <span style={{ fontWeight: t.weight.medium }}>
-                        {tr.ticker.replace('.KS', '')}
-                      </span>
-                      <span style={{ color: t.neutrals.muted, marginLeft: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>
-                        {tr.company_name}
-                      </span>
+                    <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: t.weight.medium }}>{tr.ticker.replace('.KS', '')}</span>
+                      <span style={{ color: t.neutrals.muted, marginLeft: t.density.gapXs, fontSize: `calc(${t.type.control}px * var(--fz, 1))` }}>{tr.company_name}</span>
                     </div>
-                    <span style={{
-                      textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                    }}>
-                      {tr.quantity.toLocaleString()}
-                    </span>
-                    <span style={{
-                      textAlign: 'right', fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      color: t.neutrals.muted, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                    }}>
-                      {isKRW ? `${tr.price.toLocaleString()}` : `$${tr.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    </span>
-                    <span style={{
-                      textAlign: 'right', fontWeight: t.weight.medium,
-                      fontFamily: t.font.mono, fontVariantNumeric: 'tabular-nums',
-                      color: t.neutrals.text,
-                    }}>
-                      {isBuy ? '-' : '+'}{isKRW ? `${amount.toLocaleString()}` : `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    </span>
-                  </div>
+                    <LTableNumber value={tr.quantity} />
+                    <LTableMono align="right" tone="muted">{money(tr.price)}</LTableMono>
+                    <LTableMono align="right" strong>{isBuy ? '-' : '+'}{money(amount)}</LTableMono>
+                  </LTableRow>
                 )
               })}
               {filteredTrades.length === 0 && (
-                <div style={{
-                  padding: `${t.density.pagePadX}px ${t.density.controlPadXMd}px`, textAlign: 'center',
-                  fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
-                }}>{search ? '검색 결과가 없습니다' : '매매 기록이 없습니다'}</div>
+                <LTableEmpty>{search ? '검색 결과가 없습니다' : '매매 기록이 없습니다'}</LTableEmpty>
               )}
-            </div>
-          </>
+            </LTableBody>
+          </LTableScroll>
         )}
       </div>
 

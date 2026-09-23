@@ -196,8 +196,10 @@ export default function InvestPage() {
 
   return (
     <>
-      {loadPhase === 0 ? <InvestSkeleton /> : (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
+      {loadPhase === 0 ? <div className="theme-outline"><InvestSkeleton /></div> : (
+      /* theme-outline 이 카드와 표·컨트롤·지표의 껍데기를 함께 덮는다. 사업관리·보이스카드와
+         같은 카드 문법이다(2026-09-11). 주식 화면만 이 문법 밖에 남아 있었다. */
+      <div className="theme-outline" style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
         <SignalBar
           totalValue={fmtTotalValue}
           cumulativeReturnPct={portfolioStats.cumulativeReturnPct}

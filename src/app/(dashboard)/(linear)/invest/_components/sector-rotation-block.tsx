@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SectorRotationChartModal } from './sector-rotation-chart'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LTableHead, templateOf, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 
 interface SectorEtf {
   ticker: string
@@ -146,22 +148,9 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const latestDate = etfs?.[0]?.latestDate
 
   return (
-    <div style={{ background: t.neutrals.card, borderRadius: t.radius.lg, padding: mobile ? 12 : 16 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: t.density.kpiGap, flexWrap: 'wrap', gap: t.density.gapSm }}>
-        <div>
-          <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.neutrals.subtle, letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: t.density.tableRowGap }}>
-            SECTOR ROTATION
-          </div>
-          <div style={{ fontSize: `calc(${t.type.sectionTitle}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.text, fontFamily: t.font.sans }}>
-            섹터/테마 ETF 상대 수익률
-            {latestDate && (
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, fontWeight: t.weight.regular, color: t.neutrals.subtle, marginLeft: t.density.gapSm, fontFamily: t.font.mono }}>
-                as of {latestDate}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+    /* 생 div 에 배경을 칠하면 카드 문법(theme-outline)이 닿지 않아 이 블록만 다른 카드로 읽혔다. */
+    <LCard>
+      <LSectionHead title="섹터/테마 ETF 상대 수익률" meta={latestDate ? `as of ${latestDate}` : undefined} />
 
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
@@ -187,29 +176,19 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
             const isBenchmark = etf.group === 'Benchmark'
             const isHolding = etf.group === 'Holding'
             const isSectorGroup = etf.group === 'SectorGroup'
-            // SectorGroup 보라 / Holding 핑크 / Benchmark 앰버 / isMine 인디고 / 나머지 회색
-            const rowBg = isSectorGroup ? 'rgba(16, 185, 129, 0.10)' : isHolding ? 'rgba(236, 72, 153, 0.10)' : isBenchmark ? 'rgba(245, 158, 11, 0.10)' : isMine ? 'rgba(99, 102, 241, 0.10)' : 'transparent'
-            const tickerColor = isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#B45309' : isMine ? '#4338CA' : t.neutrals.text
+            // 그룹은 1열 배지(S·H·B·G·M·T)가 이미 말한다. 행 배경과 티커 색까지 겹쳐 칠하면
+            // 이 카드의 뜻인 수익률 히트맵과 색이 다툰다 — 색은 히트맵에만 남긴다.
+            const strong = isSectorGroup || isHolding || isMine || isBenchmark
             return (
-            <div key={etf.ticker} style={{
-              display: 'grid',
-              gridTemplateColumns: templateOf(COLUMNS as LColumn<never>[], mobile),
-              gap: t.density.tableColGap, alignItems: 'center', padding: `0 ${t.density.tableRowPadX}px`,
-              fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
-              background: rowBg, // 그룹 구분은 배경 색조만 — 좌측 색 테두리는 중복이라 뺐다(2026-09-10)
-              borderRadius: t.radius.sm,
-            }}>
+            <LTableRow key={etf.ticker} columns={COLUMNS} mobile={mobile}>
               <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
                 <LBadge
-                  palette={{
-                    bg: isSectorGroup ? '#D1FAE5' : isHolding ? '#FCE7F3' : isBenchmark ? '#FEF3C7' : etf.group === 'GICS' ? '#DBEAFE' : etf.group === 'Macro' ? '#E5E7EB' : '#F3E8FF',
-                    fg: isSectorGroup ? '#065F46' : isHolding ? '#9D174D' : isBenchmark ? '#92400E' : etf.group === 'GICS' ? '#1E40AF' : etf.group === 'Macro' ? '#374151' : '#7E22CE',
-                  }}
+                  palette={tonePalettes.neutral}
                   style={{ flexShrink: 0, fontFamily: t.font.mono }}
                 >{isSectorGroup ? 'S' : isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</LBadge>
                 <span style={{
-                  fontFamily: t.font.mono, fontWeight: (isSectorGroup || isHolding || isMine || isBenchmark) ? t.weight.semibold : t.weight.medium,
-                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: tickerColor,
+                  fontFamily: t.font.mono, fontWeight: strong ? t.weight.semibold : t.weight.medium,
+                  fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
                 }}>{etf.ticker.replace('.KS', '')}</span>
               </div>
               {!mobile && (
@@ -224,17 +203,22 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
                 const r = etf.returns[p]
                 const c = returnColor(r)
                 const clickable = r != null
+                const open = () => setOpenChart({ ticker: etf.ticker, name: etf.name, period: p })
+                // button 이 아니라 div 다. 카드 문법은 모든 button 의 배경을 벗겨 한 모양으로 만드는데,
+                // 이 칸은 색이 곧 값이라 그러면 히트맵이 통째로 사라진다(2026-09-23 실제로 그랬다).
                 return (
-                  <button
+                  <div
                     key={p}
-                    onClick={clickable ? () => setOpenChart({ ticker: etf.ticker, name: etf.name, period: p }) : undefined}
-                    disabled={!clickable}
+                    role={clickable ? 'button' : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={clickable ? open : undefined}
+                    onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } } : undefined}
                     style={{
                       padding: `${t.density.gapXs}px ${t.density.gapSm}px`, borderRadius: t.radius.sm,
                       background: c.bg, color: c.fg,
                       fontSize: `calc(${mobile ? 10 : 10.5}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       fontFamily: t.font.mono, textAlign: 'right' as const,
-                      lineHeight: 1.4, border: 'none',
+                      lineHeight: 1.4,
                       cursor: clickable ? 'pointer' : 'default',
                       transition: 'transform .08s',
                     }}
@@ -243,10 +227,10 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
                     title={clickable ? `${etf.ticker} ${p.toUpperCase()} 추이 차트 보기` : undefined}
                   >
                     {fmtPct(r)}
-                  </button>
+                  </div>
                 )
               })}
-            </div>
+            </LTableRow>
             )
           })}
         </div>
@@ -266,6 +250,6 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
           onClose={() => setOpenChart(null)}
         />
       )}
-    </div>
+    </LCard>
   )
 }

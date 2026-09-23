@@ -46,8 +46,8 @@ function fmtKrw(v: number) {
 
 /* ── Donut palette ── */
 const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
-const QLD_BENCH_COLOR = '#94a3b8'  // 벤치마크(QLD) 라인 — 중립 회색 점선
-const REALIZED_COLOR = '#f59e0b'  // 실현 누적 보조 라인 — 앰버 점선
+const QLD_BENCH_COLOR = t.neutrals.subtle  // 벤치마크(QLD) 라인 — 중립 회색 점선
+const REALIZED_COLOR = t.accent.warn  // 실현 누적 보조 라인 — 주의색 점선
 const OVERSEAS_CGT = 0.22  // 해외주식 양도소득세 22% (국내 상장주식은 비과세 가정)
 // 세후 추정: 해외 미실현 차익에 22% 적용, 국내는 0. (val/cost 모두 KRW)
 const cgtTax = (valKrw: number, costKrw: number) => OVERSEAS_CGT * Math.max(0, valKrw - costKrw)
@@ -553,7 +553,8 @@ export function AnalysisBlock({
   }, [stockTrades, stockQuotes, stockThemes, usdKrwRate])
 
   const getLines = (suffix: string) => {
-    if (viewMode === 'total') return [{ key: `전체${suffix}`, color: '#6366f1', name: '전체' }]
+    // 시리즈가 하나면 색을 쓰지 않는다 — 단색(mono). 두 시리즈 이상만 팔레트를 편다.
+    if (viewMode === 'total') return [{ key: `전체${suffix}`, color: t.chart.mono, name: '전체' }]
     if (viewMode === 'market') return [
       { key: `국내${suffix}`, color: MARKET_COLORS['국내'], name: '국내' },
       { key: `해외${suffix}`, color: MARKET_COLORS['해외'], name: '해외' },
@@ -583,7 +584,7 @@ export function AnalysisBlock({
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
+          <LSectionHead title="포트폴리오 분석" />
         </div>
         <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추이 데이터 로딩 중...
@@ -596,7 +597,7 @@ export function AnalysisBlock({
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" />
+          <LSectionHead title="포트폴리오 분석" />
         </div>
         <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           분석에 필요한 데이터가 부족합니다
@@ -608,7 +609,7 @@ export function AnalysisBlock({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead eyebrow="ANALYSIS" title="포트폴리오 분석" tools={
+        <LSectionHead title="포트폴리오 분석" tools={
           <LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />
         } />
       </div>

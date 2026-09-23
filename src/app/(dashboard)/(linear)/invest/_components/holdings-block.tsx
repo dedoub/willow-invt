@@ -5,6 +5,8 @@ import { createFxLookup } from '@/lib/fx-lookup'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LStat } from '@/app/(dashboard)/_components/linear-stat'
+import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { LTableScroll, LTableHead, LTableBody, LTableRow, LTableMono, type LColumn } from '@/app/(dashboard)/_components/linear-table'
@@ -127,6 +129,11 @@ interface HoldingsBlockProps {
   /** ticker → 현재가가 직전 20일 고가(매물대)를 돌파했는지 + 저항선 대비 gap%. */
   breakoutMap?: Record<string, { breakout: boolean; gapPct: number }>
   /** 인쇄 페이지 전용 — 카드에 종이용 테두리 적용. */
+  /**
+   * 인쇄용 2단 배치. 지표 타일은 StatRows 가 줄로 가르고, 인쇄 화면은 카드 문법 밖이라
+   * LStat 이 제 회색 판을 그대로 쓴다 — 예전처럼 타일마다 테두리를 덧그릴 일이 없다.
+   * 종목 카드 쪽에서만 쓴다.
+   */
   printMode?: boolean
 }
 
@@ -142,7 +149,7 @@ type MarketFilter = 'all' | 'KR' | 'US'
 type SortMode = 'current' | 'value' | 'return'
 const SORT_MODE_KEY = 'invest-holdings-sort-mode'
 
-export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, qldTransition = {}, breakoutMap = {}, printMode = false }: HoldingsBlockProps) {
+export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory, cardColumns = 1, tickerSectors = {}, qldTransition = {}, breakoutMap = {} }: HoldingsBlockProps) {
   const mobile = useIsMobile()
   const [currencyMode, setCurrencyMode] = useState<'original' | 'KRW'>('original')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
@@ -381,7 +388,7 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad }}>
-          <LSectionHead eyebrow="HOLDINGS" title="보유 현황" />
+          <LSectionHead title="보유 현황" />
         </div>
         <div style={{ padding: `${t.density.pagePadX}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           보유 종목이 없습니다
@@ -431,7 +438,6 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
                 <LSectionHead
-                  eyebrow="HOLDINGS"
                   title="보유 현황"
                   mb={0}
                   action={marketSeg}
@@ -446,7 +452,6 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
           // 데스크탑: 세 필터 모두 제목 우측
           return (
             <LSectionHead
-              eyebrow="HOLDINGS"
               title="보유 현황"
               action={
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.density.gapSm, justifyContent: 'flex-end' }}>
@@ -460,76 +465,55 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
         })()}
       </div>
 
-      {/* Summary cards */}
+      {/* 지표 격자 — 사업관리·보이스카드와 같은 리듬(StatRows + LStat). 회색 판은 두지 않는다:
+          카드 안에서 값이 서는 자리는 줄과 여백으로 잡는다. 청산 확정분(실현·총손익)도 같은
+          격자에 세워 둔다 — 따로 띠를 만들면 보유분과 다른 종류의 수치처럼 읽힌다. */}
       {hasQuotes && (
-        <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
-          {/* KR */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>국내 {summary.krH.length}종목</div>
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.krVal, 'KRW')}</div>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(summary.krVal - summary.krInv), fontVariantNumeric: 'tabular-nums' }}>
-              {(summary.krVal - summary.krInv) > 0 ? '+' : ''}{fmtAmount(summary.krVal - summary.krInv, 'KRW')}
-              {summary.krInv > 0 && ` (${((summary.krVal - summary.krInv) / summary.krInv * 100).toFixed(1)}%)`}
-            </div>
-          </div>
-          {/* US */}
-          {(() => {
-            const usValKrw = summary.usVal * usdKrwRate
-            const usKrwInv = summary.usH.reduce((s, h) => s + h.krwInvested, 0)
-            const displayVal = isKrw ? usValKrw : summary.usVal
-            const displayInv = isKrw ? usKrwInv : summary.usInv
-            const displayPnl = displayVal - displayInv
-            const displayCur: 'KRW' | 'USD' = isKrw ? 'KRW' : 'USD'
-            return (
-              <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-                <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>해외 {summary.usH.length}종목</div>
-                <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(displayVal, displayCur)}</div>
-                <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(displayPnl), fontVariantNumeric: 'tabular-nums' }}>
-                  {displayPnl > 0 ? '+' : ''}{fmtAmount(displayPnl, displayCur)}
-                  {displayInv > 0 && ` (${(displayPnl / displayInv * 100).toFixed(1)}%)`}
-                </div>
-              </div>
-            )
-          })()}
-          {/* Total */}
-          <div style={{ background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined }}>
-            <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>전체 {summary.count}종목 · {Math.round(usdKrwRate).toLocaleString()}원/$</div>
-            <div style={{ fontSize: `calc(${t.type.body}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums' }}>{fmtAmount(summary.totalVal, 'KRW')}</div>
-            <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: pnlColor(summary.totalPnl), fontVariantNumeric: 'tabular-nums' }}>
-              {summary.totalPnl > 0 ? '+' : ''}{fmtAmount(summary.totalPnl, 'KRW')} ({summary.totalPnl > 0 ? '+' : ''}{summary.totalPct.toFixed(1)}%)
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 실현손익 + 총손익 — 위 카드는 보유분 미실현만 잡으므로, 청산 확정분을 여기서 더해 포트폴리오분석 '수익금'과 정의를 맞춘다 */}
-      {hasQuotes && realized.sellCount > 0 && (
         <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
-          <div style={{
-            background: t.neutrals.inner, borderRadius: t.radius.md, padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`,
-            display: 'flex', flexDirection: mobile ? 'column' : 'row',
-            gap: mobile ? 4 : 12, alignItems: mobile ? 'stretch' : 'baseline',
-            fontVariantNumeric: 'tabular-nums',
-            border: printMode && cardColumns === 2 ? `1px solid ${t.neutrals.line}` : undefined,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>실현손익</span>
-              <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: pnlColor(totals.rPnl) }}>
-                {totals.rPnl > 0 ? '+' : ''}{fmtAmount(totals.rPnl, 'KRW')}
-              </span>
-              {marketFilter === 'all' && (
-                <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                  국내 {realized.kr > 0 ? '+' : ''}{fmtAmount(realized.kr, 'KRW')} · 해외 {realized.us > 0 ? '+' : ''}{fmtAmount(realized.us, 'KRW')}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.gapSm, flexWrap: 'wrap', marginLeft: mobile ? 0 : 'auto' }}>
-              <span style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle }}>총손익 (미실현+실현)</span>
-              <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: pnlColor(totals.combinedPnl) }}>
-                {totals.combinedPnl > 0 ? '+' : ''}{fmtAmount(totals.combinedPnl, 'KRW')} ({totals.combinedPnl > 0 ? '+' : ''}{totals.combinedPct.toFixed(1)}%)
-              </span>
-            </div>
-          </div>
+          <StatRows cols={mobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'}>
+            <LStat
+              label={`국내 ${summary.krH.length}종목`}
+              value={fmtAmount(summary.krVal, 'KRW')}
+              subExtra={<ChangeLine value={summary.krVal - summary.krInv} base={summary.krInv} currency="KRW" />}
+            />
+            {(() => {
+              const usValKrw = summary.usVal * usdKrwRate
+              const usKrwInv = summary.usH.reduce((sum, h) => sum + h.krwInvested, 0)
+              const displayVal = isKrw ? usValKrw : summary.usVal
+              const displayInv = isKrw ? usKrwInv : summary.usInv
+              const displayCur: 'KRW' | 'USD' = isKrw ? 'KRW' : 'USD'
+              return (
+                <LStat
+                  label={`해외 ${summary.usH.length}종목`}
+                  value={fmtAmount(displayVal, displayCur)}
+                  subExtra={<ChangeLine value={displayVal - displayInv} base={displayInv} currency={displayCur} />}
+                />
+              )
+            })()}
+            <LStat
+              label={`전체 ${summary.count}종목 · ${Math.round(usdKrwRate).toLocaleString()}원/$`}
+              value={fmtAmount(summary.totalVal, 'KRW')}
+              subExtra={<ChangeLine value={summary.totalPnl} pct={summary.totalPct} currency="KRW" />}
+            />
+            {realized.sellCount > 0 && (
+              <LStat
+                label="실현손익"
+                value={`${totals.rPnl > 0 ? '+' : ''}${fmtAmount(totals.rPnl, 'KRW')}`}
+                tone={totals.rPnl > 0 ? 'pos' : totals.rPnl < 0 ? 'neg' : 'default'}
+                sub={marketFilter === 'all'
+                  ? `국내 ${realized.kr > 0 ? '+' : ''}${fmtAmount(realized.kr, 'KRW')} · 해외 ${realized.us > 0 ? '+' : ''}${fmtAmount(realized.us, 'KRW')}`
+                  : undefined}
+              />
+            )}
+            {realized.sellCount > 0 && (
+              <LStat
+                label="총손익 (미실현+실현)"
+                value={`${totals.combinedPnl > 0 ? '+' : ''}${fmtAmount(totals.combinedPnl, 'KRW')}`}
+                tone={totals.combinedPnl > 0 ? 'pos' : totals.combinedPnl < 0 ? 'neg' : 'default'}
+                sub={`${totals.combinedPct > 0 ? '+' : ''}${totals.combinedPct.toFixed(1)}%`}
+              />
+            )}
+          </StatRows>
         </div>
       )}
 
@@ -807,6 +791,23 @@ export function HoldingsBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRat
         })}
       </div>
     </LCard>
+  )
+}
+
+/**
+ * 지표 타일의 증감 줄. 값 자체는 검정이고, 부호가 붙은 변동만 색을 갖는다
+ * (카드 문법 2026-09-10: 색은 부호 있는 변동·상태 배지·기한 경고에만).
+ */
+function ChangeLine({ value, base, pct, currency }: { value: number; base?: number; pct?: number; currency: 'KRW' | 'USD' }) {
+  const ratio = pct ?? (base && base > 0 ? (value / base) * 100 : null)
+  return (
+    <div style={{
+      fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, marginTop: t.density.gapXs,
+      color: pnlColor(value), fontVariantNumeric: 'tabular-nums', lineHeight: 1.4,
+    }}>
+      {value > 0 ? '+' : ''}{fmtAmount(value, currency)}
+      {ratio !== null && ` (${ratio > 0 ? '+' : ''}${ratio.toFixed(1)}%)`}
+    </div>
   )
 }
 
