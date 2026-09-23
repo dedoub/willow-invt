@@ -199,8 +199,9 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead title="매매기록" tools={
-          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <LSectionHead
+          title="매매기록"
+          tools={
             <LSegmented
               options={[
                 { value: 'trades', label: '거래내역' },
@@ -209,45 +210,49 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               value={view}
               onChange={(v) => handleViewChange(v as View)}
             />
-            {/* 윌로우 매출관리 검색창과 같은 모양 — 감싸개에는 배경이 없고 input 이 흰 바탕과 선을 갖는다.
-                감싸개에 회색 판을 깔면 카드 안에 회색 판 하나가 남는다(CEO 2026-09-23). */}
-            <div style={{ position: 'relative', minWidth: mobile ? 120 : 180 }}>
-              <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
-                <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
-              </div>
-              <input
-                value={search}
-                onChange={e => handleSearchChange(e.target.value)}
-                placeholder={view === 'trades' ? '티커·종목명·증권사·메모' : '티커·종목명'}
-                style={{
-                  width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
-                  padding: `0 ${search ? 26 : t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
-                  fontFamily: t.font.sans, color: t.neutrals.text,
-                  background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-                  borderRadius: t.radius.sm, outline: 'none',
-                }}
-              />
-              {search && (
-                <button
-                  onClick={() => handleSearchChange('')}
-                  title="지우기"
-                  style={{
-                    position: 'absolute', right: t.density.gapXs, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
-                    color: t.neutrals.subtle, display: 'inline-flex',
-                  }}
-                >
-                  <LIcon name="x" size={11} />
-                </button>
-              )}
-            </div>
-            {view === 'closed' && closed.rows.length > 0 && (
-              <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: toneColor(closed.total) }}>
-                {fmtKrwSigned(closed.total)}
-              </span>
-            )}
+          }
+          toolsInline
+          action={view === 'closed' && closed.rows.length > 0 ? (
+            <span style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: toneColor(closed.total) }}>
+              {fmtKrwSigned(closed.total)}
+            </span>
+          ) : undefined}
+          mb={0}
+        />
+      </div>
+
+      {/* 검색 — 윌로우 매출관리와 같은 자리·모양. 감싸개에는 배경이 없고 input 이 흰 바탕과 선을 갖는다. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap', padding: `0 ${t.density.cardPad}px ${t.density.gapSm}px` }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>
+          <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
           </div>
-        } />
+          <input
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            placeholder={view === 'trades' ? '티커 · 종목명 · 증권사 · 메모 검색' : '티커 · 종목명 검색'}
+            style={{
+              width: '100%', boxSizing: 'border-box', minHeight: t.density.controlHSm,
+              padding: `0 ${search ? 26 : t.density.panelPadX}px 0 30px`, fontSize: `calc(${t.type.control}px * var(--fz, 1))`,
+              fontFamily: t.font.sans, color: t.neutrals.text,
+              background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+              borderRadius: t.radius.sm, outline: 'none',
+            }}
+          />
+          {search && (
+            <button
+              onClick={() => handleSearchChange('')}
+              title="지우기"
+              style={{
+                position: 'absolute', right: t.density.gapXs, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: t.density.gapXs,
+                color: t.neutrals.subtle, display: 'inline-flex',
+              }}
+            >
+              <LIcon name="x" size={11} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ padding: `0 ${t.density.panelPadX}px ${t.density.gapSm}px` }}>

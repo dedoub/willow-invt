@@ -32,7 +32,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="포트폴리오 시그널" tools={actions} />
+          <LSectionHead title="포트폴리오 시그널" action={actions} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: t.density.kpiGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           {Array.from({ length: 6 }).map((_, i) => (
@@ -56,7 +56,7 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead title="포트폴리오 시그널" tools={actions} />
+        <LSectionHead title="포트폴리오 시그널" action={actions} />
       </div>
       <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
         <StatRows cols={cols}>

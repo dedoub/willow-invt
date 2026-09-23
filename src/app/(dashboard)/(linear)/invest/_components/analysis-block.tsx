@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from 'recharts'
+import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { StockTradeFull, StockQuoteFull, TickerTheme } from './holdings-block'
 import { createFxLookup } from '@/lib/fx-lookup'
 
@@ -45,7 +46,6 @@ function fmtKrw(v: number) {
 }
 
 /* ── Donut palette ── */
-const STOCK_COLORS = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#d946ef', '#0ea5e9']
 const QLD_BENCH_COLOR = t.neutrals.subtle  // 벤치마크(QLD) 라인 — 중립 회색 점선
 const REALIZED_COLOR = t.accent.warn  // 실현 누적 보조 라인 — 주의색 점선
 const OVERSEAS_CGT = 0.22  // 해외주식 양도소득세 22% (국내 상장주식은 비과세 가정)
@@ -54,103 +54,14 @@ const cgtTax = (valKrw: number, costKrw: number) => OVERSEAS_CGT * Math.max(0, v
 
 /* ── 수익률 발산형 그라데이션 (미국식: 음수=빨강, 양수=녹색, 0%=연회색) ──
    clamp ±50%: 절댓값이 클수록 진하게. 0 근처는 채도 낮은 회색으로 보간. */
-function returnGradientColor(retPct: number): string {
-  const CLAMP = 50
-  const x = Math.max(-1, Math.min(1, retPct / CLAMP))  // -1..1
-  const mag = Math.abs(x)                               // 0..1
-  const hue = retPct >= 0 ? 145 : 0                     // 녹색 / 빨강
-  const sat = Math.round(10 + mag * 65)                 // 10%(회색) → 75%
-  const light = Math.round(72 - mag * 30)               // 72%(연함) → 42%(진함)
-  return `hsl(${hue}, ${sat}%, ${light}%)`
-}
-
-/* ── Donut mini-component ──
-   colorMode='category': colors[i] 사용. 'return': returns[i] 수익률을 그라데이션으로 인코딩(슬라이스 크기는 비중 유지). */
-function DonutChart({ title, data, colors, fixedWidth, colorMode = 'category', returns }: {
-  title: string
-  data: { subject: string; pct: number }[]
-  colors: string[]
-  fixedWidth?: number
-  colorMode?: 'category' | 'return'
-  returns?: number[]
-}) {
-  const sliceColor = (i: number) =>
-    colorMode === 'return' && returns ? returnGradientColor(returns[i] ?? 0) : colors[i % colors.length]
-  // 수익률 모드: 채우기=수익률 그라데이션, 테두리=카테고리 색 → 분류 식별 유지
-  const isReturn = colorMode === 'return' && !!returns
-  const categoryColor = (i: number) => colors[i % colors.length]
-  // 슬라이스 안쪽에 표시할 라벨 — 비중 ≥ 6% 인 슬라이스에만 흰색 % 표시
-  const renderInsideLabel = (props: any) => {
-    const cx = Number(props.cx); const cy = Number(props.cy)
-    const midAngle = Number(props.midAngle)
-    const innerRadius = Number(props.innerRadius); const outerRadius = Number(props.outerRadius)
-    const percent = Number(props.percent)
-    if (!Number.isFinite(percent) || percent < 0.06) return null
-    const r = (innerRadius + outerRadius) / 2
-    const x = cx + r * Math.cos((-midAngle * Math.PI) / 180)
-    const y = cy + r * Math.sin((-midAngle * Math.PI) / 180)
-    return (
-      <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight={600}>
-        {Math.round(percent * 100)}%
-      </text>
-    )
-  }
-  const chart = (
-    <PieChart width={fixedWidth || undefined} height={140}>
-      <Pie
-        data={data} dataKey="pct" nameKey="subject" cx="50%" cy="50%"
-        innerRadius={30} outerRadius={55} paddingAngle={2}
-        label={renderInsideLabel} labelLine={false} isAnimationActive={false}
-      >
-        {data.map((_, i) => (
-          <Cell key={i} fill={sliceColor(i)}
-            stroke={isReturn ? categoryColor(i) : undefined}
-            strokeWidth={isReturn ? 2 : 0} />
-        ))}
-      </Pie>
-      <Tooltip
-        contentStyle={{ background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`, borderRadius: t.radius.md, fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, padding: `${t.density.gapXs}px ${t.density.panelPadY}px` }}
-        formatter={(value: any, name: any) => [`${value}%`, name]}
-      />
-    </PieChart>
-  )
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: `calc(${t.type.tableCell}px * var(--fz, 1))`, color: t.neutrals.subtle, marginBottom: t.density.tableRowGap }}>{title}</div>
-      {fixedWidth ? (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>{chart}</div>
-      ) : (
-        <ResponsiveContainer width="100%" height={140}>{chart}</ResponsiveContainer>
-      )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: `${t.density.tableRowGap}px ${t.density.kpiGap}px`, marginTop: t.density.tableRowGap }}>
-        {data.map((d, i) => (
-          <span key={d.subject} style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
-            {/* 수익률 모드: 점 안쪽=수익률색, 테두리=카테고리색 (파이와 동일 인코딩) */}
-            <span style={{
-              width: isReturn ? 8 : 6, height: isReturn ? 8 : 6, borderRadius: '50%',
-              background: sliceColor(i), display: 'inline-block', boxSizing: 'border-box',
-              border: isReturn ? `2px solid ${categoryColor(i)}` : undefined,
-            }} />
-            {d.subject} {d.pct}%
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── Component ── */
-
 type ValueScale = 'linear' | 'log'
+
 const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
 
-type DonutColorMode = 'category' | 'return'
-const DONUT_COLOR_KEY = 'invest-analysis-donut-color'
 
 export function AnalysisBlock({
   stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1,
 }: AnalysisBlockProps) {
-  const mobile = useIsMobile()
   const [viewMode, setViewMode] = useState<ViewMode>('total')
   const [valueScale, setValueScale] = useState<ValueScale>(() => {
     if (typeof window === 'undefined') return 'linear'
@@ -159,14 +70,6 @@ export function AnalysisBlock({
   const handleScaleChange = (s: ValueScale) => {
     setValueScale(s)
     if (typeof window !== 'undefined') localStorage.setItem(VALUE_SCALE_KEY, s)
-  }
-  const [donutColorMode, setDonutColorMode] = useState<DonutColorMode>(() => {
-    if (typeof window === 'undefined') return 'category'
-    return (localStorage.getItem(DONUT_COLOR_KEY) as DonutColorMode) === 'return' ? 'return' : 'category'
-  })
-  const handleDonutColorChange = (m: DonutColorMode) => {
-    setDonutColorMode(m)
-    if (typeof window !== 'undefined') localStorage.setItem(DONUT_COLOR_KEY, m)
   }
 
   const trendData = useMemo(() => {
@@ -606,194 +509,170 @@ export function AnalysisBlock({
     )
   }
 
+  // 차트 판 — 보이스카드 검색 노출 카드와 같은 data-panel 문법. 카드 문법이 판을 평평하게 만들고
+  // 제목 글꼴을 본문에 맞춘다. 판 머리 우측에 최신값이 서고, 평가액 판만 일반/로그 토글을 갖는다.
+  const panelStyle: React.CSSProperties = {
+    background: t.neutrals.inner, borderRadius: t.radius.sm,
+    padding: `${t.density.panelPadY}px ${t.density.panelPadX}px`, minWidth: 0,
+  }
+  const panelTitle: React.CSSProperties = {
+    fontSize: `calc(${t.type.panelTitle}px * var(--fz, 1))`, fontFamily: t.font.mono, letterSpacing: 0.8,
+    textTransform: 'uppercase', color: t.neutrals.subtle, whiteSpace: 'nowrap',
+  }
+  const chipText: React.CSSProperties = { fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontVariantNumeric: 'tabular-nums' }
+  const chipLabel: React.CSSProperties = { fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: t.density.gapXs }
+
+  // 비중 — 공용 DistributionPie 한 장에 탭 셋. 팔레트는 탭 이름 순서대로 색을 대므로 같은 순서로 만든다.
+  const pieTabs = [
+    { key: 'theme', label: '테마별', data: radarData.byTheme.map(d => ({ name: d.subject, value: d.pct })) },
+    ...(radarData.byAiInfraSub.length > 0
+      ? [{ key: 'ai', label: 'AI 인프라 세부', data: radarData.byAiInfraSub.map(d => ({ name: d.subject, value: d.pct })) }]
+      : []),
+    { key: 'market', label: '국내/해외', data: radarData.byMarket.map(d => ({ name: d.subject, value: d.pct })) },
+  ]
+  const piePalette = [
+    ...radarData.byTheme.map(d => GROUP_COLORS[d.subject] || t.neutrals.subtle),
+    ...radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || t.neutrals.subtle),
+    ...radarData.byMarket.map(d => (MARKET_COLORS as Record<string, string>)[d.subject] || t.neutrals.subtle),
+  ]
+
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead title="포트폴리오 분석" tools={
-          <LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />
-        } />
+        <LSectionHead
+          title="포트폴리오 분석"
+          tools={<LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />}
+          toolsInline
+        />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-        <div style={{
-          display: chartColumns === 2 ? 'grid' : 'flex',
-          gridTemplateColumns: chartColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : undefined,
-          flexDirection: chartColumns === 2 ? undefined : 'column',
-          gap: t.density.blockGap,
-        }}>
-        {charts.map(chart => {
-          const lines = getLines(chart.suffix)
-          const isValue = chart.suffix === 'value'
-          const useLog = isValue && valueScale === 'log'
-          const last = trendData.length > 0 ? trendData[trendData.length - 1] : null
-          return (
-            <div key={chart.suffix}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.gapXs, gap: t.density.kpiGap, flexWrap: 'wrap', minHeight: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: t.density.kpiGap, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
-                    {chart.label}
-                  </div>
-                  {last && lines.map(line => {
-                    const v = Number(last[line.key])
-                    if (!Number.isFinite(v)) return null
-                    const sign = (chart.suffix === 'pnl' || chart.suffix === 'pct') && v > 0 ? '+' : ''
-                    return (
-                      <span key={line.key} style={{
-                        fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums',
-                        color: line.color,
-                      }}>
-                        {lines.length > 1 && <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: t.density.gapXs, fontWeight: t.weight.regular }}>{line.name}</span>}
-                        {sign}{chart.fmt(v)}{chart.unit}
-                        {(chart.suffix === 'value' || chart.suffix === 'pnl') && (() => {
-                          const at = Number(last[`${line.key}AfterTax`])
-                          if (!Number.isFinite(at)) return null
-                          const atSign = chart.suffix === 'pnl' && at > 0 ? '+' : ''
-                          return (
-                            <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginLeft: t.density.gapXs, fontWeight: t.weight.regular }}>
-                              세후 {atSign}{chart.fmt(at)}{chart.unit}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapMd, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: chartColumns === 2 ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: t.density.gapMd }}>
+          {charts.map(chart => {
+            const lines = getLines(chart.suffix)
+            const isValue = chart.suffix === 'value'
+            const useLog = isValue && valueScale === 'log'
+            const last = trendData.length > 0 ? trendData[trendData.length - 1] : null
+            return (
+              <div key={chart.suffix} data-panel="" style={panelStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: t.density.kpiGap, marginBottom: t.density.gapSm, flexWrap: 'wrap' }}>
+                  <div data-panel-title="" style={panelTitle}>{chart.label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: t.density.kpiGap, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {last && lines.map(line => {
+                      const v = Number(last[line.key])
+                      if (!Number.isFinite(v)) return null
+                      const sign = (chart.suffix === 'pnl' || chart.suffix === 'pct') && v > 0 ? '+' : ''
+                      const at = (chart.suffix === 'value' || chart.suffix === 'pnl') ? Number(last[`${line.key}AfterTax`]) : NaN
+                      return (
+                        <span key={line.key} style={{ ...chipText, fontWeight: t.weight.semibold, color: lines.length > 1 ? line.color : t.neutrals.text, whiteSpace: 'nowrap' }}>
+                          {lines.length > 1 && <span style={{ ...chipLabel, fontWeight: t.weight.regular }}>{line.name}</span>}
+                          {sign}{chart.fmt(v)}{chart.unit}
+                          {Number.isFinite(at) && (
+                            <span style={{ ...chipLabel, marginLeft: t.density.gapXs, marginRight: 0, fontWeight: t.weight.regular }}>
+                              세후 {chart.suffix === 'pnl' && at > 0 ? '+' : ''}{chart.fmt(at)}{chart.unit}
                             </span>
-                          )
-                        })()}
-                      </span>
-                    )
-                  })}
-                  {chart.suffix === 'pct' && last && Number.isFinite(Number(last['qldPct'])) && (() => {
-                    const mine = Number(last['전체pct'])
-                    const qld = Number(last['qldPct'])
-                    if (!Number.isFinite(mine)) return null
-                    const alpha = Math.round((mine - qld) * 10) / 10
-                    const alphaColor = alpha > 0 ? t.accent.pos : alpha < 0 ? t.accent.neg : t.neutrals.subtle
-                    return (
-                      <span style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, fontVariantNumeric: 'tabular-nums', color: alphaColor }}>
-                        <span style={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.muted, marginRight: t.density.gapXs, fontWeight: t.weight.regular }}>vs QLD</span>
-                        {alpha > 0 ? '+' : ''}{alpha.toFixed(1)}%p
-                      </span>
-                    )
-                  })()}
+                          )}
+                        </span>
+                      )
+                    })}
+                    {chart.suffix === 'pct' && last && Number.isFinite(Number(last['qldPct'])) && (() => {
+                      const mine = Number(last['전체pct'])
+                      const qld = Number(last['qldPct'])
+                      if (!Number.isFinite(mine)) return null
+                      const alpha = Math.round((mine - qld) * 10) / 10
+                      const alphaColor = alpha > 0 ? t.accent.pos : alpha < 0 ? t.accent.neg : t.neutrals.subtle
+                      return (
+                        <span style={{ ...chipText, fontWeight: t.weight.semibold, color: alphaColor, whiteSpace: 'nowrap' }}>
+                          <span style={{ ...chipLabel, fontWeight: t.weight.regular }}>vs QLD</span>
+                          {alpha > 0 ? '+' : ''}{alpha.toFixed(1)}%p
+                        </span>
+                      )
+                    })()}
+                    {isValue && (
+                      <LSegmented
+                        compact
+                        value={valueScale}
+                        onChange={handleScaleChange}
+                        options={[
+                          { value: 'linear', label: '일반' },
+                          { value: 'log', label: '로그' },
+                        ]}
+                      />
+                    )}
+                  </div>
                 </div>
-                {isValue && (
-                  <LSegmented
-                    compact
-                    value={valueScale}
-                    onChange={handleScaleChange}
-                    options={[
-                      { value: 'linear', label: '일반' },
-                      { value: 'log', label: '로그' },
-                    ]}
-                  />
-                )}
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+                    <XAxis
+                      dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
+                      axisLine={false} tickLine={false} interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
+                      axisLine={false} tickLine={false} width={50}
+                      scale={useLog ? 'log' : 'linear'}
+                      domain={
+                        useLog
+                          ? [(dataMin: number) => Math.max(1, dataMin * 0.9), (dataMax: number) => dataMax * 1.15]
+                          : isValue
+                            ? [(dataMin: number) => Math.max(0, dataMin * 0.92), (dataMax: number) => dataMax * 1.15]
+                            : ['auto', 'auto']
+                      }
+                      allowDataOverflow={useLog || isValue}
+                    />
+                    {chart.suffix === 'pnl' || chart.suffix === 'pct' ? (
+                      <ReferenceLine y={0} stroke={t.chart.grid} strokeDasharray="3 3" />
+                    ) : null}
+                    <Tooltip
+                      contentStyle={{
+                        background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
+                        borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
+                      }}
+                      labelFormatter={(v) => String(v)}
+                      formatter={(value, name) => [`${chart.fmt(Number(value))}${chart.unit}`, name]}
+                    />
+                    {lines.map(line => (
+                      <Line
+                        key={line.key} type="monotone" dataKey={line.key} name={line.name}
+                        stroke={line.color} strokeWidth={1.5} dot={false} connectNulls
+                      />
+                    ))}
+                    {(chart.suffix === 'value' || chart.suffix === 'pnl') && getAfterTaxLines(chart.suffix).map(line => (
+                      <Line
+                        key={line.key} type="monotone" dataKey={line.key} name={line.name}
+                        stroke={line.color} strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.55}
+                        dot={false} connectNulls isAnimationActive={false}
+                      />
+                    ))}
+                    {chart.suffix === 'pct' && (
+                      <Line
+                        type="monotone" dataKey="qldPct" name="QLD"
+                        stroke={QLD_BENCH_COLOR} strokeWidth={1.5} strokeDasharray="4 3"
+                        dot={false} connectNulls isAnimationActive={false}
+                      />
+                    )}
+                    {/* 실현 누적 보조 라인 (수익금·전체 모드): 전체 수익금 중 실현분 기여 */}
+                    {chart.suffix === 'pnl' && viewMode === 'total' && (
+                      <Line
+                        type="monotone" dataKey="전체realized" name="실현 누적"
+                        stroke={REALIZED_COLOR} strokeWidth={1} strokeDasharray="1 2"
+                        dot={false} connectNulls isAnimationActive={false}
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <ResponsiveContainer width={chartColumns === 2 ? 400 : '100%'} height={160}>
-                <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-                  <XAxis
-                    dataKey="date" tickFormatter={fmtDate} tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
-                    axisLine={false} tickLine={false} interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={(v: number) => chart.fmt(v)} tick={{ fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fill: t.neutrals.subtle }}
-                    axisLine={false} tickLine={false} width={50}
-                    scale={useLog ? 'log' : 'linear'}
-                    domain={
-                      useLog
-                        ? [(dataMin: number) => Math.max(1, dataMin * 0.9), (dataMax: number) => dataMax * 1.15]
-                        : isValue
-                          ? [(dataMin: number) => Math.max(0, dataMin * 0.92), (dataMax: number) => dataMax * 1.15]
-                          : ['auto', 'auto']
-                    }
-                    allowDataOverflow={useLog || isValue}
-                  />
-                  {chart.suffix === 'pnl' || chart.suffix === 'pct' ? (
-                    <ReferenceLine y={0} stroke={t.chart.grid} strokeDasharray="3 3" />
-                  ) : null}
-                  <Tooltip
-                    contentStyle={{
-                      background: t.neutrals.card, border: `1px solid ${t.neutrals.line}`,
-                      borderRadius: t.radius.md, fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontFamily: t.font.sans, padding: `${t.density.gapSm}px ${t.density.panelPadX}px`,
-                    }}
-                    labelFormatter={(v) => String(v)}
-                    formatter={(value, name) => [`${chart.fmt(Number(value))}${chart.unit}`, name]}
-                  />
-                  {lines.map(line => (
-                    <Line
-                      key={line.key} type="monotone" dataKey={line.key} name={line.name}
-                      stroke={line.color} strokeWidth={1.5} dot={false} connectNulls
-                    />
-                  ))}
-                  {(chart.suffix === 'value' || chart.suffix === 'pnl') && getAfterTaxLines(chart.suffix).map(line => (
-                    <Line
-                      key={line.key} type="monotone" dataKey={line.key} name={line.name}
-                      stroke={line.color} strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.55}
-                      dot={false} connectNulls isAnimationActive={false}
-                    />
-                  ))}
-                  {chart.suffix === 'pct' && (
-                    <Line
-                      type="monotone" dataKey="qldPct" name="QLD"
-                      stroke={QLD_BENCH_COLOR} strokeWidth={1.5} strokeDasharray="4 3"
-                      dot={false} connectNulls isAnimationActive={false}
-                    />
-                  )}
-                  {/* 실현 누적 보조 라인 (수익금·전체 모드): 전체 수익금 중 실현분 기여 */}
-                  {chart.suffix === 'pnl' && viewMode === 'total' && (
-                    <Line
-                      type="monotone" dataKey="전체realized" name="실현 누적"
-                      stroke={REALIZED_COLOR} strokeWidth={1} strokeDasharray="1 2"
-                      dot={false} connectNulls isAnimationActive={false}
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )
-        })}
+            )
+          })}
         </div>
 
-        <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle, marginTop: -4 }}>
+        <div style={{ fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           점선 = 세후 (해외 양도소득세 22% 가정 · 국내 비과세)
         </div>
 
-        {/* Donut charts: allocation breakdown */}
+        {/* 비중 — 공용 DistributionPie. 테마별·AI 인프라 세부·국내/해외를 탭으로 오간다. */}
         {radarData.byTheme.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: t.density.kpiGap }}>
-              <div style={{ fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium, color: t.neutrals.muted }}>
-                포트폴리오 비중
-              </div>
-              <LSegmented
-                options={[
-                  { value: 'category', label: '기본' },
-                  { value: 'return', label: '수익률' },
-                ]}
-                value={donutColorMode}
-                onChange={handleDonutColorChange}
-              />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (radarData.byAiInfraSub.length > 0 ? 'repeat(3, 1fr)' : '1fr 1fr'), gap: t.density.kpiGap }}>
-              <DonutChart title="테마별" data={radarData.byTheme}
-                colors={radarData.byTheme.map(d => GROUP_COLORS[d.subject] || '#94a3b8')}
-                colorMode={donutColorMode} returns={radarData.byTheme.map(d => d.retPct)}
-                fixedWidth={chartColumns === 2 ? 280 : undefined} />
-              {radarData.byAiInfraSub.length > 0 && (
-                <DonutChart title="AI 인프라 세부" data={radarData.byAiInfraSub}
-                  colors={radarData.byAiInfraSub.map(d => AI_INFRA_SUB_COLORS[d.subject] || '#94a3b8')}
-                  colorMode={donutColorMode} returns={radarData.byAiInfraSub.map(d => d.retPct)}
-                  fixedWidth={chartColumns === 2 ? 280 : undefined} />
-              )}
-              <DonutChart title="국내/해외" data={radarData.byMarket}
-                colors={[MARKET_COLORS['국내'], MARKET_COLORS['해외']]}
-                colorMode={donutColorMode} returns={radarData.byMarket.map(d => d.retPct)}
-                fixedWidth={chartColumns === 2 ? 280 : undefined} />
-            </div>
-            {/* 수익률 모드 범례 (차트 아래): 색=수익률(파랑 손실 ↔ 빨강 수익), 테두리=분류, 크기=비중 */}
-            {donutColorMode === 'return' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: t.density.kpiGap, marginTop: t.density.kpiGap, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
-                <span>손실</span>
-                <span style={{ width: 96, height: 7, borderRadius: t.radius.sm, background: `linear-gradient(90deg, ${returnGradientColor(-50)}, ${returnGradientColor(0)}, ${returnGradientColor(50)})`, display: 'inline-block' }} />
-                <span>수익</span>
-                <span style={{ opacity: 0.7 }}>(색=수익률, 테두리=분류, 크기=비중)</span>
-              </div>
-            )}
-          </div>
+          <DistributionPie title="포트폴리오 비중" unit="%" tabs={pieTabs} palette={piePalette} />
         )}
       </div>
     </LCard>
