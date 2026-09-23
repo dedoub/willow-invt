@@ -5,7 +5,7 @@ import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { SignalBar } from '../_components/signal-bar'
-import { HoldingsBlock } from '../_components/holdings-block'
+import { HoldingsTableBlock } from '../_components/holdings-table-block'
 import { AnalysisBlock } from '../_components/analysis-block'
 import { TradeLog } from '../_components/trade-log'
 import { SectorRotationBlock } from '../_components/sector-rotation-block'
@@ -214,7 +214,8 @@ export default function InvestPage() {
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
-            <HoldingsBlock
+            {/* 보유 현황 — 윌로우 매출관리를 본으로 표+상세 모달로 다시 짠 카드(CEO 2026-09-23). */}
+            <HoldingsTableBlock
               stockTrades={stockTradesFull}
               stockQuotes={stockQuotesFull}
               stockThemes={stockThemes}
@@ -223,10 +224,6 @@ export default function InvestPage() {
               tickerSectors={tickerSectors}
               qldTransition={qldTransition}
               breakoutMap={breakoutMap}
-              // 종목 카드를 한 줄에 둘 넣는 것은 이 카드가 전폭일 때뿐이다. 2열 모드에서는
-              // 카드가 반폭이라 한 장이 ~310px 밖에 못 받아, 머리줄의 배지들에 밀려 이름이
-              // 한 글자로 줄어든다(2026-09-23).
-              cardColumns={mobile || cols !== 1 ? 1 : 2}
             />
             <TradeLog trades={stockTrades} fxHistory={fxHistory} usdKrwRate={usdKrw} />
           </div>
