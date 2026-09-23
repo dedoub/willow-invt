@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode, type CSSProperties } from 'react'
 import { t } from './linear-tokens'
-import { navGroup, type NavItem } from './linear-nav'
+import { navGroup, findNavItem, type NavItem } from './linear-nav'
 import { LIcon } from './linear-icons'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import Link from 'next/link'
@@ -330,7 +330,10 @@ export function LinearSidebar({ mobile, open, onClose, collapsed = false, animat
   // 접힌 상태(아이콘 전용 rail)는 데스크톱에서만 사용
   const rail = collapsed && !mobile
 
-  const isActiveHref = (href?: string) => !!href && (pathname === href || pathname.startsWith(href + '/'))
+  // 활성 표시는 breadcrumb과 같은 규칙으로 고른다 — 접두사만 보면 /invest/research 에서
+  // 주식포트폴리오(/invest)까지 같이 켜진다. findNavItem 이 더 긴 쪽 하나만 돌려준다.
+  const activeHref = findNavItem(pathname)?.item.href
+  const isActiveHref = (href?: string) => !!href && href === activeHref
   const navLink = (n: NavItem) => (
     <NavRow key={n.id} href={n.href} icon={n.icon} label={n.label}
       isActive={isActiveHref(n.href)} rail={rail} onClose={onClose} />

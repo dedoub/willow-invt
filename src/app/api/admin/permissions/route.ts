@@ -6,7 +6,8 @@ import { getServiceSupabase } from '@/lib/supabase'
 export const AVAILABLE_PAGES = [
   { path: '/mgmt',       section: 'willowInvest', name: '윌로우' },
   { path: '/wiki',       section: 'willowInvest', name: '업무위키' },
-  { path: '/invest',     section: 'willowInvest', name: '주식' },
+  { path: '/invest',     section: 'willowInvest', name: '주식포트폴리오' },
+  { path: '/invest/research', section: 'willowInvest', name: '주식리서치' },
   { path: '/realestate', section: 'willowInvest', name: '부동산리서치' },
   { path: '/etc',        section: 'etfIndexing',  name: 'ETC' },
   { path: '/akros',      section: 'etfIndexing',  name: 'Akros' },

@@ -65,7 +65,9 @@ export const NAV_GROUPS: NavGroup[] = [
     key: 'assets',
     label: '자산관리',
     items: [
-      { id: 'invest',     href: '/invest',     label: '주식',      icon: 'trending' },
+      // 주식은 두 장으로 나눈다(CEO 2026-09-23) — 보유·수익을 보는 쪽과 살 것을 고르는 쪽.
+      { id: 'invest',     href: '/invest',          label: '주식포트폴리오', icon: 'trending' },
+      { id: 'research',   href: '/invest/research', label: '주식리서치',     icon: 'search' },
       { id: 'realestate', href: '/realestate', label: '부동산',    icon: 'building' },
     ],
   },

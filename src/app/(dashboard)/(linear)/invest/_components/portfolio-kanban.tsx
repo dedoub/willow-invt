@@ -73,6 +73,8 @@ interface KanbanProps {
   breakoutMap?: Record<string, { breakout: boolean; gapPct: number }>
   onTotalValueChange?: (totalUsd: number) => void
   onDataChanged?: () => void
+  /** 섹션 머리 우측에 붙일 보조 컨트롤 — 리서치 페이지의 인쇄 버튼 등. */
+  headTools?: React.ReactNode
   /** 인쇄용 페이지에서 카드에 테두리 추가 */
   printMode?: boolean
 }
@@ -208,7 +210,7 @@ function groupCardsByTheme(
 
 export function PortfolioKanban({
   watchlistData, signalData, stockTrades, stockQuotes, stockResearch, stockThemes = {}, usdKrw,
-  qldTransition = {}, breakoutMap = {}, onTotalValueChange, onDataChanged, printMode = false,
+  qldTransition = {}, breakoutMap = {}, onTotalValueChange, onDataChanged, printMode = false, headTools,
 }: KanbanProps) {
   const mobile = useIsMobile()
   // 칸반은 3-col 레이아웃이라 각 컬럼 폭이 좁아 1280px 미만에서는 카드 2-col 안 적용
@@ -564,7 +566,7 @@ export function PortfolioKanban({
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" action={
+        <LSectionHead eyebrow="PORTFOLIO · KANBAN" title="종목관리" tools={headTools} action={
           <LBtn
             variant={sortBy1m ? 'brand' : 'secondary'}
             size="sm"

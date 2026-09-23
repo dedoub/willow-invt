@@ -474,6 +474,7 @@ const GENERIC_TOOLS = ['query_data', 'insert_data', 'update_data', 'delete_data'
 const PAGE_TOOL_PREFIXES: Record<string, string[]> = {
   '/mgmt':   ['willow_', 'gmail_', 'wiki_'],
   '/invest': ['invest_', 're_', 'wiki_'],
+  '/invest/research': ['invest_', 're_', 'wiki_'],
   '/wiki':   ['wiki_'],
   '/tensw':  ['tensw_', 'gmail_', 'wiki_'],
   '/akros':  ['akros_', 'gmail_', 'wiki_'],

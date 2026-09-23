@@ -105,7 +105,7 @@ export function MgmtSkeleton() {
   )
 }
 
-/** 투자관리 skeleton: signal bar + kanban + 2-col (holdings + analysis/tradelog) + real estate */
+/** 보유현황 + 분석/거래기록 2열 */
 export function InvestHoldingsSkeleton() {
   const mobile = useIsMobile()
   return (
@@ -147,104 +147,51 @@ export function InvestHoldingsSkeleton() {
   )
 }
 
+/** 주식포트폴리오 — 시그널 바 + 보유현황/분석 2열 */
 export function InvestSkeleton() {
   const mobile = useIsMobile()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-      {/* Signal bar: 5 stat boxes (2-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
-        {Array.from({ length: 5 }).map((_, i) => (
+      {/* Signal bar: 6 stat boxes (2-col on mobile) */}
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(6, 1fr)', gap: t.density.kpiGap }}>
+        {Array.from({ length: 6 }).map((_, i) => (
           <Bone key={i} h={t.density.statH} r={t.radius.sm} />
         ))}
       </div>
 
-      {/* Kanban: 3 columns (horizontally scrollable on mobile) */}
-      <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <Bone w={80} h={8} />
-          <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
-        </div>
-        <div style={{
-          padding: `0 ${t.density.panelPadX}px ${t.density.controlPadXMd}px`,
-          display: 'grid',
-          gridTemplateColumns: mobile ? 'repeat(3, minmax(220px, 1fr))' : '1fr 1fr 1fr',
-          gap: t.density.gapMd,
-          overflowX: mobile ? 'auto' : undefined,
-        }}>
-          {Array.from({ length: 3 }).map((_, col) => (
-            <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
-              <Bone h={14} w={80} style={{ marginBottom: t.density.gapXs }} />
-              {Array.from({ length: col === 0 ? 5 : col === 1 ? 4 : 3 }).map((_, j) => (
-                <Bone key={j} h={64} r={t.radius.md} />
-              ))}
-            </div>
-          ))}
-        </div>
-      </CardSkel>
+      <InvestHoldingsSkeleton />
+    </div>
+  )
+}
 
-      {/* Holdings + Analysis/TradeLog (1-col on mobile) */}
-      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-        <CardSkel pad={0}>
-          <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-            <Bone w={80} h={8} />
-            <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-          </div>
-          <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Bone key={i} h={18} style={{ marginTop: t.density.kpiGap }} />
+/** 주식리서치 — 종목관리 칸반 한 장 */
+export function InvestResearchSkeleton() {
+  const mobile = useIsMobile()
+
+  return (
+    <CardSkel pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <Bone w={80} h={8} />
+        <Bone w={100} h={14} style={{ marginTop: t.density.gapSm }} />
+      </div>
+      <div style={{
+        padding: `0 ${t.density.panelPadX}px ${t.density.controlPadXMd}px`,
+        display: 'grid',
+        gridTemplateColumns: mobile ? 'repeat(2, minmax(220px, 1fr))' : '1fr 1fr',
+        gap: t.density.gapMd,
+        overflowX: mobile ? 'auto' : undefined,
+      }}>
+        {Array.from({ length: 2 }).map((_, col) => (
+          <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapSm }}>
+            <Bone h={14} w={80} style={{ marginBottom: t.density.gapXs }} />
+            {Array.from({ length: col === 0 ? 6 : 4 }).map((_, j) => (
+              <Bone key={j} h={64} r={t.radius.md} />
             ))}
           </div>
-        </CardSkel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-          <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-              <Bone w={80} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-            </div>
-            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-              <Bone h={120} r={t.radius.md} />
-            </div>
-          </CardSkel>
-          <CardSkel pad={0}>
-            <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-              <Bone w={60} h={8} />
-              <Bone w={80} h={14} style={{ marginTop: t.density.gapSm }} />
-            </div>
-            <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Bone key={i} h={16} style={{ marginTop: t.density.kpiGap }} />
-              ))}
-            </div>
-          </CardSkel>
-        </div>
+        ))}
       </div>
-
-      {/* Real Estate Block */}
-      <CardSkel pad={0}>
-        <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <Bone w={100} h={8} />
-          <Bone w={120} h={14} style={{ marginTop: t.density.gapSm }} />
-        </div>
-        {/* KPI row */}
-        <div style={{ padding: `0 ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: mobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: t.density.kpiGap }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Bone key={i} h={t.density.statH} r={t.radius.sm} />
-          ))}
-        </div>
-        {/* Chart + Table grid */}
-        <div style={{ padding: `${t.density.blockGap}px ${t.density.cardPad}px ${t.density.cardPad}px`, display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: t.density.blockGap }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-            <Bone h={160} r={t.radius.md} />
-            <Bone h={160} r={t.radius.md} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
-            <Bone h={160} r={t.radius.md} />
-            <Bone h={160} r={t.radius.md} />
-          </div>
-        </div>
-      </CardSkel>
-    </div>
+    </CardSkel>
   )
 }
 
