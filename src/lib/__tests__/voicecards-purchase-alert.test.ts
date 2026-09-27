@@ -53,6 +53,36 @@ test('deduplicates the client event against its server receipt', () => {
   assert.equal(signals[0]?.device_id, 'device-1')
 })
 
+test('deduplicates a device-account purchase whose client event has no user_id', () => {
+  // 구글 로그인 전 기기 계정 결제: 영수증은 device:<uuid>, 이벤트는 user_id 없이 device_id 만 찍힌다
+  // (2026-09-16 GPA.3396-3686-0902-90897 이 두 번 집계된 사례).
+  const signals = mergeVoicecardsPurchaseSignals([{
+    id: 'event-1',
+    event_name: 'credits_changed',
+    created_at: '2026-09-16T08:39:50.298Z',
+    user_id: null,
+    device_id: '0c13b734-42bc-44e8-aa84-2f2eef3c6225',
+    platform: 'android',
+    country: 'DE',
+    properties: {
+      reason: 'purchase',
+      delta: 1100,
+      product_id: 'com.monor.voicecards.credits.1000',
+    },
+  }], [{
+    store_txn_id: 'GPA.3396-3686-0902-90897',
+    platform: 'android',
+    user_id: 'device:0c13b734-42bc-44e8-aa84-2f2eef3c6225',
+    product_id: 'com.monor.voicecards.credits.1000',
+    credits: 1100,
+    created_at: '2026-09-16T08:39:49.043Z',
+  }])
+
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.id, 'receipt:GPA.3396-3686-0902-90897')
+  assert.equal(signals[0]?.country, 'DE')
+})
+
 test('counts receipt-only purchases in dashboard revenue totals', () => {
   const signals = mergeVoicecardsPurchaseSignals([], [{
     store_txn_id: 'txn-1',

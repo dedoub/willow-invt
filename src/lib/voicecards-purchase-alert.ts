@@ -47,7 +47,10 @@ function receiptMatchesEvent(
 ): boolean {
   const receiptTime = Date.parse(receipt.created_at)
   const eventTime = Date.parse(event.created_at)
-  return receipt.user_id === event.user_id
+  // 구글 로그인 전 기기 계정은 영수증에 device:<uuid> 로 남지만 이벤트에는 user_id 가 안 찍힌다.
+  const sameOwner = receipt.user_id === event.user_id
+    || (!event.user_id && !!event.device_id && receipt.user_id === `device:${event.device_id}`)
+  return sameOwner
     && receipt.properties?.product_id === event.properties?.product_id
     && Number(receipt.properties?.delta || 0) === Number(event.properties?.delta || 0)
     && Number.isFinite(receiptTime)
