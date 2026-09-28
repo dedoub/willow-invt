@@ -424,7 +424,7 @@ export function LPageSize({ value, onChange, min = 1, max = 100, options = PAGE_
   const items = Array.from(new Set([...options, value])).filter(n => n >= min && n <= max).sort((a, b) => a - b)
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
+    <span data-page-size="" style={{ display: 'inline-flex', alignItems: 'center', gap: t.density.gapXs }}>
       <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
         <input
           value={draft}

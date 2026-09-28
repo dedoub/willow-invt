@@ -10,7 +10,7 @@
  * 이 화면만 다른 물건으로 읽혔다. 계산은 _lib/holdings 가 든다.
  */
 
-import { useMemo, useState, useCallback, type CSSProperties } from 'react'
+import { useMemo, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
@@ -43,6 +43,8 @@ interface Props {
   /** ticker → 현재가가 직전 20일 고가를 돌파했는지. */
   breakoutMap?: Record<string, { breakout: boolean; gapPct: number }>
   style?: CSSProperties
+  /** 보유현황과 보유종목 카드 사이에 둘 카드(자산비중). */
+  between?: ReactNode
 }
 
 /** 표 한 줄. Holding 에 화면이 정렬·표시에 쓰는 파생값을 붙인 것. */
@@ -127,7 +129,7 @@ function ChangeLine({ value, base, pct, currency }: { value: number; base?: numb
 
 export function HoldingsTableBlock({
   stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory,
-  tickerSectors = {}, qldTransition = {}, breakoutMap = {}, style,
+  tickerSectors = {}, qldTransition = {}, breakoutMap = {}, style, between,
 }: Props) {
   const mobile = useIsMobile()
   // 필터·통화는 카드마다 따로 둔다(CEO 2026-09-28) — 위 카드를 해외로 봐도 아래 표는 전체일 수 있다.
@@ -312,6 +314,8 @@ export function HoldingsTableBlock({
         </div>
       )}
     </LCard>
+
+    {between}
 
     {/* 보유종목 — 종목 표는 별도 카드로 둔다(CEO 2026-09-28). 시장 필터·통화 세그먼트도 따로다. */}
     <LCard pad={0}>

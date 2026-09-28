@@ -211,16 +211,6 @@ export default function InvestPage() {
           actions={printActions}
         />
 
-        {loadPhase >= 2 && (
-          <AllocationBlock
-            stockTrades={stockTradesFull}
-            stockQuotes={stockQuotesFull}
-            stockThemes={stockThemes}
-            usdKrwRate={usdKrw}
-            mobile={mobile}
-          />
-        )}
-
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
@@ -234,6 +224,15 @@ export default function InvestPage() {
               tickerSectors={tickerSectors}
               qldTransition={qldTransition}
               breakoutMap={breakoutMap}
+              between={
+                <AllocationBlock
+                  stockTrades={stockTradesFull}
+                  stockQuotes={stockQuotesFull}
+                  stockThemes={stockThemes}
+                  usdKrwRate={usdKrw}
+                  mobile={mobile}
+                />
+              }
             />
             <TradeLog trades={stockTrades} fxHistory={fxHistory} usdKrwRate={usdKrw} />
           </div>
