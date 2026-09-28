@@ -5,7 +5,7 @@
  *
  * 보유 현황 카드: 머리(제목 + 세그먼트) → 지표 격자(StatRows·LStat) → 분류 요약 표.
  * 보유 종목 카드: 필터 칩 + 검색 → 종목 표(정렬·페이지) → 발 줄, 행 클릭은 LDialog 상세.
- * 두 카드는 시장 필터·통화 세그먼트 상태를 같이 쓴다.
+ * 두 카드는 시장 필터·통화 세그먼트를 각자 가진다.
  * 종목 카드 격자는 두지 않는다. 카드 안에 카드를 격자로 깔면 카드 문법이 닿지 않아
  * 이 화면만 다른 물건으로 읽혔다. 계산은 _lib/holdings 가 든다.
  */
@@ -89,6 +89,11 @@ const MARKET_FILTERS: { value: MarketFilter; label: string }[] = [
   { value: 'US', label: '해외' },
 ]
 
+const CURRENCY_OPTIONS: { value: CurrencyMode; label: string }[] = [
+  { value: 'native', label: '원화/달러' },
+  { value: 'krw', label: '₩ 통합' },
+]
+
 const PAGE_SIZE_KEY = 'invest-holdings-page-size'
 const DEFAULT_PAGE_SIZE = 10
 function getStoredPageSize(): number {
@@ -97,10 +102,12 @@ function getStoredPageSize(): number {
   return n >= 1 && n <= 100 ? n : DEFAULT_PAGE_SIZE
 }
 
+// 보유현황·보유종목 카드가 통화 세그먼트를 따로 기억한다.
 const CURRENCY_KEY = 'invest-holdings-currency'
-function getStoredCurrency(): CurrencyMode {
+const LIST_CURRENCY_KEY = 'invest-holdings-list-currency'
+function getStoredCurrency(key: string): CurrencyMode {
   if (typeof window === 'undefined') return 'native'
-  return localStorage.getItem(CURRENCY_KEY) === 'krw' ? 'krw' : 'native'
+  return localStorage.getItem(key) === 'krw' ? 'krw' : 'native'
 }
 
 /** 지표 타일의 증감 줄. 값은 검정, 부호가 붙은 변동만 색을 갖는다(카드 문법 2026-09-10). */
@@ -123,8 +130,11 @@ export function HoldingsTableBlock({
   tickerSectors = {}, qldTransition = {}, breakoutMap = {}, style,
 }: Props) {
   const mobile = useIsMobile()
+  // 필터·통화는 카드마다 따로 둔다(CEO 2026-09-28) — 위 카드를 해외로 봐도 아래 표는 전체일 수 있다.
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
-  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>(getStoredCurrency)
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>(() => getStoredCurrency(CURRENCY_KEY))
+  const [listMarket, setListMarket] = useState<MarketFilter>('all')
+  const [listCurrency, setListCurrency] = useState<CurrencyMode>(() => getStoredCurrency(LIST_CURRENCY_KEY))
   const [search, setSearch] = useState('')
   const [pageSize, setPageSize] = useState<number>(getStoredPageSize)
   const [page, setPage] = useState(0)
@@ -138,10 +148,11 @@ export function HoldingsTableBlock({
   const totals = useMemo(() => computeTotals(summary, realized, marketFilter), [summary, realized, marketFilter])
   const themeStats = useMemo(() => computeThemeStats(filtered, usdKrwRate), [filtered, usdKrwRate])
   const hasQuotes = holdings.some(h => h.currentPrice > 0)
+  const listFiltered = useMemo(() => listMarket === 'all' ? holdings : holdings.filter(h => h.market === listMarket), [holdings, listMarket])
 
   const rows = useMemo((): HoldingRow[] => {
-    const totalValKrw = summary.totalVal
-    return filtered.map(h => {
+    const totalValKrw = listFiltered.reduce((sum, h) => sum + valKrwOf(h, usdKrwRate), 0)
+    return listFiltered.map(h => {
       const key = h.ticker.replace('.KS', '')
       const valKrw = valKrwOf(h, usdKrwRate)
       return {
@@ -157,7 +168,7 @@ export function HoldingsTableBlock({
         qld: !!(qldTransition[h.ticker] ?? qldTransition[key]),
       }
     })
-  }, [filtered, summary.totalVal, usdKrwRate, tickerSectors, breakoutMap, qldTransition])
+  }, [listFiltered, usdKrwRate, tickerSectors, breakoutMap, qldTransition])
 
   const searched = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -183,11 +194,16 @@ export function HoldingsTableBlock({
     setCurrencyMode(v)
     localStorage.setItem(CURRENCY_KEY, v)
   }, [])
+  const applyListCurrency = useCallback((v: CurrencyMode) => {
+    setListCurrency(v)
+    localStorage.setItem(LIST_CURRENCY_KEY, v)
+  }, [])
 
   // 해외 종목의 금액: 발행 통화 그대로(native) 또는 원화 환산(krw). 국내는 늘 원화.
   const krw = currencyMode === 'krw'
-  const showValue = (r: HoldingRow) => krw ? fmtAmount(r.valKrw, 'KRW') : fmtAmount(r.currentValue, r.currency)
-  const showPnl = (r: HoldingRow) => krw ? fmtSigned(r.pnlKrw, 'KRW') : fmtSigned(r.pnl, r.currency)
+  const listKrw = listCurrency === 'krw'
+  const showValue = (r: HoldingRow) => listKrw ? fmtAmount(r.valKrw, 'KRW') : fmtAmount(r.currentValue, r.currency)
+  const showPnl = (r: HoldingRow) => listKrw ? fmtSigned(r.pnlKrw, 'KRW') : fmtSigned(r.pnl, r.currency)
   const cellTone = (v: number): 'pos' | 'neg' | 'muted' => v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'
 
   const themeRows = useMemo((): ThemeRow[] => {
@@ -217,14 +233,10 @@ export function HoldingsTableBlock({
           <LSectionHead
             title="보유현황"
             tools={
-              <LSegmented
-                value={currencyMode}
-                onChange={applyCurrency}
-                options={[
-                  { value: 'native', label: '원화/달러' },
-                  { value: 'krw', label: '₩ 통합' },
-                ]}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+                <LFilterChip options={MARKET_FILTERS} value={marketFilter} onChange={setMarketFilter} gap={t.density.gapXs} />
+                <LSegmented value={currencyMode} onChange={applyCurrency} options={CURRENCY_OPTIONS} />
+              </div>
             }
             toolsInline
             mb={0}
@@ -301,19 +313,27 @@ export function HoldingsTableBlock({
       )}
     </LCard>
 
-    {/* 보유 종목 — 종목 표는 별도 카드로 둔다(CEO 2026-09-28). 시장 필터·통화 세그먼트는
-        위 카드와 상태를 같이 쓴다. */}
+    {/* 보유종목 — 종목 표는 별도 카드로 둔다(CEO 2026-09-28). 시장 필터·통화 세그먼트도 따로다. */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-        <LSectionHead title="보유종목" mb={0} />
+        <LSectionHead
+          title="보유종목"
+          tools={
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap' }}>
+              <LFilterChip options={MARKET_FILTERS} value={listMarket} onChange={v => { setListMarket(v); setPage(0) }} gap={t.density.gapXs} />
+              <LSegmented value={listCurrency} onChange={applyListCurrency} options={CURRENCY_OPTIONS} />
+            </div>
+          }
+          toolsInline
+          mb={0}
+        />
       </div>
 
-      {/* 필터 + 검색 — 매출관리와 같은 줄 */}
+      {/* 검색 — 필터는 제목 오른쪽에 둔다 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: t.density.gapSm, flexWrap: 'wrap',
         padding: `0 ${t.density.cardPad}px ${t.density.kpiGap}px`,
       }}>
-        <LFilterChip options={MARKET_FILTERS} value={marketFilter} onChange={v => { setMarketFilter(v); setPage(0) }} gap={t.density.gapXs} />
         <div style={{ position: 'relative', flex: 1, minWidth: mobile ? '100%' : 160 }}>
           <div style={{ position: 'absolute', left: t.density.panelPadX, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
             <LIcon name="search" size={13} stroke={2} color={t.neutrals.subtle} />
