@@ -6,6 +6,12 @@
  *   node scripts/ui-check.mjs /invest --no-judge      # 결정적 검사만
  *   node scripts/ui-check.mjs /invest --ref /mgmt     # 심사 때 나란히 볼 기준 화면(기본 /mgmt)
  *   node scripts/ui-check.mjs /invest --base https://dash.willowinvt.com
+ *   node scripts/ui-check.mjs --all [--no-judge]      # 대시보드 전 화면(scripts/lib/ui-routes.mjs 가 찾는다)
+ *   node scripts/ui-check.mjs --all --update-baseline # 지금 상태를 기존 부채로 기록(처음 한 번, 부채를 줄였을 때)
+ *   node scripts/ui-check.mjs --stats                 # 주 단위 실행·통과·CEO 지적 수
+ *
+ * 기존 부채(docs/ui-review/baseline.json): 규칙이 생기기 전에 만든 화면의 위반과 심사 점수. 새 위반이 생기거나
+ * 점수가 기준선보다 3점 넘게 떨어지면 실패, 부채 그대로면 통과다(역진 방지). 부채를 고치면 --update-baseline 으로 줄인다.
  *
  * 1) 결정적 검사: 페이지를 렌더해 카드마다 점검표 중 기계로 잴 수 있는 항목을 잰다
  *    (docs/design-system/dashboard-system.md "카드 점검표"). 규칙은 아래 RULES 에 쌓는다.
@@ -22,6 +28,7 @@ import { spawn, execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { RULES_SOURCE } from './lib/ui-check-rules.mjs'
+import { discoverRoutes } from './lib/ui-routes.mjs'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const OUT_ROOT = path.join(ROOT, '.ui-check')
@@ -31,6 +38,9 @@ const DEV_PORT = 3123
 const argv = process.argv.slice(2)
 const RUNS_LOG = path.join(OUT_ROOT, 'runs.jsonl')
 const FEEDBACK_LOG = path.join(ROOT, 'docs/ui-review/feedback-log.md')
+const BASELINE = path.join(ROOT, 'docs/ui-review/baseline.json')
+const PASS_FILE = path.join(OUT_ROOT, 'last-pass.json')
+const readJson = (f, def) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return def } }
 
 // --stats: 사람 개입과 원가가 줄고 있는지. 실행 기록(.ui-check/runs.jsonl)과 CEO 지적 로그를 주 단위로 센다.
 if (argv.includes('--stats')) {
@@ -51,9 +61,11 @@ if (argv.includes('--stats')) {
 
 const flag = (name) => argv.includes(name)
 const opt = (name, def) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : def }
-const paths = argv.filter((a, i) => a.startsWith('/') && !['--ref', '--base'].includes(argv[i - 1]))
+const all = flag('--all')
+const updateBaseline = flag('--update-baseline')
+const paths = all ? discoverRoutes(ROOT) : argv.filter((a, i) => a.startsWith('/') && !['--ref', '--base'].includes(argv[i - 1]))
 if (paths.length === 0) {
-  console.error('사용법: node scripts/ui-check.mjs /invest [/mgmt ...] [--no-judge] [--ref /mgmt] [--base URL]')
+  console.error('사용법: node scripts/ui-check.mjs /invest [/mgmt ...] | --all  [--no-judge] [--update-baseline] [--ref /mgmt] [--base URL]')
   process.exit(2)
 }
 const refPath = opt('--ref', '/mgmt')
@@ -95,9 +107,10 @@ async function ensureDevServer() {
 }
 
 async function capture(page, base, p, file) {
-  await page.goto(base + p, { waitUntil: 'networkidle', timeout: 240000 })
+  // networkidle 은 계속 불러오는 화면(/ryuha, /scripta)에서 끝나지 않는다 — 문서가 뜨면 카드 머리를 기다린다.
+  await page.goto(base + p, { waitUntil: 'domcontentloaded', timeout: 240000 })
   await page.waitForSelector('[data-section-head]', { timeout: 180000 })
-  await page.waitForTimeout(5000) // 카드들이 두 번째 로드 단계까지 올라오게
+  await page.waitForTimeout(8000) // 카드들이 두 번째 로드 단계까지 올라오게
   await page.screenshot({ path: file, fullPage: true })
 }
 
@@ -125,10 +138,10 @@ function runJudge(targetPng, refPng, pagePath, violations, outDir) {
 ---
 첫 번째 이미지: 검사 대상 화면 ${pagePath}
 두 번째 이미지: 기준 화면 ${refPath} (윌로우 사업관리)
-결정적 검사가 이미 찾은 위반(중복 보고하지 말 것): ${JSON.stringify(violations)}
+결정적 검사가 이미 찾은 위반 — 보고하지 말고 점수에서도 깎지 말 것: ${JSON.stringify(violations)}
 위 기준으로 채점하고 JSON 으로만 답하라.`
   try {
-    execFileSync('codex', ['exec', '--skip-git-repo-check', '-s', 'read-only',
+    execFileSync('codex', ['exec', '--ephemeral', '--skip-git-repo-check', '-s', 'read-only',
       '-i', targetPng, '-i', refPng, '--output-schema', schemaFile, '-o', lastMsg, prompt],
     { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], timeout: 15 * 60 * 1000 })
   } catch (e) {
@@ -153,6 +166,7 @@ const outDir = path.join(OUT_ROOT, stamp)
 fs.mkdirSync(outDir, { recursive: true })
 
 const env = readEnv()
+const baseline = readJson(BASELINE, { violations: {}, judge: {} })
 const server = opt('--base') ? { base: opt('--base'), stop: () => {} } : await ensureDevServer()
 const browser = await chromium.launch()
 let failed = false
@@ -168,24 +182,48 @@ try {
 
   for (const p of paths) {
     const png = path.join(outDir, p.replace(/\W+/g, '_') + '.png')
-    await capture(page, server.base, p, png)
-    const violations = await page.evaluate(RULES_SOURCE)
-    const entry = { path: p, screenshot: png, violations, judge: null }
+    const entry = { path: p, screenshot: png, violations: [], newViolations: [], fixed: [], judge: null, pass: true }
+    report.pages.push(entry)
     console.log(`\n== ${p}`)
-    if (violations.length === 0) console.log('  결정적 검사: 통과')
-    for (const v of violations) console.log(`  ✗ [${v.rule}] ${v.card}: ${v.detail}`)
-    if (violations.length) failed = true
+    try {
+      await capture(page, server.base, p, png)
+      entry.violations = await page.evaluate(RULES_SOURCE)
+    } catch (e) {
+      // 한 화면이 안 뜬다고 전 화면 점검을 멈추지 않는다.
+      entry.error = String(e.message || e).split('\n')[0]
+      entry.pass = false
+      console.log(`  ✗ 화면을 열지 못함: ${entry.error}`)
+      continue
+    }
+    const known = new Set(baseline.violations[p] || [])
+    const keyOf = v => `${v.card}|${v.rule}`
+    entry.newViolations = entry.violations.filter(v => !known.has(keyOf(v)))
+    const now = new Set(entry.violations.map(keyOf))
+    entry.fixed = [...known].filter(k => !now.has(k))
+    if (entry.violations.length === 0) console.log('  결정적 검사: 통과')
+    for (const v of entry.violations) console.log(`  ${known.has(keyOf(v)) ? '· [기존 부채]' : '✗'} [${v.rule}] ${v.card}: ${v.detail}`)
+    if (entry.fixed.length) console.log(`  ↓ 부채 해소 ${entry.fixed.length}건 — --update-baseline 으로 기준선을 줄인다: ${entry.fixed.join(', ')}`)
+    if (entry.newViolations.length) entry.pass = false
 
     if (judge) {
       console.log('  화면 심사(Codex) 중…')
-      const j = runJudge(png, refPng, p, violations, outDir)
-      entry.judge = j
-      const blocking = j.defects.filter(d => d.severity !== 'minor')
-      console.log(`  화면 심사: ${j.score}점 — ${j.summary}`)
-      for (const d of j.defects) console.log(`  ${d.severity === 'minor' ? '·' : '✗'} [${d.severity}] ${d.card}: ${d.detail}`)
-      if (j.score < 85 || blocking.length) failed = true
+      try {
+        const j = runJudge(png, refPng, p, entry.violations, outDir)
+        entry.judge = j
+        const blocking = j.defects.filter(d => d.severity !== 'minor')
+        const base = baseline.judge[p]
+        // 기준선 점수가 85 미만인 옛 화면은 "떨어지지 않았는가"만 본다 — 부채 때문에 모든 수정이 막히지 않게.
+        const judgeOk = base != null && base < 85 ? j.score >= base - 3 : (j.score >= 85 && blocking.length === 0)
+        console.log(`  화면 심사: ${j.score}점${base != null ? ` (기준선 ${base})` : ''} — ${j.summary}`)
+        for (const d of j.defects) console.log(`  ${d.severity === 'minor' ? '·' : '✗'} [${d.severity}] ${d.card}: ${d.detail}`)
+        if (!judgeOk) entry.pass = false
+      } catch (e) {
+        entry.error = String(e.message || e)
+        entry.pass = false
+        console.log(`  ✗ ${entry.error}`)
+      }
     }
-    report.pages.push(entry)
+    if (!entry.pass) failed = true
   }
 } finally {
   await browser.close()
@@ -202,13 +240,30 @@ fs.appendFileSync(RUNS_LOG, JSON.stringify({
   defects: report.pages.flatMap(p => (p.judge?.defects || []).filter(d => d.severity !== 'minor').map(d => `${p.path} ${d.card}: ${d.rule}`)),
 }) + '\n')
 console.log(`\n보고서·스크린샷: ${path.relative(ROOT, outDir)}`)
+
+if (updateBaseline) {
+  for (const e of report.pages) {
+    if (e.error) continue
+    baseline.violations[e.path] = [...new Set(e.violations.map(v => `${v.card}|${v.rule}`))].sort()
+    if (!baseline.violations[e.path].length) delete baseline.violations[e.path]
+    if (e.judge) baseline.judge[e.path] = e.judge.score
+  }
+  baseline.updatedAt = report.at
+  fs.writeFileSync(BASELINE, JSON.stringify(baseline, null, 2) + '\n')
+  console.log(`기준선 갱신: ${path.relative(ROOT, BASELINE)} — 커밋해서 다른 세션도 같은 기준선을 쓰게 한다.`)
+}
+
+// 통과 기록은 화면마다 남긴다. 커밋 게이트는 바뀐 파일이 속한 화면의 기록을 본다.
+// 공용 컴포넌트(*)는 --all 이 결정적 검사까지 모두 통과했을 때 기록한다.
+const records = readJson(PASS_FILE, {})
+records.routes ??= {}
+for (const e of report.pages) if (judge && e.pass) records.routes[e.path] = report.at
+if (all && report.pages.every(e => !e.error && e.newViolations.length === 0)) records.all = report.at
+fs.writeFileSync(PASS_FILE, JSON.stringify(records, null, 2))
+
+const failedPages = report.pages.filter(e => !e.pass).map(e => e.path)
 if (failed) {
-  console.log('결과: 실패 — 고친 뒤 다시 돌린다.')
+  console.log(`결과: 실패 ${failedPages.length}/${report.pages.length} — ${failedPages.join(' ')}`)
   process.exit(1)
 }
-if (judge) {
-  fs.writeFileSync(path.join(OUT_ROOT, 'last-pass.json'), JSON.stringify({ at: report.at, paths, report: path.relative(ROOT, outDir) }, null, 2))
-  console.log('결과: 통과 — .ui-check/last-pass.json 기록')
-} else {
-  console.log('결과: 결정적 검사 통과 (--no-judge 라 커밋 통과 기록은 남기지 않는다)')
-}
+console.log(judge ? '결과: 통과 — 화면별 통과 기록을 남겼다' : '결과: 결정적 검사 통과 (--no-judge — 화면별 커밋 통과 기록은 남기지 않는다)')

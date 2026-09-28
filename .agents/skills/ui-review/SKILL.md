@@ -23,7 +23,10 @@ CEO가 같은 UI 지적을 반복하지 않게 하는 절차다. pdf-to-video-lo
 | 회귀 사례 | `scripts/lib/ui-check-rules.test.mjs` | 과거 지적·오탐을 최소 HTML 로 되살려 규칙을 다시 돌린다. ui-check 가 매번 먼저 실행한다 |
 | 결정적 검사 | `scripts/lib/ui-check-rules.mjs` 의 `RULES_SOURCE` | 렌더한 DOM 을 카드마다 잰다 (제목·필터 위치·페이지네이션·탭·한 글자 배지·제목 아래 간격) |
 | 화면 심사 | `docs/design-system/ui-judge-rubric.md` + Codex | 대상·기준(/mgmt) 스크린샷을 나란히 보고 채점 (85점 미만 또는 blocker/major 면 실패) |
-| 커밋 게이트 | `scripts/hooks/ui-check-gate.mjs` (`.claude/settings.json` PreToolUse) | `(linear)`·`_components` tsx 가 마지막 통과보다 새로우면 `git commit` 을 막는다 |
+| 화면 목록 | `scripts/lib/ui-routes.mjs` | `(linear)/**/page.tsx` 에서 전 화면(현재 24개)을 찾고, 파일을 화면에 매핑한다 |
+| 기존 부채 | `docs/ui-review/baseline.json` | 규칙 이전 화면의 위반·심사 점수. 새 위반·3점 넘는 하락만 실패로 본다(역진 방지) |
+| 커밋 게이트 | `scripts/hooks/ui-check-gate.mjs` (`.claude/settings.json` PreToolUse) | 바뀐 파일이 속한 화면의 통과 기록이 파일보다 오래됐으면 `git commit` 을 막는다. 공용 컴포넌트는 `--all` 기록을 본다 |
+| 주간 점검 | `scripts/ui-weekly-sweep.mjs` · launchd `com.willow.ui-weekly-sweep` (월 07:00) | 배포본 전 화면을 훑어 새 문제·해소된 부채를 CEO 봇과 공유 맥락에 보낸다 |
 
 ## 절차
 
@@ -31,6 +34,8 @@ CEO가 같은 UI 지적을 반복하지 않게 하는 절차다. pdf-to-video-lo
 2. `npm run ui-check -- /invest` (여러 화면은 이어서 적는다). 개발 서버가 없으면 스크립트가 :3123 에 띄운다.
    - 결정적 검사만 빠르게: `--no-judge` (통과 기록은 남지 않는다).
    - 배포본을 잴 때: `--base https://dash.willowinvt.com`.
+   - 공용 컴포넌트(`src/app/(dashboard)/_components`)를 고쳤으면: `npm run ui-check -- --all --no-judge`.
+   - 옛 화면의 부채를 고쳤으면: `npm run ui-check -- <화면> --update-baseline` 으로 기준선을 줄이고 `baseline.json` 을 커밋한다. 기준선은 줄이기만 한다 — 새 위반을 기준선에 넣어 통과시키지 않는다.
 3. 실패 항목을 고치고 다시 돌린다. 통과하면 `.ui-check/last-pass.json` 이 남고 커밋이 열린다.
 4. 산출물(스크린샷·report.json·judge.json)은 `.ui-check/<시각>/` 에 있다. 보고할 때 스크린샷을 근거로 쓴다.
 

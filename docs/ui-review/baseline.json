@@ -1,0 +1,156 @@
+{
+  "violations": {
+    "/akros": [
+      "상품관리|8-title-gap",
+      "세금계산서|8-title-gap",
+      "이메일 이슈 트래킹|1-title-joined",
+      "이메일 이슈 트래킹|1-title-length",
+      "이메일 이슈 트래킹|2-filter-in-head",
+      "이메일 이슈 트래킹|8-title-gap"
+    ],
+    "/b2b": [
+      "INTER-COMPANY LEDGER|1-title-joined",
+      "INTER-COMPANY LEDGER|1-title-length",
+      "정산|8-title-gap"
+    ],
+    "/corp": [
+      "CORPORATE RECORDS|1-title-joined",
+      "CORPORATE RECORDS|1-title-length",
+      "문서|2-filter-in-head",
+      "문서|8-title-gap"
+    ],
+    "/email": [
+      "PERSONAL|1-title-length"
+    ],
+    "/english": [
+      "연습하기|2-filter-in-head",
+      "연습하기|8-title-gap",
+      "영작 연습 · 구어|1-title-joined",
+      "영작 연습 · 구어|1-title-length"
+    ],
+    "/etc": [
+      "상품관리|8-title-gap"
+    ],
+    "/invest/research": [
+      "종목관리|2-filter-in-head"
+    ],
+    "/mgmt": [
+      "매출관리|2-filter-in-head",
+      "세금관리|2-filter-in-head",
+      "일정|2-filter-in-head",
+      "카드승인내역|1-title-length",
+      "카드승인내역|2-filter-in-head",
+      "현금관리|2-filter-in-head"
+    ],
+    "/monor": [
+      "LLM 노출|1-title-joined",
+      "LLM 노출|1-title-length",
+      "검색 노출|1-title-joined",
+      "결제 전환|1-title-joined",
+      "웹 트래픽|1-title-joined",
+      "활동 지표|1-title-joined"
+    ],
+    "/portle": [
+      "LLM 노출|1-title-joined",
+      "LLM 노출|1-title-length",
+      "검색 노출|1-title-joined",
+      "결제 전환|1-title-joined",
+      "결제 전환|6-no-tabs",
+      "웹 트래픽|1-title-joined",
+      "활동 지표|1-title-joined"
+    ],
+    "/reviewnotes": [
+      "LLM 노출|1-title-joined",
+      "LLM 노출|1-title-length",
+      "검색 노출|1-title-joined",
+      "결제 전환|1-title-joined",
+      "결제 전환|6-no-tabs",
+      "웹 트래픽|1-title-joined",
+      "활동 지표|1-title-joined"
+    ],
+    "/ryuha": [
+      "류하 수첩|1-title-joined",
+      "류하 수첩|2-filter-in-head",
+      "일정|2-filter-in-head"
+    ],
+    "/scripta": [
+      "LLM 노출|1-title-joined",
+      "LLM 노출|1-title-length",
+      "검색 노출|1-title-joined",
+      "결제 전환|1-title-joined",
+      "결제 전환|6-no-tabs",
+      "웹 트래픽|1-title-joined",
+      "활동 지표|1-title-joined"
+    ],
+    "/tensw": [
+      "공식문서|2-filter-in-head",
+      "매출관리|2-filter-in-head",
+      "세금관리|2-filter-in-head",
+      "일정|2-filter-in-head",
+      "일정|8-title-gap",
+      "차입금관리|2-filter-in-head",
+      "카드승인내역|1-title-length",
+      "카드승인내역|2-filter-in-head",
+      "현금관리|2-filter-in-head"
+    ],
+    "/valuechain": [
+      "ValueChain|1-title-length",
+      "ValueChain|8-title-gap",
+      "검색 노출|1-title-joined",
+      "웹 트래픽|1-title-joined"
+    ],
+    "/voicecards": [
+      "LLM 노출|1-title-joined",
+      "LLM 노출|1-title-length",
+      "검색 노출|1-title-joined",
+      "결제 전환|1-title-joined",
+      "결제 전환|6-no-tabs",
+      "웹 트래픽|1-title-joined",
+      "활동 지표|1-title-joined"
+    ],
+    "/wiki": [
+      "업무위키|2-filter-in-head"
+    ],
+    "/work": [
+      "개인 이메일|1-title-joined",
+      "개인 이메일|1-title-length",
+      "업무위키|2-filter-in-head",
+      "회사 이메일|1-title-joined",
+      "회사 이메일|1-title-length"
+    ],
+    "/papers": [
+      "갱신 파이프라인|1-title-joined",
+      "갱신 파이프라인|1-title-length",
+      "갱신 파이프라인|8-title-gap",
+      "데이터|8-title-gap",
+      "출처|8-title-gap"
+    ]
+  },
+  "judge": {
+    "/admin/rates": 40,
+    "/admin/users": 60,
+    "/akros": 97,
+    "/b2b": 100,
+    "/corp": 50,
+    "/email": 97,
+    "/english": 100,
+    "/etc": 90,
+    "/inquiries": 97,
+    "/invest": 87,
+    "/invest/research": 60,
+    "/mgmt": 100,
+    "/monor": 67,
+    "/portle": 17,
+    "/realestate": 100,
+    "/reviewnotes": 77,
+    "/ryuha": 80,
+    "/scripta": 30,
+    "/tensw": 97,
+    "/valuechain": 37,
+    "/voicecards": 30,
+    "/wiki": 90,
+    "/work": 90,
+    "/papers": 90
+  },
+  "updatedAt": "2026-09-28T09:37:13.535Z"
+}
