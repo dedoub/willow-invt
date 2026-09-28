@@ -21,6 +21,7 @@ import { createClient } from '@supabase/supabase-js'
 import { spawn, execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { RULES_SOURCE } from './lib/ui-check-rules.mjs'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const OUT_ROOT = path.join(ROOT, '.ui-check')
@@ -28,6 +29,26 @@ const RUBRIC = path.join(ROOT, 'docs/design-system/ui-judge-rubric.md')
 const DEV_PORT = 3123
 
 const argv = process.argv.slice(2)
+const RUNS_LOG = path.join(OUT_ROOT, 'runs.jsonl')
+const FEEDBACK_LOG = path.join(ROOT, 'docs/ui-review/feedback-log.md')
+
+// --stats: 사람 개입과 원가가 줄고 있는지. 실행 기록(.ui-check/runs.jsonl)과 CEO 지적 로그를 주 단위로 센다.
+if (argv.includes('--stats')) {
+  const week = iso => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10) }
+  const runs = fs.existsSync(RUNS_LOG) ? fs.readFileSync(RUNS_LOG, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : []
+  const notes = fs.existsSync(FEEDBACK_LOG)
+    ? [...fs.readFileSync(FEEDBACK_LOG, 'utf8').matchAll(/^\| (\d{4}-\d{2}-\d{2}) \|/gm)].map(m => m[1]) : []
+  const weeks = {}
+  for (const r of runs) { const w = (weeks[week(r.at)] ??= { runs: 0, pass: 0, ms: 0, judged: 0, score: 0, notes: 0 }); w.runs++; w.ms += r.ms; if (r.pass) w.pass++; if (r.judgeScore != null) { w.judged++; w.score += r.judgeScore } }
+  for (const d of notes) (weeks[week(d)] ??= { runs: 0, pass: 0, ms: 0, judged: 0, score: 0, notes: 0 }).notes++
+  console.log('주 시작     실행  통과율  평균분  심사평균  CEO지적')
+  for (const [w, v] of Object.entries(weeks).sort()) {
+    console.log(`${w}  ${String(v.runs).padStart(4)}  ${v.runs ? String(Math.round(v.pass / v.runs * 100)).padStart(5) + '%' : '     -'}  ${v.runs ? (v.ms / v.runs / 60000).toFixed(1).padStart(6) : '     -'}  ${v.judged ? String(Math.round(v.score / v.judged)).padStart(8) : '       -'}  ${String(v.notes).padStart(7)}`)
+  }
+  console.log('\nCEO지적이 주마다 줄어야 자기강화다. 줄지 않으면 지적 로그의 "자산" 칸이 비었거나 규칙이 못 잡는 것이다.')
+  process.exit(0)
+}
+
 const flag = (name) => argv.includes(name)
 const opt = (name, def) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : def }
 const paths = argv.filter((a, i) => a.startsWith('/') && !['--ref', '--base'].includes(argv[i - 1]))
@@ -37,65 +58,6 @@ if (paths.length === 0) {
 }
 const refPath = opt('--ref', '/mgmt')
 const judge = !flag('--no-judge')
-
-/* ── 규칙: 카드 하나(DOM)를 보고 위반을 돌려준다. 브라우저 안에서 돈다. ── */
-// 각 항목의 id 는 점검표 번호와 맞춘다. 새 지적 → 여기 한 줄.
-const RULES_SOURCE = String.raw`
-(() => {
-  const ROW_LIMIT = 15        // 이 행 수를 넘는 표는 페이지 이동이 있어야 한다(요약 표 10여 행은 예외)
-  const MIN_TITLE_GAP = 16    // 제목 아래 → 첫 내용(글자·입력칸)까지 최소 px
-  const out = []
-  const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }
-  for (const card of document.querySelectorAll('[data-lcard]')) {
-    if (!visible(card)) continue
-    const head = card.querySelector('[data-section-head]')
-    if (!head) continue
-    const title = (head.innerText || '').split('\n')[0].trim()
-    const add = (rule, detail) => out.push({ card: title, rule, detail })
-
-    // 1. 제목: 붙여 쓴 4~5글자
-    if (/\s/.test(title)) add('1-title-joined', '제목에 띄어쓰기: "' + title + '"')
-    if ([...title].length > 5) add('1-title-length', '제목 ' + [...title].length + '글자(5 이하): "' + title + '"')
-
-    // 2. 필터·세그먼트는 제목 줄 안. 차트 판(data-panel) 안의 판 전용 토글은 예외.
-    for (const f of card.querySelectorAll('[data-filter-chips], [data-segment-group]')) {
-      if (!visible(f) || head.contains(f) || f.closest('[data-panel]')) continue
-      add('2-filter-in-head', '제목 줄 밖 필터: ' + (f.innerText || '').replace(/\s+/g, ' ').slice(0, 30))
-    }
-
-    // 5. 긴 표에는 페이지 이동
-    const rows = [...card.querySelectorAll('[data-table-row]')].filter(visible).length
-    if (rows > ROW_LIMIT && !card.querySelector('[data-page-size]')) add('5-pagination', '표 ' + rows + '행인데 페이지 이동 없음')
-
-    // 6. 탭으로 가리지 않기 — 판 안에 전환 칩이 둘 이상이면 탭이다
-    for (const panel of card.querySelectorAll('[data-panel]')) {
-      const chips = panel.querySelectorAll('[data-filter-chip]').length
-      if (chips >= 2) add('6-no-tabs', '탭 전환 ' + chips + '개: ' + (panel.querySelector('[data-panel-title]')?.innerText || '').trim())
-    }
-
-    // 7. 한 글자 배지 금지
-    const letters = new Set()
-    for (const b of card.querySelectorAll('[data-badge], [data-table-badge]')) {
-      const txt = (b.innerText || '').trim()
-      if (/^[A-Z]$/.test(txt) && visible(b)) letters.add(txt)
-    }
-    if (letters.size) add('7-word-badges', '한 글자 배지: ' + [...letters].join(', '))
-
-    // 8. 제목 아래 간격
-    const hb = head.getBoundingClientRect().bottom
-    let first = null
-    for (const el of card.querySelectorAll('*')) {
-      if (head.contains(el) || !visible(el)) continue
-      const isLeafText = el.children.length === 0 && (el.innerText || '').trim()
-      if (!isLeafText && el.tagName !== 'INPUT') continue
-      const top = el.getBoundingClientRect().top
-      if (top >= hb - 0.5 && (first === null || top < first)) first = top
-    }
-    if (first !== null && first - hb < MIN_TITLE_GAP) add('8-title-gap', '제목 아래 ' + Math.round(first - hb) + 'px (' + MIN_TITLE_GAP + ' 이상)')
-  }
-  return out
-})()
-`
 
 /* ── 준비: 인증 쿠키, 개발 서버 ── */
 function readEnv() {
@@ -178,6 +140,14 @@ function runJudge(targetPng, refPng, pagePath, violations, outDir) {
 }
 
 /* ── main ── */
+const startedAt = Date.now()
+// 과거 실패 사례를 먼저 다시 돌린다 — 규칙이 예전 지적을 놓치게 됐으면 화면을 볼 필요도 없이 멈춘다.
+try {
+  execFileSync(process.execPath, ['--test', path.join(ROOT, 'scripts/lib/ui-check-rules.test.mjs')], { cwd: ROOT, stdio: 'pipe' })
+} catch (e) {
+  console.error('회귀 사례 실패 — 규칙이 과거 지적을 놓칩니다:\n' + String(e.stdout || '').split('\n').filter(l => /✖|not ok/.test(l)).join('\n'))
+  process.exit(1)
+}
 const stamp = new Date().toISOString().replace(/[:.]/g, '-')
 const outDir = path.join(OUT_ROOT, stamp)
 fs.mkdirSync(outDir, { recursive: true })
@@ -223,6 +193,14 @@ try {
 }
 
 fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2))
+let head = ''
+try { head = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim() } catch {}
+fs.appendFileSync(RUNS_LOG, JSON.stringify({
+  at: report.at, head, paths, pass: !failed, judged: judge, ms: Date.now() - startedAt,
+  rules: report.pages.flatMap(p => p.violations.map(v => v.rule)),
+  judgeScore: judge ? Math.min(...report.pages.map(p => p.judge?.score ?? 0)) : null,
+  defects: report.pages.flatMap(p => (p.judge?.defects || []).filter(d => d.severity !== 'minor').map(d => `${p.path} ${d.card}: ${d.rule}`)),
+}) + '\n')
 console.log(`\n보고서·스크린샷: ${path.relative(ROOT, outDir)}`)
 if (failed) {
   console.log('결과: 실패 — 고친 뒤 다시 돌린다.')
