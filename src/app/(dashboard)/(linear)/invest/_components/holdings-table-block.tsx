@@ -239,7 +239,7 @@ export function HoldingsTableBlock({
               </div>
             }
             toolsInline
-            mb={0}
+            mb={t.density.gapMd}
           />
         </div>
 
@@ -325,7 +325,7 @@ export function HoldingsTableBlock({
             </div>
           }
           toolsInline
-          mb={0}
+          mb={t.density.gapMd}
         />
       </div>
 

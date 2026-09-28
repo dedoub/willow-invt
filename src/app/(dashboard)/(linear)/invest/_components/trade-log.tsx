@@ -217,7 +217,7 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
               {fmtKrwSigned(closed.total)}
             </span>
           ) : undefined}
-          mb={0}
+          mb={t.density.gapMd}
         />
       </div>
 
