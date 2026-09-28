@@ -84,3 +84,6 @@ supabase/.temp/
 
 # Pretendard는 빌드 전 node_modules에서 복사한다 (scripts/copy-pretendard.mjs)
 public/fonts/pretendard/
+
+# UI 검사 산출물 (scripts/ui-check.mjs)
+.ui-check/

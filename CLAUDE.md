@@ -215,6 +215,10 @@ node scripts/tensw-payslip-send.mjs --month 2026-08 --send                    # 
 
 > **모든 UI 작업 시 디자인 시스템을 엄격하게 준수해야 합니다.**
 
+**화면 검수는 `npm run ui-check -- /<화면>` 으로 한다** (스킬 `ui-review`). 결정적 검사 + Codex 화면 심사를
+통과해야 `(linear)`·`_components` tsx 커밋이 열린다(`.claude/settings.json` 훅). CEO 의 새 UI 지적은
+`docs/design-system/ui-judge-rubric.md` 지적 이력과 `scripts/ui-check.mjs` 규칙에 적립한다.
+
 **작업 전 필수 확인:**
 1. `docs/design-system/current-elements.md`에서 현재 사용 요소 확인
 2. `docs/design-system/dashboard-system.md`에서 공식 대시보드 시스템 확인
