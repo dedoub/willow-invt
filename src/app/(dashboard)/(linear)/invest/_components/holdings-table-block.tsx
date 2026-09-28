@@ -3,8 +3,9 @@
 /**
  * 보유 현황 — 윌로우 매출관리 카드를 본으로 새로 짰다(CEO 2026-09-23).
  *
- * 머리(제목 + 세그먼트) → 지표 격자(StatRows·LStat) → 분류 요약 표 → 필터 칩 + 검색 →
- * 종목 표(정렬·페이지) → 발 줄(페이지 크기·이동), 행 클릭은 LDialog 상세.
+ * 보유 현황 카드: 머리(제목 + 세그먼트) → 지표 격자(StatRows·LStat) → 분류 요약 표.
+ * 보유 종목 카드: 필터 칩 + 검색 → 종목 표(정렬·페이지) → 발 줄, 행 클릭은 LDialog 상세.
+ * 두 카드는 시장 필터·통화 세그먼트 상태를 같이 쓴다.
  * 종목 카드 격자는 두지 않는다. 카드 안에 카드를 격자로 깔면 카드 문법이 닿지 않아
  * 이 화면만 다른 물건으로 읽혔다. 계산은 _lib/holdings 가 든다.
  */
@@ -209,11 +210,12 @@ export function HoldingsTableBlock({
   const usCur: 'KRW' | 'USD' = krw ? 'KRW' : 'USD'
 
   return (
+    <>
     <LCard pad={0} style={style}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
         <div style={{ paddingBottom: t.density.panelPadY }}>
           <LSectionHead
-            title="보유 현황"
+            title="보유현황"
             tools={
               <LSegmented
                 value={currencyMode}
@@ -269,7 +271,7 @@ export function HoldingsTableBlock({
 
       {/* 분류 요약 — 테마별 무게. 종목 표 위에서 묶음부터 읽는다. */}
       {hasQuotes && themeRows.length > 0 && (
-        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.blockGap}px` }}>
+        <div style={{ padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px` }}>
           <LTableScroll columns={THEME_COLUMNS} mobile={mobile}>
             <LTableHead columns={THEME_COLUMNS} mobile={mobile} />
             <LTableBody columns={THEME_COLUMNS} mobile={mobile}>
@@ -297,6 +299,14 @@ export function HoldingsTableBlock({
           </LTableScroll>
         </div>
       )}
+    </LCard>
+
+    {/* 보유 종목 — 종목 표는 별도 카드로 둔다(CEO 2026-09-28). 시장 필터·통화 세그먼트는
+        위 카드와 상태를 같이 쓴다. */}
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="보유종목" mb={0} />
+      </div>
 
       {/* 필터 + 검색 — 매출관리와 같은 줄 */}
       <div style={{
@@ -402,5 +412,6 @@ export function HoldingsTableBlock({
 
       <HoldingDetailDialog detail={detail} usdKrwRate={usdKrwRate} onClose={() => setSelected(null)} />
     </LCard>
+    </>
   )
 }
