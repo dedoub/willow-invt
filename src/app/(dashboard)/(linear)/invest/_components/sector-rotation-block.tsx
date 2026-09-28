@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { SectorRotationChartModal } from './sector-rotation-chart'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
-import { LTableHead, LTableRow, LTableBody, LTableScroll, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LTableHead, LTableRow, LTableBody, LTableScroll, LPageSize, type LColumn } from '@/app/(dashboard)/_components/linear-table'
+import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 
@@ -67,11 +68,25 @@ function fmtPct(r: number | null): string {
 type SortKey = '1m' | '3m' | '6m' | '1y' | 'group' | 'name'
 type SortDir = 'asc' | 'desc'
 
+// 구분은 글자로 쓴다. 한 글자 배지(S·H·B…)로는 벤치마크와 섹터 ETF 를 한눈에 못 갈랐다(CEO 2026-09-28).
+const GROUP_LABEL: Record<string, string> = {
+  Benchmark: '벤치마크', GICS: '섹터', Theme: '테마', Macro: '매크로', Holding: '보유', SectorGroup: '보유묶음',
+}
+
+const PAGE_SIZE_KEY = 'invest-sector-page-size'
+const DEFAULT_PAGE_SIZE = 10
+function getStoredPageSize(): number {
+  if (typeof window === 'undefined') return DEFAULT_PAGE_SIZE
+  const n = Number(localStorage.getItem(PAGE_SIZE_KEY))
+  return n >= 1 && n <= 100 ? n : DEFAULT_PAGE_SIZE
+}
+
 // LTableHead 와 데이터 행이 같은 열 정의를 쓴다. sortValue 는 정렬 가능 표시용이고 실제 정렬은 블록 상태(sortBy/sortDir)가 한다.
 const COLUMNS: LColumn<SectorEtf>[] = [
-  { key: 'group', label: '티커', width: '72px', sortValue: e => e.group },
+  { key: 'group', label: '구분', width: '60px', sortValue: e => e.group },
+  { key: 'ticker', label: '티커', width: '52px' },
   { key: 'name', label: '이름', width: 'minmax(0,1fr)', hideMobile: true, sortValue: e => e.name },
-  ...PERIODS.map((p): LColumn<SectorEtf> => ({ key: p, label: p.toUpperCase(), width: 'minmax(78px,96px)', align: 'center', sortValue: e => e.returns[p] })),
+  ...PERIODS.map((p): LColumn<SectorEtf> => ({ key: p, label: p.toUpperCase(), width: 'minmax(64px,84px)', align: 'center', sortValue: e => e.returns[p] })),
 ]
 
 interface SectorRotationBlockProps {
@@ -85,8 +100,15 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortKey>('1y')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [pageSize, setPageSize] = useState<number>(getStoredPageSize)
+  const [page, setPage] = useState(0)
+  const applyPageSize = useCallback((n: number) => {
+    setPageSize(n); setPage(0)
+    localStorage.setItem(PAGE_SIZE_KEY, String(n))
+  }, [])
 
   const handleSort = (key: SortKey) => {
+    setPage(0)
     if (sortBy === key) {
       // 같은 키는 기본방향 → 반전 → 기본 정렬(1y desc)로 순환. 1y 자신은 toggle만 한다.
       const defaultDir: SortDir = key === 'group' || key === 'name' ? 'asc' : 'desc'
@@ -146,6 +168,9 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   }, [etfs, sortBy, sortDir])
 
   const latestDate = etfs?.[0]?.latestDate
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const safePage = Math.min(page, totalPages - 1)
+  const paged = sorted.slice(safePage * pageSize, (safePage + 1) * pageSize)
 
   return (
     /* 생 div 에 배경을 칠하면 카드 문법(theme-outline)이 닿지 않아 이 블록만 다른 카드로 읽혔다. */
@@ -173,22 +198,21 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
           />
           <LTableBody columns={COLUMNS} mobile={mobile}>
           {/* Data rows */}
-          {sorted.map(etf => {
+          {paged.map(etf => {
             const axesForEtf = ETF_AXES[etf.ticker] || []
             const isMine = !!myAxes && axesForEtf.some(a => myAxes.has(a))
             const isBenchmark = etf.group === 'Benchmark'
             const isHolding = etf.group === 'Holding'
             const isSectorGroup = etf.group === 'SectorGroup'
-            // 그룹은 1열 배지(S·H·B·G·M·T)가 이미 말한다. 행 배경과 티커 색까지 겹쳐 칠하면
+            // 그룹은 1열 구분 배지가 이미 말한다. 행 배경과 티커 색까지 겹쳐 칠하면
             // 이 카드의 뜻인 수익률 히트맵과 색이 다툰다 — 색은 히트맵에만 남긴다.
             const strong = isSectorGroup || isHolding || isMine || isBenchmark
             return (
             <LTableRow key={etf.ticker} columns={COLUMNS} mobile={mobile}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs, minWidth: 0 }}>
-                <LBadge
-                  palette={tonePalettes.neutral}
-                  style={{ flexShrink: 0, fontFamily: t.font.mono }}
-                >{isSectorGroup ? 'S' : isHolding ? 'H' : isBenchmark ? 'B' : etf.group === 'GICS' ? 'G' : etf.group === 'Macro' ? 'M' : 'T'}</LBadge>
+              <div style={{ display: 'flex', minWidth: 0 }}>
+                <LBadge palette={tonePalettes.neutral} style={{ flexShrink: 0 }}>{GROUP_LABEL[etf.group] ?? etf.group}</LBadge>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
                 <span style={{
                   fontFamily: t.font.mono, fontWeight: strong ? t.weight.semibold : t.weight.medium,
                   fontSize: `calc(${t.type.control}px * var(--fz, 1))`, color: t.neutrals.text,
@@ -238,6 +262,42 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
           })}
           </LTableBody>
         </LTableScroll>
+      )}
+
+      {/* 발 줄 — 페이지 크기·이동 (보유종목과 같은 모양) */}
+      {!loading && sorted.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: t.density.gapSm }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapXs }}>
+            <LPageSize value={pageSize} onChange={applyPageSize} />
+            <span style={{ color: t.neutrals.muted, fontSize: `calc(${t.type.helper}px * var(--fz, 1))` }}>{sorted.length}개</span>
+          </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: t.density.gapSm }}>
+              {([
+                { icon: 'chevronLeft' as const, disabled: safePage === 0, go: () => setPage(p => Math.max(0, p - 1)) },
+                null,
+                { icon: 'chevronRight' as const, disabled: safePage >= totalPages - 1, go: () => setPage(p => p + 1) },
+              ]).map((b, i) => b ? (
+                <button
+                  key={b.icon}
+                  disabled={b.disabled}
+                  onClick={b.go}
+                  style={{
+                    background: 'transparent', border: 'none', padding: t.density.gapXs, borderRadius: t.radius.sm,
+                    cursor: b.disabled ? 'default' : 'pointer',
+                    color: b.disabled ? t.neutrals.line : t.neutrals.muted, opacity: b.disabled ? 0.4 : 1,
+                  }}
+                >
+                  <LIcon name={b.icon} size={13} stroke={2} />
+                </button>
+              ) : (
+                <span key={i} style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted }}>
+                  {safePage * pageSize + 1}-{Math.min((safePage + 1) * pageSize, sorted.length)} / {sorted.length}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {!loading && sorted.length === 0 && (

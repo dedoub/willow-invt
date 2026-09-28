@@ -6,7 +6,7 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { SignalBar } from '../_components/signal-bar'
 import { HoldingsTableBlock } from '../_components/holdings-table-block'
-import { AnalysisBlock } from '../_components/analysis-block'
+import { AnalysisBlock, AllocationBlock } from '../_components/analysis-block'
 import { TradeLog } from '../_components/trade-log'
 import { SectorRotationBlock } from '../_components/sector-rotation-block'
 import { InvestSkeleton, InvestHoldingsSkeleton } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -211,6 +211,16 @@ export default function InvestPage() {
           actions={printActions}
         />
 
+        {loadPhase >= 2 && (
+          <AllocationBlock
+            stockTrades={stockTradesFull}
+            stockQuotes={stockQuotesFull}
+            stockThemes={stockThemes}
+            usdKrwRate={usdKrw}
+            mobile={mobile}
+          />
+        )}
+
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
@@ -237,6 +247,7 @@ export default function InvestPage() {
               fxHistory={fxHistory}
               usdKrwRate={usdKrw}
               loading={isLoadingHistory}
+              hideAllocation
             />
             <SectorRotationBlock myAxes={myAxes} />
           </div>

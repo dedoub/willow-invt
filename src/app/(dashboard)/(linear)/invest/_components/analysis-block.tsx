@@ -24,6 +24,8 @@ interface AnalysisBlockProps {
   loading?: boolean
   /** 추이 차트 컬럼 수 (인쇄용 2단 배치 등). 기본 1. */
   chartColumns?: 1 | 2
+  /** 비중 파이를 이 카드에서 빼고 AllocationBlock 으로 따로 둘 때. */
+  hideAllocation?: boolean
 }
 
 /* ── Constants ── */
@@ -59,8 +61,103 @@ type ValueScale = 'linear' | 'log'
 const VALUE_SCALE_KEY = 'invest-analysis-value-scale'
 
 
+/* ── 비중 — 보유 종목의 현재 평가액(KRW)을 테마·시장·AI 인프라 세부로 나눈다. ── */
+function computeAllocation(
+  stockTrades: StockTradeFull[],
+  stockQuotes: Record<string, StockQuoteFull>,
+  stockThemes: Record<string, TickerTheme[]>,
+  usdKrwRate: number,
+) {
+  // Compute current holdings value per ticker
+  const holdMap = new Map<string, { qty: number; cost: number; market: string; name: string; parentTheme: string; subTheme: string }>()
+  const sorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime())
+  for (const tr of sorted) {
+    const key = tr.ticker
+    const themeRow = (stockThemes[key] || [])[0]
+    const prev = holdMap.get(key) || {
+      qty: 0, cost: 0, market: tr.market, name: tr.company_name || tr.ticker,
+      parentTheme: themeRow?.parentTheme || '미분류',
+      subTheme: themeRow?.theme || '미분류',
+    }
+    if (tr.trade_type === 'buy') { prev.qty += tr.quantity; prev.cost += tr.total_amount }
+    else {
+      const avg = prev.qty > 0 ? prev.cost / prev.qty : 0
+      prev.cost -= avg * tr.quantity; prev.qty -= tr.quantity
+      if (prev.qty <= 0) { prev.qty = 0; prev.cost = 0 }
+    }
+    holdMap.set(key, prev)
+  }
+
+  // valKrw=평가액(현재 환율 KRW), costKrw=원금(현재 환율 KRW). 수익률 = (val-cost)/cost.
+  const items: { ticker: string; name: string; market: string; theme: string; subTheme: string; valKrw: number; costKrw: number }[] = []
+  let total = 0
+  for (const [ticker, h] of holdMap) {
+    if (h.qty <= 0) continue
+    const q = stockQuotes[ticker]
+    if (!q?.price) continue
+    const fx = h.market === 'US' ? usdKrwRate : 1
+    const val = q.price * h.qty * fx
+    items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, subTheme: h.subTheme, valKrw: val, costKrw: h.cost * fx })
+    total += val
+  }
+
+  const retOf = (val: number, cost: number) => cost > 0 ? Math.round((val - cost) / cost * 1000) / 10 : 0
+
+  // By stock
+  const byStock = items.map(i => ({
+    subject: i.name.length > 6 ? i.name.slice(0, 6) + '..' : i.name,
+    pct: total > 0 ? Math.round(i.valKrw / total * 1000) / 10 : 0,
+    retPct: retOf(i.valKrw, i.costKrw),
+  })).sort((a, b) => b.pct - a.pct)
+
+  // By theme
+  const themeMap = new Map<string, { val: number; cost: number }>()
+  for (const i of items) {
+    if (i.theme === '미분류') continue
+    const prev = themeMap.get(i.theme) || { val: 0, cost: 0 }
+    prev.val += i.valKrw; prev.cost += i.costKrw
+    themeMap.set(i.theme, prev)
+  }
+  const byTheme = Array.from(themeMap.entries()).map(([k, v]) => ({
+    subject: k,
+    pct: total > 0 ? Math.round(v.val / total * 1000) / 10 : 0,
+    retPct: retOf(v.val, v.cost),
+  }))
+
+  // By market
+  let krVal = 0, usVal = 0, krCost = 0, usCost = 0
+  for (const i of items) {
+    if (i.market === 'US') { usVal += i.valKrw; usCost += i.costKrw }
+    else { krVal += i.valKrw; krCost += i.costKrw }
+  }
+  const byMarket = [
+    { subject: '국내', pct: total > 0 ? Math.round(krVal / total * 1000) / 10 : 0, retPct: retOf(krVal, krCost) },
+    { subject: '해외', pct: total > 0 ? Math.round(usVal / total * 1000) / 10 : 0, retPct: retOf(usVal, usCost) },
+  ]
+
+  // AI 인프라 sub-theme 세부 비중 (drilldown)
+  const aiInfraMap = new Map<string, { val: number; cost: number }>()
+  let aiInfraTotal = 0
+  for (const i of items) {
+    if (i.theme !== 'AI 인프라') continue
+    const prev = aiInfraMap.get(i.subTheme) || { val: 0, cost: 0 }
+    prev.val += i.valKrw; prev.cost += i.costKrw
+    aiInfraMap.set(i.subTheme, prev)
+    aiInfraTotal += i.valKrw
+  }
+  const byAiInfraSub = Array.from(aiInfraMap.entries())
+    .map(([k, v]) => ({
+      subject: k,
+      pct: aiInfraTotal > 0 ? Math.round(v.val / aiInfraTotal * 1000) / 10 : 0,
+      retPct: retOf(v.val, v.cost),
+    }))
+    .sort((a, b) => b.pct - a.pct)
+
+  return { byStock, byTheme, byMarket, byAiInfraSub }
+}
+
 export function AnalysisBlock({
-  stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1,
+  stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate, loading, chartColumns = 1, hideAllocation,
 }: AnalysisBlockProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('total')
   const [valueScale, setValueScale] = useState<ValueScale>(() => {
@@ -366,94 +463,7 @@ export function AnalysisBlock({
   }, [stockTrades, stockQuotes, stockThemes, stockHistory, fxHistory, usdKrwRate])
 
   /* ── Radar / spider chart data ── */
-  const radarData = useMemo(() => {
-    // Compute current holdings value per ticker
-    const holdMap = new Map<string, { qty: number; cost: number; market: string; name: string; parentTheme: string; subTheme: string }>()
-    const sorted = [...stockTrades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime())
-    for (const tr of sorted) {
-      const key = tr.ticker
-      const themeRow = (stockThemes[key] || [])[0]
-      const prev = holdMap.get(key) || {
-        qty: 0, cost: 0, market: tr.market, name: tr.company_name || tr.ticker,
-        parentTheme: themeRow?.parentTheme || '미분류',
-        subTheme: themeRow?.theme || '미분류',
-      }
-      if (tr.trade_type === 'buy') { prev.qty += tr.quantity; prev.cost += tr.total_amount }
-      else {
-        const avg = prev.qty > 0 ? prev.cost / prev.qty : 0
-        prev.cost -= avg * tr.quantity; prev.qty -= tr.quantity
-        if (prev.qty <= 0) { prev.qty = 0; prev.cost = 0 }
-      }
-      holdMap.set(key, prev)
-    }
-
-    // valKrw=평가액(현재 환율 KRW), costKrw=원금(현재 환율 KRW). 수익률 = (val-cost)/cost.
-    const items: { ticker: string; name: string; market: string; theme: string; subTheme: string; valKrw: number; costKrw: number }[] = []
-    let total = 0
-    for (const [ticker, h] of holdMap) {
-      if (h.qty <= 0) continue
-      const q = stockQuotes[ticker]
-      if (!q?.price) continue
-      const fx = h.market === 'US' ? usdKrwRate : 1
-      const val = q.price * h.qty * fx
-      items.push({ ticker, name: h.name, market: h.market, theme: h.parentTheme, subTheme: h.subTheme, valKrw: val, costKrw: h.cost * fx })
-      total += val
-    }
-
-    const retOf = (val: number, cost: number) => cost > 0 ? Math.round((val - cost) / cost * 1000) / 10 : 0
-
-    // By stock
-    const byStock = items.map(i => ({
-      subject: i.name.length > 6 ? i.name.slice(0, 6) + '..' : i.name,
-      pct: total > 0 ? Math.round(i.valKrw / total * 1000) / 10 : 0,
-      retPct: retOf(i.valKrw, i.costKrw),
-    })).sort((a, b) => b.pct - a.pct)
-
-    // By theme
-    const themeMap = new Map<string, { val: number; cost: number }>()
-    for (const i of items) {
-      if (i.theme === '미분류') continue
-      const prev = themeMap.get(i.theme) || { val: 0, cost: 0 }
-      prev.val += i.valKrw; prev.cost += i.costKrw
-      themeMap.set(i.theme, prev)
-    }
-    const byTheme = Array.from(themeMap.entries()).map(([k, v]) => ({
-      subject: k,
-      pct: total > 0 ? Math.round(v.val / total * 1000) / 10 : 0,
-      retPct: retOf(v.val, v.cost),
-    }))
-
-    // By market
-    let krVal = 0, usVal = 0, krCost = 0, usCost = 0
-    for (const i of items) {
-      if (i.market === 'US') { usVal += i.valKrw; usCost += i.costKrw }
-      else { krVal += i.valKrw; krCost += i.costKrw }
-    }
-    const byMarket = [
-      { subject: '국내', pct: total > 0 ? Math.round(krVal / total * 1000) / 10 : 0, retPct: retOf(krVal, krCost) },
-      { subject: '해외', pct: total > 0 ? Math.round(usVal / total * 1000) / 10 : 0, retPct: retOf(usVal, usCost) },
-    ]
-
-    // AI 인프라 sub-theme 세부 비중 (drilldown)
-    const aiInfraMap = new Map<string, { val: number; cost: number }>()
-    let aiInfraTotal = 0
-    for (const i of items) {
-      if (i.theme !== 'AI 인프라') continue
-      const prev = aiInfraMap.get(i.subTheme) || { val: 0, cost: 0 }
-      prev.val += i.valKrw; prev.cost += i.costKrw
-      aiInfraMap.set(i.subTheme, prev)
-      aiInfraTotal += i.valKrw
-    }
-    const byAiInfraSub = Array.from(aiInfraMap.entries())
-      .map(([k, v]) => ({
-        subject: k,
-        pct: aiInfraTotal > 0 ? Math.round(v.val / aiInfraTotal * 1000) / 10 : 0,
-        retPct: retOf(v.val, v.cost),
-      }))
-      .sort((a, b) => b.pct - a.pct)
-
-    return { byStock, byTheme, byMarket, byAiInfraSub }
-  }, [stockTrades, stockQuotes, stockThemes, usdKrwRate])
+  const radarData = useMemo(() => computeAllocation(stockTrades, stockQuotes, stockThemes, usdKrwRate), [stockTrades, stockQuotes, stockThemes, usdKrwRate])
 
   const getLines = (suffix: string) => {
     // 시리즈가 하나면 색을 쓰지 않는다 — 단색(mono). 두 시리즈 이상만 팔레트를 편다.
@@ -672,9 +682,49 @@ export function AnalysisBlock({
         </div>
 
         {/* 비중 — 공용 DistributionPie. 테마별·AI 인프라 세부·국내/해외를 탭으로 오간다. */}
-        {radarData.byTheme.length > 0 && (
+        {!hideAllocation && radarData.byTheme.length > 0 && (
           <DistributionPie title="포트폴리오 비중" unit="%" tabs={pieTabs} palette={piePalette} />
         )}
+      </div>
+    </LCard>
+  )
+}
+
+/* ── 자산비중 — 테마별·AI 인프라 세부·국내/해외 파이 셋을 탭 없이 나란히 (CEO 2026-09-28). ── */
+export function AllocationBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, mobile }: {
+  stockTrades: StockTradeFull[]
+  stockQuotes: Record<string, StockQuoteFull>
+  stockThemes: Record<string, TickerTheme[]>
+  usdKrwRate: number
+  mobile?: boolean
+}) {
+  const alloc = useMemo(() => computeAllocation(stockTrades, stockQuotes, stockThemes, usdKrwRate), [stockTrades, stockQuotes, stockThemes, usdKrwRate])
+  if (alloc.byTheme.length === 0) return null
+
+  const pies = [
+    { title: '테마별', rows: alloc.byTheme, colors: GROUP_COLORS },
+    { title: 'AI 인프라 세부', rows: alloc.byAiInfraSub, colors: AI_INFRA_SUB_COLORS },
+    { title: '국내/해외', rows: alloc.byMarket, colors: MARKET_COLORS as Record<string, string> },
+  ]
+
+  return (
+    <LCard pad={0}>
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
+        <LSectionHead title="자산비중" mb={t.density.gapMd} />
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+        gap: t.density.gapMd, padding: `0 ${t.density.cardPad}px ${t.density.cardPad}px`,
+      }}>
+        {pies.map(p => (
+          <DistributionPie
+            key={p.title}
+            title={p.title}
+            unit="%"
+            tabs={[{ key: p.title, label: p.title, data: p.rows.map(d => ({ name: d.subject, value: d.pct })) }]}
+            palette={p.rows.map(d => p.colors[d.subject] || t.neutrals.subtle)}
+          />
+        ))}
       </div>
     </LCard>
   )

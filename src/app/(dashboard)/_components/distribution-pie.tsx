@@ -61,7 +61,8 @@ export function DistributionPie({
         }}>
           {title}
         </div>
-        <div style={{ display: 'flex', gap: t.density.tableRowGap }}>
+        {/* 탭이 하나면 버튼을 두지 않는다 — 누를 게 없는 칩은 제목을 한 번 더 쓸 뿐이다. */}
+        {tabs.length > 1 && <div style={{ display: 'flex', gap: t.density.tableRowGap }}>
           {tabs.map(tb => {
             const active = activeTab === tb.key
             return (
@@ -83,7 +84,7 @@ export function DistributionPie({
               </button>
             )
           })}
-        </div>
+        </div>}
       </div>
       {data.length === 0 || total === 0 ? (
         <div style={{
