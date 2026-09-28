@@ -462,7 +462,12 @@ function ListingTable({
                   <a
                     href={`https://new.land.naver.com/complexes/${r.complexNo}?ms=${msParam}&a=APT&e=OPST`}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ color: t.brand[600], textDecoration: 'none' }}
+                    title="네이버 부동산에서 열기"
+                    // 링크여도 기본 글자색 — 행마다 파랗게 칠하면 괴리율 색과 시선을 다툰다(2026-09-28 심사).
+                    // 눌러도 되는 곳이라는 표시는 마우스를 올렸을 때 밑줄로만 준다.
+                    style={{ color: t.neutrals.text, textDecoration: 'none' }}
+                    onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+                    onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
                   >
                     {r.complexName}
                   </a>
