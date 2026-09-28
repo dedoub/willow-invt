@@ -937,7 +937,7 @@ export function RealEstateBlock() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap }}>
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-          <LSectionHead title="전체 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+          <LSectionHead title="전체현황" mb={t.density.panelPadY + t.density.panelPadX} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
             <div style={{ display: 'flex', gap: t.density.kpiGap, alignItems: 'center' }}>
               <Bone w={44} h={t.density.controlHSm} r={t.radius.pill} />
@@ -957,7 +957,7 @@ export function RealEstateBlock() {
       </LCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : (cols === 1 ? '1fr' : '1fr 1fr'), gap: t.density.blockGap, alignItems: 'start' }}>
-        {(['매매 현황', '전세 현황'] as const).map(title => (
+        {(['매매현황', '전세현황'] as const).map(title => (
           <LCard key={title} pad={0}>
             <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
               <LSectionHead title={title} mb={t.density.panelPadY + t.density.panelPadX} />
@@ -983,7 +983,7 @@ export function RealEstateBlock() {
     return (
       // 빈 상태도 제목은 실제 카드와 같게 — '부동산 리서치' 는 카드를 쪼개기 전 이름이었다.
       <LCard>
-        <LSectionHead title="전체 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+        <LSectionHead title="전체현황" mb={t.density.panelPadY + t.density.panelPadX} />
         <div style={{ padding: '40px 14px', textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추적 중인 단지가 없습니다
         </div>
@@ -1028,18 +1028,14 @@ export function RealEstateBlock() {
         ───────────────────────────────────────────────────────────────────── */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-      {/* 헤더는 제목과 새로고침만. 자치구·단지·평형은 셋 다 같은 범위를 정하는 조건이라
-          헤더와 아래 줄로 흩어 놓지 않고 필터 한 줄에 모은다. */}
+      {/* 자치구·단지·평형은 셋 다 같은 범위를 정하는 조건이라 한 묶음으로 제목 줄 오른쪽에 둔다
+          (CEO 2026-09-28 — 필터는 모두 제목 줄). */}
       <LSectionHead
-        title="전체 현황"
+        title="전체현황"
         mb={t.density.panelPadY + t.density.panelPadX}
-        action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={loadData} busy={refreshing} />}
-      />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
-        {/* Filter bar */}
+        tools={
         <div style={{
-          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.density.kpiGap,
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: t.density.kpiGap,
         }}>
           {/* 자치구 — 넓은 범위부터 좁은 범위(단지·평형) 순으로 읽는다 */}
           <LFilterChip
@@ -1134,6 +1130,12 @@ export function RealEstateBlock() {
           {/* 기준일은 카드 하단 메타 바로 내렸다 — 필터 줄에 두면 조작 컨트롤과
               읽기 전용 사실이 같은 줄에서 섞인다. */}
         </div>
+        }
+        toolsInline
+        action={<LHeadBtn icon="refresh" title="데이터 새로고침" onClick={loadData} busy={refreshing} />}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.kpiGap }}>
 
         {/* 상단 지표 — 윌로우(사업관리)와 같은 FigureGrid. 회색 판을 벗고 줄 사이만
             얇은 선으로 나눈다. 괴리율만 부호가 있는 값이라 색을 쓰고, 색은 부동산
@@ -1213,7 +1215,7 @@ export function RealEstateBlock() {
         테마가 좌우를 글자 줄에 맞춘다. */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-      <LSectionHead title="매매 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+      <LSectionHead title="매매현황" mb={t.density.panelPadY + t.density.panelPadX} />
       {/* 패널 사이는 blockGap(12). 보이스카드의 카드 안 리듬인 kpiGap(8)은 KPI 타일처럼
           작은 요소끼리의 값이라, 판을 벗은 차트가 연달아 서면 축 눈금이 다음 제목에 붙는다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>
@@ -1302,7 +1304,7 @@ export function RealEstateBlock() {
         같은 문법으로 맞춘다. 오른쪽 값은 두지 않는다 — 전세에는 시가총액 같은 합산 대상이 없다. */}
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
-      <LSectionHead title="전세 현황" mb={t.density.panelPadY + t.density.panelPadX} />
+      <LSectionHead title="전세현황" mb={t.density.panelPadY + t.density.panelPadX} />
       {/* 패널 사이는 blockGap(12). 보이스카드의 카드 안 리듬인 kpiGap(8)은 KPI 타일처럼
           작은 요소끼리의 값이라, 판을 벗은 차트가 연달아 서면 축 눈금이 다음 제목에 붙는다. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.blockGap, minWidth: 0 }}>

@@ -110,7 +110,7 @@ export function ZoneIndexCard() {
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.blockGap }}>
         <LSectionHead
-          title="권역 비교"
+          title="권역비교"
           mb={t.density.panelPadY + t.density.panelPadX}
           meta={data?.baseLabel}
           tools={
