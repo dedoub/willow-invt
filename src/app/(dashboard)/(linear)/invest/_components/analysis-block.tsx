@@ -487,7 +487,7 @@ export function AnalysisBlock({
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="성과분석" />
+          <LSectionHead title="성과분석" mb={0} />
         </div>
         <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           추이 데이터 로딩 중...
@@ -500,7 +500,7 @@ export function AnalysisBlock({
     return (
       <LCard pad={0}>
         <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
-          <LSectionHead title="성과분석" />
+          <LSectionHead title="성과분석" mb={0} />
         </div>
         <div style={{ padding: `${t.density.pagePadBottom}px ${t.density.controlPadXMd}px`, textAlign: 'center', fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle }}>
           분석에 필요한 데이터가 부족합니다
@@ -543,6 +543,7 @@ export function AnalysisBlock({
           title="성과분석"
           tools={<LSegmented value={viewMode} onChange={setViewMode} options={viewModes} />}
           toolsInline
+          mb={0}
         />
       </div>
 

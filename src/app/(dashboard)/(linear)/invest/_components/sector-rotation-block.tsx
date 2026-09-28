@@ -150,7 +150,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   return (
     /* 생 div 에 배경을 칠하면 카드 문법(theme-outline)이 닿지 않아 이 블록만 다른 카드로 읽혔다. */
     <LCard>
-      <LSectionHead title="섹터수익률" meta={latestDate ? `as of ${latestDate}` : undefined} />
+      <LSectionHead title="섹터수익률" meta={latestDate ? `as of ${latestDate}` : undefined} mb={t.density.panelPadY} />
 
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
