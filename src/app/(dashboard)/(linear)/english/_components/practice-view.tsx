@@ -8,6 +8,7 @@ import { t, useIsMobile, useKeyNames } from '@/app/(dashboard)/_components/linea
 import { DrawPad, type DrawPadHandle } from '@/app/(dashboard)/_components/linear-draw-pad'
 import { DrawTools, useDrawTools } from '@/app/(dashboard)/_components/linear-draw-tools'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LBadge } from '@/app/(dashboard)/_components/linear-badge'
@@ -603,6 +604,14 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
             />
           </div>
         </div>
+        {/* 숫자는 문제은행과 시도 기록을 큐 API 가 모은 것 — 오늘은 KST 날짜다. */}
+        {stats && (
+          <LCardFoot
+            left={`${sourceLabel} 문제은행 · 시도 기록 기준, 정답률은 마지막 시도`}
+            right={`${stats.today.date} 기준`}
+            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          />
+        )}
       </LCard>
 
       {/* 연습 화면과 문장 목록은 탭으로 하나만 보인다. 감추되 떼지는 않는다 —
@@ -1124,6 +1133,12 @@ export function PracticeView({ target, view, onViewChange }: PracticeViewProps) 
                   )}
                 </div>
               </div>
+              {/* 합격 규칙은 채점 API(grade)와 같다. 다시 풀기는 기록하지 않는다. */}
+              <LCardFoot
+                left="80점 이상 합격 · 힌트를 보면 불합격 · 다시 풀기는 기록 안 함"
+                right={`큐 ${queue.length.toLocaleString()}문장`}
+                style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+              />
             </LCard>
 
             {/* 펜으로 쓸 때는 카드 아래로 빈 자리를 둔다. 그만큼 더 굴릴 수 있어서 판을

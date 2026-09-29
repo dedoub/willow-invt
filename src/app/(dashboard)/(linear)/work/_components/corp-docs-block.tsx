@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { t } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { Bone } from '@/app/(dashboard)/_components/linear-skeleton'
@@ -72,7 +73,9 @@ export function CorpDocsBlock({ company, documents: given, loading: givenLoading
   const error = selfLoad ? ownError : (givenError ?? null)
 
   return (
-    <LCard style={style}>
+    <LCard pad={0} style={style}>
+      {/* 바닥 줄이 카드 끝까지 닿도록 카드는 여백 0, 본문만 따로 감싼다 */}
+      <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
       <LSectionHead title="공식문서" mb={t.density.panelPadY + t.density.panelPadX} />
       {error && <div style={{ marginBottom: t.density.gapMd }}><LNotice tone="danger" text={error} /></div>}
       {loading ? (
@@ -81,6 +84,16 @@ export function CorpDocsBlock({ company, documents: given, loading: givenLoading
         </div>
       ) : (
         <DocumentsBlock documents={documents} onSelect={setSelected} />
+      )}
+      </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15).
+          /work 는 두 회사를 합쳐 보고 /tensw 는 텐소만 본다 — 어느 서류함인지 회사로 말한다. */}
+      {!loading && (
+        <LCardFoot
+          left={`${company === 'tensw' ? '텐소프트웍스' : company === 'willow' ? '윌로우' : '윌로우·텐소프트웍스'} 법인 서류함 · 등록은 CLI, 여기서는 열람만`}
+          right={`${documents.length.toLocaleString()}건`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       )}
       {/* 두 회사를 합쳐 놓으면 상세는 그 문서의 회사로 열어야 한다. 카드에 고정된 회사로 열면
           텐소 문서를 윌로우 경로로 읽어 파일이 안 열린다. */}

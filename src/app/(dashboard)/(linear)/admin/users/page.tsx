@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth, useIsAdmin } from '@/lib/auth-context'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead, LHeadBtn } from '@/app/(dashboard)/_components/linear-section-head'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -324,6 +325,13 @@ export default function UsersPage() {
             </div>
           )}
         </div>
+        {!loading && (
+          <LCardFoot
+            left="대시보드 로그인 계정(willow_users) · 가입 최신순"
+            right={`${totalUsers.toLocaleString()}명`}
+            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          />
+        )}
       </LCard>
 
       {permUser && (

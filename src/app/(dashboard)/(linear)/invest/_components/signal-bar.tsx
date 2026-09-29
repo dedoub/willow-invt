@@ -5,6 +5,8 @@ import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
+import { fmtQuotesAt } from '../_lib/holdings'
 import { ReactNode } from 'react'
 
 interface SignalBarProps {
@@ -20,9 +22,11 @@ interface SignalBarProps {
   usdKrw: number
   loading?: boolean
   actions?: ReactNode
+  /** 시세를 받아 온 시각 — 발 줄 기준 표시. */
+  quotesAt?: Date | null
 }
 
-export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, usdKrw, loading, actions }: SignalBarProps) {
+export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakoutTickers, buyOnlyTickers, breakoutOnlyTickers, usdKrw, loading, actions, quotesAt }: SignalBarProps) {
   const mobile = useIsMobile()
   // 여섯 지표를 한 줄에 — 카드가 전폭이라 자리가 있고, 한눈에 훑는 게 우선이다(CEO 2026-09-23).
   // 모바일만 두 칸씩 접는다.
@@ -68,6 +72,11 @@ export function SignalBar({ totalValue, cumulativeReturnPct, gainSub, buyBreakou
           <LStat label="돌파" value={String(breakoutOnlyTickers.length)} tone={breakoutOnlyTickers.length > 0 ? 'pos' : 'default'} sub={join(breakoutOnlyTickers)} wrap />
         </StatRows>
       </div>
+      <LCardFoot
+        left="토스증권 체결내역·시세 · 세후는 해외 차익 22% 차감"
+        right={fmtQuotesAt(quotesAt)}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

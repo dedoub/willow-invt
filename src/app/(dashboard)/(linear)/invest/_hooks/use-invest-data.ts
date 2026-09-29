@@ -33,6 +33,8 @@ export function useInvestData() {
   const [stockHistory, setStockHistory] = useState<Record<string, { dates: string[]; prices: number[]; highs?: number[] }>>({})
   const [fxHistory, setFxHistory] = useState<Record<string, number>>({})
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  // 시세를 마지막으로 받아 온 시각 — 카드 발 줄의 "기준" 표시용.
+  const [quotesAt, setQuotesAt] = useState<Date | null>(null)
 
   // Load stock history (prices + FX) after trades are fetched
   const loadStockHistory = useCallback(async (trades: StockTradeFull[], extra?: { ticker: string; market?: string }[]) => {
@@ -161,6 +163,7 @@ export function useInvestData() {
           }
           setStockQuotes(quotes)
           setStockQuotesFull(quotesFull)
+          setQuotesAt(new Date())
 
           if (data.themes) setStockThemes(data.themes)
 
@@ -287,7 +290,7 @@ export function useInvestData() {
     stockQuotes, stockQuotesFull,
     stockResearch, stockThemes,
     stockHistory, fxHistory, usdKrw,
-    isLoadingHistory,
+    isLoadingHistory, quotesAt,
     myAxes, tickerSectors, qldTransition, breakoutMap,
     reload: loadData,
     reloadQuiet,

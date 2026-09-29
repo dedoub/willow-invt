@@ -20,7 +20,7 @@ export default function InvestPage() {
   const {
     loadPhase, watchlistData, stockTrades, stockTradesFull,
     stockQuotes, stockQuotesFull, stockThemes, stockHistory,
-    fxHistory, usdKrw, isLoadingHistory,
+    fxHistory, usdKrw, isLoadingHistory, quotesAt,
     myAxes, tickerSectors, qldTransition, breakoutMap, reload,
   } = useInvestData()
 
@@ -209,6 +209,7 @@ export default function InvestPage() {
           breakoutOnlyTickers={portfolioStats.breakoutOnlyTickers}
           usdKrw={usdKrw}
           actions={printActions}
+          quotesAt={quotesAt}
         />
 
         {loadPhase < 2 ? <InvestHoldingsSkeleton /> : (
@@ -224,6 +225,7 @@ export default function InvestPage() {
               tickerSectors={tickerSectors}
               qldTransition={qldTransition}
               breakoutMap={breakoutMap}
+              quotesAt={quotesAt}
               between={
                 <AllocationBlock
                   stockTrades={stockTradesFull}
@@ -231,6 +233,7 @@ export default function InvestPage() {
                   stockThemes={stockThemes}
                   usdKrwRate={usdKrw}
                   mobile={mobile}
+                  quotesAt={quotesAt}
                 />
               }
             />

@@ -17,6 +17,7 @@ import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import {
   LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableMono,
   LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize,
@@ -27,7 +28,7 @@ import {
   buildSignalMap, buildThesisMap, watchlistTickerSet, buildWatchlistItems, buildResearchItems,
   orderParents, SIGNAL_LABEL, fmtQuote, tierLabel,
 } from '../_lib/research'
-import { fmtPct } from '../_lib/holdings'
+import { fmtPct, fmtQuotesAt } from '../_lib/holdings'
 import { ResearchDetailDialog } from './research-detail-dialog'
 
 interface Props {
@@ -42,6 +43,8 @@ interface Props {
   /** 섹션 머리 우측 보조 컨트롤 — 인쇄 버튼 등. */
   headTools?: ReactNode
   style?: CSSProperties
+  /** 시세를 받아 온 시각 — 발 줄 기준 표시. */
+  quotesAt?: Date | null
 }
 
 const MODE_KEY = 'invest-research-mode'
@@ -82,7 +85,7 @@ const cellTone = (v: number | null | undefined): 'pos' | 'neg' | 'muted' => v ==
 
 export function ResearchTableBlock({
   watchlistData, signalData, stockQuotes, stockResearch, stockThemes = {}, breakoutMap = {},
-  onDataChanged, headTools, style,
+  onDataChanged, headTools, style, quotesAt,
 }: Props) {
   const mobile = useIsMobile()
   const [mode, setMode] = useState<ResearchGroup>(getStoredMode)
@@ -313,6 +316,14 @@ export function ResearchTableBlock({
           </div>
         )}
       </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left={mode === 'watchlist'
+          ? '워치리스트 · 토스 시세 · 돌파는 직전 20일 고가 기준'
+          : '리서치 스캔 통과 종목 · ETF·워치리스트 제외 · 토스 시세'}
+        right={fmtQuotesAt(quotesAt)}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
 
       <ResearchDetailDialog
         item={selected}

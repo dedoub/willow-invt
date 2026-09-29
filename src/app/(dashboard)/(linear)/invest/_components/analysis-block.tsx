@@ -6,9 +6,11 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { StockTradeFull, StockQuoteFull, TickerTheme } from './holdings-block'
 import { createFxLookup } from '@/lib/fx-lookup'
+import { fmtQuotesAt } from '../_lib/holdings'
 
 /* ── Types ── */
 
@@ -686,17 +688,24 @@ export function AnalysisBlock({
           <DistributionPie title="포트폴리오 비중" unit="%" tabs={pieTabs} palette={piePalette} />
         )}
       </div>
+      <LCardFoot
+        left="매매기록 + 일별 종가(Yahoo 수집) · 벤치마크 QLD"
+        right={`${trendData[trendData.length - 1].date} 기준`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }
 
 /* ── 자산비중 — 테마별·AI 인프라 세부·국내/해외 파이 셋을 탭 없이 나란히 (CEO 2026-09-28). ── */
-export function AllocationBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, mobile }: {
+export function AllocationBlock({ stockTrades, stockQuotes, stockThemes, usdKrwRate, mobile, quotesAt }: {
   stockTrades: StockTradeFull[]
   stockQuotes: Record<string, StockQuoteFull>
   stockThemes: Record<string, TickerTheme[]>
   usdKrwRate: number
   mobile?: boolean
+  /** 시세를 받아 온 시각 — 발 줄 기준 표시. */
+  quotesAt?: Date | null
 }) {
   const alloc = useMemo(() => computeAllocation(stockTrades, stockQuotes, stockThemes, usdKrwRate), [stockTrades, stockQuotes, stockThemes, usdKrwRate])
   if (alloc.byTheme.length === 0) return null
@@ -726,6 +735,11 @@ export function AllocationBlock({ stockTrades, stockQuotes, stockThemes, usdKrwR
           />
         ))}
       </div>
+      <LCardFoot
+        left="토스증권 체결내역·시세 · 원화 환산 평가액 비중"
+        right={fmtQuotesAt(quotesAt)}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

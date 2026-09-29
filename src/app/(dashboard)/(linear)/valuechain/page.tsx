@@ -13,6 +13,7 @@ import { useDashCols } from '@/app/(dashboard)/_components/cols-toggle'
 import { SearchDemandCard } from '@/app/(dashboard)/_components/search-demand-card'
 import type { ValueChainStats } from '@/lib/valuechain-supabase'
 import { LPageSize } from '@/app/(dashboard)/_components/linear-table'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 
 const SITE_URL = 'https://valuechain.wiki'
 
@@ -80,6 +81,8 @@ export default function ValueChainPage() {
   }
 
   const { summary, maturity, updates, crawl, trends, articleUpdates } = stats
+  // updates.recent 는 updated_at 내림차순이라 첫 줄이 가장 최근 수정이다.
+  const lastNodeEdit = (updates.recent[0]?.updated_at ?? '').slice(0, 10)
 
   const sectionLabel: React.CSSProperties = {
     fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.semibold, color: t.neutrals.subtle,
@@ -410,6 +413,13 @@ export default function ValueChainPage() {
           </div>
         </div>
 
+        {/* 꼬리 — 숫자는 위키 DB(vc_*)를 그 자리에서 센 것. 크롤 로그는 최근 3,000건만 읽는다
+            (getValueChainStats). 기준 시각은 노드가 마지막으로 고쳐진 날이다. */}
+        <LCardFoot
+          left="위키 DB 직접 집계 · 크롤은 최근 3,000건, 공격 요청 제외"
+          right={lastNodeEdit ? `노드 수정 ${lastNodeEdit}` : `${summary.nodes.toLocaleString()}개 노드`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       </LCard>
     </div>
     </div>

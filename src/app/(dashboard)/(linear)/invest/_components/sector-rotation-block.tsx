@@ -9,6 +9,7 @@ import { LTableHead, LTableRow, LTableBody, LTableScroll, LPageSize, type LColum
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 
 interface SectorEtf {
   ticker: string
@@ -175,7 +176,7 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
   return (
     /* 생 div 에 배경을 칠하면 카드 문법(theme-outline)이 닿지 않아 이 블록만 다른 카드로 읽혔다. */
     <LCard>
-      <LSectionHead title="섹터수익률" meta={latestDate ? `as of ${latestDate}` : undefined} mb={t.density.panelPadY + t.density.gapMd} />
+      <LSectionHead title="섹터수익률" mb={t.density.panelPadY + t.density.gapMd} />
 
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.density.gapXs }}>
@@ -304,6 +305,20 @@ export function SectorRotationBlock({ myAxes }: SectorRotationBlockProps = {}) {
         <div style={{ fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle, padding: `${t.density.pagePadX}px 0`, textAlign: 'center' as const }}>
           데이터가 없습니다. 수집 스크립트를 실행해 주세요.
         </div>
+      )}
+
+      {/* 쪽넘김 줄과 따로 둔다(CEO 2026-09-15). 이 카드는 기본 여백이라 발 줄을 여백만큼 밖으로 당겨
+          구분선을 카드 끝까지 긋는다. 기준일은 머리 meta 에서 여기로 내렸다. */}
+      {!loading && sorted.length > 0 && (
+        <LCardFoot
+          left="Yahoo 일별 종가 수집 · 보유 묶음은 종목 등가중 평균"
+          right={latestDate ? `${latestDate} 종가` : `${sorted.length.toLocaleString()}개`}
+          style={{
+            marginTop: t.density.cardPad, marginLeft: -t.density.cardPad,
+            marginRight: -t.density.cardPad, marginBottom: -t.density.cardPad,
+            padding: `${t.density.panelPadY}px ${t.density.cardPad}px`,
+          }}
+        />
       )}
 
       {openChart && (

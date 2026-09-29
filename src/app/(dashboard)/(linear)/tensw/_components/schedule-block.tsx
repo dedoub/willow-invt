@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { t, tonePalettes, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -274,8 +275,18 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       })()
     : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
+  // 바닥 줄 건수 — 지금 보이는 주·달(월간은 그 달 날짜만)에 걸린 일정 수. 필터가 걸리면 그 분류만 센다.
+  const periodCount = (() => {
+    const dates = viewMode === 'week'
+      ? weekDays.map(formatDateLocal)
+      : monthGrid.flat().filter(d => d.getMonth() === baseDate.getMonth()).map(formatDateLocal)
+    return filteredSchedules.filter(s => dates.some(d => matchesDate(s, d))).length
+  })()
+
   return (
-    <LCard>
+    <LCard pad={0}>
+      {/* 바닥 줄이 카드 끝까지 닿도록 카드는 여백 0, 본문만 따로 감싼다 */}
+      <div style={{ padding: t.density.cardPad }}>
       <LSectionHead title="일정" toolsInline mb={t.density.panelPadY} tools={
         <LSegmented
           value={viewMode}
@@ -414,6 +425,12 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
           </div>
         )
       })()}
+      </div>
+      <LCardFoot
+        left="직접 입력 + 세금계산서·입출금·세금·보험 납부 자동 반영"
+        right={`${navLabel} ${periodCount.toLocaleString()}개`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

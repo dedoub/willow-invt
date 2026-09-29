@@ -13,7 +13,7 @@ import { useInvestData } from '../_hooks/use-invest-data'
 export default function InvestResearchPage() {
   const {
     loadPhase, watchlistData, signalData, stockQuotes,
-    stockResearch, stockThemes, breakoutMap, reloadQuiet,
+    stockResearch, stockThemes, breakoutMap, reloadQuiet, quotesAt,
   } = useInvestData()
 
   if (loadPhase === 0) return <div className="theme-outline"><InvestResearchSkeleton /></div>
@@ -30,6 +30,7 @@ export default function InvestResearchPage() {
         stockThemes={stockThemes}
         breakoutMap={breakoutMap}
         onDataChanged={reloadQuiet}
+        quotesAt={quotesAt}
         headTools={
           <LHeadBtn
             icon="download"

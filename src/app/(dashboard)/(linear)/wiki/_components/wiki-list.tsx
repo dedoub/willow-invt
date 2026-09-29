@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
@@ -111,6 +112,11 @@ function fmtDate(dateStr: string): string {
   const yy = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}. ` : ''
   return `${yy}${d.getMonth() + 1}월 ${d.getDate()}일`
 }
+/** 바닥 줄용 YYYY-MM-DD(로컬 날짜). */
+function fmtYmd(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 function fmtUpdatedTitle(dateStr: string): string {
   return `마지막 업데이트: ${new Date(dateStr).toLocaleString('ko-KR')}`
 }
@@ -145,13 +151,16 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
   // 섹션 높이를 브라우저(뷰포트)에 맞춰 동적 조정. 컨테이너 top을 측정해
   // 카드 하단이 뷰포트 하단에 닿도록 높이를 계산하고, 리사이즈 시 갱신한다.
   const wrapRef = useRef<HTMLDivElement>(null)
+  // 카드 바닥 줄도 화면 안에 들어와야 한다 — 그 높이만큼 섹션을 덜 준다.
+  const footRef = useRef<HTMLDivElement>(null)
   const [availH, setAvailH] = useState(560)
   useEffect(() => {
     const compute = () => {
       const el = wrapRef.current
       if (!el) return
       const top = el.getBoundingClientRect().top
-      setAvailH(Math.max(MIN_SECTION_H, Math.round(window.innerHeight - top - BOTTOM_GAP)))
+      const footH = footRef.current?.offsetHeight ?? 0
+      setAvailH(Math.max(MIN_SECTION_H, Math.round(window.innerHeight - top - BOTTOM_GAP - footH)))
     }
     compute()
     window.addEventListener('resize', compute)
@@ -181,6 +190,8 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
+  // 바닥 줄 기준일 — 가장 최근에 고친 노트의 날짜.
+  const lastUpdated = notes.reduce((acc, n) => (n.updated_at > acc ? n.updated_at : acc), '')
   const selectedNote = selectedId ? notes.find(n => n.id === selectedId) : null
   const renderedSelectedContent = selectedNote ? renderWikiHtml(selectedNote.content) : ''
   const hasSelectedContent = htmlToPlainText(renderedSelectedContent).trim().length > 0
@@ -625,6 +636,14 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         </div>
         </DetailShell>
         )}
+      </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <div ref={footRef} style={{ flexShrink: 0 }}>
+        <LCardFoot
+          left="사업부별 업무위키 노트 · 화면·텔레그램 봇·스크립트가 기록"
+          right={lastUpdated ? `${fmtYmd(lastUpdated)} 수정` : `${notes.length.toLocaleString()}건`}
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       </div>
     </LCard>
   )

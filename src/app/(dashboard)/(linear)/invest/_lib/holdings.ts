@@ -135,6 +135,13 @@ export function makeFxRate(fxHistory: Record<string, number>, usdKrwRate: number
 
 /* ── 포맷 ── */
 
+/** 카드 발 줄의 시세 기준 시각. "09-29 14:05 시세" */
+export function fmtQuotesAt(d: Date | null | undefined): string | undefined {
+  if (!d) return undefined
+  const p2 = (n: number) => String(n).padStart(2, '0')
+  return `${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())} 시세`
+}
+
 export function fmtAmount(v: number, currency: 'KRW' | 'USD'): string {
   if (currency === 'USD') return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const abs = Math.abs(v)

@@ -121,6 +121,13 @@ export default function CorpPage() {
           mb={10}
         />
         {mode === 'documents' && <DocumentsBlock documents={documents} onSelect={setSelectedDoc} />}
+        {/* 문서 블록은 다른 화면(corp-docs-block)도 같이 쓰므로 꼬리 줄은 이 카드에서만 단다. */}
+        {mode === 'documents' && (
+          <LCardFoot
+            left={`${CORP_COMPANY_LABEL[company]} 원본은 비공개 보관함 corp-records · 확정본 수정 불가`}
+            right={`${documents.length.toLocaleString()}건`}
+          />
+        )}
         {mode === 'rules' && <RulesBlock rules={rules} onSelect={setSelectedRule} />}
         {mode === 'actions' && <ActionsBlock actions={actions} documents={documents} onSelectDocument={setSelectedDoc} />}
       </LCard>

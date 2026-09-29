@@ -114,9 +114,11 @@
     "/work": [
       "개인 이메일|1-title-joined",
       "개인 이메일|1-title-length",
+      "공식문서|2-filter-in-head",
       "업무위키|2-filter-in-head",
       "회사 이메일|1-title-joined",
-      "회사 이메일|1-title-length"
+      "회사 이메일|1-title-length",
+      "회사 이메일|2-filter-in-head"
     ],
     "/papers": [
       "갱신 파이프라인|1-title-joined",
@@ -149,8 +151,8 @@
     "/valuechain": 37,
     "/voicecards": 30,
     "/wiki": 90,
-    "/work": 90,
+    "/work": 97,
     "/papers": 90
   },
-  "updatedAt": "2026-09-28T09:37:13.535Z"
+  "updatedAt": "2026-09-29T03:59:33.802Z"
 }

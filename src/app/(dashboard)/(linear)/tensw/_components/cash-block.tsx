@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
@@ -229,6 +230,8 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
     }
     return { woori, shinhan, total, asOfDate, hasData: Object.keys(lastByAccount).length > 0 }
   }, [balanceHistory, bankBalances, rangeStart, rangeEnd])
+  // 카드 바닥 줄의 기준일. asOfDate 는 이력이 없으면 빈 문자열이라 ?? 로는 스냅샷 날짜로 넘어가지 않는다.
+  const cashAsOf = periodEndBalance.asOfDate || latestBalanceDate
 
   // Sparkline: 1 year ending at rangeEnd, total balance with forward-fill
   const totalBalanceSpark = useMemo(() => {
@@ -524,6 +527,12 @@ export function CashBlock({ items, onSelect, bankBalances = [], balanceHistory =
           </div>
         )}
       </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="우리·신한은행 거래내역 자동 수집"
+        right={cashAsOf ? `잔액 ${cashAsOf} 기준` : `${sortedList.length.toLocaleString()}건`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

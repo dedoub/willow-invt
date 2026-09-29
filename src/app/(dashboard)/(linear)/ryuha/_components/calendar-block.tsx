@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { t, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -362,6 +363,14 @@ export function CalendarBlock({
       })()
     : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
+  // 바닥 줄 건수 — 지금 보이는 주·달(월간은 그 달 날짜만)에 걸린 일정 수. 필터가 걸리면 그 분류만 센다.
+  const periodCount = (() => {
+    const dates = viewMode === 'week'
+      ? weekDays.map(formatDateLocal)
+      : monthGrid.flat().filter(d => d.getMonth() === baseDate.getMonth()).map(formatDateLocal)
+    return filteredSchedules.filter(s => dates.some(d => matchesDate(s, d))).length
+  })()
+
   return (
     // 카드는 빈 껍데기로 두고 안에서 구역마다 여백을 준다 — 사업관리 일정 카드와 같은 축.
     // 푸터·구분선이 카드 벽이 아니라 글자 줄에 맞으려면 카드가 pad 0 이어야 한다.
@@ -524,6 +533,11 @@ export function CalendarBlock({
       })()}
 
       </div>
+      <LCardFoot
+        left="화면·류하봇으로 입력한 일정 · 날짜별 메모 함께 표시"
+        right={`${navLabel} ${periodCount.toLocaleString()}개`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
 
     {/* ── Memo Dialog ──

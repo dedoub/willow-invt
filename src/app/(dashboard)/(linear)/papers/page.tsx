@@ -28,6 +28,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LBtn } from '@/app/(dashboard)/_components/linear-btn'
 import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import {
   LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableMono, LTableNumber, LTableRow, LTableScroll,
@@ -73,6 +74,15 @@ function formatAgo(iso: string | null): string {
   const hours = Math.round(minutes / 60)
   if (hours < 24) return `${hours}시간 전`
   return `${Math.round(hours / 24)}일 전`
+}
+
+/** 카드 꼬리 시각 — "09-29 14:25". 몇 분 전 대신 찍힌 시각을 적는다(사업관리 카드와 같은 모양). */
+function formatStamp(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 /** s3 경로의 첫 칸이 곧 영역이다 — warehouse(원본) · unified(통합) · derived(소비 팀) */
@@ -293,11 +303,18 @@ export default function PapersPage() {
             fontSize: `calc(${t.type.tableBody}px * var(--fz, 1))`, color: t.neutrals.subtle,
           }}>불러오는 중</div>
         </div>
+        <LCardFoot
+          left="논문 데이터 창고 동기화"
+          right="불러오는 중"
+          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+        />
       </LCard>
     )
   }
 
   const upstream = pipeline?.upstream
+  // 카드 꼬리의 기준 시각. 동기화 스크립트가 AWS 를 마지막으로 본 때다.
+  const syncedLabel = formatStamp(lastSync?.at) ? `${formatStamp(lastSync?.at)} 확인` : '확인 전'
   const staged = pipeline?.staged ?? []
   const checks = pipeline?.checks ?? []
   const checksOk = checks.length > 0 && checks.every(c => c.ok)
@@ -426,6 +443,11 @@ export default function PapersPage() {
             )}
             <FigureGrid items={summaryFigures} cols={mobile ? 2 : 4} />
           </div>
+          <LCardFoot
+            left="AWS Glue·S3·Athena 직접 조회 · 매시 25분 동기화"
+            right={syncedLabel}
+            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          />
         </LCard>
 
         {/* 왼쪽은 무엇이 얼마나 들어 있나(데이터), 오른쪽은 어디서 오고 얼마가 들고 어떻게
@@ -513,6 +535,11 @@ export default function PapersPage() {
                   )}
                 </div>
               </div>
+              <LCardFoot
+                left="Glue 카탈로그·S3 목록·Athena count 실측 · 표마다 기준일 다름"
+                right={`${sorted.length.toLocaleString()}개 표`}
+                style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+              />
             </LCard>
 
           </div>
@@ -547,6 +574,11 @@ export default function PapersPage() {
                   </LTableBody>
                 </LTableScroll>
               </div>
+              <LCardFoot
+                left="적재된 표를 출처별로 합산 · 원본은 OpenAlex·KCI"
+                right={syncedLabel}
+                style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+              />
             </LCard>
 
             {/* 비용 — IAM 사용자에게 비용 조회 권한이 없다. 보관비는 실측 용량에 단가를
@@ -558,6 +590,11 @@ export default function PapersPage() {
                 </div>
                 <FigureGrid items={costFigures} cols={2} />
               </div>
+              <LCardFoot
+                left="보관비는 실측 용량 × S3 단가 · 나머지는 설계 문서 실측값"
+                right={`${formatBytes(summary.bytes)} 기준`}
+                style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+              />
             </LCard>
 
             {/* 갱신 파이프라인 — 원본 공개 스냅샷은 분기 갱신이다. 새 스냅샷이 뜨면
@@ -588,6 +625,11 @@ export default function PapersPage() {
                   </LTableBody>
                 </LTableScroll>
               </div>
+              <LCardFoot
+                left="OpenAlex 원본 매니페스트와 Glue 카탈로그 대조"
+                right={formatStamp(pipeline?.checked_at) ? `${formatStamp(pipeline?.checked_at)} 확인` : '확인 전'}
+                style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+              />
             </LCard>
 
           </div>

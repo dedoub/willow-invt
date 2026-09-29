@@ -111,6 +111,11 @@ async function capture(page, base, p, file) {
   await page.goto(base + p, { waitUntil: 'domcontentloaded', timeout: 240000 })
   await page.waitForSelector('[data-section-head]', { timeout: 180000 })
   await page.waitForTimeout(8000) // 카드들이 두 번째 로드 단계까지 올라오게
+  // 아직 스켈레톤(.l-skeleton)이 보이면 더 기다린다(최대 90초). 로딩 중 화면을 재면 데이터가 온 뒤에만
+  // 그려지는 것(카드 푸터 등)을 없다고 잘못 잡는다 — /voicecards 에서 실제로 그랬다(2026-09-29).
+  await page.waitForFunction(() => ![...document.querySelectorAll('.l-skeleton')]
+    .some(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }), null, { timeout: 90000 })
+    .catch(() => {})
   await page.screenshot({ path: file, fullPage: true })
 }
 

@@ -19,6 +19,7 @@ import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LStat } from '@/app/(dashboard)/_components/linear-stat'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import {
   LTableBadge, LTableBody, LTableEmpty, LTableHead, LTableMono,
   LTableRow, LTableScroll, useTableSort, type LColumn, LPageSize,
@@ -26,7 +27,7 @@ import {
 import {
   type StockTradeFull, type StockQuoteFull, type TickerTheme, type Holding, type MarketFilter, type Pyramiding,
   computeHoldings, computeSummary, computeRealized, computeTotals, computeThemeStats,
-  makeFxRate, pyramidingOf, subThemeOf, valKrwOf, pnlKrwOf, fmtAmount, fmtPct, fmtSigned, PYRAMIDING_LABEL,
+  makeFxRate, pyramidingOf, subThemeOf, valKrwOf, pnlKrwOf, fmtAmount, fmtPct, fmtSigned, fmtQuotesAt, PYRAMIDING_LABEL,
 } from '../_lib/holdings'
 import { HoldingDetailDialog, type HoldingDetail } from './holding-detail-dialog'
 
@@ -45,6 +46,8 @@ interface Props {
   style?: CSSProperties
   /** 보유현황과 보유종목 카드 사이에 둘 카드(자산비중). */
   between?: ReactNode
+  /** 시세를 받아 온 시각 — 발 줄 기준 표시. */
+  quotesAt?: Date | null
 }
 
 /** 표 한 줄. Holding 에 화면이 정렬·표시에 쓰는 파생값을 붙인 것. */
@@ -129,7 +132,7 @@ function ChangeLine({ value, base, pct, currency }: { value: number; base?: numb
 
 export function HoldingsTableBlock({
   stockTrades, stockQuotes, stockThemes, usdKrwRate, fxHistory,
-  tickerSectors = {}, qldTransition = {}, breakoutMap = {}, style, between,
+  tickerSectors = {}, qldTransition = {}, breakoutMap = {}, style, between, quotesAt,
 }: Props) {
   const mobile = useIsMobile()
   // 필터·통화는 카드마다 따로 둔다(CEO 2026-09-28) — 위 카드를 해외로 봐도 아래 표는 전체일 수 있다.
@@ -313,6 +316,11 @@ export function HoldingsTableBlock({
           </LTableScroll>
         </div>
       )}
+      <LCardFoot
+        left="토스증권 체결내역·시세 · 해외 원가는 매수일 환율 환산"
+        right={fmtQuotesAt(quotesAt)}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
 
     {between}
@@ -433,6 +441,12 @@ export function HoldingsTableBlock({
           </div>
         )}
       </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="토스증권 체결내역·시세 · 상태는 500만원 트랜치 피라미딩"
+        right={fmtQuotesAt(quotesAt)}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
 
       <HoldingDetailDialog detail={detail} usdKrwRate={usdKrwRate} onClose={() => setSelected(null)} />
     </LCard>

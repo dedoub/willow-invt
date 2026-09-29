@@ -6,6 +6,7 @@ import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import {
   LPageSize, LTableBadge, LTableScroll, LTableHead, LTableBody, LTableRow, LTableEmpty,
   LTableMono, LTableNumber, type LColumn,
@@ -350,6 +351,12 @@ export function TradeLog({ trades, fxHistory, usdKrwRate }: TradeLogProps) {
           </div>
         )}
       </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left={view === 'trades' ? '토스증권 체결내역 동기화' : '토스증권 체결내역 · 평균원가, 매도일 환율 원화 환산'}
+        right={sorted[0]?.trade_date ? `최근 체결 ${sorted[0].trade_date.slice(0, 10)}` : `${totalCount.toLocaleString()}건`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }
