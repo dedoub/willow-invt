@@ -82,11 +82,12 @@ export async function toPdf(hwp, outPdf) {
   const made = path.join(EXPORT_DIR, `${base}.pdf`)
   fs.copyFileSync(hwp, staged)
   execFileSync('open', ['-a', 'Hancom Office HWP', staged])
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     await sleep(1000)
-    const title = osa(['tell application "System Events" to tell process "Hancom Office HWP" to get name of front window'])
+    let title = ''
+    try { title = osa(['tell application "System Events" to tell process "Hancom Office HWP" to get name of front window']) } catch {}  // 켜지는 중엔 창이 없다
     if (title.includes(base)) break
-    if (i === 19) throw new Error(`한컴 창이 열리지 않았어요(${title})`)
+    if (i === 29) throw new Error(`한컴 창이 열리지 않았어요(${title || '창 없음'})`)
   }
   osa(['tell application "System Events" to tell process "Hancom Office HWP"', 'set frontmost to true',
     'click menu item "PDF로 저장하기..." of menu 1 of menu bar item "파일" of menu bar 1', 'end tell'])
@@ -103,8 +104,15 @@ export async function toPdf(hwp, outPdf) {
   for (let i = 0; i < 30 && !fs.existsSync(made); i++) await sleep(1000)
   if (!fs.existsSync(made)) throw new Error(`PDF 가 만들어지지 않았어요: ${made}`)
   await sleep(1000)
-  // 열어 둔 문서 창은 닫는다(다음 저장 때 같은 이름의 "되돌림" 창이 뜨지 않게)
-  try { osa(['tell application "System Events" to tell process "Hancom Office HWP" to keystroke "w" using {command down}']) } catch {}
+  // 문서 창을 닫는다. ⌘W 는 먹지 않았다(2026-09-30 창 10개가 남음) — 메뉴 "문서 닫기"를 누르고,
+  // 한컴이 열면서 줄 배치를 다시 계산해 "저장할까요?"를 물으면 저장 안 함(원본은 이미 디스크에 있다).
+  try {
+    osa(['tell application "System Events" to tell process "Hancom Office HWP"', 'set frontmost to true',
+      'click menu item "문서 닫기" of menu 1 of menu bar item "파일" of menu bar 1', 'end tell'])
+    await sleep(1200)
+    osa(['tell application "System Events" to tell process "Hancom Office HWP"',
+      'repeat with w in windows', 'try', 'click (first button of w whose name starts with "저장 안 함")', 'end try', 'end repeat', 'end tell'])
+  } catch {}
   fs.mkdirSync(path.dirname(outPdf), { recursive: true })
   fs.renameSync(made, outPdf)
   fs.rmSync(staged, { force: true })
