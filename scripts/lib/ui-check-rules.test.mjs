@@ -14,13 +14,14 @@ import { RULES_SOURCE } from './ui-check-rules.mjs'
 
 // 카드 한 장. head 는 제목 줄(안에 도구를 넣을 수 있다), body 는 제목 아래. gap 은 제목 아래 여백(px).
 // foot 은 카드 맨 아래 출처·기준 줄(LCardFoot). 규칙 9 를 보는 사례 말고는 늘 단다.
-const card = ({ title, tools = '', body = '<div>내용</div>', gap = 18, foot = true }) => `
+// footInset 은 푸터를 제목 줄보다 더 안쪽으로 들인 px(섹터수익률 오류 재현용). 0 이면 제목 줄과 같은 선.
+const card = ({ title, tools = '', body = '<div>내용</div>', gap = 18, foot = true, footInset = 0 }) => `
   <div data-lcard style="width:640px;padding:16px;margin:12px">
     <div data-section-head style="display:flex;justify-content:space-between;height:28px;margin-bottom:${gap}px">
       <span>${title}</span><span>${tools}</span>
     </div>
     ${body}
-    ${foot ? '<div data-card-foot><span>은행 거래내역 자동 수집</span><span>12건</span></div>' : ''}
+    ${foot ? `<div data-card-foot style="margin:0 ${footInset}px"><span>은행 거래내역 자동 수집</span><span>12건</span></div>` : ''}
   </div>`
 const chips = (labels) => `<div data-filter-chips>${labels.map(l => `<button data-filter-chip>${l}</button>`).join('')}</div>`
 const rows = (n) => Array.from({ length: n }, (_, i) => `<div data-table-row style="height:20px">행${i + 1}</div>`).join('')
@@ -45,6 +46,8 @@ const CASES = [
   // ── 실제 지적 (2026-09-29, 전 화면) ──
   { id: 'no-card-foot', kind: 'defect', rule: '9-card-foot', note: '"모든 페이지의 카드에 보이스카드처럼 푸터 영역을 넣어서 통일"',
     html: card({ title: '현금관리', foot: false }) },
+  { id: 'foot-narrow', kind: 'defect', rule: '10-foot-span', note: '"섹터수익률 카드의 푸터가 너비 이상함" — 제목 줄보다 16px 더 안쪽',
+    html: card({ title: '섹터수익률', footInset: 16 }) },
 
   // ── 오탐으로 확인된 것 (지적하면 안 된다) ──
   { id: 'panel-toggle', kind: 'ok', note: '평가액 판 안의 일반/로그 토글은 판 전용이라 제목 줄 규칙 밖',

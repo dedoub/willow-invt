@@ -59,6 +59,14 @@ export const RULES_SOURCE = String.raw`
     if (!card.parentElement?.closest('[data-lcard]')) {
       const foot = [...card.querySelectorAll('[data-card-foot]')].find(visible)
       if (!foot) add('9-card-foot', '카드 푸터 없음(출처·기준 한 줄)')
+      // 10. 푸터 줄은 제목 줄과 같은 좌우 선에 선다(테마가 푸터를 카드 벽이 아니라 글자 줄에 맞춘다,
+      //     globals.css .theme-outline [data-card-foot]). 여백을 따로 당긴 푸터는 9번을 통과하고도
+      //     이 선에서 벗어났다 — 섹터수익률 32px 안쪽(CEO 2026-09-29).
+      else {
+        const h = head.getBoundingClientRect(), f = foot.getBoundingClientRect()
+        const dl = Math.round(f.left - h.left), dr = Math.round(h.right - f.right)
+        if (Math.abs(dl) > 1.5 || Math.abs(dr) > 1.5) add('10-foot-span', '푸터 선이 제목 줄과 어긋남: 왼쪽 ' + dl + 'px · 오른쪽 ' + dr + 'px')
+      }
     }
   }
   return out

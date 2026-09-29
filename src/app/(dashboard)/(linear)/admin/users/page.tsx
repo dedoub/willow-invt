@@ -329,7 +329,9 @@ export default function UsersPage() {
           <LCardFoot
             left="대시보드 로그인 계정(willow_users) · 가입 최신순"
             right={`${totalUsers.toLocaleString()}명`}
-            style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+            // 선은 제목 줄과 같은 선에서 시작해 끝난다. theme-outline 이 없는 화면(/email·/admin·/wiki)에서도 같게
+          // 여백을 직접 준다(globals.css .theme-outline [data-card-foot] 과 같은 값).
+          style={{ margin: `0 ${t.density.cardPad}px`, padding: `${t.density.panelPadY}px 0 12px` }}
           />
         )}
       </LCard>

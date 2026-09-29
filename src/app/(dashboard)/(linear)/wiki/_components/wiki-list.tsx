@@ -642,7 +642,9 @@ export function WikiList({ notes, loading, onCreate, onUpdate, onDelete, hideFil
         <LCardFoot
           left="사업부별 업무위키 노트 · 화면·텔레그램 봇·스크립트가 기록"
           right={lastUpdated ? `${fmtYmd(lastUpdated)} 수정` : `${notes.length.toLocaleString()}건`}
-          style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+          // 선은 제목 줄과 같은 선에서 시작해 끝난다. theme-outline 이 없는 화면(/email·/admin·/wiki)에서도 같게
+          // 여백을 직접 준다(globals.css .theme-outline [data-card-foot] 과 같은 값).
+          style={{ margin: `0 ${t.density.cardPad}px`, padding: `${t.density.panelPadY}px 0 12px` }}
         />
       </div>
     </LCard>
