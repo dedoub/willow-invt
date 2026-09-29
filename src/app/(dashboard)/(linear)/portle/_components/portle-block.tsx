@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { t, tonePalettes, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
+import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { StatRows } from '@/app/(dashboard)/_components/linear-stat-rows'
@@ -15,7 +15,7 @@ import { LNotice } from '@/app/(dashboard)/_components/linear-notice'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LPageSize, LTableBadge, fzCols, fzTableMinWidth } from '@/app/(dashboard)/_components/linear-table'
 import { DistributionPie } from '@/app/(dashboard)/_components/distribution-pie'
-import { formatCountryName, countryName } from '@/lib/country-format'
+import { formatCountryName, countryName, codeToFlag } from '@/lib/country-format'
 
 // 분포 파이 공통 팔레트 — 보이스카드·리뷰노트와 같은 명도 사다리
 const PIE_PALETTE = ['#0E415A', '#5B6B74', '#8D959D', '#B4BBC1', '#C7CCD3', '#D8DCE1', '#E4E7EB', '#EDEFF2']
@@ -250,7 +250,7 @@ const missingFor = (key: UserSortKey, u: PortleUserRow): boolean => {
     case 'platform':  return !u.platform
     case 'version':   return !u.appVersion
     case 'locale':    return !u.locale
-    case 'country':   return !u.country
+    case 'country':   return !formatCountry(u.country, u.locale)
     default:          return false
   }
 }
@@ -288,7 +288,7 @@ const emptyCell: React.CSSProperties = {
 }
 const userDateCell: React.CSSProperties = {
   fontSize: `calc(${t.type.helper}px * var(--fz, 1))`, fontFamily: t.font.mono, color: t.neutrals.muted,
-  fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+  fontVariantNumeric: 'tabular-nums', textAlign: 'center', whiteSpace: 'nowrap',
   // 칸보다 긴 값은 옆 칸을 덮는 대신 잘린다. nowrap 인 글자는 막아 두지 않으면 이웃 위에
   // 그대로 그려진다(LTableMono 와 같은 규칙). 잘린 것이 보이면 그 열 폭을 올리라는 신호다.
   minWidth: 0, overflow: 'hidden',
@@ -317,10 +317,20 @@ function identityOf(u: PortleUserRow): { label: string; full: string; account: b
   }
 }
 
-const TYPE_TONES: Record<PortleUserRow['type'], { bg: string; fg: string; label: string }> = {
-  google: { ...tonePalettes.info, label: '구글' },
-  device: { bg: t.neutrals.inner, fg: t.neutrals.muted, label: '기기' },
-  other:  { ...tonePalettes.neutral, label: '기타' },
+// 사용자 표 셀 배지 색 — 보이스카드 사용자 표(CELL_TONES)와 같다. 규격은 LTableBadge 가 정하고
+// 여기선 색만 둔다. 칩(판)은 쓰지 않는다 — 표 안에서 판이 깔리면 그 칸만 버튼처럼 읽힌다
+// (CEO 2026-09-11). 값의 무게는 글자 짙기로만 가른다.
+const CELL_TONES = {
+  text:  { bg: 'transparent', fg: t.neutrals.text },
+  plain: { bg: 'transparent', fg: t.neutrals.muted },
+  dim:   { bg: 'transparent', fg: t.neutrals.subtle },
+} as const
+
+// 국가코드 우선, 없으면 로케일 지역(ko-KR → KR)으로 채운다 — 보이스카드 formatCountry 와 같은 규칙.
+function formatCountry(country: string | null, locale: string | null): { flag: string; code: string; name: string } | null {
+  const code = (country || (locale?.split(/[-_]/)[1] ?? '')).toUpperCase()
+  if (!/^[A-Z]{2}$/.test(code)) return null
+  return { flag: codeToFlag(code), code, name: countryName(code) }
 }
 
 // 날짜 셀 — 두 줄(날짜 / (요일) 시각). 값이 없으면 '—' 한 글자만.
@@ -418,7 +428,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
         case 'platform':  return (a.platform ?? '').localeCompare(b.platform ?? '')
         case 'version':   return compareVersion(a.appVersion, b.appVersion)
         case 'locale':    return (a.locale ?? '').localeCompare(b.locale ?? '')
-        case 'country':   return (a.country ?? '').localeCompare(b.country ?? '')
+        case 'country':   return (formatCountry(a.country, a.locale)?.code ?? '').localeCompare(formatCountry(b.country, b.locale)?.code ?? '')
         case 'drive':     return cmpDate(a.driveLinkedAt, b.driveLinkedAt)
         case 'ledger':    return cmpDate(a.ledgerActivatedAt, b.ledgerActivatedAt)
         case 'expires':   return cmpDate(a.entitlement?.expiresAt ?? null, b.entitlement?.expiresAt ?? null)
@@ -874,7 +884,6 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
               })}
             </div>
             {pagedUsers.map(user => {
-              const typeTone = TYPE_TONES[user.type]
               const ident = identityOf(user)
               const okPct = rate(user.success, user.calls)
               const ent = user.entitlement
@@ -897,16 +906,15 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                        title={`${ident.full}${user.deviceIds.length > 1 ? ` · 기기 ${user.deviceIds.length}대` : ''}`}>
                     <div style={{
                       width: 22, height: 22, borderRadius: 22, flexShrink: 0,
-                      background: ident.account ? typeTone.bg : '#E4E7EB',
-                      color: ident.account ? typeTone.fg : '#3A3D42',
+                      background: '#E4E7EB', color: '#3A3D42',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))`, fontWeight: t.weight.semibold,
                     }}>
                       {(user.email ? user.email.charAt(0) : ident.account ? 'G' : ident.label.replace(/^#/, '').charAt(0)).toUpperCase() || '?'}
                     </div>
-                    <LTableBadge tone={typeTone}>{typeTone.label}</LTableBadge>
                     <span style={{
                       ...userTextCell,
+                      fontSize: `calc(${t.type.control}px * var(--fz, 1))`, fontWeight: t.weight.medium,
                       // 이메일은 읽는 글자라 sans, 계정 id·기기번호는 대조하는 글자라 mono.
                       fontFamily: user.email ? t.font.sans : t.font.mono,
                       color: user.email ? t.neutrals.text : t.neutrals.muted,
@@ -915,28 +923,33 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 플랫폼 · 앱버전 — 기기 이벤트에서 온다. 이벤트가 없는 사람은 '—' */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.platform ? (
-                      <LTableBadge tone={user.platform === 'ios' ? tonePalettes.neutral : user.platform === 'android' ? tonePalettes.pos : tonePalettes.neutral}>
+                      <LTableBadge tone={user.platform === 'ios' || user.platform === 'android' ? CELL_TONES.text : CELL_TONES.plain}>
                         {user.platform === 'ios' ? 'iOS' : user.platform === 'android' ? 'AND' : user.platform.toUpperCase()}
                       </LTableBadge>
                     ) : <span style={emptyCell}>—</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.appVersion
-                      ? <LTableBadge tone={tonePalettes.neutral}>v{user.appVersion}</LTableBadge>
+                      ? <LTableBadge tone={CELL_TONES.plain}>v{user.appVersion}</LTableBadge>
                       : <span style={emptyCell}>—</span>}
                   </div>
                   {/* 언어 · 국가 — 앱이 1.0.3 부터 보낸다. 그 전 기기는 '—' */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     {user.locale
-                      ? <LTableBadge tone={tonePalettes.neutral}>{user.locale.toUpperCase()}</LTableBadge>
+                      ? <LTableBadge tone={CELL_TONES.plain}>{user.locale.toUpperCase()}</LTableBadge>
                       : <span style={emptyCell}>—</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-                    {user.country ? (
-                      <span title={countryName(user.country)} style={{ display: 'inline-flex', minWidth: 0 }}>
-                        <LTableBadge tone={tonePalettes.neutral}>{user.country.toUpperCase()}</LTableBadge>
-                      </span>
-                    ) : <span style={emptyCell}>—</span>}
+                    {(() => {
+                      const c = formatCountry(user.country, user.locale)
+                      return c ? (
+                        <span title={c.name} style={{ display: 'inline-flex', minWidth: 0 }}>
+                          <LTableBadge tone={CELL_TONES.text}>
+                            <span className="flag-mono">{c.flag}</span> {c.code}
+                          </LTableBadge>
+                        </span>
+                      ) : <span style={emptyCell}>—</span>
+                    })()}
                   </div>
                   {/* 드라이브 · 원장 — 보이스카드의 '드라이브 / 활성화' 두 열과 같은 자리.
                       원장은 구글 시트든 기기 원장이든 처음 기록한 때다. */}
@@ -952,7 +965,7 @@ export function PortleBlock({ loading, stats, onRefresh, refreshing, error, cols
                   {/* 구독 — 활성이면 스토어 표시, 만료는 흐리게 */}
                   <div style={{ ...userNumCell, fontSize: `calc(${t.type.tableHead}px * var(--fz, 1))` }} title={ent ? `${ent.productId} · ${formatDateShort(ent.expiresAt)} 만료` : undefined}>
                     {ent ? (
-                      <LTableBadge tone={ent.active ? tonePalettes.pos : { bg: t.neutrals.inner, fg: t.neutrals.subtle }}>
+                      <LTableBadge tone={ent.active ? CELL_TONES.text : CELL_TONES.dim}>
                         {ent.store === 'apple' ? 'Apple' : 'Google'}
                       </LTableBadge>
                     ) : '—'}
