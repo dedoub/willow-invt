@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
@@ -337,6 +338,13 @@ export function TaxManagementBlock({ obligations, storageKey, onRefresh }: {
           </div>
         )}
       </div>
+
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left="홈택스·위택스·4대보험 고지 자동 수집 · 납부기한 순"
+        right={`${year}년 ${rows.length.toLocaleString()}건`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
 
       <TaxDetailDialog
         obligation={selected}

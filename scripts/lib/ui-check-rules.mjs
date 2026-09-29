@@ -52,6 +52,14 @@ export const RULES_SOURCE = String.raw`
       if (top >= hb - 0.5 && (first === null || top < first)) first = top
     }
     if (first !== null && first - hb < MIN_TITLE_GAP) add('8-title-gap', '제목 아래 ' + Math.round(first - hb) + 'px (' + MIN_TITLE_GAP + ' 이상)')
+
+    // 9. 카드 맨 아래 푸터(LCardFoot) — 이 카드의 숫자가 어디서 왔고 언제 기준인지 한 줄.
+    //    쪽넘김 줄이 있어도 따로 단다(CEO 2026-09-15). 전 화면 통일(CEO 2026-09-29).
+    //    카드 안에 든 카드(판)는 바깥 카드의 푸터를 쓴다.
+    if (!card.parentElement?.closest('[data-lcard]')) {
+      const foot = [...card.querySelectorAll('[data-card-foot]')].find(visible)
+      if (!foot) add('9-card-foot', '카드 푸터 없음(출처·기준 한 줄)')
+    }
   }
   return out
 })()

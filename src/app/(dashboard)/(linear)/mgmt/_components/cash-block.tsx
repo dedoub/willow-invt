@@ -15,6 +15,7 @@ import { LTableHead, LTableScroll, LTableRow, LTableBody, LTableEmpty, LTableBad
 import { t, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { FigureGrid, type FigureItem } from '@/app/(dashboard)/_components/linear-figure-grid'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
@@ -517,6 +518,12 @@ export function CashBlock({ invoices, onSelectInvoice, bankBalances = [], usdRat
           </div>
         )}
       </div>
+      {/* 쪽넘김 줄과 따로 둔다 — 그 줄은 몇 개 중 몇 개인지만, 이 줄은 어디서 왔는지를 말한다(CEO 2026-09-15). */}
+      <LCardFoot
+        left={`은행 거래내역 자동 수집${usdRate > 0 ? ` · 외화는 ${usdRate.toLocaleString()}원/USD 환산` : ''}`}
+        right={asOf ? `잔액 ${asOf} 기준` : `${sortedList.length.toLocaleString()}건`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }

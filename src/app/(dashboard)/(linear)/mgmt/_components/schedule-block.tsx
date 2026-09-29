@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { t, readableOn, useIsMobile } from '@/app/(dashboard)/_components/linear-tokens'
 import { LCard } from '@/app/(dashboard)/_components/linear-card'
 import { LSectionHead } from '@/app/(dashboard)/_components/linear-section-head'
+import { LCardFoot } from '@/app/(dashboard)/_components/linear-card-foot'
 import { LIcon } from '@/app/(dashboard)/_components/linear-icons'
 import { LSegmented } from '@/app/(dashboard)/_components/linear-segmented'
 import { LFilterChip } from '@/app/(dashboard)/_components/linear-filter-chip'
@@ -292,6 +293,14 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
       })()
     : `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`
 
+  // 달력에 보이는 기간(주/월) 안의 일정 수 — 푸터 오른쪽 숫자
+  const periodCount = (() => {
+    const dates = viewMode === 'week'
+      ? weekDays.map(formatDateLocal)
+      : monthGrid.flat().filter(d => d.getMonth() === baseDate.getMonth()).map(formatDateLocal)
+    return filteredSchedules.filter(s => dates.some(d => matchesDate(s, d))).length
+  })()
+
   return (
     <LCard pad={0}>
       <div style={{ padding: t.density.cardPad, paddingBottom: t.density.panelPadY }}>
@@ -433,6 +442,11 @@ export function ScheduleBlock({ schedules, onAddSchedule, onToggleComplete, onSe
         )
       })()}
       </div>
+      <LCardFoot
+        left="윌로우·텐소프트웍스·ETC·아크로스 일정 · 공휴일은 날짜에 표시"
+        right={`${navLabel} ${periodCount.toLocaleString()}개`}
+        style={{ marginTop: 0, padding: `${t.density.panelPadY}px ${t.density.cardPad}px` }}
+      />
     </LCard>
   )
 }
