@@ -1,66 +1,132 @@
 ---
 name: tensw-internship-subsidy-application
-description: Use when preparing Tensoftworks Gangnam internship subsidy applications, including collecting required email attachments, obtaining Woori Bank salary-transfer confirmations, completing the monthly application form, validating evidence, and drafting the submission email. Trigger on "인턴십 지원금 신청", "강남구 지원금", "지원금 서류 준비", or "지원금 메일 초안".
+description: Use when preparing Tensoftworks Gangnam internship subsidy applications end to end — the 서식 13 application (HWP→PDF with the corporate seal), the 서식 9 attendance sheets the interns sign, the Woori Bank salary-transfer confirmation, the 4대보험 사업장 가입자 명부, the five-file cross-check and the submission email draft. Trigger on "인턴십 지원금 신청", "강남구 지원금", "지원금 서류 준비", "지원금 신청서", "지원금 메일 초안", "가입자 명부", "이체확인증".
 ---
 
-# 텐소프트웍스 인턴십 지원금 신청
+# 텐소프트웍스 강남구 인턴십 지원금 신청
 
-## 원칙
+매달 15일까지 전월분을 강남구상공회(`gnk@gngucci.or.kr`)에 낸다. 대상은 정규직으로 전환된
+조성민·이승무·전희나 3명이라 **서식 13(정규직 전환 지원금 신청서)**을 쓴다. 서식 12(인턴 지원금)는
+전환 전 인턴용이다. 안내 메일이 "서식12 또는 서식13"을 나란히 적어도 헷갈리지 말 것.
 
-전월분 자료를 모아 신청서와 제출 메일 초안까지 완성한다. 실제 발송은 김동욱 CFO의 명시적 승인 뒤에만 진행한다. 이메일 수신함을 먼저 조회하고, 직접 확인할 수 있는 자료를 대표에게 다시 묻지 않는다.
+실제 발송은 CEO 승인 뒤에만 한다. 출근부 회신 요청도, 기관 제출도 초안까지 만들고 보고한다.
 
-## 1. 신청 건 확정
+## 하면 안 되는 것 (2026-09-30 사고에서 나온 규칙)
 
-1. 신청 대상 월과 제출기한을 확인한다. 원칙은 매월 15일까지 전월분 제출이다.
-2. 전월 발송 메일과 최종 신청서를 찾아 최신 양식, 수신자, 대상자, 보완 요청 이력을 확인한다.
-3. 대상자와 신청 자격 변동을 김철형 대표와 김의향 이사의 최근 승인 메일에서 확인한다. 확인 근거가 없을 때만 두 사람에게 변동 여부를 묻는다.
-4. 현장 관리담당자는 최초 한 번 김의향 이사에게 확인하고 이후 지정 담당자를 사용한다.
-
-## 2. 이메일 첨부 수집
-
-수신함과 관련 스레드에서 출근부 서명본, 급여대장·급여명세서, 급여이체확인증, 4대보험 가입자 명부, 신청서 양식을 내려받고 월별 작업 폴더에 저장한다. 자료가 없거나 불완전하면 원천 담당자에게 한 번에 보완 요청하는 메일 초안을 만든다.
-
-개인정보가 있는 원본은 제한 저장소의 `텐소프트웍스 재무/02 강남구 인턴십 지원금/YYYY/YYYY-MM`에 보관한다.
-
-## 3. 급여이체확인증 확보
-
-급여 지급 완료 뒤 우리은행 기업뱅킹에서 대상자별 공식 이체확인증을 내려받는다. 화면 캡처 대신 은행 발급 PDF를 사용한다. 급여대장·출근부와 수취인, 지급일, 실지급액을 대조하고 불일치가 있으면 신청서 작성을 중단해 원인을 확인한다.
-
-## 4. 신청서 작성
-
-전월 최종 발송본을 복사하고 원본을 덮어쓰지 않는다. 신청 월과 대상 기간, 대상자·인원·자격, 기본급과 지원금, 지급일과 회사 계좌, 담당자 연락처, 대표자 서명 또는 직인을 갱신한다.
-
-최초 신청, 대상자·근로조건 변경, 기관 보완 요청이 있으면 근로계약서 등 추가서류 필요 여부를 최근 담당자 메일에서 확인한다.
-
-## 5. 제출본 검증
-
-다음 순서로 PDF 5종을 준비한다.
-
-1. 지원금 신청서
-2. 인턴 출근부 병합본
-3. 급여명세서 병합본
-4. 4대 사회보험 사업장 가입자 명부
-5. 급여이체확인증 병합본
-
-대상자 수와 이름, 대상 월, 지급일, 급여대장·명세서·이체확인증 금액, 신청금액 합계, 서명·직인, PDF 열림 여부를 교차검증한다. 하나라도 맞지 않으면 상태를 `검토대기`로 두고 메일 초안을 제출용으로 표시하지 않는다.
-
-## 6. 제출 메일 초안
-
-최근 기관 원문 메일로 수신자와 직전 제출 발신자를 재확인한다. 현재 받는 주소는 `gnk@gngucci.or.kr`이다. 발신자는 텐소프트웍스 Gmail에 실제 연결된 계정 또는 검증된 Send-As 별칭만 사용하고 `admin@tensoftworks.com`을 임의로 지정하지 않는다.
-
-제목은 `[텐소프트웍스] YYYY년 M월 강남구 인턴십 지원금 신청`으로 작성한다.
-
-본문에는 신청 대상 월, 대상자 수, 총 신청금액, 첨부파일 5종, 접수 확인 요청, 담당자 연락처를 적는다. 검증한 5개 파일을 실제 초안에 첨부하고 파일명과 첨부 개수를 다시 확인한다.
-
-## 7. 완료 보고
-
-신청 대상 월·마감일·대상자 수, 자료별 확보 상태, 교차검증 결과, 신청서와 PDF 경로, 메일 수신자·제목·본문·첨부 목록, 실제 발송 전 승인 필요 상태를 보고한다.
-
-승인 전에는 발송 완료라고 표현하지 않는다. 발송 승인 뒤에는 발송 메일과 접수 회신을 같은 월 폴더에 보관한다.
-
-## 보안·중단 조건
-
-- 비밀번호와 공동인증서 정보를 문서·메일·위키·로그에 기록하지 않는다.
+- **남이 서명한 칸을 다른 서식에 옮겨 붙이지 않는다.** 인턴이 서식 8에 서명해 보냈는데 기관이 서식 9를
+  요구하면, 서식 9를 새로 만들어 **다시 서명받는다.** 서명 이미지를 잘라 새 서식에 얹은 출근부는 위조다.
+- **한컴 창을 화면 조작으로 편집하지 않는다.** 맥용 한컴은 AppleScript로 문서를 조작할 수 없다. 화면
+  조작으로 고치려던 에이전트는 빈 양식을 "정본"으로 복사하거나 PDF 위에 글자를 덮어써 엉터리 서류를 냈다.
+  HWP는 `scripts/hwp/hwp.mjs`로 파일을 직접 고치고, 한컴은 메뉴 "PDF로 저장하기"에만 쓴다.
+- **PDF 위에 글자를 덮어쓰지 않는다**(pypdf 오버레이). 글자 크기·위치가 어긋난다.
+- 인감은 HWP에 넣지 않는다. **PDF로 바꾼 뒤 얹는다**(투명 배경이 산다).
 - 월이 다른 자료, 서명 누락 자료, 합계가 다른 자료를 임의로 보정하지 않는다.
-- 현재 수신자를 최신 기관 메일로 확인한다.
-- 은행·메일 접근이 막히면 단계와 원인을 보고하고 자료를 확보한 것으로 간주하지 않는다.
+- 비밀번호·공동인증서 정보·주민번호를 문서·메일 본문·위키·로그·깃에 적지 않는다.
+
+## 한눈에
+
+| 서류 | 만드는 법 | 결과 |
+|---|---|---|
+| 1. 신청서(서식 13) | `node scripts/gangnam-subsidy-build.mjs application --month YYYY-MM` | `tmp/…/YYYY-MM/07-final-submission/1_…신청_YYYYMM.{hwp,pdf}` (인감 포함) |
+| 2. 출근부(서식 9) 3장 | `… attendance --month YYYY-MM` → 인턴에게 보내 서명받음 | 버킷 `tensw-attendance/YYYY/signed/YYYY-MM_{cho,lee,jeon}.pdf` → 인턴 서명본 회신 |
+| 3. 급여명세서 3장 | 급여 스킬(`tensw-monthly-payroll`)이 만든 것 | `tmp/…/04-payslips/` |
+| 4. 4대보험 사업장 가입자 명부 | 4insure 로그인 → 발급 → 크롬 인쇄 PDF | 발급번호·발급시각을 기록 |
+| 5. 급여이체확인증 | 우리은행 기업뱅킹 → 이체확인증 → PDF | 이름별 이체금액 = 출근부 지급액 |
+
+작업 폴더는 `tmp/tensw-internship-subsidy/YYYY/YYYY-MM/`(깃에서 뺐다 — 주민번호·급여·서명).
+`01-guidance`(기관 안내·양식) · `02-previous-submission`(직전 제출본) · `03-attendance-received`(인턴 회신) ·
+`04-payslips` · `05-insurance` · `06-draft-submission` · `07-final-submission`.
+
+## 값은 어디서 오나 (손으로 옮기지 않는다)
+
+| 값 | 원천 |
+|---|---|
+| 대상자·주민번호·전환일·기본급 | 비공개 버킷 `tensw-attendance/config/subsidy-roster.json` (사람·급여가 바뀌면 여기만) |
+| 기관 양식(서식 9·12·13) | `tensw-attendance/forms/2026-gangnam-internship-forms.hwp` (새 양식이 오면 교체) |
+| 근무일·말일·지급일 | `scripts/lib/kr_workdays.py` |
+| 출근부 지급액(실지급액=차인지급액) | 우리은행 급여이체확인 PDF의 이름별 이체금액 |
+| 기본급 대조 | 그 달 급여명세서 — 명부와 다르면 스크립트가 멈춘다 |
+| 인감 | 법인 서류함 `TS-DOC-2026-003` |
+| 담당 서명 | 비공개 버킷 `signatures/dw.kim/attendance/sig_01~21.png` |
+
+신청서 고정값: 사업장 ㈜텐소프트웍스 · 대표 김 철 형 · 828-88-00992 · 소재지 "서울특별시 강남구 /
+봉은사로105길54-5, 402호"(8월 제출본과 같게, CEO) · 담당자(연락처는 명부 `contact`) · 계좌 신한 140-013-150883 ·
+1인 150만원 · 신청일은 그 달 말일.
+
+## 순서
+
+1. **안내 확인.** 기관의 그 달 안내 메일(`01-guidance`)에서 서식 번호·지급액 기재 방식·마감을 확인한다.
+   2026년 9월분(10월 제출)부터: 출근부 **서식 9**, 지급액 **실지급액(차인지급액)**.
+2. **급여 지급 뒤 이체확인증**(아래 절). 실지급액이 여기서 나온다.
+3. **출근부 만들기·보내기.**
+   ```bash
+   node scripts/gangnam-subsidy-build.mjs attendance --month 2026-10
+   node scripts/gangnam-attendance-send.mjs --month 2026-10            # 초안 → 승인 뒤 --send
+   ```
+   서식 8과 같은 날짜 표기("10    1", "     2" …). 출근 표시·일수·인턴 확인·수령확인은 **비워 둔다**(인턴 자필).
+   담당 칸만 대표 서명 표본으로 채운다. 인턴 회신은 `03-attendance-received`에 모은다.
+4. **신청서.** `node scripts/gangnam-subsidy-build.mjs application --month 2026-10`
+   한 장이 아니거나 회색 글자가 남으면 스크립트가 멈춘다. 결과 PDF를 직전 달 제출본과 나란히 놓고 본다.
+5. **가입자 명부**(아래 절).
+6. **5종 교차검증** — 대상자 수·이름, 대상 월, 지급일, 명세서·이체확인·출근부 금액, 신청금액 합계(1인 150만원×인원),
+   서명·직인, PDF 열림. 하나라도 틀리면 제출 초안을 만들지 않는다.
+7. **제출 메일 초안** — 받는 사람 `gnk@gngucci.or.kr`(최신 기관 메일로 재확인), 발신은 Gmail에 연결된 실제 계정.
+   제목 `[텐소프트웍스] YYYY년 M월 강남구 인턴십 지원금 신청`. 본문: 대상 월·인원·총 신청금액·첨부 5종·담당자.
+   첨부 순서 1 신청서 · 2 출근부(3명 병합) · 3 급여명세서(병합) · 4 가입자 명부 · 5 이체확인증(병합).
+8. **위키**(`tensw-mgmt` / 재무)에 그 달 노트를 남기고 첨부는 비공개 버킷 링크(`/api/files/…`)로.
+
+## 서식이 바뀌어 다시 서명받을 때
+
+```bash
+node scripts/gangnam-subsidy-build.mjs attendance --month 2026-09 --key-suffix _form9
+node scripts/gangnam-attendance-send.mjs --month 2026-09 --key-suffix _form9 --resign \
+  --due 2026-10-01 --due-label "오늘 10월 1일(목)"
+```
+
+`--resign`은 새 메일이 아니라 **인턴의 최신 회신 스레드에 답장**으로 만든다. 본문은 CEO가 정한 두 문장.
+이미 보낸 서식의 서명본은 덮어쓰지 않도록 `--key-suffix`로 다른 이름을 쓴다.
+
+## 급여이체확인증 (우리은행 기업뱅킹, 크롬)
+
+급여 지급 뒤. 화면 캡처가 아니라 **은행 발급 PDF**를 쓴다. 로그인된 크롬 탭을 `scripts/lib/desktop.mjs`
+(`chromeJavascript`, `openChromeTab`)로 다룬다.
+
+1. 급여이체 내역 `https://nbi.wooribank.com/nbi/woori?withyou=BITRS0038` → 그 달 급여 건(대상자 수만큼) 선택.
+2. `이체확인증`(id `tranConfirmMulti`) → 확인 창 "예" → "확인증 인쇄" → 보고서 창의 PDF 단추(`reportViewerIfr` 안 `pdf_button`).
+3. `~/Downloads`에 새로 생긴 PDF를 `06-draft-submission/5_우리은행_급여이체확인_YYYYMM_3명.pdf`로 옮긴다.
+4. 수취인·지급일·금액을 급여대장·명세서와 대조. 합계가 이체 총액과 같아야 한다.
+
+## 4대보험 사업장 가입자 명부 (4insure, 크롬)
+
+1. 크롬에서 `www.4insure.or.kr` 공동인증서 로그인. 로그인 스크립트는 공용 도구를 쓴다
+   (`scripts/lib/desktop.mjs`, `scripts/lib/cert-dialog.mjs`, 인증서 소유자·비밀번호는 `tensw-local-finance.mjs`의
+   `financeIdentity`·`readCertificatePassword`). 인증서는 **소유자 이름으로** 고르고, 입력된 비밀번호 길이를
+   가림 글자 수로 확인한 뒤에만 "확인"을 누른다(잠금 카운터).
+2. 맥에서는 AnySign4PC가 필요하다. 반복 설치 창이 뜨면 기관 안내 "맥(MAC) anysign 반복 설치 해결 방법"을 따른다
+   (관리자 권한 설치는 CEO가 맥 암호를 넣는다).
+3. 증명서 발급 → 사업장 가입자 명부 발급 → 크롬 인쇄 "PDF로 저장" →
+   `06-draft-submission/4_4대사회보험_사업장가입자명부_YYYYMMDD.pdf`. **발급번호와 발급시각**을 보고와 위키에 적는다.
+4. 명부에서 대상자 3명의 국민연금·건강·고용·산재 가입을 확인한다.
+
+## HWP 도구 (`scripts/hwp/hwp.mjs`)
+
+```bash
+node scripts/hwp/hwp.mjs dump   양식.hwp                  # 칸 주소(r행c열)와 글자 — 새 양식이 오면 먼저 본다
+node scripts/hwp/hwp.mjs fill   양식.hwp 출력.hwp 값.tsv --form "서식 13" --money r10c12 --skip r0c0,r18c0
+node scripts/hwp/hwp.mjs colors 출력.hwp                  # 회색으로 남은 양식 예시 글자
+node scripts/hwp/hwp.mjs pdf    출력.hwp 출력.pdf          # 한컴 "PDF로 저장하기"(저장 위치 ~/hwp-export)
+python3 scripts/hwp/stamp_seal.py 입력.pdf 인감.png 출력.pdf   # 서명 줄 "형" 오른쪽에 인감(8월 위치)
+```
+
+덫:
+- 양식의 예시 글자(회색)는 위치별 글자모양이 남아 새 글자 일부가 회색이 된다 — `fill`이 가장 진한 모양으로 합친다.
+- 오른쪽 정렬 문단의 뒤 빈칸(전각 포함)은 무시된다. 인감 자리는 문단 오른쪽 여백(`--sign-right-margin`)으로 만든다.
+- 줄 배치 정보(lineseg)를 통째로 지우고 문단까지 지우면 파일이 깨진다 — 첫 줄 하나로 줄여 둔다.
+- 서식을 떼어낼 때 새 마지막 문단에 "구역 마지막" 표시를 다시 단다(빠지면 한글이 손상 파일로 거부).
+- 한 칸에 두 줄을 넣으면 줄 간격이 칸마다 달라 보인다 — `fill`이 입력 칸을 가운데·100%로 맞춘다(금액은 오른쪽).
+- 외장 exFAT의 `._` 파일은 PDF가 아니다.
+
+## 완료 보고
+
+신청 월·마감·대상자, 5종 확보 상태, 교차검증 결과, 파일 경로, 메일 수신자·제목·첨부, 발송 전 승인 필요 여부.
+승인 전에는 "발송 완료"라고 쓰지 않는다. 발송 뒤에는 발송 메일과 접수 회신을 같은 월 폴더에 둔다.

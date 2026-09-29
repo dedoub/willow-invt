@@ -87,3 +87,6 @@ public/fonts/pretendard/
 
 # UI 검사 산출물 (scripts/ui-check.mjs)
 .ui-check/
+
+# 강남구 인턴십 지원금 작업 폴더 — 주민번호·급여·서명이 든다. 깃에 올리지 않는다.
+tmp/tensw-internship-subsidy/

@@ -8,6 +8,25 @@ description: Use when preparing, signing or sending the Gangnam internship atten
 강남구상공회 중소기업 인턴십 지원금 신청에 붙는 출근부다. 대상은 조성민·이승무·전희나 세 명.
 지원금 신청 자체는 `tensw-internship-subsidy-application` 스킬이 맡는다. 여기는 그 앞 단계다.
 
+## 2026년 9월분부터 서식 9 (CEO 2026-09-30)
+
+기관이 출근부를 **[서식 9]**로 받고 지급액을 **실지급액(차인지급액)**으로 쓰라고 안내했다. 출근부는 이제
+`scripts/gangnam-subsidy-build.mjs attendance`가 만든다(기관 양식 HWP를 `scripts/hwp/hwp.mjs`로 직접 채우고
+한컴 "PDF로 저장하기" → 담당 칸 서명). 실지급액은 우리은행 급여이체확인 PDF에서 읽으므로 **급여 이체 뒤**에 만든다.
+
+```bash
+node scripts/gangnam-subsidy-build.mjs attendance --month 2026-10   # signed/2026-10_{cho,lee,jeon}.pdf
+node scripts/gangnam-attendance-send.mjs --month 2026-10            # 초안 → 승인 뒤 --send
+```
+
+- 날짜는 서식 8과 같게("10    1", "     2" …). 출근 표시·출근/결근/유급휴일 일수·인턴 확인·수령확인은
+  **비워 둔다**(인턴 자필). 빨간 "자필서명" 안내 글자는 지운다.
+- **서명을 옮겨 붙이지 않는다.** 서식이 바뀌면 새 서식을 보내 다시 서명받는다(`--resign`, 아래). 2026-09에
+  서식 8 서명본을 잘라 서식 9에 얹은 출근부가 만들어졌다 — 위조라 폐기했다.
+- 서식이 바뀌어 다시 받을 때: `… attendance --month M --key-suffix _form9` 뒤
+  `gangnam-attendance-send.mjs --month M --key-suffix _form9 --resign --due YYYY-MM-DD [--due-label "오늘 10월 1일(목)"]`
+  — 인턴의 최신 회신 스레드에 **답장**으로 초안을 만든다.
+
 ## 파일은 전부 서버에 있다
 
 로컬 폴더에 기대지 않는다. 그 폴더가 사라진 달에 조용히 멈춘다.
@@ -16,7 +35,8 @@ description: Use when preparing, signing or sending the Gangnam internship atten
 |---|---|
 | 출근부(서명본) | 비공개 버킷 `tensw-attendance/2026/signed/2026-MM_{cho,lee,jeon}.pdf` |
 | 출근부(미서명) | `tensw-attendance/2026/plain/…` |
-| HWP 원본·월별 PDF | `tensw-attendance/2026/source/2026-MM.{hwp,pdf}` |
+| HWP 원본·월별 PDF | `tensw-attendance/2026/source/2026-MM.{hwp,pdf}` (서식 8, ~2026-09) · `…/source/2026-MM_form9_{code}.hwp` (서식 9) |
+| 기관 양식(서식 9·12·13) · 대상자 명부 | `tensw-attendance/forms/2026-gangnam-internship-forms.hwp` · `tensw-attendance/config/subsidy-roster.json` |
 | 대표 서명 표본 21장 | 비공개 버킷 `signatures/dw.kim/attendance/sig_NN.png` |
 | 설명·경위 | 업무위키 `tensw-mgmt` / 재무 / "강남구 인턴십 출근부 2026년 9~12월" |
 

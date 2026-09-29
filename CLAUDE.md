@@ -169,7 +169,29 @@ node scripts/gangnam-attendance-send.mjs --send          # 실제 발송(승인 
 - 발신·회신 `dw.kim@tensoftworks.com`, 참조 `ch.kim@tsw.im`.
 - **기본은 초안까지만.** 보고하고 CEO 승인 뒤 `--send` 를 붙인다.
 - 근무일·지급일·발송일·회신기한은 `scripts/lib/kr_workdays.py` 가 준다. 손으로 세지 않는다.
+- **2026년 9월분부터 서식 9**(지급액 = 실지급액). 급여 이체 뒤 `node scripts/gangnam-subsidy-build.mjs attendance --month YYYY-MM`
+  로 먼저 만든다. 첨부가 서식 8이면 발송 스크립트가 멈춘다(미리 만든 10~12월분은 서식 8).
+- **남이 서명한 칸을 다른 서식에 옮겨 붙이지 않는다.** 서식이 바뀌면 `--resign` 으로 다시 서명받는다.
 - 자세한 배경과 덫은 `.claude/skills/gangnam-attendance-sheets/SKILL.md`.
+
+### 강남구 인턴십 지원금 신청
+`tensw-internship-subsidy-application` · 트리거: "인턴십 지원금 신청", "강남구 지원금", "지원금 서류", "지원금 신청서", "가입자 명부"
+
+매달 15일까지 전월분을 강남구상공회(`gnk@gngucci.or.kr`)에 낸다. 정규직 전환자라 **서식 13**.
+
+```bash
+node scripts/gangnam-subsidy-build.mjs application --month 2026-10   # 신청서 HWP+PDF(인감) → tmp/…/07-final-submission
+node scripts/gangnam-subsidy-build.mjs attendance  --month 2026-10   # 서식 9 출근부 3장(담당 서명만) → 버킷
+node scripts/hwp/hwp.mjs dump|fill|colors|pdf …                      # HWP 직접 편집 도구
+```
+
+- **한컴 창을 화면 조작으로 편집하지 않는다.** HWP 는 `scripts/hwp/hwp.mjs` 로 파일을 고치고 한컴은 "PDF로 저장하기" 메뉴만 누른다.
+  PDF 위에 글자를 덮어쓰지 않는다. 인감은 PDF 로 바꾼 뒤 얹는다.
+- 대상자·주민번호·기본급은 비공개 버킷 `tensw-attendance/config/subsidy-roster.json`, 양식은 `…/forms/`. 깃에 두지 않는다.
+- 제출 5종: 신청서 · 출근부(인턴 서명본) · 급여명세서 · 4대보험 사업장 가입자 명부 · 우리은행 급여이체확인증.
+  명부·이체확인증 받는 법은 스킬 문서. 5종 교차검증이 끝나야 제출 메일 초안을 만든다.
+- **기본은 초안까지만.** 기관 제출·인턴 회신 요청 모두 CEO 승인 뒤 발송.
+- 자세한 배경과 덫은 `.claude/skills/tensw-internship-subsidy-application/SKILL.md`.
 
 ### 텐소프트웍스 월 급여
 `tensw-monthly-payroll` · 트리거: "급여 진행", "급여대장 요청", "급여명세서", "대량이체"
