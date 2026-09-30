@@ -228,6 +228,37 @@ node scripts/tensw-payslip-send.mjs --month 2026-08 --send                    # 
 - 계좌 장부·법인인감은 깃이 아니라 비공개 버킷(`tensw-payroll`, `signatures`)에 있다.
 - 자세한 배경과 덫은 `.claude/skills/tensw-monthly-payroll/SKILL.md`.
 
+### 경영관리 에이전트
+`mgmt-agent` · 트리거: "경영관리 에이전트", "일정 정리", "결정함", "반복 규칙"
+
+일정 원장(`tensw_mgmt_schedules`·`willow_mgmt_schedules`)을 중심으로 도는 자동화. launchd
+`com.willow.mgmt-agent` 가 평일 07~20시, 매시 :05·:35(`scripts/run-mgmt-agent.sh`)에 부른다.
+07:0x 회차는 지난 기록에서 반복 규칙을 추론(`infer`)하고, 18:3x 회차는 저녁 요약(`digest`)을
+보낸다. 그 사이 매 회차는 규칙으로 정기 일정을 깔고(`rules`) → 메일(텐소·윌로우)·텐소
+스페이스를 읽어 일정·기록부를 고치고(`collect`) → 기록 근거로만 완료 처리한다(`close`).
+결정이 필요한 것만 윌리 버튼으로 온다(`decide`).
+
+```bash
+node scripts/mgmt-agent.mjs --dry                 # 무엇을 할지만(쓰기·전송 없음)
+node scripts/mgmt-agent.mjs --only rules          # 규칙 전개(오늘~60일)
+node scripts/mgmt-agent.mjs --only close          # 근거로 완료 처리
+node scripts/mgmt-agent.mjs --only digest         # 저녁 요약
+node scripts/mgmt-replay.mjs                      # 6~9월 재현 시험(읽기 전용)
+npm run mgmt:test
+```
+
+- 도입 첫 2주는 launchd 가 `--dry` + `MGMT_DRY_DIGEST=1` 로 돈다 — DB 쓰기 없이, 저녁 요약만
+  "(시험 운행)" 표시로 윌리에게 간다. `--only` 값은 `rules|collect|close|decide|digest|infer` 중 하나.
+- 발송은 하지 않는다(메일·챗 쓰기 금지). 결정함의 승인은 매번 윌리에게 묻고, 같은 분류
+  판단은 지난 답을 재사용한다.
+- `origin='manual'`(사람이 적은 일정)은 규칙이 날짜·제목을 다시 손대지 않는다.
+  `category='personal'` 은 읽지도 쓰지도 않는다. 비밀값은 `redact()` 를 거쳐 값 없이 기록한다.
+- 반복 규칙은 `mgmt_rules`. 추정 규칙을 끄려면 `update mgmt_rules set active=false where title=…`.
+- 실패는 `~/.willow/mgmt-agent-failures.jsonl` 에 쌓이고 18:3x 요약이 그날 것을 모아 보고한다.
+  동시 실행은 `~/.willow/mgmt-agent.lock` 이 막는다(35분 넘은 락은 죽은 것으로 보고 무시).
+- 자세한 배경과 덫은 `.claude/skills/mgmt-agent/SKILL.md`, 설계는
+  `docs/superpowers/specs/2026-09-30-mgmt-agent-design.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - 첨부 버킷은 모두 private. 새 첨부 URL 은 `/api/files/…` 로 저장되고, 예전에 저장된
