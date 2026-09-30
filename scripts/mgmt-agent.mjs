@@ -436,7 +436,7 @@ async function stepWeekly() {
   let closedByEvidence = 0, missed = 0
   for (const company of COMPANIES) {
     const table = tableFor(company)
-    const doneRows = must(await sb.from(table).select('evidence').eq('agent_state', 'done').or(NOT_PERSONAL), `weekly:${table}:done`)
+    const doneRows = must(await sb.from(table).select('evidence').eq('agent_state', 'done').or(NOT_PERSONAL).gte('schedule_date', addDays(today, -45)), `weekly:${table}:done`)
     closedByEvidence += (doneRows ?? []).filter(r => (r.evidence ?? []).some(e => e?.at && Date.parse(e.at) >= Date.parse(sinceISO))).length
     missed += must(await sb.from(table).select('id', { count: 'exact', head: true }).eq('agent_state', 'missed').eq('is_completed', false).or(NOT_PERSONAL), `weekly:${table}:missed`) ?? 0
   }
@@ -473,7 +473,8 @@ async function stepWeekly() {
     } catch (e) { fail(`weekly:candidate:${c.key}`, e) }
   }
 
-  await telegram([s.text, `개발 에이전트에 넘긴 스킬 후보 ${opened}개`].join('\n'), { kind: 'digest' })
+  const skillLine = dryRun ? `개발 에이전트에 넘길 스킬 후보 ${opened}개(시험 운행)` : `개발 에이전트에 넘긴 스킬 후보 ${opened}개`
+  await telegram([s.text, skillLine].join('\n'), { kind: 'digest' })
 }
 
 // 되돌림에서 배우기: 에이전트가 마지막으로 쓴 값과 지금 행을 비교한다. 대표가 지웠거나 다시 열었거나

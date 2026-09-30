@@ -234,21 +234,26 @@ node scripts/tensw-payslip-send.mjs --month 2026-08 --send                    # 
 일정 원장(`tensw_mgmt_schedules`·`willow_mgmt_schedules`)을 중심으로 도는 자동화. launchd
 `com.willow.mgmt-agent` 가 평일 07~20시, 매시 :05·:35(`scripts/run-mgmt-agent.sh`)에 부른다.
 07:0x 회차는 지난 기록에서 반복 규칙을 추론(`infer`)하고, 18:3x 회차는 저녁 요약(`digest`)을
-보낸다. 그 사이 매 회차는 규칙으로 정기 일정을 깔고(`rules`) → 메일(텐소·윌로우)·텐소
-스페이스를 읽어 일정·기록부를 고치고(`collect`) → 기록 근거로만 완료 처리한다(`close`).
-결정이 필요한 것만 윌리 버튼으로 온다(`decide`).
+보낸다. 월요일이면 07:0x 회차 끝에 규칙도 스스로 손보고(`tune`), 07:3x 회차엔 주간 성적표와
+스킬 후보를 윌리에게 보낸다(`weekly`). 그 사이 매 회차는 규칙으로 정기 일정을 깔고(`rules`) →
+메일(텐소·윌로우)·텐소 스페이스를 읽어 일정·기록부를 고치고(`collect`) → 기록 근거로만 완료
+처리한다(`close`). 결정이 필요한 것만 윌리 버튼으로 온다(`decide`).
 
 ```bash
 node scripts/mgmt-agent.mjs --dry                 # 무엇을 할지만(쓰기·전송 없음)
 node scripts/mgmt-agent.mjs --only rules          # 규칙 전개(오늘~60일)
 node scripts/mgmt-agent.mjs --only close          # 근거로 완료 처리
 node scripts/mgmt-agent.mjs --only digest         # 저녁 요약
+node scripts/mgmt-agent.mjs --only tune           # 규칙 자동 조정(월요일 07:0x)
+node scripts/mgmt-agent.mjs --only weekly         # 주간 성적표 + 스킬 후보(월요일 07:3x)
+node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "문장"   # 대표 교정을 교훈으로
 node scripts/mgmt-replay.mjs                      # 6~9월 재현 시험(읽기 전용)
 npm run mgmt:test
 ```
 
 - 도입 첫 2주는 launchd 가 `--dry` + `MGMT_DRY_DIGEST=1` 로 돈다 — DB 쓰기 없이, 저녁 요약만
-  "(시험 운행)" 표시로 윌리에게 간다. `--only` 값은 `rules|collect|close|decide|digest|infer` 중 하나.
+  "(시험 운행)" 표시로 윌리에게 간다. `--only` 값은
+  `learn|rules|collect|close|decide|digest|infer|tune|weekly` 중 하나.
 - 발송은 하지 않는다(메일·챗 쓰기 금지). 결정함의 승인은 매번 윌리에게 묻고, 같은 분류
   판단은 지난 답을 재사용한다.
 - `origin='manual'`(사람이 적은 일정)은 규칙이 날짜·제목을 다시 손대지 않는다.
