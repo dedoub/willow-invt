@@ -398,9 +398,8 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     let query = supabase
-      .from('willow_mgmt_schedules')
+      .from('tensw_mgmt_schedules')
       .select('*')
-      .eq('category', 'tensw-mgmt')
       .order('schedule_date')
       .order('start_time')
 
@@ -482,10 +481,9 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { data, error } = await supabase
-      .from('willow_mgmt_schedules')
+      .from('tensw_mgmt_schedules')
       .update(updates)
       .eq('id', id)
-      .eq('category', 'tensw-mgmt')
       .select('*')
       .single()
 
@@ -509,10 +507,9 @@ export function registerTenswMgmtTools(server: McpServer) {
 
     const supabase = getServiceSupabase()
     const { error } = await supabase
-      .from('willow_mgmt_schedules')
+      .from('tensw_mgmt_schedules')
       .delete()
       .eq('id', id)
-      .eq('category', 'tensw-mgmt')
 
     if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }], isError: true }
 
@@ -536,10 +533,9 @@ export function registerTenswMgmtTools(server: McpServer) {
     const supabase = getServiceSupabase()
 
     const { data: schedule, error: fetchError } = await supabase
-      .from('willow_mgmt_schedules')
+      .from('tensw_mgmt_schedules')
       .select('completed_dates, schedule_date, end_date')
       .eq('id', schedule_id)
-      .eq('category', 'tensw-mgmt')
       .single()
 
     if (fetchError) return { content: [{ type: 'text' as const, text: `Error: ${fetchError.message}` }], isError: true }
@@ -557,13 +553,12 @@ export function registerTenswMgmtTools(server: McpServer) {
     const allCompleted = newCompletedDates.length >= totalDays
 
     const { data, error } = await supabase
-      .from('willow_mgmt_schedules')
+      .from('tensw_mgmt_schedules')
       .update({
         completed_dates: newCompletedDates,
         is_completed: allCompleted,
       })
       .eq('id', schedule_id)
-      .eq('category', 'tensw-mgmt')
       .select('*, client:tensw_mgmt_clients(*), milestone:tensw_mgmt_milestones(*, project:tensw_mgmt_projects(*)), tasks:tensw_mgmt_tasks(*)')
       .single()
 
