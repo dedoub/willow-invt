@@ -22,7 +22,7 @@ import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decision
 import { scorecard, skillCandidates } from './lib/mgmt/weekly.mjs'
 import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
 import { redact } from './lib/mgmt/redact.mjs'
-import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
+import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, holdExpired } from './lib/mgmt/runner-helpers.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -249,8 +249,17 @@ async function stepClose() {
 
 async function stepDecide() {
   const today = todayKey()
-  // R2: 답이 달린 missed 결정부터 원장에 반영하고, 다시 반영되지 않게 expired 로 돌린다.
-  const answered = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'missed').eq('status', 'answered'), 'answered missed')
+  const now = new Date()
+  // M6: 보류(answer 'hold')는 아무 것도 반영하지 않는다. 7일 지나면 expired 로 돌려 쌓이지 않게 한다.
+  const holds = must(await sb.from('mgmt_decisions').select('id, subject_key, answer, answered_at').eq('status', 'answered').eq('answer', 'hold'), 'hold decisions')
+  for (const d of holds ?? []) {
+    if (!holdExpired(d, now)) continue
+    log(`보류 만료 ${d.subject_key}`)
+    if (!dryRun) { try { must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire hold ${d.id}`) } catch (e) { fail(`decide:hold:${d.id}`, e) } }
+  }
+
+  // R2: 답이 달린 missed 결정부터 원장에 반영하고, 다시 반영되지 않게 expired 로 돌린다(보류는 위에서).
+  const answered = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'missed').eq('status', 'answered').neq('answer', 'hold'), 'answered missed')
   for (const d of answered ?? []) {
     try {
       const table = tableFor(d.company)
@@ -259,14 +268,13 @@ async function stepDecide() {
       if (patch) log(`빠짐 답 반영 ${d.company} ${row.title} ← ${d.answer}`)
       if (dryRun) continue
       if (patch) await onWrite(table, must(await sb.from(table).update(patch).eq('id', row.id).select('*').maybeSingle(), `missed apply ${row.id}`))
-      // 윌리는 보류를 answered 로 두지 않으므로(answer='hold', status 그대로) 여기 온 답은 모두 끝난 답이다.
       must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
     } catch (e) { fail(`decide:missed-answer:${d.id}`, e) }
   }
 
   // Task 17: rule_review 답 반영. off → 그 규칙 끄기, keep(또는 모르는 답) → 아무것도 안 함.
-  // 어느 쪽이든 다시 반영되지 않게 expired 로 돌린다(R2 와 같은 패턴).
-  const answeredRuleReviews = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'rule_review').eq('status', 'answered'), 'answered rule_review')
+  // 어느 쪽이든 다시 반영되지 않게 expired 로 돌린다(R2 와 같은 패턴). 보류는 위에서 따로.
+  const answeredRuleReviews = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'rule_review').eq('status', 'answered').neq('answer', 'hold'), 'answered rule_review')
   for (const d of answeredRuleReviews ?? []) {
     try {
       const r = ruleReviewAnswerPatch(d)
@@ -278,8 +286,9 @@ async function stepDecide() {
     } catch (e) { fail(`decide:rule-review-answer:${d.id}`, e) }
   }
 
+  // I3: 빠짐 결정은 정기 규칙 행(mgmt:…)만 만든다.
   for (const company of COMPANIES) {
-    const missed = must(await sb.from(tableFor(company)).select('title, schedule_date, source_key').eq('agent_state', 'missed').eq('is_completed', false).or(NOT_PERSONAL), 'missed rows')
+    const missed = must(await sb.from(tableFor(company)).select('title, schedule_date, source_key').eq('agent_state', 'missed').eq('is_completed', false).like('source_key', 'mgmt:%').or(NOT_PERSONAL), 'missed rows')
     for (const m of missed ?? []) {
       if (!m.source_key) continue
       const d = missedDecision(company, m)
@@ -289,18 +298,39 @@ async function stepDecide() {
     }
   }
 
-  const open = must(await sb.from('mgmt_decisions').select('*').eq('status', 'open'), 'open decisions')
+  // I3: 원장 행이 이미 닫힌(또는 사라진) 열린·보낸 missed 결정은 보내기 전에 expired.
+  const pendingMissed = must(await sb.from('mgmt_decisions').select('id, company, kind, status, schedule_key').eq('kind', 'missed').in('status', ['open', 'sent']), 'pending missed')
+  const rowsByKey = new Map()
+  for (const company of COMPANIES) {
+    const keys = [...new Set((pendingMissed ?? []).filter(d => d.company === company && d.schedule_key).map(d => d.schedule_key))]
+    for (let i = 0; i < keys.length; i += 100) {
+      const rows = must(await sb.from(tableFor(company)).select('source_key, is_completed').in('source_key', keys.slice(i, i + 100)).or(NOT_PERSONAL), 'pending missed rows')
+      for (const r of rows ?? []) rowsByKey.set(r.source_key, r)
+    }
+  }
+  const stale = new Set(staleMissedDecisionIds(pendingMissed ?? [], rowsByKey))
+  for (const id of stale) {
+    log(`빠짐 결정 만료(원장 행이 이미 닫힘) ${id}`)
+    if (!dryRun) { try { must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', id), `expire stale ${id}`) } catch (e) { fail(`decide:stale:${id}`, e) } }
+  }
+
+  const open = (must(await sb.from('mgmt_decisions').select('*').eq('status', 'open'), 'open decisions') ?? []).filter(d => !stale.has(d.id))
   const past = must(await sb.from('mgmt_decisions').select('subject_key, answer, status').eq('status', 'answered'), 'past decisions')
-  log(`열린 결정 ${open?.length ?? 0}`)
-  for (const d of open ?? []) {
+  // 지난 판단 재사용(보내지 않음)은 상한과 상관없이 먼저 처리하고, 나머지 중 오래된 것부터 5개만 보낸다.
+  const toSend = []
+  for (const d of open) {
+    const auto = reuseAnswer(d, past ?? [])
+    if (!auto) { toSend.push(d); continue }
     try {
-      const auto = reuseAnswer(d, past ?? [])
-      if (auto) {
-        log(`지난 판단 재사용 ${d.subject_key} → ${auto}`)
-        // 버튼 없이 답했다는 표식(refs 의 reuse) — 저녁 요약에 "지난 판단 재사용" 으로 나온다.
-        if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'answered', answer: auto, answered_at: new Date().toISOString(), telegram_message_id: null, refs: reuseRefs(d) }).eq('id', d.id), `reuse ${d.id}`)
-        continue
-      }
+      log(`지난 판단 재사용 ${d.subject_key} → ${auto}`)
+      // 버튼 없이 답했다는 표식(refs 의 reuse) — 저녁 요약에 "지난 판단 재사용" 으로 나온다.
+      if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'answered', answer: auto, answered_at: new Date().toISOString(), telegram_message_id: null, refs: reuseRefs(d) }).eq('id', d.id), `reuse ${d.id}`)
+    } catch (e) { fail(`decide:${d.id}`, e) }
+  }
+  const sending = pickDecisionsToSend(toSend)
+  log(`열린 결정 ${open.length} · 보낼 결정 ${sending.length}${toSend.length > sending.length ? ` (나머지 ${toSend.length - sending.length}건은 다음 실행)` : ''}`)
+  for (const d of sending) {
+    try {
       const { text, buttons } = decisionMessage(d)
       const mid = await telegram(text, { buttons })
       if (!dryRun && mid) must(await sb.from('mgmt_decisions').update({ status: 'sent', telegram_message_id: mid }).eq('id', d.id), `sent ${d.id}`)

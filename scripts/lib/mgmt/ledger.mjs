@@ -42,9 +42,11 @@ export function planOccurrences(rules, existingRows, { from, to, cal, suppressed
   return { insert, update }
 }
 
+// 빠짐은 정기 규칙 행(mgmt:…)만. 대화·메일에서 만든 행(mgmt-chat:/mgmt-mail:)은 missed 로 돌리지 않는다.
+export const isRuleRow = r => String(r?.source_key ?? '').startsWith('mgmt:')
 export function planMissed(rows, todayKey) {
   return rows
-    .filter(r => !r.is_completed && ['planned', 'preparing'].includes(r.agent_state) && r.schedule_date < todayKey)
+    .filter(r => isRuleRow(r) && !r.is_completed && ['planned', 'preparing'].includes(r.agent_state) && r.schedule_date < todayKey)
     .map(r => ({ id: r.id, patch: { agent_state: 'missed' } }))
 }
 

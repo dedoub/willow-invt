@@ -57,12 +57,21 @@ test('접두사가 같아도 5일 넘게 떨어진 행은 흡수하지 않는다
 })
 test('기한 지난 열린 행은 빠짐', () => {
   const rows = [
-    { id: 'a', schedule_date: '2026-09-25', is_completed: false, agent_state: 'planned' },
-    { id: 'b', schedule_date: '2026-09-25', is_completed: true, agent_state: 'done' },
-    { id: 'c', schedule_date: '2026-10-05', is_completed: false, agent_state: 'planned' },
-    { id: 'd', schedule_date: '2026-09-01', is_completed: false, agent_state: null },
+    { id: 'a', schedule_date: '2026-09-25', is_completed: false, agent_state: 'planned', source_key: 'mgmt:tensw:payroll:2026-09:request' },
+    { id: 'b', schedule_date: '2026-09-25', is_completed: true, agent_state: 'done', source_key: 'mgmt:tensw:payroll:2026-09:payday' },
+    { id: 'c', schedule_date: '2026-10-05', is_completed: false, agent_state: 'planned', source_key: 'mgmt:tensw:vat:2026-10:pay' },
+    { id: 'd', schedule_date: '2026-09-01', is_completed: false, agent_state: null, source_key: 'mgmt:tensw:x:2026-09:do' },
   ]
   assert.deepEqual(planMissed(rows, '2026-09-30'), [{ id: 'a', patch: { agent_state: 'missed' } }])
+})
+test('I3: 대화·메일에서 만든 행과 키 없는 행은 빠짐으로 돌리지 않는다', () => {
+  const rows = [
+    { id: 'chat', schedule_date: '2026-09-25', is_completed: false, agent_state: 'planned', source_key: 'mgmt-chat:spaces/A/messages/1' },
+    { id: 'mail', schedule_date: '2026-09-25', is_completed: false, agent_state: 'planned', source_key: 'mgmt-mail:tensw:g1' },
+    { id: 'none', schedule_date: '2026-09-25', is_completed: false, agent_state: 'planned', source_key: null },
+    { id: 'rule', schedule_date: '2026-09-25', is_completed: false, agent_state: 'preparing', source_key: 'mgmt:willow:vat:2026-09:pay' },
+  ]
+  assert.deepEqual(planMissed(rows, '2026-09-30').map(x => x.id), ['rule'])
 })
 test('씨앗 규칙은 두 회사를 모두 덮고 키가 겹치지 않는다', () => {
   const companies = new Set(SEED_RULES.map(r => r.company))

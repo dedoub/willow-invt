@@ -155,3 +155,27 @@ const kstTime = at => new Date(new Date(at).getTime() + 9 * 3600e3).toISOString(
 export const reuseRefs = d => [...(Array.isArray(d.refs) ? d.refs : []), { kind: 'reuse', from: d.subject_key }]
 export const isReuse = d => (Array.isArray(d.refs) ? d.refs : []).some(r => r?.kind === 'reuse')
 export const reuseLabel = d => { const q = String(d.question ?? ''); return q.length > 30 ? `${q.slice(0, 30)}…` : q }
+
+// I3: 원장 행이 이미 닫혔거나(또는 사라진) 열린·보낸 missed 결정 — 보내기 전에 expired 로 돌린다.
+// rowsByKey: schedule_key → 행({is_completed}) (없으면 사라진 행).
+export function staleMissedDecisionIds(decisions, rowsByKey) {
+  return decisions
+    .filter(d => d.kind === 'missed' && ['open', 'sent'].includes(d.status) && d.schedule_key)
+    .filter(d => { const r = rowsByKey.get(d.schedule_key); return !r || r.is_completed })
+    .map(d => d.id)
+}
+
+// I3: 한 실행에 보내는 결정 수 상한, 오래된 것부터.
+export const DECISIONS_PER_RUN = 5
+export function pickDecisionsToSend(open, limit = DECISIONS_PER_RUN) {
+  return [...open].sort((a, b) => (Date.parse(a.created_at) || 0) - (Date.parse(b.created_at) || 0)).slice(0, limit)
+}
+
+// M6: 보류(answer 'hold', status answered)는 아무 것도 반영하지 않고, 7일 지나면 expired.
+export const HOLD_DAYS = 7
+export const isHold = d => d?.answer === 'hold'
+export function holdExpired(d, now = new Date()) {
+  if (!isHold(d)) return false
+  const t = Date.parse(d.answered_at)
+  return !Number.isNaN(t) && now.getTime() - t >= HOLD_DAYS * 86_400_000
+}

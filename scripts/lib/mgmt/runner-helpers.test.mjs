@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './runner-helpers.mjs'
+import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, holdExpired, DECISIONS_PER_RUN } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
@@ -174,4 +174,28 @@ test('지난 판단 재사용 표식', () => {
   assert.equal(isReuse({ refs: ['m1'] }), false)
   assert.equal(reuseLabel(d), '아크로스 자문료 입금을 매출로 분류할까요? 지난달과 같…')
   assert.equal(reuseLabel({ question: '짧음' }), '짧음')
+})
+
+test('I3: 원장 행이 닫혔거나 사라진 missed 결정은 보내기 전에 expire', () => {
+  const ds = [
+    { id: 'd1', kind: 'missed', status: 'open', schedule_key: 'k1' },
+    { id: 'd2', kind: 'missed', status: 'sent', schedule_key: 'k2' },
+    { id: 'd3', kind: 'missed', status: 'open', schedule_key: 'k3' },
+    { id: 'd4', kind: 'missed', status: 'answered', schedule_key: 'k2' },
+    { id: 'd5', kind: 'money', status: 'open', schedule_key: 'k2' },
+  ]
+  const rows = new Map([['k1', { is_completed: false }], ['k2', { is_completed: true }]])
+  assert.deepEqual(staleMissedDecisionIds(ds, rows), ['d2', 'd3'])
+})
+test('I3: 결정은 한 실행에 5개까지, 오래된 것부터', () => {
+  const open = Array.from({ length: 8 }, (_, i) => ({ id: `d${i}`, created_at: `2026-09-${String(20 - i).padStart(2, '0')}T00:00:00+00:00` }))
+  const picked = pickDecisionsToSend(open)
+  assert.equal(picked.length, DECISIONS_PER_RUN)
+  assert.deepEqual(picked.map(d => d.id), ['d7', 'd6', 'd5', 'd4', 'd3'])
+})
+test('M6: 보류는 7일 뒤에만 expire', () => {
+  const now = new Date('2026-10-10T00:00:00Z')
+  assert.equal(holdExpired({ answer: 'hold', answered_at: '2026-10-05T00:00:00+00:00' }, now), false)
+  assert.equal(holdExpired({ answer: 'hold', answered_at: '2026-10-02T00:00:00+00:00' }, now), true)
+  assert.equal(holdExpired({ answer: 'done', answered_at: '2026-09-01T00:00:00Z' }, now), false)
 })

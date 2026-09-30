@@ -7302,15 +7302,19 @@ async function main() {
           const mgmt = parseDecisionCallback(cbData)
           if (mgmt) {
             try {
-              const { data: dec } = await supabase.from('mgmt_decisions').select('id, options, status').eq('id', mgmt.id).maybeSingle()
-              if (dec && dec.status !== 'answered') {
+              const { data: dec, error: readErr } = await supabase.from('mgmt_decisions').select('id, options, status').eq('id', mgmt.id).maybeSingle()
+              if (readErr) console.error(`[mgmt] 결정 읽기 실패 ${mgmt.id}: ${readErr.message}`)
+              // 열린·보낸 결정에만 답한다(answered·expired 는 이미 끝남).
+              if (dec && (dec.status === 'open' || dec.status === 'sent')) {
                 const opt = mgmt.option === 'hold' ? null : (dec.options as { id: string; label: string }[])[Number(mgmt.option)]
                 const label = mgmt.option === 'hold' ? '보류' : opt?.label ?? mgmt.option
                 const answer = mgmt.option === 'hold' ? 'hold' : opt?.id ?? mgmt.option
-                await supabase.from('mgmt_decisions').update(mgmt.option === 'hold'
-                  ? { answer: 'hold' }
-                  : { status: 'answered', answer, answered_at: new Date().toISOString() }).eq('id', mgmt.id)
-                if (cb.message?.message_id) await editMessage(cbChatId, cb.message.message_id, `${cb.message.text ?? ''}\n\n✅ ${label}`)
+                // 보류도 answered 로 둔다(answer 'hold') — 에이전트는 반영 없이 두었다가 7일 뒤 expired 로 돌린다.
+                const { error: updErr } = await supabase.from('mgmt_decisions')
+                  .update({ status: 'answered', answer, answered_at: new Date().toISOString() })
+                  .eq('id', mgmt.id).in('status', ['open', 'sent'])
+                if (updErr) console.error(`[mgmt] 결정 기록 실패 ${mgmt.id}: ${updErr.message}`)
+                else if (cb.message?.message_id) await editMessage(cbChatId, cb.message.message_id, `${cb.message.text ?? ''}\n\n✅ ${label}`)
               }
             } catch (err) {
               console.error(`[mgmt] 결정 기록 실패: ${err instanceof Error ? err.message : String(err)}`)
