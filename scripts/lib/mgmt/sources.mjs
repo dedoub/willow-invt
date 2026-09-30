@@ -68,7 +68,8 @@ export async function saveCursor(sb, source, items, { dryRun = false } = {}) {
   if (error) throw error
 }
 
-export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20 } = {}) {
+// format='metadata' 는 제목·보낸이·받는이만 받는다(본문 없음) — 증빙·추론용으로 가볍게 읽을 때.
+export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20, format = 'full' } = {}) {
   const gmail = google.gmail({ version: 'v1', auth: await oauthFor(sb, context) })
   const after = Math.floor(new Date(cursor.last_seen_at).getTime() / 1000)
   const out = []
@@ -77,7 +78,7 @@ export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20
     pages++
     const list = await gmail.users.messages.list({ userId: 'me', q: `after:${after} -in:chats`, maxResults: limit, pageToken })
     for (const { id } of list.data.messages ?? []) {
-      const { data } = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+      const { data } = await gmail.users.messages.get({ userId: 'me', id, format, ...(format === 'metadata' ? { metadataHeaders: ['From', 'To', 'Subject'] } : {}) })
       out.push(normalizeGmail(data, context))
     }
     pageToken = list.data.nextPageToken

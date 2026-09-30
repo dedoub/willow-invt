@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.willow.mgmt-agent</string>
+  <key>ProgramArguments</key><array><string>/bin/zsh</string><string>/Volumes/PRO-G40/app-dev/willow-invt/scripts/run-mgmt-agent.sh</string></array>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>MGMT_ARGS</key><string>--dry</string>
+    <key>MGMT_DRY_DIGEST</key><string>1</string>
+  </dict>
+  <key>StartCalendarInterval</key><array>
+    <dict><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Minute</key><integer>35</integer></dict>
+  </array>
+  <key>StandardOutPath</key><string>/Users/dongwookkim/logs/mgmt-agent/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/dongwookkim/logs/mgmt-agent/launchd.log</string>
+</dict></plist>

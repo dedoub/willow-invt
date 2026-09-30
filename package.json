@@ -36,7 +36,9 @@
     "corp:test": "node --test scripts/lib/corp-records/*.test.mjs",
     "b2b": "npx tsx scripts/b2b-ledger.ts",
     "b2b:test": "node --test scripts/lib/b2b-ledger/*.test.mjs",
-    "fonts": "node scripts/copy-pretendard.mjs"
+    "fonts": "node scripts/copy-pretendard.mjs",
+    "mgmt": "node scripts/mgmt-agent.mjs",
+    "mgmt:test": "node --test scripts/lib/mgmt/*.test.mjs src/lib/mcp/tools/tensw-mgmt-schedules.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
