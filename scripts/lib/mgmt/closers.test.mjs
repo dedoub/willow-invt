@@ -31,3 +31,36 @@ test('닫는 patch 는 근거를 덧붙인다', () => {
   const p = closePatch({ evidence: [{ kind: 'x' }] }, { kind: 'tax', ref: 't1' })
   assert.deepEqual(p, { is_completed: true, agent_state: 'done', evidence: [{ kind: 'x' }, { kind: 'tax', ref: 't1' }] })
 })
+test('받은 메일로 닫기(발신자·제목·기간)', () => {
+  const r = { id: 'p', schedule_date: '2026-10-09', evidence: [] }
+  const rule = { company: 'willow', completion: { kind: 'received_mail', context: 'default', from: 'etc', subject: 'Referral Fees' } }
+  const facts = { receivedMail: [
+    { id: 'r1', context: 'default', from: 'Kaliegh <kaliegh@etc.com>', subject: 'KDEF.BOBP 08/26 Referral Fees', at: '2026-10-07T00:00:00Z' },
+  ] }
+  assert.equal(findEvidence(r, rule, facts).ref, 'r1')
+})
+test('받은 메일 발신자 불일치면 닫지 않는다', () => {
+  const r = { id: 'p', schedule_date: '2026-10-09', evidence: [] }
+  const rule = { company: 'willow', completion: { kind: 'received_mail', context: 'default', from: 'someone@else.com', subject: 'Referral Fees' } }
+  const facts = { receivedMail: [
+    { id: 'r1', context: 'default', from: 'Kaliegh <kaliegh@etc.com>', subject: 'KDEF.BOBP 08/26 Referral Fees', at: '2026-10-07T00:00:00Z' },
+  ] }
+  assert.equal(findEvidence(r, rule, facts), null)
+})
+test('현금거래로 닫기(테이블·상대방·기간)', () => {
+  const r = { id: 'p', schedule_date: '2026-10-23', evidence: [] }
+  const rule = { company: 'willow', completion: { kind: 'cash', table: 'willow_mgmt_cash', counterparty: '아크로스' } }
+  const facts = { cash: [
+    { id: 'c1', table: 'willow_mgmt_cash', date: '2026-10-24', category: 'revenue', counterparty: '(주)아크로스 자문료', amount: 13750000 },
+    { id: 'c2', table: 'tensw_mgmt_cash', date: '2026-10-23', counterparty: '아크로스' },
+  ] }
+  assert.equal(findEvidence(r, rule, facts).ref, 'c1')
+})
+test('현금거래 날짜 범위 벗어나면 닫지 않는다', () => {
+  const r = { id: 'p', schedule_date: '2026-10-23', evidence: [] }
+  const rule = { company: 'willow', completion: { kind: 'cash', table: 'willow_mgmt_cash', counterparty: '아크로스' } }
+  const facts = { cash: [
+    { id: 'c1', table: 'willow_mgmt_cash', date: '2026-10-28', category: 'revenue', counterparty: '(주)아크로스 자문료', amount: 13750000 },
+  ] }
+  assert.equal(findEvidence(r, rule, facts), null)
+})

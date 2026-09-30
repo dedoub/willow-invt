@@ -1,4 +1,5 @@
 // closers.mjs — "했다"는 말이 아니라 기록으로만 닫는다.
+// days(a, b): a = ISO instant string, b = YYYY-MM-DD key
 const days = (a, b) => (new Date(a) - new Date(`${b}T00:00:00Z`)) / 86_400_000
 
 export function findEvidence(row, rule, facts) {
@@ -11,8 +12,9 @@ export function findEvidence(row, rule, facts) {
   }
   if (c.kind === 'sent_mail' || c.kind === 'received_mail') {
     const list = c.kind === 'sent_mail' ? facts.sentMail : facts.receivedMail
+    const isSent = c.kind === 'sent_mail'
     const hit = (list ?? []).filter(m => m.context === c.context
-      && (!c.to || (m.to ?? '').includes(c.to))
+      && (isSent ? (!c.to || (m.to ?? '').includes(c.to)) : (!c.from || (m.from ?? '').includes(c.from)))
       && (!c.subject || (m.subject ?? '').includes(c.subject))
       && days(m.at, row.schedule_date) >= -10 && days(m.at, row.schedule_date) <= 5)
       .sort((a, b) => b.at.localeCompare(a.at))[0]
