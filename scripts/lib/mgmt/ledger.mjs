@@ -10,13 +10,15 @@ const fill = (title, period) => title.replaceAll('{period}', period)
 const ADOPT_WINDOW_DAYS = 3
 const daysBetween = (a, b) => Math.abs((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000)
 
-export function planOccurrences(rules, existingRows, { from, to, cal }) {
+// suppressedKeys: 대표가 지운 정기 회차 키(교훈 장부) — 다시 깔지 않는다.
+export function planOccurrences(rules, existingRows, { from, to, cal, suppressedKeys = null }) {
   const byKey = new Map(existingRows.filter(r => r.source_key).map(r => [r.source_key, r]))
   const insert = [], update = []
   for (const rule of rules) {
     for (const { date, period } of expandRule(rule.rule, from, to, cal)) {
       const key = scheduleKey(rule.company, rule.task_key, period, rule.step)
       const title = fill(rule.title, period)
+      if (suppressedKeys?.has(key)) continue
       const found = byKey.get(key)
       if (found) {
         // 사람이 적은 행(origin manual)은 날짜·제목을 사람 것 그대로 둔다.
@@ -62,7 +64,8 @@ export async function applyPlan(sb, table, plan, { dryRun = false, log = () => {
     log(`갱신 ${table} ${id} ${JSON.stringify(patch)}`)
     if (dryRun) continue
     if (onWrite) {
-      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').single()
+      // 도중에 지워진 행이면 data 가 null — 던지지 않고 기록만 건너뛴다.
+      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').maybeSingle()
       if (error) throw error
       if (data) await onWrite(table, data)
     } else { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }

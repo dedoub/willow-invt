@@ -28,7 +28,11 @@ export function detectReverts(writes, rows) {
 export function lessonFromRevert({ kind, write, row }) {
   const s = write.snapshot, company = companyOfTable(write.table_name), ref = write.source_key ?? write.row_id
   const clean = t => redact(t).text
-  if (kind === 'deleted') return { company, scope: 'judge', lesson: clean(`"${s.title}" 같은 항목은 일정으로 만들지 않는다(대표가 지움)`), example: { input: clean(s.title ?? ''), expected: 'no_schedule' }, source: 'reverted', source_ref: ref }
+  if (kind === 'deleted') {
+    // 정기 규칙 행(mgmt:)을 지웠으면 그 회차 키를 막는다 — rules 단계가 다시 깔지 않는다(suppressed).
+    if ((write.source_key ?? '').startsWith('mgmt:')) return { company, scope: 'rule', lesson: clean(`"${s.title}" 회차(${write.source_key})는 다시 만들지 않는다(대표가 지움)`), example: { input: write.source_key, expected: 'suppressed' }, source: 'reverted', source_ref: write.source_key }
+    return { company, scope: 'judge', lesson: clean(`"${s.title}" 같은 항목은 일정으로 만들지 않는다(대표가 지움)`), example: { input: clean(s.title ?? ''), expected: 'no_schedule' }, source: 'reverted', source_ref: ref }
+  }
   if (kind === 'reopened') {
     const ev = (row.evidence ?? []).at(-1)
     const evInput = ev ? { kind: ev.kind ?? null, ref: ev.ref ?? null, note: ev.note == null ? null : clean(String(ev.note)) } : null
@@ -38,9 +42,11 @@ export function lessonFromRevert({ kind, write, row }) {
   return { company, scope: 'judge', lesson: clean(`"${s.title}" 는 "${row.title}" 로 부른다`), example: { input: clean(s.title ?? ''), expected: clean(row.title ?? '') }, source: 'reverted', source_ref: ref }
 }
 
-// 프롬프트에 넣을 교훈 행: 활성·같은 회사 또는 공통(null)·최근순 limit 개.
-export function pickLessons(lessons, company, limit = 20) {
-  return lessons.filter(l => l.active && (!l.company || l.company === company))
+// judge 프롬프트에 들어가는 범위. rule(회차 막기·날짜)·decision 은 프롬프트가 아니라 다른 경로가 쓴다.
+export const PROMPT_SCOPES = ['judge', 'close']
+// 프롬프트에 넣을 교훈 행: 활성·같은 회사 또는 공통(null)·(scopes 를 주면 그 범위만)·최근순 limit 개.
+export function pickLessons(lessons, company, limit = 20, { scopes = null } = {}) {
+  return lessons.filter(l => l.active && (!l.company || l.company === company) && (!scopes || scopes.includes(l.scope)))
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, limit)
 }
 export function lessonsForPrompt(lessons, company, limit = 20) {
@@ -48,25 +54,47 @@ export function lessonsForPrompt(lessons, company, limit = 20) {
 }
 
 // learn 단계의 순수 계획. 되돌림마다 교훈 하나. 개인 일정(category personal)이 된 행은 교훈 없이
-// 기록만 지운다. 지워진 행도 기록을 지운다. 나머지 행은 snapshot 이 지금과 다르면 지금 값으로 갱신.
-export function planLearn(writes, rows) {
+// 기록만 지운다. 지워진 행도 기록을 지운다. 30일 넘게 지난 완료 기록은 비교 없이 지운다(가지치기).
+// 되돌림이 다음 단계에서 다시 뒤집히지 않도록 행 패치도 낸다(patches — onWrite 로 적용해 snapshot 이 따라간다):
+//   - 정기 행(mgmt:)의 날짜·이름을 바꿨으면 origin 'manual' (planOccurrences 가 사람 행으로 보고 손대지 않는다)
+//   - 다시 열었으면 마지막 증빙 ref 를 rejected 로 붙이고 agent_state 'planned' (planClose 가 그 증빙으로 다시 닫지 않는다)
+// 나머지 행은 snapshot 이 지금과 다르면 지금 값으로 갱신(refresh). 패치하는 행은 onWrite 가 갱신하므로 뺀다.
+export const PRUNE_DONE_DAYS = 30
+export function planLearn(writes, rows, { now = new Date() } = {}) {
   const byId = new Map(rows.map(r => [r.id, r]))
-  const forget = [], refresh = []
-  const personalIds = new Set()
+  const forget = [], refresh = [], patches = []
+  const skip = new Set()
+  const cutoff = now.getTime() - PRUNE_DONE_DAYS * 86_400_000
   for (const w of writes) {
     const row = byId.get(w.row_id)
-    if (row && isPersonal(row)) { personalIds.add(w.row_id); forget.push(w.row_id) }
+    if (row && isPersonal(row)) { skip.add(w.row_id); forget.push(w.row_id); continue }
+    const t = Date.parse(w.written_at ?? '')
+    if (w.snapshot?.is_completed && Number.isFinite(t) && t < cutoff) { skip.add(w.row_id); forget.push(w.row_id) }
   }
-  const reverts = detectReverts(writes.filter(w => !personalIds.has(w.row_id)), rows)
+  const reverts = detectReverts(writes.filter(w => !skip.has(w.row_id)), rows)
   const lessons = reverts.map(lessonFromRevert)
-  for (const r of reverts) if (r.kind === 'deleted') forget.push(r.write.row_id)
+  const patched = new Set()
+  for (const r of reverts) {
+    if (r.kind === 'deleted') { forget.push(r.write.row_id); continue }
+    const isRule = (r.write.source_key ?? '').startsWith('mgmt:')
+    if ((r.kind === 'moved' || r.kind === 'renamed') && isRule && r.row.origin !== 'manual') {
+      patches.push({ id: r.row.id, patch: { origin: 'manual' } }); patched.add(r.row.id)
+    }
+    if (r.kind === 'reopened') {
+      const evidence = r.row.evidence ?? []
+      const last = evidence.filter(e => e?.kind !== 'rejected').at(-1)
+      const patch = { agent_state: 'planned' }
+      if (last?.ref) patch.evidence = [...evidence, { kind: 'rejected', ref: last.ref, at: now.toISOString() }]
+      patches.push({ id: r.row.id, patch }); patched.add(r.row.id)
+    }
+  }
   for (const w of writes) {
     const row = byId.get(w.row_id)
-    if (!row || personalIds.has(w.row_id)) continue
-    const now = snapshotOf(row)
-    if (JSON.stringify(now) !== JSON.stringify(snapshotOf(w.snapshot ?? {}))) refresh.push(row)
+    if (!row || skip.has(w.row_id) || patched.has(w.row_id)) continue
+    const cur = snapshotOf(row)
+    if (JSON.stringify(cur) !== JSON.stringify(snapshotOf(w.snapshot ?? {}))) refresh.push(row)
   }
-  return { lessons, forget, refresh }
+  return { lessons, forget, refresh, patches }
 }
 
 // `lesson` 명령 인자: --company tensw|willow [--scope judge|rule|close|decision] "문장" [--dry]
@@ -106,10 +134,19 @@ export async function loadLessons(sb) {
   if (error) throw error
   return data ?? []
 }
+// { duplicate: true } 면 같은 (scope, lesson) 이 이미 있어 넣지 않았다. dry 면 { dry: true }.
 export async function saveLesson(sb, lesson, { dryRun = false } = {}) {
-  if (dryRun) return
+  if (dryRun) return { dry: true, duplicate: false }
   const { error } = await sb.from('mgmt_lessons').insert(lesson)
-  if (error && error.code !== '23505') throw error
+  if (error && error.code === '23505') return { duplicate: true }
+  if (error) throw error
+  return { duplicate: false }
+}
+// rules 단계가 다시 깔지 않을 회차 키(지운 정기 행). 활성 rule 교훈 중 expected='suppressed'.
+export async function loadSuppressedKeys(sb) {
+  const { data, error } = await sb.from('mgmt_lessons').select('source_ref').eq('active', true).eq('scope', 'rule').eq('example->>expected', 'suppressed')
+  if (error) throw error
+  return new Set((data ?? []).map(r => r.source_ref).filter(Boolean))
 }
 export async function bumpHits(sb, lessons, { dryRun = false } = {}) {
   if (dryRun) return

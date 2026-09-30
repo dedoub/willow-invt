@@ -44,14 +44,32 @@ export function splitMailFacts(mails, context) {
   return { sent, received }
 }
 
+// 대표가 다시 연 행에는 {kind:'rejected', ref} 가 붙는다. 그 ref(세금은 쉼표로 이은 id 들)의 증빙으로는 다시 닫지 않는다.
+export function rejectedRefs(row) {
+  const out = new Set()
+  for (const e of row.evidence ?? []) {
+    if (e?.kind !== 'rejected' || e.ref == null) continue
+    out.add(String(e.ref))
+    for (const part of String(e.ref).split(',')) out.add(part)
+  }
+  return out
+}
+const withoutRejected = (facts, rejected) => {
+  if (!rejected.size) return facts
+  const keep = list => list === undefined ? undefined : (list ?? []).filter(x => !rejected.has(String(x.id)))
+  return { ...facts, taxObligations: keep(facts.taxObligations), sentMail: keep(facts.sentMail), receivedMail: keep(facts.receivedMail), cash: keep(facts.cash) }
+}
+
 // 닫기: 규칙의 completion 으로 기록 증빙을 찾는다. completion 이 없는 규칙(서명본 회신 등)만
 // 행에 이미 붙은 메시지 증빙으로 닫는다(Task 9 판정 — completion 이 있는 행은 메시지로 닫지 않는다).
+// 대표가 거절한(rejected) 증빙은 둘 다에서 뺀다.
 export function planClose(row, rule, facts) {
   if (!rule) return null
-  const ev = findEvidence(row, rule, facts)
-  if (ev) return { ev, patch: closePatch(row, ev) }
+  const rejected = rejectedRefs(row)
+  const ev = findEvidence(row, rule, withoutRejected(facts, rejected))
+  if (ev && !rejected.has(String(ev.ref))) return { ev, patch: closePatch(row, ev) }
   if (rule.completion) return null
-  const msg = (row.evidence ?? []).filter(e => e?.kind === 'message').at(-1)
+  const msg = (row.evidence ?? []).filter(e => e?.kind === 'message' && !rejected.has(String(e.ref))).at(-1)
   if (!msg) return null
   return { ev: msg, patch: { is_completed: true, agent_state: 'done', evidence: row.evidence } }
 }

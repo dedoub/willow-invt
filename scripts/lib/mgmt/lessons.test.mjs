@@ -2,6 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { snapshotOf, detectReverts, lessonFromRevert, lessonsForPrompt } from './lessons.mjs'
 import { buildPrompt } from './judge.mjs'
+import { planLearn, parseLessonArgs, recordWrite } from './lessons.mjs'
+import { applyPlan } from './ledger.mjs'
+import { applyJudgement } from './apply-judgement.mjs'
+import { planOccurrences } from './ledger.mjs'
+import { planClose } from './runner-helpers.mjs'
+import { pickLessons, saveLesson } from './lessons.mjs'
+import { makeCalendar } from './calendar.mjs'
 
 const w = (id, snap, key = 'mgmt-chat:spaces/A/messages/1') => ({ table_name: 'tensw_mgmt_schedules', row_id: id, source_key: key, snapshot: snap })
 const base = { title: 'NIA 월간보고', schedule_date: '2026-10-02', is_completed: false, agent_state: 'planned' }
@@ -38,9 +45,6 @@ test('snapshot 은 네 칸만', () => {
 })
 
 // --- 이하 Task 16 추가 시험: learn 계획·lesson 명령 인자·onWrite 배선 ---
-import { planLearn, parseLessonArgs, recordWrite } from './lessons.mjs'
-import { applyPlan } from './ledger.mjs'
-import { applyJudgement } from './apply-judgement.mjs'
 
 test('planLearn: 개인 일정이 된 행은 교훈 없이 기록만 지우고, 지운 행도 기록을 지운다', () => {
   const writes = [w('a', base), w('p', base), w('c', base), w('s', base)]
@@ -73,7 +77,7 @@ test('parseLessonArgs: 회사·범위 검증, 문장은 가림', () => {
 })
 
 // 가짜 sb — insert/update 뒤 .select('*').single() 로 행을 돌려준다.
-function fakeSb({ insertError = null } = {}) {
+function fakeSb({ insertError = null, goneIds = [] } = {}) {
   const calls = []
   const from = table => ({
     insert(row) {
@@ -84,8 +88,8 @@ function fakeSb({ insertError = null } = {}) {
     update(patch) {
       return { eq: (_c, id) => {
         calls.push(['update', table, id, patch])
-        const res = { error: null, data: { id, title: 't', schedule_date: '2026-10-02', ...patch } }
-        return { select: () => ({ single: async () => res }), then: (ok, bad) => Promise.resolve(res).then(ok, bad) }
+        const res = { error: null, data: goneIds.includes(id) ? null : { id, title: 't', schedule_date: '2026-10-02', ...patch } }
+        return { select: () => ({ maybeSingle: async () => res }), then: (ok, bad) => Promise.resolve(res).then(ok, bad) }
       } }
     },
     upsert(row) { calls.push(['upsert', table, row]); return Promise.resolve({ error: null }) },
@@ -130,3 +134,101 @@ test('recordWrite: 개인 일정·dry 는 기록하지 않고, 기록은 네 칸
   assert.deepEqual(sb.calls[0][2].snapshot, base)
   assert.equal(sb.calls[0][2].source_key, 'k')
 })
+
+// --- 리뷰 반영(되돌림이 같은 실행에서 다시 뒤집히지 않게) ---
+
+const NOW = new Date('2026-10-10T00:00:00Z')
+const ruleKey = 'mgmt:tensw:payroll:2026-10:request'
+const payrollRule = { id: 'r1', company: 'tensw', task_key: 'payroll', step: 'request', title: '{period} 급여대장 요청', rule: { kind: 'monthly_day', day: 22, shift: 'none' }, completion: null }
+
+test('옮긴·이름 바꾼 정기 행은 origin manual 패치 → planOccurrences 가 그 행을 건드리지 않는다', () => {
+  const snap = { title: '2026-10 급여대장 요청', schedule_date: '2026-10-22', is_completed: false, agent_state: 'planned' }
+  const row = { id: 'c', ...snap, schedule_date: '2026-10-24', source_key: ruleKey, origin: 'seed', evidence: [] }
+  const { patches, lessons } = planLearn([w('c', snap, ruleKey)], [row], { now: NOW })
+  assert.deepEqual(patches, [{ id: 'c', patch: { origin: 'manual' } }])
+  assert.equal(lessons[0].scope, 'rule')
+  const patched = { ...row, ...patches[0].patch }
+  const before = planOccurrences([payrollRule], [row], { from: '2026-10-01', to: '2026-10-31', cal: makeTestCal() })
+  assert.equal(before.update.length, 1) // 패치 전이라면 날짜를 되돌렸을 것
+  const after = planOccurrences([payrollRule], [patched], { from: '2026-10-01', to: '2026-10-31', cal: makeTestCal() })
+  assert.deepEqual(after, { insert: [], update: [] })
+  // 채팅 행은 origin 패치 없음
+  assert.deepEqual(planLearn([w('d', snap)], [{ id: 'd', ...snap, title: '다른 이름' }], { now: NOW }).patches, [])
+})
+
+test('다시 연 행: rejected 증빙 + planned 패치, planClose 는 거절된 증빙으로 다시 닫지 않는다', () => {
+  const msg = { kind: 'message', ref: 'spaces/A/messages/9', at: '2026-10-05T00:00:00Z', note: '송금했습니다' }
+  const snap = { ...base, is_completed: true, agent_state: 'done' }
+  const row = { id: 'b', ...base, is_completed: false, agent_state: 'done', source_key: ruleKey, evidence: [msg] }
+  const { patches } = planLearn([w('b', snap, ruleKey)], [row], { now: NOW })
+  assert.equal(patches.length, 1)
+  assert.equal(patches[0].patch.agent_state, 'planned')
+  assert.deepEqual(patches[0].patch.evidence.at(-1), { kind: 'rejected', ref: msg.ref, at: NOW.toISOString() })
+  const reopened = { ...row, ...patches[0].patch }
+  // 메시지 증빙 폴백: 거절된 메시지만 있으면 닫지 않고, 새 메시지면 닫는다
+  assert.equal(planClose(reopened, { company: 'tensw', completion: null }, {}), null)
+  const msg2 = { kind: 'message', ref: 'spaces/A/messages/10', at: '2026-10-11T00:00:00Z' }
+  assert.equal(planClose({ ...reopened, evidence: [...reopened.evidence, msg2] }, { company: 'tensw', completion: null }, {}).ev.ref, msg2.ref)
+  // 기록 증빙: 거절된 메일로는 닫지 않고, 다른 메일로는 닫는다
+  const mailRule = { company: 'tensw', completion: { kind: 'sent_mail', context: 'tensoftworks', subject: '급여' } }
+  const r2 = { id: 'm', schedule_date: '2026-10-02', evidence: [{ kind: 'sent_mail', ref: 'g1' }, { kind: 'rejected', ref: 'g1', at: NOW.toISOString() }] }
+  const g1 = { id: 'g1', context: 'tensoftworks', to: 'x', subject: '급여 요청', at: '2026-10-01T00:00:00Z' }
+  assert.equal(planClose(r2, mailRule, { sentMail: [g1] }), null)
+  const g2 = { ...g1, id: 'g2', at: '2026-10-01T05:00:00Z' }
+  assert.equal(planClose(r2, mailRule, { sentMail: [g1, g2] }).ev.ref, 'g2')
+  // 세금: 쉼표로 이은 ref 도 거절
+  const taxRule = { company: 'tensw', completion: { kind: 'tax', types: ['vat'] } }
+  const t = { company: 'tensw', obligation_type: 'vat', due_date: '2026-10-02', status: 'paid', paid_at: '2026-10-01' }
+  const r3 = { id: 't', schedule_date: '2026-10-02', evidence: [{ kind: 'rejected', ref: 't1,t2' }] }
+  assert.equal(planClose(r3, taxRule, { taxObligations: [{ ...t, id: 't1' }, { ...t, id: 't2' }] }), null)
+  assert.equal(planClose(r3, taxRule, { taxObligations: [{ ...t, id: 't3' }] }).ev.ref, 't3')
+})
+
+test('지운 정기 행은 rule·suppressed 교훈, planOccurrences 는 suppressedKeys 를 다시 깔지 않는다', () => {
+  const snap = { title: '2026-10 급여대장 요청', schedule_date: '2026-10-22', is_completed: false, agent_state: 'planned' }
+  const { lessons, forget } = planLearn([w('z', snap, ruleKey)], [], { now: NOW })
+  assert.equal(lessons[0].scope, 'rule')
+  assert.equal(lessons[0].example.expected, 'suppressed')
+  assert.equal(lessons[0].source_ref, ruleKey)
+  assert.deepEqual(forget, ['z'])
+  const p = planOccurrences([payrollRule], [], { from: '2026-10-01', to: '2026-10-31', cal: makeTestCal(), suppressedKeys: new Set([ruleKey]) })
+  assert.deepEqual(p.insert, [])
+  assert.equal(planOccurrences([payrollRule], [], { from: '2026-10-01', to: '2026-10-31', cal: makeTestCal() }).insert.length, 1)
+})
+
+test('프롬프트용 교훈은 judge·close 범위만', () => {
+  const ls = [{ scope: 'judge', lesson: 'J', active: true, created_at: '1' }, { scope: 'close', lesson: 'C', active: true, created_at: '2' }, { scope: 'rule', lesson: 'R', active: true, created_at: '3' }, { scope: 'decision', lesson: 'D', active: true, created_at: '4' }]
+  assert.deepEqual(pickLessons(ls, 'tensw', 20, { scopes: ['judge', 'close'] }).map(l => l.lesson), ['C', 'J'])
+})
+
+test('30일 넘은 완료 기록은 비교 없이 지운다', () => {
+  const done = { ...base, is_completed: true, agent_state: 'done' }
+  const old = { ...w('o', done), written_at: '2026-09-01T00:00:00Z' }
+  const fresh = { ...w('f', done), written_at: '2026-10-01T00:00:00Z' }
+  const openOld = { ...w('q', base), written_at: '2026-08-01T00:00:00Z' }
+  const { lessons, forget } = planLearn([old, fresh, openOld], [{ id: 'q', ...base }], { now: NOW })
+  assert.deepEqual(forget.sort(), ['f', 'o'])  // o 는 가지치기, f 는 지워짐(교훈)
+  assert.equal(lessons.length, 1)
+})
+
+test('saveLesson: 중복이면 duplicate', async () => {
+  const dup = { from: () => ({ insert: async () => ({ error: { code: '23505' } }) }) }
+  assert.deepEqual(await saveLesson(dup, { lesson: 'x' }), { duplicate: true })
+  const ok = { from: () => ({ insert: async () => ({ error: null }) }) }
+  assert.deepEqual(await saveLesson(ok, { lesson: 'x' }), { duplicate: false })
+  await assert.rejects(saveLesson({ from: () => ({ insert: async () => ({ error: { code: '42P01', message: 'x' } }) }) }, { lesson: 'x' }))
+})
+
+test('update 도중 지워진 행은 onWrite 를 건너뛰고 던지지 않는다', async () => {
+  const seen = []
+  await applyPlan(fakeSb({ goneIds: ['u1'] }), 'tensw_mgmt_schedules', { update: [{ id: 'u1', patch: { agent_state: 'missed' } }] }, { onWrite: (t, r) => seen.push(r) })
+  await applyJudgement(fakeSb({ goneIds: ['w1'] }), { cases: [], entries: [], decisions: [], scheduleInserts: [], scheduleUpdates: [{ table: 'willow_mgmt_schedules', id: 'w1', patch: { is_completed: true } }] }, { onWrite: (t, r) => seen.push(r) })
+  assert.equal(seen.length, 0)
+})
+
+function makeTestCal() {
+  return makeCalendar((y, m) => {
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    return { year: y, month: m, lastDay: last, workdays: Array.from({ length: last }, (_, i) => i + 1) }
+  })
+}

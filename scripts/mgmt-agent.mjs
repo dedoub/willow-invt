@@ -18,7 +18,7 @@ import { buildPrompt, judge } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules } from './lib/mgmt/infer.mjs'
 import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
-import { recordWrite, forgetWrites, loadWrites, loadLessons, pickLessons, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
+import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
 import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -67,6 +67,7 @@ function must({ data, error, count }, what) {
 // 교훈 장부: 에이전트가 원장 행을 쓸 때마다 마지막 값을 남긴다. 기록이 실패하면 그 행의 옛 기록을
 // 지운다 — 옛 snapshot 이 남으면 다음 learn 이 에이전트 자신의 변경을 대표의 되돌림으로 오인한다.
 async function onWrite(table, row) {
+  if (!row) return // 도중에 지워진 행(maybeSingle → null)
   try { await recordWrite(sb, table, row, { dryRun }) }
   catch (e) {
     fail(`learn:record:${row?.id}`, e)
@@ -78,8 +79,10 @@ async function onWrite(table, row) {
 if (args[0] === 'lesson') {
   let lesson
   try { lesson = parseLessonArgs(args.slice(1)) } catch (e) { log(`lesson: ${e.message}`); process.exit(2) }
-  log(`교훈 ${dryRun ? '(dry) ' : ''}${lesson.company}/${lesson.scope}: ${lesson.lesson}`)
-  try { await saveLesson(sb, lesson, { dryRun }) } catch (e) { log(`lesson 저장 실패: ${e.message ?? e}`); process.exit(1) }
+  let res
+  try { res = await saveLesson(sb, lesson, { dryRun }) } catch (e) { log(`lesson 저장 실패: ${e.message ?? e}`); process.exit(1) }
+  if (res.duplicate) log(`이미 있는 교훈이에요: ${lesson.company}/${lesson.scope}: ${lesson.lesson}`)
+  else log(`교훈 ${dryRun ? '(dry, 저장 안 함) ' : '저장 '}${lesson.company}/${lesson.scope}: ${lesson.lesson}`)
   process.exit(0)
 }
 
@@ -139,10 +142,13 @@ async function stepRules() {
   const rules = await loadRules()
   const cal = makeCalendar()
   const from = todayKey(), to = addDays(from, 60)
+  // 대표가 지운 정기 회차(교훈 장부 rule/suppressed)는 다시 깔지 않는다.
+  const suppressedKeys = await loadSuppressedKeys(sb)
+  if (suppressedKeys.size) log(`막힌 회차 ${suppressedKeys.size}`)
   for (const company of COMPANIES) {
     const table = tableFor(company)
     const rows = must(await sb.from(table).select('id, title, schedule_date, source_key, is_completed, agent_state, evidence, category, origin').or(NOT_PERSONAL).gte('schedule_date', addDays(from, -45)), table)
-    const plan = planOccurrences(rules.filter(r => r.company === company), rows, { from, to, cal })
+    const plan = planOccurrences(rules.filter(r => r.company === company), rows, { from, to, cal, suppressedKeys })
     const missed = planMissed(rows, from)
     tally.inserted += plan.insert.length; tally.updated += plan.update.length; tally.missed += missed.length
     log(`${company}: 추가 ${plan.insert.length} · 갱신 ${plan.update.length} · 빠짐 ${missed.length}`)
@@ -160,11 +166,19 @@ async function stepCollect() {
   }
   try { for (const [space, items] of await readChat(sb, s => getCursor(sb, s))) batches.push({ source: `chat:${space}`, company: 'tensw', items }) }
   catch (e) { fail('collect:chat', e) }
-  // 교훈: 회사별 활성·최근 20개를 judge 프롬프트에 넣는다. 못 읽어도 수집은 계속한다.
+  // 교훈: 회사별 활성·judge/close 범위·최근 20개를 judge 프롬프트에 넣는다. 못 읽어도 수집은 계속한다.
   let allLessons = []
   try { allLessons = await loadLessons(sb) } catch (e) { fail('collect:lessons', e) }
   log(`새 메시지: ${batches.map(b => `${b.source}=${b.items.length}`).join(', ') || '없음'}`)
+  // 프롬프트에 들어간 교훈은 실행당 한 번만 hits 를 올린다(수집이 도중에 끝나도).
+  const prompted = new Map()
+  try { await collectBatches(batches, allLessons, prompted) }
+  finally {
+    try { await bumpHits(sb, [...prompted.values()], { dryRun }) } catch (e) { fail('collect:lesson-hits', e) }
+  }
+}
 
+async function collectBatches(batches, allLessons, prompted) {
   for (const b of batches) {
     if (Date.now() - START > COLLECT_DEADLINE_MS) { log('18분 경과 — 나머지는 다음 실행에서 이어 읽음'); return }
     const table = tableFor(b.company)
@@ -175,9 +189,9 @@ async function stepCollect() {
         const items = b.items.slice(i, i + 60)
         const openCases = must(await sb.from('mgmt_cases').select('name').eq('company', b.company).eq('status', 'open'), 'mgmt_cases')
         const openSchedules = must(await sb.from(table).select('id, title, schedule_date, source_key, evidence').eq('is_completed', false).or(NOT_PERSONAL).gte('schedule_date', addDays(todayKey(), -60)), table)
-        const used = pickLessons(allLessons, b.company)
+        const used = pickLessons(allLessons, b.company, 20, { scopes: PROMPT_SCOPES })
         const j = await judge(buildPrompt({ company: b.company, items, openCases: openCases ?? [], openSchedules: openSchedules ?? [], lessons: used.map(l => l.lesson) }))
-        try { await bumpHits(sb, used, { dryRun }) } catch (e) { fail('collect:lesson-hits', e) }
+        for (const l of used) prompted.set(l.id, l)
         const plan = planJudgement(b.company, j, { items, openSchedules: openSchedules ?? [] })
         tally.entries += plan.entries.length; tally.inserted += plan.scheduleInserts.length; tally.updated += plan.scheduleUpdates.length; tally.decisions += plan.decisions.length
         log(`${b.source} [${i + 1}-${i + items.length}] 건 ${plan.cases.length} · 기록 ${plan.entries.length} · 일정 +${plan.scheduleInserts.length}/~${plan.scheduleUpdates.length} · 결정 ${plan.decisions.length} · 버림 ${plan.dropped}`)
@@ -222,7 +236,7 @@ async function stepClose() {
       if (!c) continue
       n++
       log(`완료 ${company} ${row.schedule_date} ${row.title} ← ${c.ev.kind} ${c.ev.note ?? ''}`)
-      if (!dryRun) await onWrite(table, must(await sb.from(table).update(c.patch).eq('id', row.id).select('*').single(), `close ${row.id}`))
+      if (!dryRun) await onWrite(table, must(await sb.from(table).update(c.patch).eq('id', row.id).select('*').maybeSingle(), `close ${row.id}`))
     }
     tally.closed += n
     log(`${company}: 열린 정기 행 ${rows?.length ?? 0} 중 완료 ${n}`)
@@ -240,7 +254,7 @@ async function stepDecide() {
       const patch = missedAnswerPatch(d, row, today)
       if (patch) log(`빠짐 답 반영 ${d.company} ${row.title} ← ${d.answer}`)
       if (dryRun) continue
-      if (patch) await onWrite(table, must(await sb.from(table).update(patch).eq('id', row.id).select('*').single(), `missed apply ${row.id}`))
+      if (patch) await onWrite(table, must(await sb.from(table).update(patch).eq('id', row.id).select('*').maybeSingle(), `missed apply ${row.id}`))
       // 윌리는 보류를 answered 로 두지 않으므로(answer='hold', status 그대로) 여기 온 답은 모두 끝난 답이다.
       must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
     } catch (e) { fail(`decide:missed-answer:${d.id}`, e) }
@@ -328,7 +342,8 @@ async function stepInfer() {
 }
 
 // 되돌림에서 배우기: 에이전트가 마지막으로 쓴 값과 지금 행을 비교한다. 대표가 지웠거나 다시 열었거나
-// 날짜·이름을 바꿨으면 교훈으로 적고, 기록을 지금 값으로 맞춘다(지워진 행·개인 일정이 된 행은 기록 삭제).
+// 날짜·이름을 바꿨으면 교훈으로 적고, 되돌림을 고정하고, 기록을 지금 값으로 맞춘다
+// (지워진 행·개인 일정이 된 행·30일 넘은 완료 기록은 기록 삭제).
 async function stepLearn() {
   for (const company of COMPANIES) {
     const table = tableFor(company)
@@ -337,16 +352,18 @@ async function stepLearn() {
     const rows = []
     for (let i = 0; i < ids.length; i += 100) {
       const chunk = ids.slice(i, i + 100)
-      rows.push(...(must(await sb.from(table).select('id, title, schedule_date, is_completed, agent_state, evidence, source_key').in('id', chunk).or(NOT_PERSONAL), table) ?? []))
+      rows.push(...(must(await sb.from(table).select('id, title, schedule_date, is_completed, agent_state, evidence, source_key, origin').in('id', chunk).or(NOT_PERSONAL), table) ?? []))
       // 개인 일정은 내용을 읽지 않고 id 만 — 기록을 지우는 데만 쓴다.
       rows.push(...(must(await sb.from(table).select('id').in('id', chunk).eq('category', 'personal'), `${table} personal`) ?? []).map(r => ({ id: r.id, category: 'personal' })))
     }
-    const { lessons, forget, refresh } = planLearn(writes, rows)
-    log(`${company}: 기록 ${writes.length} · 교훈 ${lessons.length} · 기록 삭제 ${forget.length} · 기록 갱신 ${refresh.length}`)
+    const { lessons, forget, refresh, patches } = planLearn(writes, rows, { now: new Date() })
+    log(`${company}: 기록 ${writes.length} · 교훈 ${lessons.length} · 되돌림 고정 ${patches.length} · 기록 삭제 ${forget.length} · 기록 갱신 ${refresh.length}`)
     for (const l of lessons) {
       log(`교훈 ${l.scope} ${l.lesson}`)
       await saveLesson(sb, l, { dryRun })
     }
+    // 되돌림을 고정한다(정기 행은 manual, 다시 연 행은 거절 증빙) — 같은 실행의 rules·close 가 다시 뒤집지 않게.
+    await applyPlan(sb, table, { insert: [], update: patches }, { dryRun, log, onWrite })
     await forgetWrites(sb, table, forget, { dryRun })
     for (const row of refresh) await recordWrite(sb, table, row, { dryRun })
   }

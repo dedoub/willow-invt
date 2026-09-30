@@ -178,7 +178,7 @@ export async function applyJudgement(sb, plan, { dryRun = false, log = () => {},
     log(`일정 ${patch.is_completed ? '완료' : '변경'} ${id}`)
     if (dryRun) continue
     if (onWrite) {
-      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').single()
+      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').maybeSingle()
       if (error) throw error
       if (data) await onWrite(table, data)
     } else { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }
