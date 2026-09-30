@@ -17,7 +17,8 @@ description: Use when running, checking or tuning the Tensoftworks/Willow manage
 
 결정이 필요한 것(빠진 일정, 반복 규칙 채택 여부 등)만 `decide` 단계가 윌리 버튼으로 CEO에게 묻는다.
 저녁 요약(`digest`)이 그날 한 일·빠진 일·결정 대기·실패를 모은다. 아침 회차(07:0x)는 지난 6개월
-로그에서 반복 규칙을 더 찾는다(`infer`).
+로그에서 반복 규칙을 더 찾고(`infer`), 월요일이면 규칙도 스스로 손보고(`tune`) 주간 성적표와 스킬
+후보를 낸다(`weekly`) — 아래 "자가 발전" 절.
 
 ## 명령
 
@@ -29,14 +30,17 @@ node scripts/mgmt-agent.mjs --only close            # 증빙 근거로 완료 �
 node scripts/mgmt-agent.mjs --only decide           # 열린 결정 처리·윌리 발송만
 node scripts/mgmt-agent.mjs --only digest           # 저녁 요약만
 node scripts/mgmt-agent.mjs --only infer            # 반복 규칙 추론만
+node scripts/mgmt-agent.mjs --only tune             # 규칙 자동 조정만(월요일 07:0x)
+node scripts/mgmt-agent.mjs --only weekly           # 주간 성적표 + 스킬 후보만(월요일 07:3x)
 node scripts/mgmt-agent.mjs --only learn            # 대표가 되돌린 행에서 교훈 찾기만
 node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "문장"   # 대표 교정 한 줄을 교훈으로
 node scripts/mgmt-replay.mjs                        # 2026-06~09 재현 시험(완전 읽기 전용)
 npm run mgmt:test                                   # 유닛 테스트
 ```
 
-`--only` 없이 부르면 시각에 따라 자동으로 고른다(07:00~07:30 은 `infer` 도 포함, 18:30~19:00 은
-`digest` 도 포함, 그 외 시간은 `learn → rules → collect → close → decide`). 모든 회차는 `learn` 으로 시작한다. 잘못된 `--only` 값은
+`--only` 없이 부르면 시각에 따라 자동으로 고른다(07:00~07:30 은 `infer` 도 포함(월요일이면 `infer`
+다음에 `tune` 도), 07:30~07:59 이고 월요일이면 끝에 `weekly` 도, 18:30~19:00 은 `digest` 도 포함,
+그 외 시간은 `learn → rules → collect → close → decide`). 모든 회차는 `learn` 으로 시작한다. 잘못된 `--only` 값은
 바로 종료 코드 2 로 실패한다.
 
 ## 스케줄
@@ -88,6 +92,38 @@ select company, scope, lesson, source, hits, created_at from mgmt_lessons where 
 update mgmt_lessons set active=false where lesson='…';   -- 틀린 교훈 끄기
 ```
 
+## 자가 발전
+
+에이전트는 대표 손을 거칠 때마다, 그리고 매주 한 번, 스스로 판단을 손본다. 넷이 한 흐름이다.
+
+1. **되돌림에서 배우기** (`learn`, 매 회차 맨 앞) — 위 "교훈 장부" 절 그대로. 대표가 지웠거나·다시
+   열었거나·날짜를 옮겼거나·이름을 바꾼 행마다 교훈 한 줄(`mgmt_lessons`, `source='reverted'`)이
+   쌓이고, 다음 판단(`judge`)이 "지난 교훈"으로 그걸 지킨다. 대표가 직접 고쳐 말하면:
+   ```bash
+   node scripts/mgmt-agent.mjs lesson --company tensw|willow [--scope judge|rule|close|decision] "문장" [--dry]
+   ```
+   윌리가 "경영관리 교훈: …" 을 받으면 이 명령을 그대로 부른다(회사가 불분명하면 되묻는다). `--scope`
+   기본값은 `judge`, 회사·범위가 틀리면 종료 코드 2. 문장은 저장 전에 비밀값을 가린다.
+2. **규칙 자동 조정** (`tune`, 월요일 07:0x 회차, `infer` 다음) — 정기 회차가 계속 며칠 일찍 끝나면
+   그 요일로 당기고(`shift_day`), 두 번 연속 빠지면 규칙을 끌지 결정함에 묻고(`ask_disable`), 추정
+   규칙이 근거 없이 두 번 어긋나면 조용히 끄고(`deactivate`), 세 번 맞으면 추정 표시를 뗀다(`confirm`).
+   모두 메일·메시지 발송 없이 규칙 자체만 고친다(대표 승인은 `ask_disable` 물음에만 필요).
+3. **월요일 주간 성적표** (`weekly`, 월요일 07:3x 회차) — 지난 7일치 쓴 일정·근거로 닫은 수·되돌림
+   (과 되돌림률)·빠짐·물어본 결정·지난 판단 재사용·해석 실패를 한 통으로 윌리에게 보낸다
+   (`scripts/lib/mgmt/weekly.mjs` `scorecard()`).
+   ```bash
+   node scripts/mgmt-agent.mjs --dry --only weekly   # 무엇이 나갈지만(윌리 전송 없음)
+   node scripts/mgmt-agent.mjs --only weekly         # 실제 회차 — 월요일 07:30~07:59 엔 자동으로도 돈다
+   ```
+4. **스킬 후보를 개발 에이전트로** (`weekly` 안에서 성적표 다음) — 같은 회차가 `mgmt_entries`
+   (`kind='todo'`, 담당에 "김동욱" 포함)에서 최근 4주 안에 레시피 없이 3번 넘게 반복된 일을
+   찾는다(`skillCandidates()` — 숫자·날짜·금액·괄호 속 글자를 지우고 20자로 묶어, 세금계산서 두 건처럼
+   거래처가 다르면 안 묶인다). 레시피가 있는 업무(급여·출근부·지원금·세금계산서 등, `mgmt_rules.recipe`
+   가 있는 행 제목에서 뽑은 이름)는 뺀다. 묶인 일마다 `ws_threads` 에 같은 제목(`[mgmt-skill] <이름>`)의
+   열린 스레드가 없으면 새로 연다(`project='willow-invt'`, `tags=['mgmt-skill-request']`, 요약에는
+   메시지 참조(refs)만 넣고 본문은 가린다). **개발 에이전트가 이 스레드를 집어 스킬로 만든다** — 윌리는
+   스레드를 열기만 하고 구현하지 않는다. 성적표 끝줄에 이번에 넘긴 후보 수가 나온다.
+
 ## 결정함 보기
 
 ```sql
@@ -124,9 +160,11 @@ CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `answered` 로
 | "경영관리 교훈: …" | `node scripts/mgmt-agent.mjs lesson --company <tensw\|willow> --scope judge "…"` (회사가 불분명하면 묻는다) | 저장된 교훈 문장 |
 | "교훈 뭐 쌓였어" | 위 SQL(`mgmt_lessons` active) | 교훈 목록 |
 | "6~9월로 다시 재봐줘", "재현 시험 돌려줘" | `node scripts/mgmt-replay.mjs` | `scripts/logs/mgmt-replay-2026-06-09.md` 요지 |
+| "주간 성적표", "이번 주 어땠어" | `node scripts/mgmt-agent.mjs --dry --only weekly` (실제 발송은 월요일 07:3x 자동 회차) | 성적표 텍스트 그대로 |
+| "스킬 후보 뭐 넘겼어" | `select title, summary, created_at from ws_threads where project='willow-invt' and 'mgmt-skill-request' = any(tags) order by created_at desc;` | 스레드 제목·요약 목록 |
 
-`--only` 값은 `learn|rules|collect|close|decide|digest|infer` 일곱 개뿐이다. 다른 값을 부르면 바로
-실패하니 지어내지 않는다.
+`--only` 값은 `learn|rules|collect|close|decide|digest|infer|tune|weekly` 아홉 개뿐이다. 다른 값을
+부르면 바로 실패하니 지어내지 않는다.
 
 ## 참고
 

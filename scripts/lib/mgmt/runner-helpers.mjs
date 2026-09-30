@@ -5,14 +5,16 @@ import { normalizeSubject } from './infer.mjs'
 export const addDays = (key, n) => { const t = new Date(`${key}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10) }
 
 // learn(되돌림에서 배우기)이 맨 앞. 07:00~07:29 이면 infer, 월요일 그 시각이면 infer 다음에 tune, 18:30~18:59 이면 마지막에 digest.
-export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer', 'tune']
+// 월요일 07:30~07:59 이면 마지막에 weekly(주간 성적표 + 스킬 후보).
+export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer', 'tune', 'weekly']
 export function planSteps(hm, only = null, { monday = false } = {}) {
   if (only !== null && only !== undefined) {
     if (!STEP_NAMES.includes(only)) throw new Error(`알 수 없는 단계 "${only}" (${STEP_NAMES.join('|')})`)
     return [only]
   }
   const inferWindow = hm >= '07:00' && hm < '07:30'
-  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', 'collect', 'close', 'decide', ...(hm >= '18:30' && hm < '19:00' ? ['digest'] : [])]
+  const weeklyWindow = monday && hm >= '07:30' && hm < '08:00'
+  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', 'collect', 'close', 'decide', ...(hm >= '18:30' && hm < '19:00' ? ['digest'] : []), ...(weeklyWindow ? ['weekly'] : [])]
 }
 
 // mgmt:<company>:<task>:<YYYY-MM>:<step>

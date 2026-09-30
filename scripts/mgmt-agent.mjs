@@ -19,6 +19,7 @@ import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules } from './lib/mgmt/infer.mjs'
 import { planTuning } from './lib/mgmt/tune.mjs'
 import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
+import { scorecard, skillCandidates } from './lib/mgmt/weekly.mjs'
 import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
 import { redact } from './lib/mgmt/redact.mjs'
 import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
@@ -415,6 +416,66 @@ async function stepTune() {
   }
 }
 
+// title 에서 레시피가 있는 업무 이름을 뽑는다: {period}·괄호 속 글자·숫자를 지우고 첫 단어.
+function deriveRecipeWord(title) {
+  const cleaned = String(title ?? '').replace('{period}', '').replace(/\([^)]*\)/g, '').replace(/\d+/g, '').trim()
+  return cleaned.split(/\s+/)[0] ?? ''
+}
+// 원래는 잘 알려진 레시피 이름(급여·출근부 등) — 원장 규칙 제목에서 자동으로 뽑히지 않는 것도 있다(출근부 발송의 첫 단어는 "강남구").
+const KNOWN_RECIPE_NAMES = ['급여', '출근부', '지원금', '세금계산서']
+
+// Task 18: 월요일 아침 주간 성적표 + 레시피 없이 반복되는 일을 개발 에이전트 요청(ws_threads)으로.
+async function stepWeekly() {
+  const today = todayKey()
+  const from = addDays(today, -7), to = addDays(today, -1)
+  const sinceISO = new Date(Date.now() - 7 * 86_400_000).toISOString()
+
+  const writes = must(await sb.from('mgmt_agent_writes').select('row_id', { count: 'exact', head: true }).gte('written_at', sinceISO), 'weekly:writes') ?? 0
+  const reverts = must(await sb.from('mgmt_lessons').select('id', { count: 'exact', head: true }).eq('source', 'reverted').gte('created_at', sinceISO), 'weekly:reverts') ?? 0
+
+  let closedByEvidence = 0, missed = 0
+  for (const company of COMPANIES) {
+    const table = tableFor(company)
+    const doneRows = must(await sb.from(table).select('evidence').eq('agent_state', 'done').or(NOT_PERSONAL), `weekly:${table}:done`)
+    closedByEvidence += (doneRows ?? []).filter(r => (r.evidence ?? []).some(e => e?.at && Date.parse(e.at) >= Date.parse(sinceISO))).length
+    missed += must(await sb.from(table).select('id', { count: 'exact', head: true }).eq('agent_state', 'missed').eq('is_completed', false).or(NOT_PERSONAL), `weekly:${table}:missed`) ?? 0
+  }
+
+  const asked = must(await sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).not('telegram_message_id', 'is', null).gte('created_at', sinceISO), 'weekly:asked') ?? 0
+  const answered = must(await sb.from('mgmt_decisions').select('refs').eq('status', 'answered').gte('answered_at', sinceISO), 'weekly:answered')
+  const reused = (answered ?? []).filter(isReuse).length
+
+  // judgeFailures: mgmt_cursors 정체 대신 실패 기록에서 곧바로 센다(더 정확 — 커서는 소스가 조용해도 안 움직일 수 있다).
+  const failLines = fs.existsSync(FAIL_FILE) ? fs.readFileSync(FAIL_FILE, 'utf8').split('\n').filter(Boolean) : []
+  const judgeFailures = pruneFailureLines(failLines).filter(l => { try { const f = JSON.parse(l); return f.step === 'collect' && !f.dry } catch { return false } }).length
+
+  const s = scorecard({ from, to, writes, reverts, closedByEvidence, missed, asked, reused, judgeFailures })
+  log(`성적표 ${from}~${to}: 쓴 일정 ${writes} · 되돌림 ${reverts} · 근거로 닫음 ${closedByEvidence} · 빠짐 ${missed} · 결정 ${asked} · 재사용 ${reused} · 해석실패 ${judgeFailures}`)
+
+  const ruleTitles = must(await sb.from('mgmt_rules').select('title').not('recipe', 'is', null), 'weekly:mgmt_rules')
+  const recipes = [...new Set([...(ruleTitles ?? []).map(r => deriveRecipeWord(r.title)).filter(Boolean), ...KNOWN_RECIPE_NAMES])]
+  const entries = must(await sb.from('mgmt_entries').select('kind, company, body, assignee, occurred_at, source_ref').eq('kind', 'todo').gte('occurred_at', addDays(today, -28)), 'weekly:mgmt_entries')
+  const candidates = skillCandidates(entries ?? [], recipes, { now: new Date() })
+
+  let opened = 0
+  for (const c of candidates) {
+    const title = `[mgmt-skill] ${c.label}`
+    try {
+      const existing = must(await sb.from('ws_threads').select('id').eq('project', 'willow-invt').eq('status', 'open').eq('title', title).maybeSingle(), 'weekly:ws_threads existing')
+      if (existing) { log(`스킬 후보 이미 열림 ${title}`); continue }
+      const summary = redact(`경영관리 에이전트: 지난 4주 ${c.count}번 손으로 한 일. 스킬로 만들면 에이전트가 초안까지 한다. 근거: ${c.refs.slice(0, 5).join(', ')}`).text
+      log(`스킬 후보 ${dryRun ? '(dry) ' : ''}${title} (${c.count}회)`)
+      if (!dryRun) {
+        const { error } = await sb.from('ws_threads').insert({ project: 'willow-invt', title, status: 'open', priority: 'normal', summary, tags: ['mgmt-skill-request'] })
+        if (error) { fail(`weekly:thread:${title}`, error.message); continue }
+      }
+      opened++
+    } catch (e) { fail(`weekly:candidate:${c.key}`, e) }
+  }
+
+  await telegram([s.text, `개발 에이전트에 넘긴 스킬 후보 ${opened}개`].join('\n'), { kind: 'digest' })
+}
+
 // 되돌림에서 배우기: 에이전트가 마지막으로 쓴 값과 지금 행을 비교한다. 대표가 지웠거나 다시 열었거나
 // 날짜·이름을 바꿨으면 교훈으로 적고, 되돌림을 고정하고, 기록을 지금 값으로 맞춘다
 // (지워진 행·개인 일정이 된 행·30일 넘은 완료 기록은 기록 삭제).
@@ -443,7 +504,7 @@ async function stepLearn() {
   }
 }
 
-const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer, tune: stepTune }
+const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer, tune: stepTune, weekly: stepWeekly }
 for (const name of selected) {
   try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }
