@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 텐소·윌로우 경영 일정을 한 원장에서 관리한다. 반복 규칙으로 일정을 미리 깔고, 메일·스페이스·재무 기록으로 일정을 만들고·고치고·닫고, 결정이 필요한 것만 윌리로 묻는다(발송 없음).
+**Goal:** 텐소·윌로우 경영 일정을 한 원장에서 관리하고, 대표의 교정·결정·실제 결과로 스스로 나아진다. 반복 규칙으로 일정을 미리 깔고, 메일·스페이스·재무 기록으로 일정을 만들고·고치고·닫고, 결정이 필요한 것만 윌리로 묻는다(발송 없음).
 
 **Architecture:** 기존 `tensw_mgmt_schedules`·`willow_mgmt_schedules` 를 원장으로 쓰고 `source_key` 로 멱등 upsert 한다. 순수 함수 모듈(`scripts/lib/mgmt/*.mjs`, node:test)이 규칙 전개·완료 판정·가림·추론을 하고, 한 번 돌고 끝나는 실행기 `scripts/mgmt-agent.mjs` 를 launchd 가 부른다. 메시지 해석은 `codex exec --ephemeral --output-schema` 한 번 호출로 한다.
 
@@ -1842,6 +1842,362 @@ npm run mgmt:test
 git add CLAUDE.md AGENTS.md .claude/skills/mgmt-agent .agents/skills/mgmt-agent
 git diff --cached --stat   # AGENTS.md 에 다른 세션 변경이 있으면 git add -p
 git commit -m "docs(mgmt): recipe and skill for the management agent"
+```
+
+---
+
+### Task 16: 교훈 장부 — 되돌림 감지와 프롬프트 주입
+
+**Files:**
+- Create: `supabase/migrations/20260930130000_mgmt_lessons.sql`, `scripts/lib/mgmt/lessons.mjs`
+- Test: `scripts/lib/mgmt/lessons.test.mjs`
+- Modify: `scripts/lib/mgmt/judge.mjs` (`buildPrompt` 에 `lessons` 인자), `scripts/mgmt-agent.mjs` (쓰기 기록·되돌림 감지·`lesson` 명령)
+
+**Interfaces:**
+- Consumes: `redact` (Task 3), `buildPrompt` (Task 9), `applyPlan`/`applyJudgement` 이 쓴 행(Task 5·9·12).
+- Produces 테이블:
+
+```sql
+create table if not exists mgmt_lessons (
+  id uuid primary key default gen_random_uuid(),
+  company text check (company in ('tensw','willow')),   -- null = 양사 공통
+  scope text not null check (scope in ('judge','rule','close','decision')),
+  lesson text not null,
+  example jsonb,                  -- {input, expected}
+  source text not null check (source in ('ceo_correction','reverted','rule_reject','auto')),
+  source_ref text,
+  hits int not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (scope, lesson)
+);
+create table if not exists mgmt_agent_writes (
+  table_name text not null,
+  row_id uuid not null,
+  source_key text,
+  snapshot jsonb not null,        -- {title, schedule_date, is_completed, agent_state}
+  written_at timestamptz not null default now(),
+  primary key (table_name, row_id)
+);
+alter table mgmt_lessons enable row level security;
+alter table mgmt_agent_writes enable row level security;
+```
+
+- Produces: `snapshotOf(row) → { title, schedule_date, is_completed, agent_state }`
+- Produces: `detectReverts(writes, currentRows) → Array<{ kind:'deleted'|'reopened'|'moved'|'renamed', write, row }>`
+  - `deleted`: 기록된 row_id 가 현재 행에 없음. `reopened`: 기록 snapshot 은 `is_completed=true` 인데 지금 false. `moved`: `schedule_date` 다름. `renamed`: `title` 다름.
+  - 에이전트가 이후 스스로 바꾼 경우와 구분하려고, 에이전트가 행을 쓸 때마다 snapshot 을 갱신한다(아래 `recordWrite`).
+- Produces: `lessonFromRevert(r) → { company, scope, lesson, example, source:'reverted', source_ref }`
+  - deleted → scope judge, "`<title>` 같은 항목은 일정으로 만들지 않는다(대표가 지움)"
+  - reopened → scope close, "`<title>` 는 `<evidence 마지막 kind/note>` 만으로 닫지 않는다(대표가 다시 엶)"
+  - moved → scope rule(키가 `mgmt:` 로 시작) 또는 judge, "`<title>` 날짜는 `<old>`가 아니라 `<new>`(대표가 옮김)"
+  - renamed → scope judge, "`<old>` 는 `<new>` 로 부른다"
+- Produces: `lessonsForPrompt(lessons, company, limit = 20) → string[]` — active, company 가 같거나 null, 최근순.
+- Produces (I/O): `recordWrite(sb, table, row)`, `loadWrites(sb, table)`, `saveLesson(sb, lesson)` (unique 충돌 무시), `bumpHits(sb, ids)`.
+- `buildPrompt({ …, lessons = [] })`: lessons 가 있으면 규칙 목록 뒤에 `지난 교훈(반드시 지킨다):` 와 한 줄씩.
+- 실행기: `applyPlan`/`applyJudgement`/`stepClose` 가 행을 insert·update 한 뒤 `recordWrite` 로 snapshot 저장(insert 는 `.select('*').single()` 로 id 를 받는다). 새 단계 `learn`(주기 실행 맨 앞): 두 테이블 `loadWrites` → 현재 행 → `detectReverts` → `lessonFromRevert` → `saveLesson` → snapshot 을 현재 값으로 갱신(지워진 행은 기록 삭제).
+- 명령: `node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "형운 메일은 제목 상호로 회사를 가른다"` → `source='ceo_correction'`. 윌리가 "경영관리 교훈: …" 을 받으면 이 명령을 부른다(스킬 문서에 적는다, Task 15 파일 갱신).
+
+- [ ] **Step 1: 실패하는 시험**
+
+```js
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { snapshotOf, detectReverts, lessonFromRevert, lessonsForPrompt } from './lessons.mjs'
+import { buildPrompt } from './judge.mjs'
+
+const w = (id, snap, key = 'mgmt-chat:spaces/A/messages/1') => ({ table_name: 'tensw_mgmt_schedules', row_id: id, source_key: key, snapshot: snap })
+const base = { title: 'NIA 월간보고', schedule_date: '2026-10-02', is_completed: false, agent_state: 'planned' }
+
+test('지워진·다시 열린·옮겨진·이름 바뀐 행을 찾는다', () => {
+  const writes = [w('a', base), w('b', { ...base, is_completed: true, agent_state: 'done' }), w('c', base), w('d', base)]
+  const rows = [
+    { id: 'b', ...base, is_completed: false, agent_state: 'planned', evidence: [{ kind: 'message', note: '송금했습니다' }] },
+    { id: 'c', ...base, schedule_date: '2026-10-06' },
+    { id: 'd', ...base, title: 'NIA 9월 월간보고회' },
+  ]
+  const r = detectReverts(writes, rows)
+  assert.deepEqual(r.map(x => [x.kind, x.write.row_id]).sort(), [['deleted', 'a'], ['moved', 'c'], ['renamed', 'd'], ['reopened', 'b']])
+})
+test('바뀐 게 없으면 없다', () => {
+  assert.deepEqual(detectReverts([w('a', base)], [{ id: 'a', ...base }]), [])
+})
+test('되돌림에서 교훈 문장', () => {
+  const reopened = lessonFromRevert({ kind: 'reopened', write: w('b', { ...base, is_completed: true }), row: { id: 'b', ...base, evidence: [{ kind: 'message', note: '송금했습니다' }] } })
+  assert.equal(reopened.scope, 'close'); assert.equal(reopened.source, 'reverted'); assert.equal(reopened.company, 'tensw')
+  assert.match(reopened.lesson, /NIA 월간보고/); assert.match(reopened.lesson, /송금했습니다/)
+  const moved = lessonFromRevert({ kind: 'moved', write: w('c', base, 'mgmt:tensw:payroll:2026-10:request'), row: { id: 'c', ...base, schedule_date: '2026-10-06' } })
+  assert.equal(moved.scope, 'rule'); assert.match(moved.lesson, /2026-10-06/)
+})
+test('프롬프트 교훈은 회사별·활성·최근 20개', () => {
+  const ls = Array.from({ length: 25 }, (_, i) => ({ company: i % 2 ? 'willow' : null, lesson: `L${i}`, active: i !== 24, created_at: `2026-10-${String(i + 1).padStart(2, '0')}` }))
+  const got = lessonsForPrompt(ls, 'willow')
+  assert.ok(got.length <= 20); assert.ok(!got.includes('L24')); assert.equal(got[0], 'L23')
+  const p = buildPrompt({ company: 'willow', items: [], openCases: [], openSchedules: [], lessons: ['형운 메일은 제목 상호로 가른다'] })
+  assert.match(p, /지난 교훈/); assert.match(p, /형운 메일은 제목 상호로 가른다/)
+})
+test('snapshot 은 네 칸만', () => {
+  assert.deepEqual(Object.keys(snapshotOf({ id: 'x', ...base, evidence: [] })).sort(), ['agent_state', 'is_completed', 'schedule_date', 'title'])
+})
+```
+
+- [ ] **Step 2: 실패 확인** — `node --test scripts/lib/mgmt/lessons.test.mjs` → FAIL.
+- [ ] **Step 3: 구현**
+
+```js
+// lessons.mjs — 대표님이 되돌린 것에서 배우고, 배운 것을 다음 판단에 넣는다.
+import { redact } from './redact.mjs'
+
+export const snapshotOf = r => ({ title: r.title, schedule_date: r.schedule_date, is_completed: !!r.is_completed, agent_state: r.agent_state ?? null })
+const companyOfTable = t => t.startsWith('willow') ? 'willow' : 'tensw'
+
+export function detectReverts(writes, rows) {
+  const byId = new Map(rows.map(r => [r.id, r]))
+  const out = []
+  for (const write of writes) {
+    const row = byId.get(write.row_id)
+    const s = write.snapshot
+    if (!row) { out.push({ kind: 'deleted', write, row: null }); continue }
+    if (s.is_completed && !row.is_completed) out.push({ kind: 'reopened', write, row })
+    else if (s.schedule_date !== row.schedule_date) out.push({ kind: 'moved', write, row })
+    else if (s.title !== row.title) out.push({ kind: 'renamed', write, row })
+  }
+  return out
+}
+
+export function lessonFromRevert({ kind, write, row }) {
+  const s = write.snapshot, company = companyOfTable(write.table_name), ref = write.source_key ?? write.row_id
+  const clean = t => redact(t).text
+  if (kind === 'deleted') return { company, scope: 'judge', lesson: clean(`"${s.title}" 같은 항목은 일정으로 만들지 않는다(대표가 지움)`), example: { input: s.title, expected: 'no_schedule' }, source: 'reverted', source_ref: ref }
+  if (kind === 'reopened') {
+    const ev = (row.evidence ?? []).at(-1)
+    return { company, scope: 'close', lesson: clean(`"${s.title}" 는 ${ev ? `${ev.kind} "${ev.note ?? ev.ref ?? ''}"` : '그 근거'} 만으로 닫지 않는다(대표가 다시 엶)`), example: { input: ev ?? null, expected: 'keep_open' }, source: 'reverted', source_ref: ref }
+  }
+  if (kind === 'moved') return { company, scope: (write.source_key ?? '').startsWith('mgmt:') ? 'rule' : 'judge', lesson: clean(`"${s.title}" 날짜는 ${s.schedule_date} 가 아니라 ${row.schedule_date}(대표가 옮김)`), example: { input: s.schedule_date, expected: row.schedule_date }, source: 'reverted', source_ref: ref }
+  return { company, scope: 'judge', lesson: clean(`"${s.title}" 는 "${row.title}" 로 부른다`), example: { input: s.title, expected: row.title }, source: 'reverted', source_ref: ref }
+}
+
+export function lessonsForPrompt(lessons, company, limit = 20) {
+  return lessons.filter(l => l.active && (!l.company || l.company === company))
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, limit).map(l => l.lesson)
+}
+
+export async function recordWrite(sb, table, row, { dryRun = false } = {}) {
+  if (dryRun || !row?.id) return
+  const { error } = await sb.from('mgmt_agent_writes').upsert({ table_name: table, row_id: row.id, source_key: row.source_key ?? null, snapshot: snapshotOf(row), written_at: new Date().toISOString() })
+  if (error) throw error
+}
+export async function loadWrites(sb, table) {
+  const { data, error } = await sb.from('mgmt_agent_writes').select('*').eq('table_name', table)
+  if (error) throw error
+  return data ?? []
+}
+export async function saveLesson(sb, lesson, { dryRun = false } = {}) {
+  if (dryRun) return
+  const { error } = await sb.from('mgmt_lessons').insert(lesson)
+  if (error && error.code !== '23505') throw error
+}
+export async function bumpHits(sb, lessons, { dryRun = false } = {}) {
+  if (dryRun) return
+  for (const l of lessons) await sb.from('mgmt_lessons').update({ hits: (l.hits ?? 0) + 1 }).eq('id', l.id)
+}
+```
+
+  `judge.mjs` `buildPrompt` 의 인자에 `lessons = []` 를 더하고, 규칙 줄들 뒤·`열린 건` 앞에 삽입:
+
+```js
+    ...(lessons.length ? ['', '지난 교훈(반드시 지킨다):', ...lessons.map(l => `- ${l}`)] : []),
+```
+
+- [ ] **Step 4: 실행기 배선** — `scripts/mgmt-agent.mjs`:
+  - `import { recordWrite, loadWrites, detectReverts, lessonFromRevert, lessonsForPrompt, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'`
+  - `applyPlan`·`applyJudgement` 은 ledger/apply 모듈 안에 있으므로 두 모듈의 insert 를 `.insert(row).select('*').single()` 로 바꾸고, 선택 인자 `onWrite(table, row)` 콜백을 받아 insert·update 성공 뒤 부른다(`applyPlan(sb, table, plan, { dryRun, log, onWrite })`). update 는 `.update(patch).eq('id', id).select('*').single()`. 기존 시험은 순수 함수만 보므로 그대로 통과해야 한다.
+  - 실행기에서 `onWrite = (table, row) => recordWrite(sb, table, row, { dryRun })` 를 넘긴다. `stepClose` 의 update 도 같게.
+  - `stepLearn()`: 회사마다 `loadWrites` → 현재 행 `select('id,title,schedule_date,is_completed,agent_state,evidence').in('id', ids)` → `detectReverts` → 각 `lessonFromRevert` → `saveLesson` → 로그 `교훈 <lesson>` → 남은 행은 `recordWrite` 로 snapshot 갱신, 지워진 행은 `delete from mgmt_agent_writes where table_name=… and row_id=…`.
+  - `stepCollect`: 회사별 `mgmt_lessons` active 를 읽어 `lessonsForPrompt` 결과를 `buildPrompt({ …, lessons })` 에 넘기고, 넘긴 교훈 행들에 `bumpHits`.
+  - 주기 계획 맨 앞에 `learn` 추가. `STEPS.learn = stepLearn`.
+  - 명령 `lesson`: `args[0]==='lesson'` 이면 `--company`, `--scope`(기본 judge), 나머지 문장을 `redact` 한 뒤 `saveLesson(..., source:'ceo_correction')` 하고 종료.
+- [ ] **Step 5: 마이그레이션 적용** — 위 SQL 파일을 쓰고 Supabase MCP `apply_migration`(project `axcfvieqsaphhvbkyzzv`, name `mgmt_lessons`). `select to_regclass('mgmt_lessons'), to_regclass('mgmt_agent_writes')` 둘 다 not null.
+- [ ] **Step 6: 통과 확인** — `npm run mgmt:test` PASS. `node scripts/mgmt-agent.mjs --dry --only learn` 오류 없이 끝남.
+- [ ] **Step 7: 커밋**
+
+```bash
+git add supabase/migrations/20260930130000_mgmt_lessons.sql scripts/lib/mgmt/lessons.mjs scripts/lib/mgmt/lessons.test.mjs scripts/lib/mgmt/judge.mjs scripts/lib/mgmt/ledger.mjs scripts/lib/mgmt/apply-judgement.mjs scripts/mgmt-agent.mjs
+git commit -m "feat(mgmt): learn from CEO reverts and corrections, feed lessons to the judge"
+```
+
+---
+
+### Task 17: 규칙 스스로 조정
+
+**Files:**
+- Create: `scripts/lib/mgmt/tune.mjs`
+- Test: `scripts/lib/mgmt/tune.test.mjs`
+- Modify: `scripts/mgmt-agent.mjs` (단계 `tune`, 월요일 07:00~07:29 주기에 추가)
+
+**Interfaces:**
+- Consumes: 원장 행(`source_key`, `schedule_date`, `is_completed`, `agent_state`, `evidence`), `mgmt_rules`.
+- Produces: `planTuning(rule, occurrences) → Array<Action>` — occurrences 는 그 규칙의 최근 회차 행을 날짜순으로(`source_key` 가 `mgmt:<company>:<task>:*:<step>`).
+  - Action = `{ kind:'shift_day', to: number, lesson }` | `{ kind:'ask_disable', lesson }` | `{ kind:'deactivate', lesson }` | `{ kind:'confirm', confidence }`
+  - `shift_day`: `rule.rule.kind==='monthly_day'` 이고 최근 3회차가 모두 완료이며 근거일(`evidence` 마지막 `at` 의 날짜) − 예정일 이 모두 같은 부호로 |차이|>2 → `to = clamp(1..28, rule.rule.day + round(평균 차이))`.
+  - `ask_disable`: 최근 2회차가 모두 `missed`.
+  - `deactivate`: `rule.origin==='inferred'` 이고 최근 2회차 모두 근거 없음(완료 아님).
+  - `confirm`: `rule.origin==='inferred'` 이고 최근 3회차 모두 근거로 완료 → `confidence: 1`.
+  - 조건에 안 맞으면 `[]`.
+- 실행기 `stepTune()`: 규칙마다 최근 6개월 행을 읽어 `planTuning` → shift_day: `mgmt_rules.rule.day` 갱신 + `saveLesson(scope:'rule', source:'auto')`; ask_disable: 결정 `kind:'rule_review'`, subject_key `<company>:rule:<task_key>:<step>`, 선택지 끄기/유지; deactivate: `active=false` + 교훈; confirm: `confidence=1, origin='seed'`(추정 표시 제거). 결정 답 적용: `rule_review` 답이 `off` 면 `active=false`.
+
+- [ ] **Step 1: 실패하는 시험**
+
+```js
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { planTuning } from './tune.mjs'
+
+const rule = { company: 'tensw', task_key: 'x', step: 'do', origin: 'seed', rule: { kind: 'monthly_day', day: 22, shift: 'next' } }
+const occ = (date, doneAt, state = 'done') => ({ schedule_date: date, is_completed: state === 'done', agent_state: state, evidence: doneAt ? [{ kind: 'sent_mail', at: `${doneAt}T01:00:00Z` }] : [] })
+
+test('세 번 연속 3~4일 일찍 끝나면 날짜를 당긴다', () => {
+  const a = planTuning(rule, [occ('2026-07-22', '2026-07-18'), occ('2026-08-21', '2026-08-18'), occ('2026-09-22', '2026-09-18')])
+  assert.equal(a.length, 1); assert.equal(a[0].kind, 'shift_day'); assert.equal(a[0].to, 18); assert.match(a[0].lesson, /22일.*18일/)
+})
+test('방향이 섞이면 그대로', () => {
+  assert.deepEqual(planTuning(rule, [occ('2026-07-22', '2026-07-18'), occ('2026-08-21', '2026-08-25'), occ('2026-09-22', '2026-09-18')]), [])
+})
+test('두 번 연속 빠지면 끌지 묻는다', () => {
+  assert.equal(planTuning(rule, [occ('2026-08-21', null, 'missed'), occ('2026-09-22', null, 'missed')])[0].kind, 'ask_disable')
+})
+test('추정 규칙이 두 번 근거 없으면 끈다, 세 번 맞으면 확정', () => {
+  const inf = { ...rule, origin: 'inferred' }
+  assert.equal(planTuning(inf, [occ('2026-08-21', null, 'planned'), occ('2026-09-22', null, 'planned')])[0].kind, 'deactivate')
+  const ok = planTuning(inf, [occ('2026-07-22', '2026-07-22'), occ('2026-08-21', '2026-08-21'), occ('2026-09-22', '2026-09-23')])
+  assert.deepEqual(ok, [{ kind: 'confirm', confidence: 1 }])
+})
+```
+
+- [ ] **Step 2: 실패 확인** — FAIL.
+- [ ] **Step 3: 구현**
+
+```js
+// tune.mjs — 규칙이 실제와 어긋나면 스스로 고친다. 고친 것은 교훈으로 남긴다.
+const dayDiff = (doneKey, planKey) => Math.round((new Date(`${doneKey}T00:00:00Z`) - new Date(`${planKey}T00:00:00Z`)) / 86_400_000)
+const doneDate = o => (o.evidence ?? []).at(-1)?.at?.slice(0, 10) ?? null
+
+export function planTuning(rule, occurrences) {
+  const recent = [...occurrences].sort((a, b) => a.schedule_date.localeCompare(b.schedule_date))
+  const last2 = recent.slice(-2), last3 = recent.slice(-3)
+  if (last2.length === 2 && last2.every(o => o.agent_state === 'missed'))
+    return [{ kind: 'ask_disable', lesson: `"${rule.task_key}/${rule.step}" 규칙이 두 번 연속 빠졌다` }]
+  if (rule.origin === 'inferred' && last2.length === 2 && last2.every(o => !o.is_completed))
+    return [{ kind: 'deactivate', lesson: `추정 규칙 "${rule.title ?? rule.task_key}" 는 두 회차 근거가 없어 껐다` }]
+  if (last3.length === 3 && last3.every(o => o.is_completed && doneDate(o))) {
+    const diffs = last3.map(o => dayDiff(doneDate(o), o.schedule_date))
+    if (rule.rule?.kind === 'monthly_day' && diffs.every(d => Math.abs(d) > 2) && (diffs.every(d => d > 0) || diffs.every(d => d < 0))) {
+      const to = Math.min(28, Math.max(1, rule.rule.day + Math.round(diffs.reduce((a, b) => a + b, 0) / 3)))
+      return [{ kind: 'shift_day', to, lesson: `"${rule.title ?? rule.task_key}" 는 매월 ${rule.rule.day}일이 아니라 ${to}일쯤 끝난다(최근 3회)` }]
+    }
+    if (rule.origin === 'inferred') return [{ kind: 'confirm', confidence: 1 }]
+  }
+  return []
+}
+```
+
+- [ ] **Step 4: 실행기 배선** — 위 Interfaces 의 `stepTune` 을 추가하고, 주기 계획에서 KST 월요일 07:00~07:29 이면 `infer` 다음에 `tune`. `stepDecide` 에 `rule_review` 답 적용(`off` → `mgmt_rules.active=false`, `keep` → 그대로)을 더한다.
+- [ ] **Step 5: 통과 확인** — `npm run mgmt:test` PASS, `node scripts/mgmt-agent.mjs --dry --only tune` 오류 없음.
+- [ ] **Step 6: 커밋**
+
+```bash
+git add scripts/lib/mgmt/tune.mjs scripts/lib/mgmt/tune.test.mjs scripts/mgmt-agent.mjs
+git commit -m "feat(mgmt): rules tune themselves from actual completion dates"
+```
+
+---
+
+### Task 18: 주간 성적표와 스킬 후보를 개발 에이전트로
+
+**Files:**
+- Create: `scripts/lib/mgmt/weekly.mjs`
+- Test: `scripts/lib/mgmt/weekly.test.mjs`
+- Modify: `scripts/mgmt-agent.mjs` (단계 `weekly`, 월요일 07:30~07:59), `.claude/skills/mgmt-agent/SKILL.md` 와 `.agents` 사본(교훈 명령·주간 점검 설명)
+
+**Interfaces:**
+- Produces: `scorecard({ writes, reverts, closedByEvidence, missed, asked, reused, judgeFailures }) → { text, revertRate }` — 한 주 수치. `revertRate = reverts / max(1, writes)`. text 첫 줄 `경영관리 주간 점검 (<from>~<to>)`.
+- Produces: `skillCandidates(entries, recipes, { now, minCount = 3, days = 28 }) → Array<{ key, label, count, refs }>`
+  - entries = `mgmt_entries` 의 `kind='todo'`, `assignee` 에 `김동욱` 포함, `occurred_at` 최근 days 일.
+  - 묶는 키 = `company + ':' + normalizeTodo(body)` — `normalizeTodo` 는 숫자·날짜·금액·괄호 속 글자를 지우고 앞 20자.
+  - `recipes` 는 레시피가 있는 업무 이름 목록(`['급여','출근부','지원금','세금계산서 발행']` 처럼 원장 규칙 제목에서 뽑은 것). label 에 레시피 이름이 들어가면 제외.
+  - count ≥ minCount 만, 많은 순.
+- 실행기 `stepWeekly()`: 지난 7일 수치를 모아 `scorecard` → 윌리. `skillCandidates` 마다 `ws_threads` 에 이미 같은 제목(`[mgmt-skill] <label>`)의 열린 스레드가 없으면 insert `{ project:'willow-invt', title:'[mgmt-skill] <label>', status:'open', priority:'normal', summary:'경영관리 에이전트: 지난 4주 <count>번 손으로 한 일. 스킬로 만들면 에이전트가 초안까지 한다. 근거: <refs 앞 5개>', tags:['mgmt-skill-request'] }`. 성적표 끝에 "개발 에이전트에 넘긴 스킬 후보 N개".
+
+- [ ] **Step 1: 실패하는 시험**
+
+```js
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { scorecard, skillCandidates } from './weekly.mjs'
+
+test('성적표', () => {
+  const s = scorecard({ from: '2026-10-05', to: '2026-10-11', writes: 40, reverts: 4, closedByEvidence: 12, missed: 1, asked: 5, reused: 3, judgeFailures: 0 })
+  assert.equal(s.revertRate, 0.1)
+  assert.match(s.text, /^경영관리 주간 점검 \(2026-10-05~2026-10-11\)/)
+  assert.match(s.text, /되돌림 4 \(10%\)/)
+})
+test('레시피 없는 반복 할 일만 스킬 후보', () => {
+  const now = new Date('2026-10-12T00:00:00Z')
+  const e = (body, d, company = 'tensw') => ({ kind: 'todo', company, assignee: '김동욱', body, occurred_at: `${d}T01:00:00Z`, source_ref: `r-${d}` })
+  const entries = [
+    e('독립잇다 전자세금계산서 발행 (990만원)', '2026-09-20'), e('NIA 전자세금계산서 발행 (5,500,000원)', '2026-09-28'),
+    e('교통비 입금 1건 처리', '2026-09-18'), e('교통비 입금 2건 처리', '2026-09-25'), e('교통비 입금 1건 처리', '2026-10-06'),
+    e('급여대장 요청', '2026-09-22'), e('급여대장 요청', '2026-10-01'), e('급여대장 요청', '2026-10-08'),
+    e('교통비 입금 처리', '2026-08-01'),
+  ]
+  const c = skillCandidates(entries, ['급여', '출근부', '지원금'], { now })
+  assert.deepEqual(c.map(x => [x.label, x.count]), [['교통비 입금 건 처리', 3]])
+  assert.equal(c[0].refs.length, 3)
+})
+```
+
+- [ ] **Step 2: 실패 확인** — FAIL.
+- [ ] **Step 3: 구현**
+
+```js
+// weekly.mjs — 한 주 성적표와, 반복되는데 레시피가 없는 일을 스킬 후보로.
+export function scorecard({ from, to, writes, reverts, closedByEvidence, missed, asked, reused, judgeFailures }) {
+  const revertRate = Math.round((reverts / Math.max(1, writes)) * 100) / 100
+  const text = [
+    `경영관리 주간 점검 (${from}~${to})`,
+    `쓴 일정 ${writes} · 근거로 닫음 ${closedByEvidence} · 되돌림 ${reverts} (${Math.round(revertRate * 100)}%)`,
+    `빠짐 ${missed} · 물어본 결정 ${asked} · 지난 판단 재사용 ${reused} · 해석 실패 ${judgeFailures}`,
+  ].join('\n')
+  return { text, revertRate }
+}
+
+export const normalizeTodo = s => String(s ?? '').replace(/\([^)]*\)/g, '').replace(/[\d,.]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+
+export function skillCandidates(entries, recipes, { now = new Date(), minCount = 3, days = 28 } = {}) {
+  const since = new Date(now.getTime() - days * 86_400_000).toISOString()
+  const groups = new Map()
+  for (const e of entries) {
+    if (e.kind !== 'todo' || !(e.assignee ?? '').includes('김동욱') || e.occurred_at < since) continue
+    const label = normalizeTodo(e.body)
+    if (!label || recipes.some(r => label.includes(r))) continue
+    const key = `${e.company}:${label}`
+    if (!groups.has(key)) groups.set(key, { key, label, count: 0, refs: [] })
+    const g = groups.get(key); g.count++; g.refs.push(e.source_ref)
+  }
+  return [...groups.values()].filter(g => g.count >= minCount).sort((a, b) => b.count - a.count)
+}
+```
+
+  숫자만 지우고 단위 글자는 남긴다(`교통비 입금 1건 처리` → `교통비 입금 건 처리`). 세금계산서 두 건은 앞 글자(독립잇다·NIA)가 달라 묶이지 않는 것이 맞다.
+- [ ] **Step 4: 실행기 배선** — `stepWeekly` 추가(Interfaces 대로). 수치 출처: writes = 지난 7일 `mgmt_agent_writes.written_at`, reverts = 지난 7일 `mgmt_lessons` source `reverted`, closedByEvidence = 지난 7일 evidence `at` 이 있는 done 행, missed = `agent_state='missed'`, asked/reused = `mgmt_decisions` 지난 7일 sent/자동 answered(answered_at 있고 telegram_message_id 없음), judgeFailures = 실행 로그 대신 `mgmt_cursors` 갱신이 멈춘 소스 수(24시간 넘게 안 바뀐 소스). recipes = `mgmt_rules` 의 recipe 가 있는 행 제목에서 `{period}`·숫자 뺀 첫 단어.
+  주기 계획: KST 월요일 07:30~07:59 이면 `weekly`.
+- [ ] **Step 5: 스킬 문서 갱신** — Task 15 에서 만든 SKILL.md 두 사본에 "자가 발전" 절: 교훈 명령(`node scripts/mgmt-agent.mjs lesson --company … --scope … "문장"`), 윌리 말 "경영관리 교훈: …" → 이 명령, 되돌림 자동 학습, 규칙 자동 조정, 월요일 성적표, `[mgmt-skill]` 스레드는 개발 에이전트가 집어 스킬로 만든다.
+- [ ] **Step 6: 통과 확인** — `npm run mgmt:test` PASS, `node scripts/mgmt-agent.mjs --dry --only weekly` 오류 없음.
+- [ ] **Step 7: 커밋**
+
+```bash
+git add scripts/lib/mgmt/weekly.mjs scripts/lib/mgmt/weekly.test.mjs scripts/mgmt-agent.mjs .claude/skills/mgmt-agent .agents/skills/mgmt-agent
+git commit -m "feat(mgmt): weekly scorecard and skill requests to the dev agent"
 ```
 
 ---
