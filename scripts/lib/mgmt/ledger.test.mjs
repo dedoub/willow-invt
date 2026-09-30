@@ -79,6 +79,14 @@ test('접두사+대상 월 키가 있으면 날짜가 멀어도 받아 쓴다', 
   const other = planOccurrences([send], [{ ...existing[0], source_key: 'gangnam-attendance:send:2026-08' }], { from: '2026-09-01', to: '2026-09-30', cal })
   assert.equal(other.insert.length, 1)
 })
+test('Task 13: 커머셜 인보이스 행(commercial:etc-invoice:…)은 ±3일 안이면 받아 쓴다', () => {
+  // seed-rules.mjs 의 윌로우 etc-invoice 규칙 — completion(메일)은 안 맞아도 adopt_prefix 로
+  // 커머셜 인보이스 시스템의 원장 행을 그대로 흡수해 중복 일정을 만들지 않는다.
+  const etcInvoice = { id: 'r4', company: 'willow', task_key: 'etc-invoice', step: 'issue', title: '{period} ETC 월 컨설팅 인보이스', rule: { kind: 'business_days_before', anchor: { kind: 'month_end', shift: 'prev' }, n: 3 }, lead_days: 2, recipe: 'etc-invoice', completion: { kind: 'sent_mail', context: 'default', subject: 'Invoice' }, adopt_prefix: 'commercial:etc-invoice:' }
+  const existing = [{ id: 'c1', source_key: 'commercial:etc-invoice:42a5e696-cf03-4d6a-a2f2-789143febcab:issued', schedule_date: '2026-06-28', title: '[ETC] #26-ETC-14 인보이스 발행', is_completed: true }]
+  const p = planOccurrences([etcInvoice], existing, { from: '2026-06-01', to: '2026-06-30', cal })
+  assert.deepEqual(p, { insert: [], update: [] })
+})
 test('사람이 적은 행(manual)은 날짜·제목을 바꾸지 않는다', () => {
   const existing = [{ id: 's1', source_key: 'mgmt:tensw:payroll:2026-10:request', schedule_date: '2026-10-20', title: '10월 급여대장 요청 이메일 발송', is_completed: false, origin: 'manual' }]
   const p = planOccurrences([payroll], existing, { from: '2026-10-01', to: '2026-10-31', cal })

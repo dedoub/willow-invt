@@ -91,6 +91,16 @@ function evidenceDate(ev, facts) {
 }
 const diffDays = (a, b) => (a && b) ? Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000) : null
 
+// tax 완료조건의 회차가 실제로 판정 불가한지 본다 — 그 회사·그 규칙이 보는 obligation_type(들)의
+// 최초 due_date(적재된 facts 안에서)보다 회차 날짜가 앞서면, 애초에 그 시점엔 증빙 테이블 자체가
+// 비어 있었다는 뜻이다(예: 원천세/부가세는 2026-08 말부터만 쌓여 있다 — Task 13 보고서 참고).
+// 하드코딩한 날짜 없이 매 실행 적재된 facts 에서 계산한다.
+function earliestDueDate(facts, company, types) {
+  const rows = (facts.taxObligations ?? []).filter(t => t.company === company && types.includes(t.obligation_type))
+  if (!rows.length) return null
+  return rows.map(t => t.due_date).sort()[0]
+}
+
 function buildOccurrenceTable(cal, facts) {
   const rows = []
   for (const rule of SEED_RULES) {
@@ -104,9 +114,14 @@ function buildOccurrenceTable(cal, facts) {
         continue
       }
       const ev = findEvidence({ schedule_date: date }, rule, facts)
-      const evDate = evidenceDate(ev, facts)
-      const diff = diffDays(evDate, date)
-      rows.push({ company: rule.company, task, title, date, period, evKind: ev?.kind ?? '없음', evDate: evDate ?? '-', diff: diff ?? '-', verdict: ev ? '있음' : '빠짐' })
+      if (ev) {
+        const evDate = evidenceDate(ev, facts)
+        rows.push({ company: rule.company, task, title, date, period, evKind: ev.kind, evDate: evDate ?? '-', diff: diffDays(evDate, date) ?? '-', verdict: '있음' })
+        continue
+      }
+      const minDue = rule.completion.kind === 'tax' ? earliestDueDate(facts, rule.company, rule.completion.types) : null
+      const verdict = (minDue && date < minDue) ? '판정불가(데이터 없음)' : '빠짐'
+      rows.push({ company: rule.company, task, title, date, period, evKind: '없음', evDate: '-', diff: '-', verdict })
     }
   }
   return rows.sort((a, b) => a.company.localeCompare(b.company) || a.date.localeCompare(b.date))
@@ -241,9 +256,13 @@ async function main() {
   const facts = await loadFacts()
   const occRows = buildOccurrenceTable(cal, facts)
 
-  const scored = occRows.filter(r => r.verdict !== '시험범위밖')
-  const found = scored.filter(r => r.verdict === '있음').length
-  const reproductionRate = scored.length ? found / scored.length : 0
+  // 재현율 = 있음 / (있음 + 빠짐) — 판정불가(데이터 없음)와 시험범위밖(completion 없는 규칙)은 뺀다.
+  const found = occRows.filter(r => r.verdict === '있음').length
+  const missedCount = occRows.filter(r => r.verdict === '빠짐').length
+  const noDataCount = occRows.filter(r => r.verdict === '판정불가(데이터 없음)').length
+  const outOfScopeCount = occRows.filter(r => r.verdict === '시험범위밖').length
+  const reproductionDenom = found + missedCount
+  const reproductionRate = reproductionDenom ? found / reproductionDenom : 0
 
   const trackers = await loadTrackers()
   const gapsForRender = buildClosureGaps(occRows, trackers)
@@ -276,7 +295,8 @@ async function main() {
     `실행: ${new Date().toISOString()} · 기간 ${FROM} ~ ${TO} · 읽기 전용(DB 쓰기·커서 저장·텔레그램·메일/챗 발신 없음)`,
     '',
     '## 요약',
-    `- 재현율(근거 잡힌 회차 / 판정 대상 회차) = ${found}/${scored.length} = ${(reproductionRate * 100).toFixed(1)}%`,
+    `- 재현율(있음 / (있음+빠짐), 판정불가·시험범위밖 제외) = ${found}/${reproductionDenom} = ${(reproductionRate * 100).toFixed(1)}%`,
+    `- 회차 판정 내역: 있음 ${found}건 · 빠짐 ${missedCount}건 · 판정불가(데이터 없음) ${noDataCount}건 · 시험범위밖 ${outOfScopeCount}건 (전체 ${occRows.length}회차)`,
     `- 닫힘 누락(근거 있으나 원장·email_todos·ws_threads 에 열린 채 남은 항목) = ${gapsForRender.length}건`,
     `- 추론 규칙(inferRules, minMonths:3) = ${inferred.length}개`,
     '',
@@ -294,12 +314,17 @@ async function main() {
   fs.mkdirSync(path.dirname(OUT), { recursive: true })
   fs.writeFileSync(OUT, md)
   log(`보고서 저장: ${OUT}`)
-  log(`재현율 ${found}/${scored.length} (${(reproductionRate * 100).toFixed(1)}%) · 닫힘 누락 ${gapsForRender.length} · 추론 규칙 ${inferred.length}`)
+  log(`재현율 ${found}/${reproductionDenom} (${(reproductionRate * 100).toFixed(1)}%) · 있음 ${found} · 빠짐 ${missedCount} · 판정불가 ${noDataCount} · 시험범위밖 ${outOfScopeCount} · 닫힘 누락 ${gapsForRender.length} · 추론 규칙 ${inferred.length}`)
 
   const missed = occRows.filter(r => r.verdict === '빠짐')
   if (missed.length) {
     log(`빠짐 ${missed.length}건:`)
     for (const m of missed) log(`  - ${companyLabel(m.company)} ${m.title} (${m.date})`)
+  }
+  const noData = occRows.filter(r => r.verdict === '판정불가(데이터 없음)')
+  if (noData.length) {
+    log(`판정불가(데이터 없음) ${noData.length}건:`)
+    for (const m of noData) log(`  - ${companyLabel(m.company)} ${m.title} (${m.date})`)
   }
 }
 
