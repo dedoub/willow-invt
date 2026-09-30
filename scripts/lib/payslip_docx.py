@@ -155,7 +155,7 @@ def build_payslip(*, path, name, department, title, period, paid_on,
         ('기본근무 산출근거', period),
         ('총    액', f'{pay_total:,}원'),
         ('공제총액', f'{deduct_total:,}원'),
-        ('실수령액', f'일금  {net_korean}원정  (\\ {net:,})'),
+        ('실수령액', f'일금  {net_korean}원정  (₩{net:,})'),
     ]
     for index, (label, value) in enumerate(lines):
         cells = summary.rows[index].cells
