@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cases", "entries", "schedules", "decisions"],
+  "properties": {
+    "cases": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["name", "counterparty", "stage", "summary"],
+      "properties": { "name": { "type": "string" }, "counterparty": { "type": ["string", "null"] }, "stage": { "type": ["string", "null"] }, "summary": { "type": "string" } } } },
+    "entries": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["kind", "case", "body", "actor", "assignee", "due_date", "source_ref"],
+      "properties": { "kind": { "enum": ["decision", "todo", "material", "daily", "security"] }, "case": { "type": ["string", "null"] }, "body": { "type": "string" },
+        "actor": { "type": ["string", "null"] }, "assignee": { "type": ["string", "null"] }, "due_date": { "type": ["string", "null"] }, "source_ref": { "type": "string" } } } },
+    "schedules": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["op", "title", "date", "source_ref", "match_key", "reason"],
+      "properties": { "op": { "enum": ["create", "update", "complete"] }, "title": { "type": "string" }, "date": { "type": ["string", "null"] },
+        "source_ref": { "type": "string" }, "match_key": { "type": ["string", "null"] }, "reason": { "type": "string" } } } },
+    "decisions": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["kind", "subject_key", "question", "options", "recommended", "source_ref"],
+      "properties": { "kind": { "enum": ["send_approval", "money", "scope", "attendee", "classify", "security"] }, "subject_key": { "type": "string" }, "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"], "properties": { "id": { "type": "string" }, "label": { "type": "string" } } } },
+        "recommended": { "type": ["string", "null"] }, "source_ref": { "type": "string" } } } }
+  }
+}
