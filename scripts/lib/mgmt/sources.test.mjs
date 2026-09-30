@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { normalizeGmail, normalizeChat, isRecordedSpace, newerThan, hitCap } from './sources.mjs'
+import { normalizeGmail, normalizeChat, isRecordedSpace, newerThan, hitCap, getCursor, normalizeCursor } from './sources.mjs'
 
 const b64 = s => Buffer.from(s).toString('base64url')
 test('윌로우 메일은 willow, 보낸 메일은 out', () => {
@@ -30,4 +30,22 @@ test('hitCap: 상한에 닿고 커서 경계 전이면 true', () => {
 })
 test('hitCap: 커서 경계에 닿았으면 상한에 닿았어도 false', () => {
   assert.equal(hitCap({ pages: 20, maxPages: 20, reachedCursor: true }), false)
+})
+
+// C1: 저장된 커서는 '+00:00' 로 돌아온다. 문자열 비교면 같은 메시지가 영원히 새것으로 보인다.
+test("C1: '+00:00' 커서도 순간으로 비교한다 — 같은 시각 같은 ref 는 새것 아님", () => {
+  const items = [{ ref: 'a', at: '2026-10-01T00:00:00.000Z' }, { ref: 'b', at: '2026-10-01T00:00:01.000Z' }, { ref: 'c', at: '2026-09-30T23:59:59.000Z' }]
+  assert.deepEqual(newerThan(items, { last_seen_at: '2026-10-01T00:00:00+00:00', last_ref: 'a' }).map(x => x.ref), ['b'])
+  assert.deepEqual(newerThan([{ ref: 'a', at: '2026-10-01T00:00:00Z' }], { last_seen_at: '2026-10-01T00:00:00+00:00', last_ref: 'a' }), [])
+})
+test("C1: normalizeCursor 는 '+00:00' 를 Z ISO 로 바꾼다", () => {
+  assert.equal(normalizeCursor({ source: 's', last_seen_at: '2026-10-01T09:00:00+09:00', last_ref: 'x' }).last_seen_at, '2026-10-01T00:00:00.000Z')
+})
+const fakeSb = result => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => result }) }) }) })
+test('M7: getCursor 는 행을 정규화하고, 행이 없을 때만 24시간 기본값, DB 오류는 던진다', async () => {
+  const c = await getCursor(fakeSb({ data: { source: 'mail:tensw', last_seen_at: '2026-10-01T00:00:00+00:00', last_ref: 'g1' }, error: null }), 'mail:tensw')
+  assert.equal(c.last_seen_at, '2026-10-01T00:00:00.000Z')
+  const d = await getCursor(fakeSb({ data: null, error: null }), 'mail:tensw')
+  assert.equal(d.last_ref, null); assert.ok(Date.now() - Date.parse(d.last_seen_at) > 23 * 3600e3)
+  await assert.rejects(getCursor(fakeSb({ data: null, error: { message: 'boom' } }), 'mail:tensw'), /boom/)
 })

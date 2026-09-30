@@ -17,7 +17,7 @@ export function findEvidence(row, rule, facts) {
       && (isSent ? (!c.to || (m.to ?? '').includes(c.to)) : (!c.from || (m.from ?? '').includes(c.from)))
       && (!c.subject || (m.subject ?? '').includes(c.subject))
       && days(m.at, row.schedule_date) >= -10 && days(m.at, row.schedule_date) <= 5)
-      .sort((a, b) => b.at.localeCompare(a.at))[0]
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]
     return hit ? { kind: c.kind, ref: hit.id, at: hit.at, note: hit.subject } : null
   }
   if (c.kind === 'cash') {

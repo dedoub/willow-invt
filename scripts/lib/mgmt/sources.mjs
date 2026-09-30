@@ -33,9 +33,20 @@ export function isRecordedSpace(space, lastMessageAt, now = new Date()) {
   return (now - new Date(lastMessageAt)) / 86_400_000 <= 60
 }
 
+// 시각은 문자열이 아니라 순간으로 비교한다 — DB 는 '+00:00', Gmail·Chat 은 'Z' 로 돌려준다.
+export const instant = at => Date.parse(String(at ?? ''))
+export const byInstant = (a, b) => instant(a.at) - instant(b.at)
+
 export function newerThan(items, cursor) {
   if (!cursor) return items
-  return items.filter(x => x.at > cursor.last_seen_at || (x.at === cursor.last_seen_at && x.ref !== cursor.last_ref))
+  const c = instant(cursor.last_seen_at)
+  return items.filter(x => { const t = instant(x.at); return t > c || (t === c && x.ref !== cursor.last_ref) })
+}
+
+// DB 의 last_seen_at('…+00:00')을 'Z' ISO 로 맞춘다.
+export function normalizeCursor(row) {
+  const t = instant(row.last_seen_at)
+  return Number.isNaN(t) ? row : { ...row, last_seen_at: new Date(t).toISOString() }
 }
 
 // 페이지 상한에 걸려 커서 경계에 닿기 전에 멈췄는가 — 그렇다면 중간의 오래된 메시지를 건너뛴 것.
@@ -56,14 +67,16 @@ async function oauthFor(sb, context) {
 
 const defaultSince = () => new Date(Date.now() - 86_400_000).toISOString()
 
+// 읽기 오류는 던진다 — 조용히 24시간 전으로 돌아가면 그 사이 메시지를 다시 판단한다. 기본값은 행이 없을 때만.
 export async function getCursor(sb, source) {
-  const { data } = await sb.from('mgmt_cursors').select('*').eq('source', source).maybeSingle()
-  return data ?? { source, last_seen_at: defaultSince(), last_ref: null }
+  const { data, error } = await sb.from('mgmt_cursors').select('*').eq('source', source).maybeSingle()
+  if (error) throw new Error(`mgmt_cursors ${source}: ${error.message}`)
+  return data ? normalizeCursor(data) : { source, last_seen_at: defaultSince(), last_ref: null }
 }
 
 export async function saveCursor(sb, source, items, { dryRun = false } = {}) {
   if (!items.length || dryRun) return
-  const last = [...items].sort((a, b) => a.at.localeCompare(b.at)).at(-1)
+  const last = [...items].sort(byInstant).at(-1)
   const { error } = await sb.from('mgmt_cursors').upsert({ source, last_seen_at: last.at, last_ref: last.ref, updated_at: new Date().toISOString() })
   if (error) throw error
 }
@@ -86,7 +99,7 @@ export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20
   if (hitCap({ pages, maxPages, reachedCursor: !pageToken })) {
     console.warn(`[mgmt] mail:${context} 백로그가 상한을 넘었어요 — 오래된 메시지 일부를 건너뛸 수 있어요`)
   }
-  return newerThan(out, cursor).sort((a, b) => a.at.localeCompare(b.at))
+  return newerThan(out, cursor).sort(byInstant)
 }
 
 export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 50 } = {}) {
@@ -102,7 +115,7 @@ export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 50 
     while (!done && pages++ < maxPages) {
       const r = await chat.spaces.messages.list({ parent: space.name, pageSize: 100, orderBy: 'createTime desc', pageToken: token })
       for (const m of r.data.messages ?? []) {
-        if (m.createTime < cursor.last_seen_at) { done = true; break }
+        if (instant(m.createTime) < instant(cursor.last_seen_at)) { done = true; break }
         items.push(normalizeChat(m, space))
       }
       token = r.data.nextPageToken
@@ -113,7 +126,7 @@ export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 50 
     }
     const latest = items[0]?.at ?? null
     if (!isRecordedSpace(space, latest ?? cursor.last_seen_at, now)) continue
-    const fresh = newerThan(items, cursor).sort((a, b) => a.at.localeCompare(b.at))
+    const fresh = newerThan(items, cursor).sort(byInstant)
     if (fresh.length) result.set(space.name, fresh)
   }
   return result

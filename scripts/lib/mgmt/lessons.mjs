@@ -47,7 +47,7 @@ export const PROMPT_SCOPES = ['judge', 'close']
 // 프롬프트에 넣을 교훈 행: 활성·같은 회사 또는 공통(null)·(scopes 를 주면 그 범위만)·최근순 limit 개.
 export function pickLessons(lessons, company, limit = 20, { scopes = null } = {}) {
   return lessons.filter(l => l.active && (!l.company || l.company === company) && (!scopes || scopes.includes(l.scope)))
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, limit)
+    .sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0)).slice(0, limit)
 }
 export function lessonsForPrompt(lessons, company, limit = 20) {
   return pickLessons(lessons, company, limit).map(l => l.lesson)

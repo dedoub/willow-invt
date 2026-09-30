@@ -14,10 +14,10 @@ export const normalizeTodo = s => String(s ?? '').replace(/\([^)]*\)/g, '').repl
 // entries = mgmt_entries 의 kind='todo', assignee 에 김동욱 포함, occurred_at 최근 days 일.
 // 묶는 키 = company + ':' + normalizeTodo(body). recipes 에 이름이 들어간 항목(레시피 있음)은 후보에서 뺀다.
 export function skillCandidates(entries, recipes, { now = new Date(), minCount = 3, days = 28 } = {}) {
-  const since = new Date(now.getTime() - days * 86_400_000).toISOString()
+  const since = now.getTime() - days * 86_400_000
   const groups = new Map()
   for (const e of entries) {
-    if (e.kind !== 'todo' || !(e.assignee ?? '').includes('김동욱') || e.occurred_at < since) continue
+    if (e.kind !== 'todo' || !(e.assignee ?? '').includes('김동욱') || !(Date.parse(e.occurred_at) >= since)) continue
     const label = normalizeTodo(e.body)
     if (!label || recipes.some(r => label.includes(r))) continue
     const key = `${e.company}:${label}`
