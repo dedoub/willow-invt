@@ -1,8 +1,17 @@
 // closers.mjs — "했다"는 말이 아니라 기록으로만 닫는다.
+import { normalizeSubject } from './infer.mjs'
+import { redact } from './redact.mjs'
 // days(a, b): a = ISO instant string, b = YYYY-MM-DD key
 const days = (a, b) => (new Date(a) - new Date(`${b}T00:00:00Z`)) / 86_400_000
 
+// 증빙 note 는 메일 제목·거래 상대 같은 바깥 글자라 저장 전에 가린다.
+const safeNote = ev => ev && ev.note != null ? { ...ev, note: redact(ev.note).text } : ev
+
 export function findEvidence(row, rule, facts) {
+  return safeNote(findEvidenceRaw(row, rule, facts))
+}
+
+function findEvidenceRaw(row, rule, facts) {
   const c = rule.completion
   if (!c) return null
   if (c.kind === 'tax') {
@@ -15,7 +24,8 @@ export function findEvidence(row, rule, facts) {
     const isSent = c.kind === 'sent_mail'
     const hit = (list ?? []).filter(m => m.context === c.context
       && (isSent ? (!c.to || (m.to ?? '').includes(c.to)) : (!c.from || (m.from ?? '').includes(c.from)))
-      && (!c.subject || (m.subject ?? '').includes(c.subject))
+      // 추론 규칙의 subject 는 정규화된 제목(월·숫자 제거)이라 날 제목도 같은 정규화를 거쳐 비교한다.
+      && (!c.subject || normalizeSubject(m.subject).includes(normalizeSubject(c.subject)))
       && days(m.at, row.schedule_date) >= -10 && days(m.at, row.schedule_date) <= 5)
       .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]
     return hit ? { kind: c.kind, ref: hit.id, at: hit.at, note: hit.subject } : null

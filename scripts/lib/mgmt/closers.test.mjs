@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { findEvidence, closePatch } from './closers.mjs'
+import { normalizeSubject } from './infer.mjs'
 
 const row = { id: 's', schedule_date: '2026-10-12', evidence: [] }
 const taxRule = { company: 'willow', completion: { kind: 'tax', types: ['health_insurance', 'pension'] } }
@@ -63,4 +64,18 @@ test('현금거래 날짜 범위 벗어나면 닫지 않는다', () => {
     { id: 'c1', table: 'willow_mgmt_cash', date: '2026-10-28', category: 'revenue', counterparty: '(주)아크로스 자문료', amount: 13750000 },
   ] }
   assert.equal(findEvidence(r, rule, facts), null)
+})
+
+test('I1: 추론 규칙의 정규화된 subject 로 날 제목을 맞춘다', () => {
+  const r = { id: 'p', schedule_date: '2026-10-10', evidence: [] }
+  const rule = { company: 'tensw', completion: { kind: 'received_mail', context: 'tensoftworks', subject: normalizeSubject('[GS네오텍] 2026년 8월 사용내역 안내') } }
+  const facts = { receivedMail: [{ id: 'g9', context: 'tensoftworks', from: 'bill@gsneotek.com', subject: '[GS네오텍] 2026년 9월 사용내역 안내', at: '2026-10-08T00:00:00Z' }] }
+  assert.equal(findEvidence(r, rule, facts)?.ref, 'g9')
+})
+test('M2: 증빙 note 는 가린다', () => {
+  const r = { id: 'p', schedule_date: '2026-10-10', evidence: [] }
+  const rule = { company: 'tensw', completion: { kind: 'received_mail', context: 'tensoftworks', subject: '계정' } }
+  const facts = { receivedMail: [{ id: 'g1', context: 'tensoftworks', from: 'x@y.z', subject: '계정 안내 password: Abc!2345xy', at: '2026-10-09T00:00:00Z' }] }
+  const ev = findEvidence(r, rule, facts)
+  assert.ok(ev); assert.doesNotMatch(ev.note, /Abc!2345xy/); assert.match(ev.note, /\[가림\]/)
 })
