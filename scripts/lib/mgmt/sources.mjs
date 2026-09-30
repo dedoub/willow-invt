@@ -38,6 +38,11 @@ export function newerThan(items, cursor) {
   return items.filter(x => x.at > cursor.last_seen_at || (x.at === cursor.last_seen_at && x.ref !== cursor.last_ref))
 }
 
+// 페이지 상한에 걸려 커서 경계에 닿기 전에 멈췄는가 — 그렇다면 중간의 오래된 메시지를 건너뛴 것.
+export function hitCap({ pages, maxPages, reachedCursor }) {
+  return pages >= maxPages && !reachedCursor
+}
+
 async function oauthFor(sb, context) {
   const { data } = await sb.from('gmail_tokens').select('*').eq('context', context).order('updated_at', { ascending: false }).limit(1)
   const t = data?.[0]
@@ -63,19 +68,27 @@ export async function saveCursor(sb, source, items, { dryRun = false } = {}) {
   if (error) throw error
 }
 
-export async function readMail(sb, context, cursor, { limit = 100 } = {}) {
+export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20 } = {}) {
   const gmail = google.gmail({ version: 'v1', auth: await oauthFor(sb, context) })
   const after = Math.floor(new Date(cursor.last_seen_at).getTime() / 1000)
-  const list = await gmail.users.messages.list({ userId: 'me', q: `after:${after} -in:chats`, maxResults: limit })
   const out = []
-  for (const { id } of list.data.messages ?? []) {
-    const { data } = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
-    out.push(normalizeGmail(data, context))
+  let pageToken, pages = 0
+  do {
+    pages++
+    const list = await gmail.users.messages.list({ userId: 'me', q: `after:${after} -in:chats`, maxResults: limit, pageToken })
+    for (const { id } of list.data.messages ?? []) {
+      const { data } = await gmail.users.messages.get({ userId: 'me', id, format: 'full' })
+      out.push(normalizeGmail(data, context))
+    }
+    pageToken = list.data.nextPageToken
+  } while (pageToken && pages < maxPages)
+  if (hitCap({ pages, maxPages, reachedCursor: !pageToken })) {
+    console.warn(`[mgmt] mail:${context} 백로그가 상한을 넘었어요 — 오래된 메시지 일부를 건너뛸 수 있어요`)
   }
   return newerThan(out, cursor).sort((a, b) => a.at.localeCompare(b.at))
 }
 
-export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 10 } = {}) {
+export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 50 } = {}) {
   const chat = google.chat({ version: 'v1', auth: await oauthFor(sb, 'tensoftworks') })
   const spaces = []
   let pageToken
@@ -93,6 +106,9 @@ export async function readChat(sb, cursorFor, { now = new Date(), maxPages = 10 
       }
       token = r.data.nextPageToken
       if (!token) done = true
+    }
+    if (hitCap({ pages, maxPages, reachedCursor: done })) {
+      console.warn(`[mgmt] chat:${space.name} 백로그가 상한을 넘었어요 — 오래된 메시지 일부를 건너뛸 수 있어요`)
     }
     const latest = items[0]?.at ?? null
     if (!isRecordedSpace(space, latest ?? cursor.last_seen_at, now)) continue

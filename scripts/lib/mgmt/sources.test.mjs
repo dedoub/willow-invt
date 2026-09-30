@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { normalizeGmail, normalizeChat, isRecordedSpace, newerThan } from './sources.mjs'
+import { normalizeGmail, normalizeChat, isRecordedSpace, newerThan, hitCap } from './sources.mjs'
 
 const b64 = s => Buffer.from(s).toString('base64url')
 test('윌로우 메일은 willow, 보낸 메일은 out', () => {
@@ -24,4 +24,10 @@ test('봇 방·휴면 방 제외', () => {
 test('커서 이후만, 같은 시각 같은 ref 는 제외', () => {
   const items = [{ ref: 'a', at: '2026-10-01T00:00:00Z' }, { ref: 'b', at: '2026-10-01T00:00:00Z' }, { ref: 'c', at: '2026-09-30T00:00:00Z' }]
   assert.deepEqual(newerThan(items, { last_seen_at: '2026-10-01T00:00:00Z', last_ref: 'a' }).map(x => x.ref), ['b'])
+})
+test('hitCap: 상한에 닿고 커서 경계 전이면 true', () => {
+  assert.equal(hitCap({ pages: 20, maxPages: 20, reachedCursor: false }), true)
+})
+test('hitCap: 커서 경계에 닿았으면 상한에 닿았어도 false', () => {
+  assert.equal(hitCap({ pages: 20, maxPages: 20, reachedCursor: true }), false)
 })
