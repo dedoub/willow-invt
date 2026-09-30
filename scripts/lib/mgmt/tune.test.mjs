@@ -34,3 +34,31 @@ test('doneDate 는 거절되지 않은 마지막 증빙만 본다', () => {
   assert.equal(a[0].kind, 'shift_day')
   assert.equal(a[0].to, 18)
 })
+
+// --- 컨트롤러 리뷰 반영 ---
+
+test('아직 마감 안 된(오늘 이상) 회차는 today 를 주면 빼고 본다', () => {
+  const future = occ('2026-10-22', null, 'planned') // 아직 안 온 회차 — 완료도 근거도 없다
+  const a = planTuning(rule, [occ('2026-07-22', '2026-07-18'), occ('2026-08-21', '2026-08-18'), occ('2026-09-22', '2026-09-18'), future], { today: '2026-10-01' })
+  assert.equal(a.length, 1); assert.equal(a[0].kind, 'shift_day'); assert.equal(a[0].to, 18)
+})
+
+test('한 번 옮긴 뒤 같은 회차를 다시 봐도 더 옮기지 않는다(멱등) — 날짜가 아니라 day 로 어긋남을 잰다', () => {
+  const shifted = { ...rule, rule: { ...rule.rule, day: 18 } }
+  const a = planTuning(shifted, [occ('2026-07-22', '2026-07-18'), occ('2026-08-21', '2026-08-18'), occ('2026-09-22', '2026-09-18')])
+  assert.deepEqual(a, [])
+})
+
+test('규칙 유지(keep) 답변보다 앞선 빠짐만으로는 다시 묻지 않는다', () => {
+  const before = occ('2026-08-21', null, 'missed')
+  const after1 = occ('2026-09-22', null, 'missed')
+  const after2 = occ('2026-10-22', null, 'missed')
+  assert.deepEqual(planTuning(rule, [before, after1], { lastKeepAt: '2026-08-25T00:00:00Z' }), [])
+  assert.equal(planTuning(rule, [after1, after2], { lastKeepAt: '2026-08-25T00:00:00Z' })[0].kind, 'ask_disable')
+})
+
+test('추정 규칙이 두 번 연속 missed 면 ask_disable 이 deactivate 보다 먼저다 — 빠짐은 사람에게 묻고, 근거 없음(아직 안 지남)만 조용히 끈다', () => {
+  const inf = { ...rule, origin: 'inferred' }
+  const a = planTuning(inf, [occ('2026-08-21', null, 'missed'), occ('2026-09-22', null, 'missed')])
+  assert.equal(a[0].kind, 'ask_disable')
+})

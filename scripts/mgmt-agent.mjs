@@ -358,43 +358,54 @@ async function stepInfer() {
   }
 }
 
-// Task 17: 규칙 스스로 조정. 규칙마다 최근 6개월 회차를 날짜순으로 읽어 planTuning 에 넘긴다.
-// shift_day → mgmt_rules.rule.day 갱신, ask_disable → 결정함에 rule_review 물음, deactivate → active 끔,
-// confirm → 추정 표시를 벗긴다(confidence=1, origin='seed'). 모두 대표 승인 전이라도 원장은 그대로 두고
-// 규칙 자체만 고친다(메일·메시지 발송 없음).
+// Task 17: 규칙 스스로 조정. 규칙마다 최근 6개월의, 오늘보다 앞선(이미 마감 지난) 회차만 날짜순으로
+// 읽어 planTuning 에 넘긴다 — stepRules 가 60일 앞까지 미리 깔아 둔 아직 안 지난 planned 행이 섞이면
+// last2/last3 가 늘 "아직 안 지남"으로 끝나 아무 것도 안 걸린다. shift_day → mgmt_rules.rule.day 갱신,
+// ask_disable → 결정함에 rule_review 물음, deactivate → active 끔, confirm → 추정 표시를 벗긴다
+// (confidence=1, origin='seed'). 모두 대표 승인 전이라도 원장은 그대로 두고 규칙 자체만 고친다
+// (메일·메시지 발송 없음).
 async function stepTune() {
   const rules = must(await sb.from('mgmt_rules').select('*').eq('active', true), 'mgmt_rules')
   const since = addDays(todayKey(), -180)
+  const today = todayKey()
+  // 규칙별로 가장 최근 '유지' 답의 시각 — 그보다 앞선 빠짐만으로는 ask_disable 을 다시 묻지 않는다.
+  const keepRows = must(await sb.from('mgmt_decisions').select('subject_key, answered_at').eq('kind', 'rule_review').eq('answer', 'keep').order('answered_at', { ascending: false }), 'mgmt_decisions keep')
+  const lastKeepAtBySubject = new Map()
+  for (const r of keepRows ?? []) if (!lastKeepAtBySubject.has(r.subject_key)) lastKeepAtBySubject.set(r.subject_key, r.answered_at)
+
+  const tuneLesson = (company, source_ref, lesson) => saveLesson(sb, { company, scope: 'rule', lesson: redact(lesson).text, example: null, source: 'auto', source_ref }, { dryRun })
+
   for (const rule of rules ?? []) {
     const table = tableFor(rule.company)
     const prefix = `mgmt:${rule.company}:${rule.task_key}:`
-    const rows = must(await sb.from(table).select('id, schedule_date, source_key, is_completed, agent_state, evidence, origin').like('source_key', `${prefix}%`).gte('schedule_date', since), table)
+    const subjectKey = `${rule.company}:rule:${rule.task_key}:${rule.step}`
+    const rows = must(await sb.from(table).select('id, schedule_date, source_key, is_completed, agent_state, evidence, origin').like('source_key', `${prefix}%`).gte('schedule_date', since).lt('schedule_date', today), table)
     const occurrences = (rows ?? []).filter(r => parseSourceKey(r.source_key)?.step === rule.step)
     if (!occurrences.length) continue
-    for (const a of planTuning(rule, occurrences)) {
+    const lastKeepAt = lastKeepAtBySubject.get(subjectKey) ?? null
+    for (const a of planTuning(rule, occurrences, { today, lastKeepAt })) {
       try {
         if (a.kind === 'shift_day') {
           log(`규칙 조정 ${rule.company} ${rule.task_key}/${rule.step}: ${rule.rule.day}일 → ${a.to}일`)
           if (!dryRun) must(await sb.from('mgmt_rules').update({ rule: { ...rule.rule, day: a.to } }).eq('id', rule.id).select('id').maybeSingle(), `tune shift ${rule.id}`)
-          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+          await tuneLesson(rule.company, rule.id, a.lesson)
         } else if (a.kind === 'ask_disable') {
-          const subject_key = `${rule.company}:rule:${rule.task_key}:${rule.step}`
-          log(`규칙 재검토 물음 ${subject_key}`)
+          log(`규칙 재검토 물음 ${subjectKey}`)
           tally.decisions++
           if (!dryRun) {
             const { error } = await sb.from('mgmt_decisions').insert({
-              company: rule.company, kind: 'rule_review', subject_key,
+              company: rule.company, kind: 'rule_review', subject_key: subjectKey,
               question: `"${rule.title}" 규칙이 두 번 연속 빠졌어요. 어떻게 할까요?`,
               options: [{ id: 'off', label: '규칙 끄기' }, { id: 'keep', label: '유지' }],
               recommended: null, schedule_key: null, refs: [], status: 'open',
             })
             if (error && error.code !== '23505') fail(`tune:ask_disable:${rule.id}`, error.message)
           }
-          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+          await tuneLesson(rule.company, rule.id, a.lesson)
         } else if (a.kind === 'deactivate') {
           log(`규칙 끔(추정, 근거 없음) ${rule.company} ${rule.task_key}/${rule.step}`)
           if (!dryRun) must(await sb.from('mgmt_rules').update({ active: false }).eq('id', rule.id).select('id').maybeSingle(), `tune deactivate ${rule.id}`)
-          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+          await tuneLesson(rule.company, rule.id, a.lesson)
         } else if (a.kind === 'confirm') {
           log(`규칙 확정 ${rule.company} ${rule.task_key}/${rule.step} (추정 표시 제거)`)
           if (!dryRun) must(await sb.from('mgmt_rules').update({ confidence: a.confidence, origin: 'seed' }).eq('id', rule.id).select('id').maybeSingle(), `tune confirm ${rule.id}`)
