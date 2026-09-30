@@ -8,9 +8,11 @@ import { redact } from './redact.mjs'
 
 const SCHEMA = path.join(path.dirname(fileURLToPath(import.meta.url)), 'judge-schema.json')
 
+const field = v => redact(v ?? '').text
+
 export function buildPrompt({ company, items, openCases, openSchedules }) {
   const name = company === 'willow' ? '윌로우인베스트먼트' : '텐소프트웍스'
-  const lines = items.map(x => `- ref=${x.ref} | ${x.at} | ${x.space ?? x.subject ?? ''} | ${x.from ?? ''}${x.direction === 'out' ? ' (우리가 보냄)' : ''}: ${redact(x.text).text.replace(/\n+/g, ' / ')}`)
+  const lines = items.map(x => `- ref=${x.ref} | ${x.at} | ${field(x.space ?? x.subject ?? '')} | ${field(x.from ?? '')}${x.direction === 'out' ? ' (우리가 보냄)' : ''}: ${field(x.text).replace(/\n+/g, ' / ')}`)
   return [
     `너는 ${name} 경영관리 기록 담당이다. 아래 새 메시지를 읽고 JSON 스키마대로만 답한다.`,
     '규칙:',
@@ -24,19 +26,28 @@ export function buildPrompt({ company, items, openCases, openSchedules }) {
     '- 결정(decisions)은 대표 판단이 필요한 것만: 예산 밖 지출, 가격·계약 조건, 대외 제출 범위, 참석자, 처음 보는 거래 성격.',
     '- 개발 세부·잡담은 kind=daily 한 줄로 끝낸다(스페이스별 하루 한 단락).',
     '',
-    `열린 건: ${JSON.stringify(openCases.map(c => c.name))}`,
-    `열린 일정: ${JSON.stringify(openSchedules.map(s => ({ key: s.source_key, title: s.title, date: s.schedule_date })))}`,
+    `열린 건: ${JSON.stringify(openCases.map(c => field(c.name)))}`,
+    `열린 일정: ${JSON.stringify(openSchedules.map(s => ({ key: s.source_key, title: field(s.title), date: s.schedule_date })))}`,
     '',
     '새 메시지:',
     ...lines,
   ].join('\n')
 }
 
-export function codexRunner(prompt) {
-  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mgmt-judge-')), 'out.json')
-  execFileSync('codex', ['exec', '--ephemeral', '--skip-git-repo-check', '--output-schema', SCHEMA, '-o', out, '-'],
-    { input: prompt, encoding: 'utf8', timeout: 600_000, stdio: ['pipe', 'ignore', 'pipe'] })
-  return JSON.parse(fs.readFileSync(out, 'utf8'))
+// exec/mkdtemp/schema 를 주입 가능하게 두어 시험에서 실제 codex 를 부르지 않고도
+// 임시 폴더 정리와 stdio 설정을 확인할 수 있게 한다.
+export function codexRunner(prompt, { exec = execFileSync, schema = SCHEMA } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mgmt-judge-'))
+  const out = path.join(dir, 'out.json')
+  try {
+    // stderr 는 절대 캡처하지 않는다(ignore) — codex 실패 시 에러 메시지에 프롬프트·본문 일부가
+    // 섞여 로그로 새는 것을 막는다.
+    exec('codex', ['exec', '--ephemeral', '--skip-git-repo-check', '--output-schema', schema, '-o', out, '-'],
+      { input: prompt, encoding: 'utf8', timeout: 600_000, stdio: ['pipe', 'ignore', 'ignore'] })
+    return JSON.parse(fs.readFileSync(out, 'utf8'))
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
 }
 
 export async function judge(prompt, { runner = codexRunner } = {}) {
