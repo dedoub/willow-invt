@@ -12,8 +12,8 @@ function baseDate(rule, y, m, cal) {
   switch (rule.kind) {
     case 'monthly_day': return cal.shift(dateKey(y, m, Math.min(rule.day, cal.lastDay(y, m))), rule.shift)
     case 'month_end': return cal.shift(dateKey(y, m, cal.lastDay(y, m)), rule.shift ?? 'prev')
-    case 'quarterly_day': return rule.months.includes(m) ? cal.shift(dateKey(y, m, rule.day), rule.shift) : null
-    case 'yearly_date': return rule.month === m ? cal.shift(dateKey(y, m, rule.day), rule.shift) : null
+    case 'quarterly_day': return rule.months.includes(m) ? cal.shift(dateKey(y, m, Math.min(rule.day, cal.lastDay(y, m))), rule.shift) : null
+    case 'yearly_date': return rule.month === m ? cal.shift(dateKey(y, m, Math.min(rule.day, cal.lastDay(y, m))), rule.shift) : null
     case 'business_days_before': {
       const a = baseDate(rule.anchor, y, m, cal)
       return a ? cal.backBusinessDays(a, rule.n) : null

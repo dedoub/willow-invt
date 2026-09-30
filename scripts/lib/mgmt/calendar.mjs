@@ -32,12 +32,26 @@ export function makeCalendar(loadMonth = defaultLoadMonth) {
   const shift = (key, how) => {
     if (!how) return key
     let k = key
-    while (!isWorkday(k)) k = step(k, how === 'prev' ? -1 : 1)
+    let steps = 0
+    while (!isWorkday(k)) {
+      k = step(k, how === 'prev' ? -1 : 1)
+      steps++
+      if (steps > 40) throw new Error(`영업일을 찾지 못했어요: ${key}`)
+    }
     return k
   }
   const backBusinessDays = (key, n) => {
     let k = key
-    for (let i = 0; i < n; i++) { k = step(k, -1); while (!isWorkday(k)) k = step(k, -1) }
+    let steps = 0
+    for (let i = 0; i < n; i++) {
+      k = step(k, -1)
+      steps++
+      while (!isWorkday(k)) {
+        k = step(k, -1)
+        steps++
+        if (steps > 40) throw new Error(`영업일을 찾지 못했어요: ${key}`)
+      }
+    }
     return k
   }
   return { isWorkday, shift, backBusinessDays, lastDay: (y, m) => month(y, m).lastDay }
