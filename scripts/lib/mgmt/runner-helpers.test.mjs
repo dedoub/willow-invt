@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, holdExpired, DECISIONS_PER_RUN } from './runner-helpers.mjs'
+import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, findAdoption, holdExpired, DECISIONS_PER_RUN } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
@@ -198,4 +198,26 @@ test('M6: 보류는 7일 뒤에만 expire', () => {
   assert.equal(holdExpired({ answer: 'hold', answered_at: '2026-10-05T00:00:00+00:00' }, now), false)
   assert.equal(holdExpired({ answer: 'hold', answered_at: '2026-10-02T00:00:00+00:00' }, now), true)
   assert.equal(holdExpired({ answer: 'done', answered_at: '2026-09-01T00:00:00Z' }, now), false)
+})
+
+test('I4: 규칙 행 뒤에 생긴 커머셜 인보이스 행이 회차를 넘겨받으면 adopted 로 닫는다', () => {
+  const now = new Date('2026-09-30T00:00:00Z')
+  const rule = { company: 'willow', task_key: 'etc-invoice', step: 'issue', adopt_prefix: 'commercial:etc-invoice:', completion: { kind: 'sent_mail', context: 'default', subject: 'Invoice' } }
+  const row = { id: 'r', source_key: 'mgmt:willow:etc-invoice:2026-09:issue', schedule_date: '2026-09-25', evidence: [] }
+  const ledgerRows = [{ source_key: 'commercial:etc-invoice:2026-09-inv26', schedule_date: '2026-09-28' }]
+  const c = planClose(row, rule, { sentMail: [], ledgerRows }, { now })
+  assert.deepEqual(c.ev, { kind: 'adopted', ref: 'commercial:etc-invoice:2026-09-inv26', at: '2026-09-30T00:00:00.000Z' })
+  assert.equal(c.patch.is_completed, true)
+  // 6일 넘게 떨어지면 넘겨받지 않는다.
+  assert.equal(findAdoption(row, rule, [{ source_key: 'commercial:etc-invoice:x', schedule_date: '2026-10-02' }], { now }), null)
+})
+test('I4: 재무 동기화 세금 고지 행(접두사+대상 월)도 넘겨받는다, 거절한 ref 는 아니다', () => {
+  const now = new Date('2026-10-01T00:00:00Z')
+  const rule = { company: 'tensw', task_key: 'social-insurance', step: 'pay', adopt_prefix: 'tensw-finance:tax-obligation:social:', completion: { kind: 'tax', types: ['pension'] } }
+  const row = { id: 'r', source_key: 'mgmt:tensw:social-insurance:2026-09:pay', schedule_date: '2026-10-12', evidence: [] }
+  const ledgerRows = [{ source_key: 'tensw-finance:tax-obligation:social:2026-09', schedule_date: '2026-10-10' }]
+  assert.equal(planClose(row, rule, { taxObligations: [], ledgerRows }, { now }).ev.ref, 'tensw-finance:tax-obligation:social:2026-09')
+  const rejectedRow = { ...row, evidence: [{ kind: 'rejected', ref: 'tensw-finance:tax-obligation:social:2026-09' }] }
+  assert.equal(planClose(rejectedRow, rule, { taxObligations: [], ledgerRows }, { now }), null)
+  assert.equal(findAdoption(row, { ...rule, adopt_prefix: undefined }, ledgerRows, { now }), null)
 })

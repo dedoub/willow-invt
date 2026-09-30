@@ -66,15 +66,31 @@ const withoutRejected = (facts, rejected) => {
 // 닫기: 규칙의 completion 으로 기록 증빙을 찾는다. completion 이 없는 규칙(서명본 회신 등)만
 // 행에 이미 붙은 메시지 증빙으로 닫는다(Task 9 판정 — completion 이 있는 행은 메시지로 닫지 않는다).
 // 대표가 거절한(rejected) 증빙은 둘 다에서 뺀다.
-export function planClose(row, rule, facts) {
+export function planClose(row, rule, facts, { now = new Date() } = {}) {
   if (!rule) return null
   const rejected = rejectedRefs(row)
+  // I4: 바깥 시스템(커머셜 인보이스·재무 동기화)이 같은 회차 행을 뒤늦게 만들었으면 그 행이 일을 맡는다.
+  const adopted = findAdoption(row, rule, facts.ledgerRows ?? [], { now })
+  if (adopted && !rejected.has(String(adopted.ref))) return { ev: adopted, patch: closePatch(row, adopted) }
   const ev = findEvidence(row, rule, withoutRejected(facts, rejected))
   if (ev && !rejected.has(String(ev.ref))) return { ev, patch: closePatch(row, ev) }
   if (rule.completion) return null
   const msg = (row.evidence ?? []).filter(e => e?.kind === 'message' && !rejected.has(String(e.ref))).at(-1)
   if (!msg) return null
   return { ev: msg, patch: { is_completed: true, agent_state: 'done', evidence: row.evidence } }
+}
+
+// I4: 규칙에 adopt_prefix 가 있고, 같은 회사 원장에 그 접두사로 시작하는 행이 규칙 행과 ±5일 안(또는
+// 접두사+같은 대상 월 키)이면 그 행이 의무를 넘겨받은 것 — {kind:'adopted', ref:<그 행 키>, at:<지금>}.
+export const ADOPT_CLOSE_DAYS = 5
+const dayGap = (a, b) => Math.abs((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000)
+export function findAdoption(row, rule, ledgerRows, { now = new Date() } = {}) {
+  const prefix = rule?.adopt_prefix
+  if (!prefix || !row?.schedule_date) return null
+  const period = parseSourceKey(row.source_key)?.period
+  const hit = ledgerRows.find(r => r.source_key && r.source_key !== row.source_key && r.source_key.startsWith(prefix)
+    && ((period && r.source_key === `${prefix}${period}`) || (r.schedule_date && dayGap(r.schedule_date, row.schedule_date) <= ADOPT_CLOSE_DAYS)))
+  return hit ? { kind: 'adopted', ref: hit.source_key, at: now.toISOString() } : null
 }
 
 export const MISSED_OPTIONS = [{ id: 'done', label: '이미 했음' }, { id: 'later', label: '다시 일정 잡기' }, { id: 'drop', label: '안 해도 됨' }]

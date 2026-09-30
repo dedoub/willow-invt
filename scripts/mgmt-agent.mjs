@@ -231,12 +231,17 @@ async function stepClose() {
   for (const company of COMPANIES) {
     const table = tableFor(company)
     const rows = must(await sb.from(table).select('id, title, schedule_date, source_key, evidence, agent_state').eq('is_completed', false).or(NOT_PERSONAL).like('source_key', `mgmt:${company}:%`), table)
+    // I4: adopt_prefix 가 있는 규칙은 바깥 시스템이 만든 같은 회차 행을 찾아 넘겨준다.
+    const ledgerRows = []
+    for (const prefix of new Set(rules.filter(r => r.company === company && r.adopt_prefix).map(r => r.adopt_prefix))) {
+      ledgerRows.push(...(must(await sb.from(table).select('source_key, schedule_date').or(NOT_PERSONAL).like('source_key', `${prefix}%`).gte('schedule_date', addDays(todayKey(), -120)), `${table} adopt`) ?? []))
+    }
     let n = 0
     for (const row of rows ?? []) {
       const k = parseSourceKey(row.source_key)
       if (!k) continue
       const rule = rules.find(r => r.company === company && r.task_key === k.task && r.step === k.step)
-      const c = planClose(row, rule, facts)
+      const c = planClose(row, rule, { ...facts, ledgerRows })
       if (!c) continue
       n++
       log(`완료 ${company} ${row.schedule_date} ${row.title} ← ${c.ev.kind} ${c.ev.note ?? ''}`)
