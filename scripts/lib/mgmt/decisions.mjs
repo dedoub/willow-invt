@@ -4,12 +4,12 @@ const CO = { tensw: '텐소', willow: '윌로우' }
 export function decisionMessage(d) {
   const rec = d.options.find(o => o.id === d.recommended)
   const text = [`[${CO[d.company]}] ${d.question}`, rec ? `추천: ${rec.label}` : null].filter(Boolean).join('\n')
-  const buttons = [d.options.map(o => ({ text: o.label, callback_data: `mgmt:${d.id}:${String(o.id).slice(0, 12)}` })), [{ text: '보류', callback_data: `mgmt:${d.id}:hold` }]]
+  const buttons = [d.options.map((o, i) => ({ text: o.label, callback_data: `mgmt:${d.id}:${i}` })), [{ text: '보류', callback_data: `mgmt:${d.id}:hold` }]]
   return { text, buttons }
 }
 
 export function parseDecisionCallback(data) {
-  const m = /^mgmt:([0-9a-f-]{36}):([^:]{1,12})$/.exec(String(data))
+  const m = /^mgmt:([0-9a-f-]{36}):(\d{1,2}|hold)$/.exec(String(data))
   return m ? { id: m[1], option: m[2] } : null
 }
 

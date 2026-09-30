@@ -9,8 +9,15 @@ test('버튼 데이터는 64바이트 이하이고 되읽힌다', () => {
   assert.match(m.text, /^\[텐소\]/)
   assert.match(m.text, /추천: 진행/)
   for (const row of m.buttons) for (const b of row) assert.ok(Buffer.byteLength(b.callback_data) <= 64)
-  assert.deepEqual(parseDecisionCallback(m.buttons[0][0].callback_data), { id: d.id, option: 'yes' })
+  assert.deepEqual(parseDecisionCallback(m.buttons[0][0].callback_data), { id: d.id, option: '0' })
   assert.equal(parseDecisionCallback('다른버튼'), null)
+})
+test('한글 옵션 id 도 인덱스로 64바이트 이내에 되읽힌다', () => {
+  const dk = { id: '11111111-2222-3333-4444-555555555555', company: 'tensw', kind: 'scope', question: '한글 옵션 테스트', options: [{ id: '진행하기 좋음', label: '진행하기 좋음' }, { id: '보류하고 다음달', label: '보류하고 다음달' }] }
+  const m = decisionMessage(dk)
+  for (const row of m.buttons) for (const b of row) assert.ok(Buffer.byteLength(b.callback_data) <= 64)
+  assert.deepEqual(parseDecisionCallback(m.buttons[0][0].callback_data), { id: dk.id, option: '0' })
+  assert.deepEqual(parseDecisionCallback(m.buttons[0][1].callback_data), { id: dk.id, option: '1' })
 })
 test('요약은 빈 부문을 뺀다', () => {
   assert.equal(digestMessage({ date: '2026-10-01', done: [], created: [], inferred: [], missed: [], openDecisions: [], failures: [] }), null)

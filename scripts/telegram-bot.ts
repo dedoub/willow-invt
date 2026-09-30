@@ -7301,13 +7301,19 @@ async function main() {
 
           const mgmt = parseDecisionCallback(cbData)
           if (mgmt) {
-            const { data: dec } = await supabase.from('mgmt_decisions').select('id, options, status').eq('id', mgmt.id).maybeSingle()
-            if (dec && dec.status !== 'answered') {
-              const label = mgmt.option === 'hold' ? '보류' : (dec.options as { id: string; label: string }[]).find(o => o.id.slice(0, 12) === mgmt.option)?.label ?? mgmt.option
-              await supabase.from('mgmt_decisions').update(mgmt.option === 'hold'
-                ? { answer: 'hold' }
-                : { status: 'answered', answer: mgmt.option, answered_at: new Date().toISOString() }).eq('id', mgmt.id)
-              if (cb.message?.message_id) await editMessage(cbChatId, cb.message.message_id, `${cb.message.text ?? ''}\n\n✅ ${label}`)
+            try {
+              const { data: dec } = await supabase.from('mgmt_decisions').select('id, options, status').eq('id', mgmt.id).maybeSingle()
+              if (dec && dec.status !== 'answered') {
+                const opt = mgmt.option === 'hold' ? null : (dec.options as { id: string; label: string }[])[Number(mgmt.option)]
+                const label = mgmt.option === 'hold' ? '보류' : opt?.label ?? mgmt.option
+                const answer = mgmt.option === 'hold' ? 'hold' : opt?.id ?? mgmt.option
+                await supabase.from('mgmt_decisions').update(mgmt.option === 'hold'
+                  ? { answer: 'hold' }
+                  : { status: 'answered', answer, answered_at: new Date().toISOString() }).eq('id', mgmt.id)
+                if (cb.message?.message_id) await editMessage(cbChatId, cb.message.message_id, `${cb.message.text ?? ''}\n\n✅ ${label}`)
+              }
+            } catch (err) {
+              console.error(`[mgmt] 결정 기록 실패: ${err instanceof Error ? err.message : String(err)}`)
             }
             continue
           }
