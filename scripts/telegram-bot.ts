@@ -8,6 +8,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, sta
 import { join, basename, relative } from 'path'
 import { formatCompactLink, markdownToTelegramHtml, normalizeTelegramOutboundText, splitTelegramMessage } from './telegram-utils'
 import { runAgent, runAgentTurn, AgentAbortError, BOT_MODEL, type CodexProgress } from './lib/agent-cli'
+import { parseDecisionCallback } from './lib/mgmt/decisions.mjs'
 
 // 하이브리드 추론 강도: 일상 대화는 medium(캡 절약), 무거운 분석/코딩/계획 요청만 high로 승격.
 const HEAVY_EFFORT_RE = /분석|왜|원인|디버그|디버깅|조사|리서치|검토|진단|전략|비교|평가|계획|설계|리팩터|최적화|성능|버그|고쳐|코드|스크립트|구현|짜줘|만들어\s*줘/
@@ -7297,6 +7298,20 @@ async function main() {
 
         if (cbChatId && cbData) {
           if (!isAllowedUser(cbChatId)) continue
+
+          const mgmt = parseDecisionCallback(cbData)
+          if (mgmt) {
+            const { data: dec } = await supabase.from('mgmt_decisions').select('id, options, status').eq('id', mgmt.id).maybeSingle()
+            if (dec && dec.status !== 'answered') {
+              const label = mgmt.option === 'hold' ? '보류' : (dec.options as { id: string; label: string }[]).find(o => o.id.slice(0, 12) === mgmt.option)?.label ?? mgmt.option
+              await supabase.from('mgmt_decisions').update(mgmt.option === 'hold'
+                ? { answer: 'hold' }
+                : { status: 'answered', answer: mgmt.option, answered_at: new Date().toISOString() }).eq('id', mgmt.id)
+              if (cb.message?.message_id) await editMessage(cbChatId, cb.message.message_id, `${cb.message.text ?? ''}\n\n✅ ${label}`)
+            }
+            continue
+          }
+
           console.log(`[${cbChatId}] Button: ${cbData}`)
           // 버튼 데이터를 일반 메시지처럼 처리
           await updateQueuedProgress(cbChatId, {
