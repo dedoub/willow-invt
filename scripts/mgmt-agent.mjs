@@ -117,7 +117,7 @@ try {
   else if (pid && pid !== process.pid) { process.kill(pid, 0); log(`이미 실행 중(${pid})`); process.exit(0) }
 } catch {}
 fs.writeFileSync(LOCK, String(process.pid))
-process.on('exit', () => { try { if (fs.readFileSync(LOCK, 'utf8') === String(process.pid)) fs.unlinkSync(LOCK) } catch {} })
+process.on('exit', () => { flushDry(); try { if (fs.readFileSync(LOCK, 'utf8') === String(process.pid)) fs.unlinkSync(LOCK) } catch {} })
 process.on('SIGTERM', () => process.exit(143))
 process.on('SIGINT', () => process.exit(130))
 setTimeout(() => { log('시간 상한 20분 초과'); recordFailure('timeout', '시간 상한 20분 초과'); process.exit(3) }, 20 * 60e3).unref()
@@ -134,7 +134,8 @@ async function loadCeoChatId() {
 // kind: 'decision' | 'digest'. dry 에서는 MGMT_DRY_DIGEST=1 이고 digest 일 때만 보낸다.
 async function telegram(text, { buttons, kind = 'decision' } = {}) {
   const dryDigest = dryRun && process.env.MGMT_DRY_DIGEST === '1' && kind === 'digest'
-  if (dryRun && !dryDigest) { log(`(dry) 윌리: ${text.split('\n')[0]}`); return null }
+  // dry 요약은 로그에 통째로 남긴다(무엇을 보냈을지 확인용). 결정은 첫 줄만.
+  if (dryRun && !dryDigest) { log(`(dry) 윌리: ${kind === 'digest' ? text : text.split('\n')[0]}`); return null }
   // I7: 3,800자 넘으면 줄 경계에서 여러 통으로. 버튼은 마지막 통에만(돌려주는 message_id 도 그 통).
   const chunks = splitMessage(dryRun ? `(시험 운행) ${text}` : text)
   const chatId = await loadCeoChatId()
@@ -596,6 +597,5 @@ const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close:
 for (const name of selected) {
   try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }
-flushDry()
 log(`끝${failures.length ? ` — 실패: ${failures.join(', ')}` : ''}`)
 process.exitCode = failures.length ? 1 : 0
