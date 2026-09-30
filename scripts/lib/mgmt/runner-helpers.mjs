@@ -4,14 +4,14 @@ import { normalizeSubject } from './infer.mjs'
 
 export const addDays = (key, n) => { const t = new Date(`${key}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10) }
 
-// 07:00~07:29 이면 infer 먼저, 18:30~18:59 이면 마지막에 digest.
-export const STEP_NAMES = ['rules', 'collect', 'close', 'decide', 'digest', 'infer']
+// learn(되돌림에서 배우기)이 맨 앞. 07:00~07:29 이면 infer, 18:30~18:59 이면 마지막에 digest.
+export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer']
 export function planSteps(hm, only = null) {
   if (only !== null && only !== undefined) {
     if (!STEP_NAMES.includes(only)) throw new Error(`알 수 없는 단계 "${only}" (${STEP_NAMES.join('|')})`)
     return [only]
   }
-  return [...(hm >= '07:00' && hm < '07:30' ? ['infer'] : []), 'rules', 'collect', 'close', 'decide', ...(hm >= '18:30' && hm < '19:00' ? ['digest'] : [])]
+  return ['learn', ...(hm >= '07:00' && hm < '07:30' ? ['infer'] : []), 'rules', 'collect', 'close', 'decide', ...(hm >= '18:30' && hm < '19:00' ? ['digest'] : [])]
 }
 
 // mgmt:<company>:<task>:<YYYY-MM>:<step>

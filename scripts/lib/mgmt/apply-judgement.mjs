@@ -114,7 +114,9 @@ export function planJudgement(company, j, { items, openSchedules }) {
   return { cases, entries, scheduleInserts, scheduleUpdates, decisions, dropped }
 }
 
-export async function applyJudgement(sb, plan, { dryRun = false, log = () => {} } = {}) {
+// onWrite(table, row): 원장(일정) 행을 insert·update 한 뒤 DB 가 돌려준 행으로 부른다(교훈 장부).
+// 건·기록·결정은 원장 행이 아니라 snapshot 대상이 아니므로 부르지 않는다.
+export async function applyJudgement(sb, plan, { dryRun = false, log = () => {}, onWrite = null } = {}) {
   const caseIds = new Map()
   for (const c of plan.cases) {
     log(`건 ${c.company} ${c.name}`)
@@ -162,13 +164,24 @@ export async function applyJudgement(sb, plan, { dryRun = false, log = () => {} 
   for (const { table, ...row } of plan.scheduleInserts) {
     log(`일정 추가 ${row.schedule_date} ${row.title}`)
     if (dryRun) continue
-    const { error } = await sb.from(table).insert(row)
-    if (error && error.code !== '23505') throw error
+    if (onWrite) {
+      const { data, error } = await sb.from(table).insert(row).select('*').single()
+      if (error && error.code !== '23505') throw error
+      if (!error && data) await onWrite(table, data)
+    } else {
+      const { error } = await sb.from(table).insert(row)
+      if (error && error.code !== '23505') throw error
+    }
   }
 
   for (const { table, id, patch } of plan.scheduleUpdates) {
     log(`일정 ${patch.is_completed ? '완료' : '변경'} ${id}`)
-    if (!dryRun) { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }
+    if (dryRun) continue
+    if (onWrite) {
+      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').single()
+      if (error) throw error
+      if (data) await onWrite(table, data)
+    } else { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }
   }
 
   for (const d of plan.decisions) {

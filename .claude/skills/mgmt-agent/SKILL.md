@@ -29,12 +29,14 @@ node scripts/mgmt-agent.mjs --only close            # 증빙 근거로 완료 �
 node scripts/mgmt-agent.mjs --only decide           # 열린 결정 처리·윌리 발송만
 node scripts/mgmt-agent.mjs --only digest           # 저녁 요약만
 node scripts/mgmt-agent.mjs --only infer            # 반복 규칙 추론만
+node scripts/mgmt-agent.mjs --only learn            # 대표가 되돌린 행에서 교훈 찾기만
+node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "문장"   # 대표 교정 한 줄을 교훈으로
 node scripts/mgmt-replay.mjs                        # 2026-06~09 재현 시험(완전 읽기 전용)
 npm run mgmt:test                                   # 유닛 테스트
 ```
 
 `--only` 없이 부르면 시각에 따라 자동으로 고른다(07:00~07:30 은 `infer` 도 포함, 18:30~19:00 은
-`digest` 도 포함, 그 외 시간은 `rules → collect → close → decide`). 잘못된 `--only` 값은
+`digest` 도 포함, 그 외 시간은 `learn → rules → collect → close → decide`). 모든 회차는 `learn` 으로 시작한다. 잘못된 `--only` 값은
 바로 종료 코드 2 로 실패한다.
 
 ## 스케줄
@@ -61,6 +63,26 @@ update mgmt_rules set active=false where title='…';
 씨앗 규칙(`origin='seed'`, `scripts/lib/mgmt/seed-rules.mjs`)의 제목은 `{period}` 자리표시자를
 그대로 담고 있어 `like` 로 찾는 편이 안전하다(`title like '%급여대장 요청%'`). 추론 규칙
 (`origin='inferred'`)은 이미 채워진 월로 제목이 나온다.
+
+## 교훈 장부
+
+에이전트가 원장 행을 쓸 때마다 그 행의 제목·날짜·완료·상태를 `mgmt_agent_writes` 에 남긴다. 다음
+회차의 `learn` 이 지금 행과 비교해 대표가 **지웠거나·다시 열었거나·날짜를 옮겼거나·이름을 바꾼** 행을
+찾아 `mgmt_lessons` 에 교훈(`source='reverted'`)으로 적는다. 개인 일정이 된 행은 교훈 없이 기록만 지운다.
+활성 교훈 중 회사가 같거나 공통인 최근 20개가 Codex 판단 프롬프트에 "지난 교훈(반드시 지킨다)" 으로 들어간다.
+
+대표가 직접 고쳐 말하면(`source='ceo_correction'`):
+
+```bash
+node scripts/mgmt-agent.mjs lesson --company tensw|willow [--scope judge|rule|close|decision] "문장"
+```
+
+`--scope` 기본값은 `judge`. 회사·범위가 틀리면 종료 코드 2. 문장은 저장 전에 비밀값을 가린다.
+
+```sql
+select company, scope, lesson, source, hits, created_at from mgmt_lessons where active order by created_at desc;
+update mgmt_lessons set active=false where lesson='…';   -- 틀린 교훈 끄기
+```
 
 ## 결정함 보기
 
@@ -95,9 +117,11 @@ CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `answered` 로
 | "결정함에 뭐 있어" | 위 SQL(`mgmt_decisions` open/sent) | 질문 목록 |
 | "그 규칙 빼줘 X", "반복 규칙에서 X 끄기" | 위 SQL(`update mgmt_rules set active=false …`) | 끈 규칙 제목 |
 | "반복 규칙 뭐 새로 찾았어" | `node scripts/mgmt-agent.mjs --only infer` | 새 추정 규칙 목록(신뢰도 포함) |
+| "경영관리 교훈: …" | `node scripts/mgmt-agent.mjs lesson --company <tensw\|willow> --scope judge "…"` (회사가 불분명하면 묻는다) | 저장된 교훈 문장 |
+| "교훈 뭐 쌓였어" | 위 SQL(`mgmt_lessons` active) | 교훈 목록 |
 | "6~9월로 다시 재봐줘", "재현 시험 돌려줘" | `node scripts/mgmt-replay.mjs` | `scripts/logs/mgmt-replay-2026-06-09.md` 요지 |
 
-`--only` 값은 `rules|collect|close|decide|digest|infer` 여섯 개뿐이다. 다른 값을 부르면 바로
+`--only` 값은 `learn|rules|collect|close|decide|digest|infer` 일곱 개뿐이다. 다른 값을 부르면 바로
 실패하니 지어내지 않는다.
 
 ## 참고

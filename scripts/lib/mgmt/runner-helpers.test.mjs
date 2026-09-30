@@ -3,12 +3,13 @@ import test from 'node:test'
 import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
-  assert.deepEqual(planSteps('10:05'), ['rules', 'collect', 'close', 'decide'])
-  assert.deepEqual(planSteps('07:05'), ['infer', 'rules', 'collect', 'close', 'decide'])
-  assert.deepEqual(planSteps('07:35'), ['rules', 'collect', 'close', 'decide'])
-  assert.deepEqual(planSteps('18:35'), ['rules', 'collect', 'close', 'decide', 'digest'])
-  assert.deepEqual(planSteps('19:05'), ['rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:05'), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:35'), ['learn', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('18:35'), ['learn', 'rules', 'collect', 'close', 'decide', 'digest'])
+  assert.deepEqual(planSteps('19:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('10:05', 'close'), ['close'])
+  assert.deepEqual(planSteps('10:05', 'learn'), ['learn'])
   assert.throws(() => planSteps('10:05', 'nope'))
   assert.throws(() => planSteps('10:05', ''))
 })

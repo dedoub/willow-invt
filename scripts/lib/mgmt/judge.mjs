@@ -10,7 +10,7 @@ const SCHEMA = path.join(path.dirname(fileURLToPath(import.meta.url)), 'judge-sc
 
 const field = v => redact(v ?? '').text
 
-export function buildPrompt({ company, items, openCases, openSchedules }) {
+export function buildPrompt({ company, items, openCases, openSchedules, lessons = [] }) {
   const name = company === 'willow' ? '윌로우인베스트먼트' : '텐소프트웍스'
   const lines = items.map(x => `- ref=${x.ref} | ${x.at} | ${field(x.space ?? x.subject ?? '')} | ${field(x.from ?? '')}${x.direction === 'out' ? ' (우리가 보냄)' : ''}: ${field(x.text).replace(/\n+/g, ' / ')}`)
   return [
@@ -25,6 +25,7 @@ export function buildPrompt({ company, items, openCases, openSchedules }) {
     '- 비밀번호·키·계좌가 평문으로 보이면 kind=security 항목으로 "무엇이 누구에게 공유됐는지"만 적고 값은 적지 않는다.',
     '- 결정(decisions)은 대표 판단이 필요한 것만: 예산 밖 지출, 가격·계약 조건, 대외 제출 범위, 참석자, 처음 보는 거래 성격.',
     '- 개발 세부·잡담은 kind=daily 한 줄로 끝낸다(스페이스별 하루 한 단락).',
+    ...(lessons.length ? ['', '지난 교훈(반드시 지킨다):', ...lessons.map(l => `- ${field(l).replace(/\n+/g, ' / ')}`)] : []),
     '',
     `열린 건: ${JSON.stringify(openCases.map(c => field(c.name)))}`,
     `열린 일정: ${JSON.stringify(openSchedules.map(s => ({ key: s.source_key, title: field(s.title), date: s.schedule_date })))}`,

@@ -46,13 +46,25 @@ export function planMissed(rows, todayKey) {
     .map(r => ({ id: r.id, patch: { agent_state: 'missed' } }))
 }
 
-export async function applyPlan(sb, table, plan, { dryRun = false, log = () => {} } = {}) {
+// onWrite(table, row): 쓰기가 성공한 뒤 DB 가 돌려준 행으로 부른다(교훈 장부의 snapshot 용).
+// onWrite 가 있을 때만 .select('*').single() 로 행을 돌려받는다. 23505(이미 있음)는 쓴 게 아니므로 부르지 않는다.
+export async function applyPlan(sb, table, plan, { dryRun = false, log = () => {}, onWrite = null } = {}) {
   for (const row of plan.insert ?? []) {
     log(`추가 ${table} ${row.schedule_date} ${row.title}`)
-    if (!dryRun) { const { error } = await sb.from(table).insert(row); if (error && error.code !== '23505') throw error }
+    if (dryRun) continue
+    if (onWrite) {
+      const { data, error } = await sb.from(table).insert(row).select('*').single()
+      if (error && error.code !== '23505') throw error
+      if (!error && data) await onWrite(table, data)
+    } else { const { error } = await sb.from(table).insert(row); if (error && error.code !== '23505') throw error }
   }
   for (const { id, patch } of plan.update ?? []) {
     log(`갱신 ${table} ${id} ${JSON.stringify(patch)}`)
-    if (!dryRun) { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }
+    if (dryRun) continue
+    if (onWrite) {
+      const { data, error } = await sb.from(table).update(patch).eq('id', id).select('*').single()
+      if (error) throw error
+      if (data) await onWrite(table, data)
+    } else { const { error } = await sb.from(table).update(patch).eq('id', id); if (error) throw error }
   }
 }
