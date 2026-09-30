@@ -16,7 +16,7 @@ import { planOccurrences, planMissed, applyPlan, tableFor } from './lib/mgmt/led
 import { getCursor, saveCursor, readMail, readChat } from './lib/mgmt/sources.mjs'
 import { buildPrompt, judge } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
-import { inferRules } from './lib/mgmt/infer.mjs'
+import { inferRules, INFER_LIMIT, MIN_CONFIDENCE } from './lib/mgmt/infer.mjs'
 import { planTuning } from './lib/mgmt/tune.mjs'
 import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
 import { scorecard, skillCandidates } from './lib/mgmt/weekly.mjs'
@@ -351,8 +351,9 @@ async function stepInfer() {
     for (const r of data ?? []) { const e = cashEvent(r, table, company); if (e) events.push(e) }
   }
   const rules = must(await sb.from('mgmt_rules').select('*'), 'mgmt_rules')
-  const found = inferRules(events, { existingRules: rules?.length ? rules : SEED_RULES, minMonths: 3 })
-  log(`이벤트 ${events.length} → 추론 규칙 ${found.length}`)
+  // C2: 3개월 이상·신뢰 0.6 이상·세금/개인/잡음 제외·실행당 신뢰 높은 순 5개까지(inferRules 기본값).
+  const found = inferRules(events, { existingRules: rules?.length ? rules : SEED_RULES })
+  log(`이벤트 ${events.length} → 추론 규칙 ${found.length} (상한 ${INFER_LIMIT}, 신뢰 ≥ ${MIN_CONFIDENCE})`)
   for (const r of found) {
     log(`추론 규칙 ${r.company} ${r.title} 매월 ${r.rule.day}일 (신뢰 ${r.confidence})`)
     if (!dryRun) { const { error } = await sb.from('mgmt_rules').insert(r); if (error && error.code !== '23505') throw error }

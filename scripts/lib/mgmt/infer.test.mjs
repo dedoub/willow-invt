@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { inferRules, normalizeSubject } from './infer.mjs'
+import { inferRules, normalizeSubject, isExcludedCandidate, INFER_LIMIT } from './infer.mjs'
 
 test('제목 정규화', () => {
   assert.equal(normalizeSubject('Re: [GS네오텍:사용내역서] 26년 7월 AWS, GWS'), '[GS네오텍:사용내역서] 년 AWS, GWS')
@@ -46,10 +46,10 @@ test('Item 1: 씨앗 subject와 제목 정합 - 같은 상대지만 제목 다�
   const payrollMail = ['2026-07-22', '2026-08-21', '2026-09-22'].map((d, i) => ({ company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'jjtaxro@daum.net', key: 'sent_mail:jjtaxro@daum.net:급여대장 요청', label: '급여대장 요청', date: d, ref: `m${i}` }))
   assert.equal(inferRules(payrollMail, { existingRules: seed }).length, 0, '급여 제목은 억제됨')
 
-  // 다른 제목은 억제 안됨 (subject 미매치)
-  const insuranceMail = ['2026-07-15', '2026-08-15', '2026-09-15'].map((d, i) => ({ company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'jjtaxro@daum.net', key: 'sent_mail:jjtaxro@daum.net:4대보험 자료 요청', label: '4대보험 자료 요청', date: d, ref: `i${i}` }))
-  const rules = inferRules(insuranceMail, { existingRules: seed })
-  assert.equal(rules.length, 1, '4대보험 자료 요청은 규칙 생성')
+  // 다른 제목은 억제 안됨 (subject 미매치). (C2 뒤로 4대보험 같은 세금·보험 낱말은 씨앗이 맡으므로 다른 제목으로 본다.)
+  const otherMail = ['2026-07-15', '2026-08-15', '2026-09-15'].map((d, i) => ({ company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'jjtaxro@daum.net', key: 'sent_mail:jjtaxro@daum.net:법인카드 영수증 송부', label: '법인카드 영수증 송부', date: d, ref: `i${i}` }))
+  const rules = inferRules(otherMail, { existingRules: seed })
+  assert.equal(rules.length, 1, '법인카드 영수증 송부는 규칙 생성')
   assert.equal(rules[0].completion.to, 'jjtaxro@daum.net')
 })
 
@@ -57,8 +57,10 @@ test('Item 3: 회사별 그룹핑 - 같은 key 다른 company는 합쳐지지 �
   const sameLabelDifferentCompanies = [
     { company: 'willow', kind: 'sent_mail', context: 'default', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-07-10', ref: 'w1' },
     { company: 'willow', kind: 'sent_mail', context: 'default', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-08-12', ref: 'w2' },
+    { company: 'willow', kind: 'sent_mail', context: 'default', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-09-11', ref: 'w3' },
     { company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-07-20', ref: 't1' },
     { company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-08-22', ref: 't2' },
+    { company: 'tensw', kind: 'sent_mail', context: 'tensoftworks', to: 'a@b.c', key: 'sent_mail:a@b.c:월간 보고서', label: '월간 보고서', date: '2026-09-21', ref: 't3' },
   ]
   const rules = inferRules(sameLabelDifferentCompanies, { existingRules: [] })
   assert.equal(rules.length, 2, '각 회사별 1개씩 규칙 생성')
@@ -75,7 +77,7 @@ test('Item 4: 월 경계 순환 거리 - [30, 1, 2] 3개월 패턴 인식', () =
     { company: 'tensw', kind: 'cash', table: 'tensw_mgmt_cash', counterparty: 'X', key: 'cash:tensw_mgmt_cash:X:out', label: 'X 송금', date: '2026-08-01', ref: 'c2' },
     { company: 'tensw', kind: 'cash', table: 'tensw_mgmt_cash', counterparty: 'X', key: 'cash:tensw_mgmt_cash:X:out', label: 'X 송금', date: '2026-09-02', ref: 'c3' },
   ]
-  const rules = inferRules(monthBoundaryDates, { existingRules: [], spread: 4 })
+  const rules = inferRules(monthBoundaryDates, { existingRules: [], spread: 4, minConfidence: 0 })
   assert.equal(rules.length, 1, '[30, 1, 2] 순환 거리 4는 spread 4 안에 포함')
   assert.equal(rules[0].rule.day, 1, '회전 후 중앙값이 1')
 })
@@ -90,4 +92,38 @@ test('Item 5: 제목 가림 - 민감 정보 마스크된 title', () => {
   assert.equal(rules.length, 1)
   assert.ok(rules[0].title.includes('[가림]'), '비밀번호 마스크 포함')
   assert.ok(!rules[0].title.includes('Abc!2345xy'), '원본 비밀번호 없음')
+})
+
+// --- C2 가드레일 ---
+const monthly = (label, extra = {}) => ['2026-06-10', '2026-07-10', '2026-08-10', '2026-09-10'].map((d, i) => ({ company: 'tensw', kind: 'cash', table: 'tensw_mgmt_cash', counterparty: label, key: `cash:tensw_mgmt_cash:${label}:out`, label, date: d, ref: `${label}${i}`, ...extra }))
+
+test('C2: 세금·개인·잡음 후보는 뺀다, 거래처 사용내역은 남긴다', () => {
+  assert.equal(isExcludedCandidate({ kind: 'cash', counterparty: '국세', label: '국세 출금' }), true)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '[미래에셋증권] 김류하님의 거래내역입니다', subject: '[미래에셋증권] 김류하님의 거래내역입니다' }), true)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '관리 콘솔 보안 위험 알림', subject: '관리 콘솔 보안 위험 알림' }), true)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: 'GS네오텍 사용내역', subject: 'GS네오텍 사용내역' }), false)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: 'New security alert for your account' }), true)
+  assert.equal(isExcludedCandidate({ kind: 'sent_mail', label: '대보험 자료 요청' }), true, '4대보험의 숫자가 정규화로 빠져도 씨앗 몫')
+})
+
+test('C2: inferRules 는 제외 후보를 규칙으로 만들지 않는다', () => {
+  const ev = [...monthly('국세 출금'), ...monthly('[미래에셋증권] 김류하님의 거래내역입니다'), ...monthly('관리 콘솔 보안 위험 알림'), ...monthly('GS네오텍 사용내역')]
+  const r = inferRules(ev, { existingRules: [] })
+  assert.deepEqual(r.map(x => x.title), ['GS네오텍 사용내역'])
+})
+
+test('C2: 신뢰 0.6 미만·3개월 미만은 버리고, 실행당 5개까지 신뢰 높은 순', () => {
+  const two = monthly('두달치').slice(0, 2)
+  assert.equal(inferRules(two, { existingRules: [] }).length, 0, '2개월은 부족')
+  // 3개월·날 차이 4 → 0.75 * 0.6 = 0.45 → 버림
+  const loose = ['2026-07-10', '2026-08-14', '2026-09-12'].map((d, i) => ({ company: 'tensw', kind: 'cash', table: 't', counterparty: '느슨', key: 'k-loose', label: '느슨', date: d, ref: `l${i}` }))
+  assert.equal(inferRules(loose, { existingRules: [] }).length, 0)
+  const many = []
+  for (let n = 0; n < 7; n++) {
+    const dates = n < 2 ? ['2026-07-10', '2026-08-10', '2026-09-10'] : ['2026-06-10', '2026-07-10', '2026-08-10', '2026-09-10']
+    for (const [i, d] of dates.entries()) many.push({ company: 'tensw', kind: 'cash', table: 't', counterparty: `거래처${n}`, key: `k${n}`, label: `거래처${n}`, date: d, ref: `r${n}-${i}` })
+  }
+  const r = inferRules(many, { existingRules: [] })
+  assert.equal(r.length, INFER_LIMIT)
+  assert.ok(r.every(x => x.confidence === 1), '4개월(신뢰 1)이 3개월(0.75)보다 먼저')
 })
