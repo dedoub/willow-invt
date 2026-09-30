@@ -324,6 +324,7 @@ test('I9: 개인·가족·개인투자 메시지는 judge 앞에서 거른다', 
   assert.equal(isPersonalItem({ subject: '[미래에셋증권] 김류하님의 거래내역입니다', from: 'noreply@miraeasset.com', text: '' }), true)
   assert.equal(isPersonalItem({ subject: '류하 학원 상담 안내', from: 'a@b.c', text: '' }), true)
   assert.equal(isPersonalItem({ subject: 'Security alert', from: 'no-reply@accounts.google.com', text: 'New sign-in' }), true)
+  assert.equal(isPersonalItem({ subject: '[키움증권] ETF 상장 일정 협의', from: 'etf@kiwoom.com', text: '거래내역 첨부드립니다' }), false)
   assert.equal(isPersonalItem({ subject: '[GS네오텍] 2026년 9월 사용내역 안내', from: 'bill@gsneotek.com', text: '사용내역을 보내드립니다' }), false)
   assert.equal(isPersonalItem({ space: 'Tensw 운영자방', from: '김의향', text: '세금계산서 발행 부탁드립니다' }), false)
 })

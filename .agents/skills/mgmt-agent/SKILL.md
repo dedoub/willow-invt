@@ -11,8 +11,8 @@ description: Use when running, checking or tuning the Tensoftworks/Willow manage
 1. **규칙 → 일정** (`rules`): `mgmt_rules` 의 정기 업무를 오늘~60일로 깐다. 사람이 적은 행
    (`origin='manual'`)은 날짜·제목을 다시 손대지 않는다.
 2. **메일·스페이스 → 일정 갱신** (`collect`): 텐소·윌로우 메일함과 텐소 구글 챗 스페이스를 읽어
-   Codex 판단(`judge`)으로 새 일정·완료·결정 후보를 뽑는다. 개인·가족·개인투자 메시지(류하·가족·증권·
-   거래내역·병원·보안 알림 등, `isPersonalItem()`)는 Codex 에 넘기지 않는다. Codex 는 임시 폴더에서
+   Codex 판단(`judge`)으로 새 일정·완료·결정 후보를 뽑는다. 개인·가족 메시지("…님의 거래내역"·류하·가족·
+   병원·보안 알림 등, `isPersonalItem()`)는 Codex 에 넘기지 않는다. 증권사 업무 메일은 거르지 않는다. Codex 는 임시 폴더에서
    `--sandbox read-only` 로 돈다.
 3. **증빙 → 완료 처리** (`close`): 세금 고지·메일·현금 원장에서 근거를 찾은 정기 행만 완료로 닫는다.
    추측으로 닫지 않는다. 규칙에 `adopt_prefix` 가 있고 커머셜 인보이스·재무 동기화가 같은 회차 행을
@@ -171,7 +171,7 @@ CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `open`·`sent`
 | "오늘 요약", "경영관리 요약" | `node scripts/mgmt-agent.mjs --only digest` | 요약 텍스트 그대로 |
 | "결정함에 뭐 있어" | 위 SQL(`mgmt_decisions` open/sent) | 질문 목록 |
 | "그 규칙 빼줘 X", "반복 규칙에서 X 끄기" | 위 SQL(`update mgmt_rules set active=false …`) | 끈 규칙 제목 |
-| "반복 규칙 뭐 새로 찾았어" | `node scripts/mgmt-agent.mjs --only infer` | 새 추정 규칙 목록(신뢰도 포함). 한 회차 5개까지, 신뢰 0.6·3개월 이상, 세금·보험·급여(씨앗 몫)와 개인·잡음은 빠진다 |
+| "반복 규칙 뭐 새로 찾았어" | `node scripts/mgmt-agent.mjs --only infer` | 새 추정 규칙 목록(신뢰도 포함). 한 회차 5개까지, 신뢰 0.6·3개월 이상, 세금·보험·급여와 씨앗 상대(아크로스 등)가 제목에 든 메일(씨앗 몫), 개인 명세·보안 알림은 빠진다 |
 | "경영관리 교훈: …" | `node scripts/mgmt-agent.mjs lesson --company <tensw\|willow> --scope judge "…"` (회사가 불분명하면 묻는다) | 저장된 교훈 문장 |
 | "교훈 뭐 쌓였어" | 위 SQL(`mgmt_lessons` active) | 교훈 목록 |
 | "6~9월로 다시 재봐줘", "재현 시험 돌려줘" | `node scripts/mgmt-replay.mjs` | `scripts/logs/mgmt-replay-2026-06-09.md` 요지 |

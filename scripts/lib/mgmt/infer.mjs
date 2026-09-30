@@ -11,12 +11,16 @@ export function normalizeSubject(s) {
 
 // C2 가드레일. 세금·보험·급여는 씨앗 규칙이 이미 맡는다(제목의 숫자는 정규화로 빠지므로 '4대보험'은 '대보험'으로도 본다).
 export const SEED_COVERED_WORDS = ['국세', '지방세', '원천', '소득세', '국민연금', '건강보험', '고용보험', '산재', '4대보험', '대보험', '부가세', '급여']
-// 개인·가족·개인투자·잡음 — 규칙으로도, judge 입력으로도 쓰지 않는다(I9 isPersonalItem 과 같은 목록).
-export const PERSONAL_WORDS = ['류하', '김류하', '가족', '증권', '거래내역', '미래에셋', '병원', '보안 위험', 'security alert', '로그인 알림']
+// 개인·가족 명세와 잡음 — 규칙으로도, judge 입력으로도 쓰지 않는다(I9 isPersonalItem 과 같은 목록).
+// '증권'·'거래내역' 낱말만으로는 막지 않는다 — 윌로우 ETF 업무 메일이 증권사(키움·KB·한화 등)에서 온다.
+// 개인 명세는 "…님의 거래내역" 꼴로만 잡는다.
+export const FAMILY_NAMES = ['류하', '김류하']
+export const PERSONAL_PATTERNS = [/님의\s*거래내역/, ...FAMILY_NAMES.map(n => new RegExp(n)), /가족/, /병원/, /보안 위험/, /security alert/i, /로그인 알림/]
+export const isPersonalText = text => PERSONAL_PATTERNS.some(re => re.test(String(text ?? '')))
 const hasAny = (text, words) => { const t = String(text ?? '').toLowerCase(); return words.some(w => t.includes(w.toLowerCase())) }
 const candidateText = ev => [ev.counterparty, ev.label, ev.subject].filter(Boolean).join(' ')
 export const isSeedCoveredWord = ev => hasAny(candidateText(ev), SEED_COVERED_WORDS)
-export const isPersonalCandidate = ev => hasAny(candidateText(ev), PERSONAL_WORDS)
+export const isPersonalCandidate = ev => isPersonalText(candidateText(ev))
 // 순수 판정: 규칙 후보에서 뺄 이벤트인가(씨앗이 맡는 세금·보험·급여, 또는 개인·잡음).
 export function isExcludedCandidate(ev) {
   return isSeedCoveredWord(ev) || isPersonalCandidate(ev)
@@ -32,8 +36,9 @@ const median = xs => { const s = [...xs].sort((a, b) => a - b); return s[Math.fl
 
 const coveredBySeed = (ev, rules) => rules.some(r => {
   if (r.company !== ev.company || !r.completion) return false
+  // 씨앗의 상대(예: akros-fee 의 '아크로스')가 후보 제목에 들어 있으면 같은 일의 메일(계산서 발행 알림 등)로 본다.
   const counterpartyMatch = (r.completion.to && ev.to && ev.to.includes(r.completion.to)) ||
-    (r.completion.counterparty && ev.counterparty && ev.counterparty.includes(r.completion.counterparty))
+    (r.completion.counterparty && [ev.counterparty, ev.label, ev.subject].some(t => t && t.includes(r.completion.counterparty)))
   if (!counterpartyMatch) return false
   // If seed has a subject, candidate label must contain it
   if (r.completion.subject) {

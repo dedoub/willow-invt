@@ -127,3 +127,18 @@ test('C2: 신뢰 0.6 미만·3개월 미만은 버리고, 실행당 5개까지 �
   assert.equal(r.length, INFER_LIMIT)
   assert.ok(r.every(x => x.confidence === 1), '4개월(신뢰 1)이 3개월(0.75)보다 먼저')
 })
+
+// --- 컨트롤러 정정: 증권사 업무 메일은 막지 않는다, 아크로스 계산서 메일은 씨앗 몫 ---
+test('C2 정정: 증권사 업무 메일은 제외하지 않고, "…님의 거래내역" 개인 명세만 제외', () => {
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '[키움증권] ETF 상장 일정 협의', subject: '[키움증권] ETF 상장 일정 협의' }), false)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '[KB증권] 거래내역 대사 자료 요청' }), false)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '[미래에셋증권] 김류하님의 거래내역입니다' }), true)
+  assert.equal(isExcludedCandidate({ kind: 'received_mail', label: '[한화투자증권] 홍길동님의 거래내역 안내' }), true)
+})
+test('C2 정정: 같은 회사 씨앗의 상대(아크로스)가 제목에 있으면 씨앗 몫', () => {
+  const seed = [{ company: 'willow', task_key: 'akros-fee', step: 'issue', completion: { kind: 'cash', table: 'willow_mgmt_cash', counterparty: '아크로스' } }]
+  const label = '윌로우인베스트먼트 주식회사 (윌로우인베스트먼트 주식회사->(주)아크로스테크놀로지스)'
+  const ev = ['2026-06-24', '2026-07-24', '2026-08-24', '2026-09-24'].map((d, i) => ({ company: 'willow', kind: 'received_mail', context: 'default', subject: label, key: `received_mail:x:${label}`, label, date: d, ref: `a${i}` }))
+  assert.equal(inferRules(ev, { existingRules: seed }).length, 0)
+  assert.equal(inferRules(ev.map(e => ({ ...e, company: 'tensw' })), { existingRules: seed }).length, 1, '다른 회사 씨앗은 덮지 않는다')
+})

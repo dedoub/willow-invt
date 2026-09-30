@@ -5,18 +5,16 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { redact } from './redact.mjs'
-import { PERSONAL_WORDS } from './infer.mjs'
+import { isPersonalText } from './infer.mjs'
 
 const SCHEMA = path.join(path.dirname(fileURLToPath(import.meta.url)), 'judge-schema.json')
 
 const field = v => redact(v ?? '').text
 
-// I9: 개인·가족·개인투자 메시지는 judge 에 넘기지 않는다(추론 제외 낱말 + 가족 이름). 제목·보낸이·방 이름·본문 앞부분을 본다.
-export const FAMILY_NAMES = ['류하', '김류하']
-const PERSONAL_ITEM_WORDS = [...new Set([...PERSONAL_WORDS, ...FAMILY_NAMES])].map(w => w.toLowerCase())
+// I9: 개인·가족 메시지는 judge 에 넘기지 않는다(추론 제외 패턴과 같다 — '…님의 거래내역', 류하·김류하, 가족, 병원,
+// 보안 알림). 제목·보낸이·방 이름·본문 앞부분을 본다. 증권사 업무 메일은 거르지 않는다.
 export function isPersonalItem(item) {
-  const head = [item?.subject, item?.from, item?.space, String(item?.text ?? '').slice(0, 300)].filter(Boolean).join(' ').toLowerCase()
-  return PERSONAL_ITEM_WORDS.some(w => head.includes(w))
+  return isPersonalText([item?.subject, item?.from, item?.space, String(item?.text ?? '').slice(0, 300)].filter(Boolean).join(' '))
 }
 
 export function buildPrompt({ company, items, openCases, openSchedules, lessons = [] }) {
