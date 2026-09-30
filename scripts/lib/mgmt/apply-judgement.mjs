@@ -5,13 +5,23 @@ import { tableFor } from './ledger.mjs'
 const clean = s => redact(s ?? '').text
 const cleanOrNull = s => (s === null || s === undefined ? null : clean(s))
 const keyFor = (company, item) => item.source === 'chat' ? `mgmt-chat:${item.ref}` : `mgmt-mail:${company}:${item.ref}`
-const isValidDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
+// 형식뿐 아니라 실존하는 날짜인지도 본다(2월 30일, 13월 등은 Date 가 다음 날짜로 굴려버리므로
+// 왕복 변환으로 잡는다). Invalid Date 에 toISOString 을 부르면 던지므로 먼저 getTime 을 본다.
+const isValidDate = d => {
+  if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+  const dt = new Date(`${d}T00:00:00Z`)
+  if (Number.isNaN(dt.getTime())) return false
+  return dt.toISOString().slice(0, 10) === d
+}
 const OTHER = { tensw: 'willow', willow: 'tensw' }
 // 정기 원장 키(mgmt:)와 메일 키(mgmt-mail:)에는 회사가 박혀 있다. chat 키(mgmt-chat:)는
-// 텐소 스페이스뿐이라 회사가 없다 — 그래서 타사 판정은 이 두 접두사만 본다.
+// 텐소 스페이스뿐이라 회사가 없다 — willow 입장에서는 어떤 mgmt-chat: 행도 자기 것이 아니다.
 const belongsToOther = (sourceKey, company) => {
+  if (typeof sourceKey !== 'string') return false
   const other = OTHER[company]
-  return typeof sourceKey === 'string' && (sourceKey.startsWith(`mgmt:${other}:`) || sourceKey.startsWith(`mgmt-mail:${other}:`))
+  if (sourceKey.startsWith(`mgmt:${other}:`) || sourceKey.startsWith(`mgmt-mail:${other}:`)) return true
+  if (company === 'willow' && sourceKey.startsWith('mgmt-chat:')) return true
+  return false
 }
 
 export function planJudgement(company, j, { items, openSchedules }) {
@@ -33,10 +43,14 @@ export function planJudgement(company, j, { items, openSchedules }) {
   dropped += j.entries.length - knownEntries.length
   const entries = knownEntries.map(e => {
     const item = byRef.get(e.source_ref)
+    // due_date 하나가 잘못됐다고 항목 전체를 버리지 않는다 — 날짜만 비우고 dropped 에 잡는다
+    // (날짜 컬럼에 그대로 들어가면 apply 전체가 죽는다).
+    let due_date = e.due_date
+    if (due_date != null && !isValidDate(due_date)) { dropped++; due_date = null }
     return {
       company, case_name: e.case ? clean(e.case) : null, kind: e.kind, body: clean(e.body),
       actor: e.actor ? clean(e.actor) : null, assignee: e.assignee ? clean(e.assignee) : null,
-      due_date: e.due_date, source: item.source, source_ref: item.ref, occurred_at: item.at,
+      due_date, source: item.source, source_ref: item.ref, occurred_at: item.at,
     }
   })
 
@@ -93,7 +107,7 @@ export function planJudgement(company, j, { items, openSchedules }) {
   dropped += j.decisions.length - knownDecisions.length
   const decisions = knownDecisions.map(d => ({
     company, kind: d.kind, subject_key: `${company}:${clean(d.subject_key)}`, question: clean(d.question),
-    options: d.options.map(o => ({ id: o.id, label: clean(o.label) })),
+    options: d.options.map(o => ({ id: clean(o.id), label: clean(o.label) })),
     recommended: cleanOrNull(d.recommended), refs: [d.source_ref], status: 'open',
   }))
 

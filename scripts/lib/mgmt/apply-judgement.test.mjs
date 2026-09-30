@@ -58,20 +58,22 @@ test('저장할 본문도 가린다', () => {
 test('1. buildPrompt은 subject·space·from·openCases·openSchedules 도 가린다', () => {
   const prompt = buildPrompt({
     company: 'tensw',
-    items: [{ ref: 'r1', at: '2026-10-01T00:00:00Z', from: '김철수 PW: Abc!2345xy', subject: '관리자 PW: Abc!2345xy', space: '스페이스 PW: Abc!2345xy', text: '본문' }],
+    // space 를 일부러 빼서 subject 경로(x.space ?? x.subject) 자체가 가려지는지 증명한다.
+    items: [{ ref: 'r1', at: '2026-10-01T00:00:00Z', from: '김철수 PW: Abc!2345xy', subject: '관리자 PW: Abc!2345xy', text: '본문' }],
     openCases: [{ name: '어떤 건 PW: Abc!2345xy' }],
     openSchedules: [{ source_key: 'mgmt:tensw:x:2026-10:1', title: '비밀번호 Abc!2345xy 변경', schedule_date: '2026-10-05' }],
   })
   assert.doesNotMatch(prompt, /Abc!2345xy/)
 })
 
-test('2. 저장되는 모델 산출 문자열도 전부 가린다(계좌번호)', () => {
+test('2. 저장되는 모델 산출 문자열도 전부 가린다(계좌번호, 옵션 id 포함)', () => {
   const secretItems = [{ source: 'chat', company: 'tensw', ref: 'spaces/A/messages/1', text: '본문', at: '2026-09-30T01:00:00Z' }]
   const p = planJudgement('tensw', {
     cases: [{ name: '계좌 1005-123-456789 확인', counterparty: '계좌 1005-123-456789', stage: '계좌 1005-123-456789', summary: '요약' }],
     entries: [{ kind: 'todo', case: null, body: '본문', actor: '계좌 1005-123-456789', assignee: '계좌 1005-123-456789', due_date: null, source_ref: 'spaces/A/messages/1' }],
     schedules: [],
-    decisions: [{ kind: 'money', subject_key: '계좌 1005-123-456789', question: '질문', options: [{ id: 'a', label: '계좌 1005-123-456789로 송금' }], recommended: '계좌 1005-123-456789', source_ref: 'spaces/A/messages/1' }],
+    decisions: [{ kind: 'money', subject_key: '계좌 1005-123-456789', question: '질문',
+      options: [{ id: '계좌 1005-123-456789', label: '계좌 1005-123-456789로 송금' }], recommended: '계좌 1005-123-456789', source_ref: 'spaces/A/messages/1' }],
   }, { items: secretItems, openSchedules: [] })
   assert.doesNotMatch(p.cases[0].name, /1005-123-456789/)
   assert.doesNotMatch(p.cases[0].counterparty, /1005-123-456789/)
@@ -79,6 +81,7 @@ test('2. 저장되는 모델 산출 문자열도 전부 가린다(계좌번호)'
   assert.doesNotMatch(p.entries[0].actor, /1005-123-456789/)
   assert.doesNotMatch(p.entries[0].assignee, /1005-123-456789/)
   assert.doesNotMatch(p.decisions[0].subject_key, /1005-123-456789/)
+  assert.doesNotMatch(p.decisions[0].options[0].id, /1005-123-456789/)
   assert.doesNotMatch(p.decisions[0].options[0].label, /1005-123-456789/)
   assert.doesNotMatch(p.decisions[0].recommended, /1005-123-456789/)
 })
@@ -106,6 +109,35 @@ test('3c. 타사 소유(mgmt:) 열린 일정은 매치되지 않는다', () => {
   assert.ok(p.dropped >= 1)
 })
 
+test('3d. willow 입장에서는 mgmt-chat: 행도 타사 소유(챗은 텐소 전용)', () => {
+  const wItems = [{ source: 'mail', company: 'willow', ref: 'g1', text: '완료했습니다', at: '2026-10-07T00:00:00Z' }]
+  const chatRow = { id: 'c1', source_key: 'mgmt-chat:spaces/A/messages/0', title: '텐소 챗 일정', schedule_date: '2026-09-30', evidence: [] }
+  const jj = { cases: [], entries: [], schedules: [{ op: 'complete', title: 'x', date: null, source_ref: 'g1', match_key: 'mgmt-chat:spaces/A/messages/0', reason: 'done' }], decisions: [] }
+  const p = planJudgement('willow', jj, { items: wItems, openSchedules: [chatRow] })
+  assert.equal(p.scheduleUpdates.length, 0)
+  assert.ok(p.dropped >= 1)
+})
+
+test('1(2회차). entries[].due_date 가 잘못돼도 항목은 살고 날짜만 비워지며 dropped 에 잡힌다', () => {
+  const jj = { cases: [], entries: [{ kind: 'todo', case: null, body: '본문', actor: null, assignee: null, due_date: '10월 2일', source_ref: 'spaces/A/messages/1' }], schedules: [], decisions: [] }
+  const p = planJudgement('tensw', jj, { items, openSchedules: [] })
+  assert.equal(p.entries.length, 1)
+  assert.equal(p.entries[0].due_date, null)
+  assert.ok(p.dropped >= 1)
+})
+
+test('2(2회차). isValidDate는 존재하지 않는 날짜를 버린다(2월 30일, 13월)', () => {
+  const jjA = { cases: [], entries: [], schedules: [{ op: 'create', title: 'x', date: '2026-02-30', source_ref: 'spaces/A/messages/1', match_key: null, reason: '' }], decisions: [] }
+  const pA = planJudgement('tensw', jjA, { items, openSchedules: [] })
+  assert.equal(pA.scheduleInserts.length, 0)
+  assert.ok(pA.dropped >= 1)
+
+  const jjB = { cases: [], entries: [], schedules: [{ op: 'create', title: 'x', date: '2026-13-01', source_ref: 'spaces/A/messages/1', match_key: null, reason: '' }], decisions: [] }
+  const pB = planJudgement('tensw', jjB, { items, openSchedules: [] })
+  assert.equal(pB.scheduleInserts.length, 0)
+  assert.ok(pB.dropped >= 1)
+})
+
 test('4. 정기 규칙 행(mgmt:)은 증빙만 추가하고 완료·날짜는 바꾸지 않는다', () => {
   const ruleRow = { id: 'r1', source_key: 'mgmt:tensw:tax:2026-09:1', title: '9월 원천세', schedule_date: '2026-09-30', is_completed: false, agent_state: 'planned', evidence: [] }
   const jj = { cases: [], entries: [], schedules: [{ op: 'complete', title: '9월 원천세', date: null, source_ref: 'spaces/A/messages/2', match_key: 'mgmt:tensw:tax:2026-09:1', reason: '납부했습니다' }], decisions: [] }
@@ -115,6 +147,17 @@ test('4. 정기 규칙 행(mgmt:)은 증빙만 추가하고 완료·날짜는 �
   assert.equal(p.scheduleUpdates[0].patch.agent_state, undefined)
   assert.equal(p.scheduleUpdates[0].patch.schedule_date, undefined)
   assert.equal(p.scheduleUpdates[0].patch.evidence.at(-1).kind, 'message')
+})
+
+test('4c. 정기 규칙 행(mgmt:)은 update op 로도 날짜를 바꾸지 않는다(증빙만)', () => {
+  const ruleRow = { id: 'r2', source_key: 'mgmt:tensw:tax:2026-09:1', title: '9월 원천세', schedule_date: '2026-09-30', is_completed: false, agent_state: 'planned', evidence: [] }
+  const jj = { cases: [], entries: [], schedules: [{ op: 'update', title: '9월 원천세', date: '2026-10-05', source_ref: 'spaces/A/messages/2', match_key: 'mgmt:tensw:tax:2026-09:1', reason: '기한 연장' }], decisions: [] }
+  const p = planJudgement('tensw', jj, { items, openSchedules: [ruleRow] })
+  assert.equal(p.scheduleUpdates.length, 1)
+  assert.equal(p.scheduleUpdates[0].patch.schedule_date, undefined)
+  assert.equal(p.scheduleUpdates[0].patch.is_completed, undefined)
+  assert.equal(p.scheduleUpdates[0].patch.agent_state, undefined)
+  assert.equal(p.scheduleUpdates[0].patch.evidence.length, 1)
 })
 
 test('4b. mgmt-chat 행은 update op 로 날짜가 바뀐다(at 포함)', () => {
