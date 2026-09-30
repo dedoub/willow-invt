@@ -246,6 +246,7 @@ test('I8: 주간 해석 실패는 collect 로 시작하는 non-dry 실패', () =
   const lines = [fl('collect:mail:tensw', '2026-09-29T01:00:00Z'), fl('collect:chat:spaces/A', '2026-09-29T02:00:00Z'), fl('collect', '2026-09-29T03:00:00Z'),
     fl('collect:mail:tensw', '2026-09-29T04:00:00Z', true), fl('close', '2026-09-29T05:00:00Z'), fl('collect:mail:tensw:skipped', '2026-09-29T06:00:00Z')]
   assert.equal(countJudgeFailures(lines), 3)
+  assert.equal(countJudgeFailures([fl('collect:lessons', '2026-09-29T07:00:00Z'), fl('collect:lesson-hits', '2026-09-29T07:00:00Z')]), 0)
 })
 
 test('M5: 같은 소스가 오늘 3번 실패하면 건너뛴다(dry 실패·어제 실패는 세지 않음)', () => {

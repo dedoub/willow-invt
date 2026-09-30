@@ -222,7 +222,7 @@ export function splitMessage(text, max = TELEGRAM_CHUNK) {
 
 // I8: 주간 성적표의 해석 실패 = 오늘까지 7일 안의 non-dry collect* 실패(하루 한 번 남기는 skipped 표시는 빼고).
 export function countJudgeFailures(lines) {
-  return lines.filter(l => { try { const f = JSON.parse(l); return String(f.step ?? '').startsWith('collect') && !String(f.step).endsWith(':skipped') && !f.dry } catch { return false } }).length
+  return lines.filter(l => { try { const f = JSON.parse(l); const st = String(f.step ?? ''); return (st === 'collect' || st.startsWith('collect:mail:') || st.startsWith('collect:chat:')) && !st.endsWith(':skipped') && !f.dry } catch { return false } }).length
 }
 
 // M5: 같은 collect 소스가 오늘(KST) 실제 실행에서 3번 이상 실패했으면 오늘은 건너뛴다.

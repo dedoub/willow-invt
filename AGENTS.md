@@ -251,8 +251,8 @@ node scripts/mgmt-replay.mjs                      # 6~9월 재현 시험(읽기 
 npm run mgmt:test
 ```
 
-- 도입 첫 2주는 launchd 가 `--dry` + `MGMT_DRY_DIGEST=1` 로 돈다 — DB 쓰기 없이, 저녁 요약만
-  "(시험 운행)" 표시로 윌리에게 간다. dry 는 `collect`(Codex)를 18:3x 회차에서만 돌고(`--dry --only collect`
+- 2026-09-30 부터 실운행(대표님 지시: 돌리면서 고친다). 시험하려면 `MGMT_ARGS=--dry` + `MGMT_DRY_DIGEST=1` 로 돌리면
+  DB 쓰기 없이 "(시험 운행)" 요약만 윌리에게 간다. dry 는 `collect`(Codex)를 18:3x 회차에서만 돌고(`--dry --only collect`
   는 언제든), 했을 일을 `~/.willow/mgmt-agent-dry.jsonl`(7일)에 모아 그 요약에 종류별로 붙인다. `--only` 값은
   `learn|rules|collect|close|decide|digest|infer|tune|weekly` 중 하나.
 - 발송은 하지 않는다(메일·챗 쓰기 금지). 결정함의 승인·보안은 매번 윌리에게 묻고, 같은 분류

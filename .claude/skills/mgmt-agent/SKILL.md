@@ -50,10 +50,10 @@ npm run mgmt:test                                   # 유닛 테스트
 ## 스케줄
 
 launchd `com.willow.mgmt-agent` 가 평일 07~20시, 매시 :05·:35 에 `scripts/run-mgmt-agent.sh` 를
-부른다(주말·07시 이전·20시 이후는 스크립트가 바로 종료). **도입 첫 2주는 `MGMT_ARGS=--dry` +
-`MGMT_DRY_DIGEST=1` 로 등록돼 있다** — DB 쓰기·결정 발송 없이, 저녁 요약 한 통만 "(시험 운행)"
-표시로 윌리에게 간다. 안정되면 plist 의 `MGMT_ARGS`/`MGMT_DRY_DIGEST` 를 빼고
-`launchctl bootout`→`bootstrap` 으로 다시 올린다.
+부른다(주말·07시 이전·20시 이후는 스크립트가 바로 종료). **2026-09-30 부터 실운행**(대표님: 돌리면서 고친다). plist 는
+`~/scripts/drive-launcher.sh` 로 외장 드라이브를 기다린 뒤 bash 로 부른다(zsh 로 직접 부르면 launchd 가
+외장 볼륨 파일을 못 연다, 종료코드 127). 시험으로 돌리려면 plist 에 `MGMT_ARGS=--dry`·`MGMT_DRY_DIGEST=1` 을
+넣고 `launchctl bootout`→`bootstrap`.
 
 - 동시 실행 방지: `~/.willow/mgmt-agent.lock` (pid 기록, 35분 넘으면 죽은 락으로 보고 무시).
 - 시간 상한: 20분(그 안에 못 끝내면 `timeout` 실패로 기록하고 종료).

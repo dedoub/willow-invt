@@ -299,6 +299,8 @@ async function stepDecide() {
   const now = new Date()
   // M6: 보류(answer 'hold')는 아무 것도 반영하지 않는다. 7일 지나면 expired 로 돌려 쌓이지 않게 한다.
   const holds = must(await sb.from('mgmt_decisions').select('id, subject_key, answer, answered_at').eq('status', 'answered').eq('answer', 'hold'), 'hold decisions')
+  // 보류 중인 주제는 새로 묻지 않는다(부분 유니크 인덱스는 open/sent 만 막는다).
+  const heldKeys = new Set((holds ?? []).filter(d => !holdExpired(d, now)).map(d => d.subject_key))
   for (const d of holds ?? []) {
     if (!holdExpired(d, now)) continue
     log(`보류 만료 ${d.subject_key}`)
@@ -339,6 +341,7 @@ async function stepDecide() {
     for (const m of missed ?? []) {
       if (!m.source_key) continue
       const d = missedDecision(company, m)
+      if (heldKeys.has(d.subject_key)) continue
       tally.decisions++
       log(`결정 만들기 ${d.subject_key}`)
       dryNote('decision', company, d.question)
@@ -478,6 +481,8 @@ async function stepTune() {
           if (!dryRun) must(await sb.from('mgmt_rules').update({ rule: { ...rule.rule, day: a.to } }).eq('id', rule.id).select('id').maybeSingle(), `tune shift ${rule.id}`)
           await tuneLesson(rule.company, rule.id, a.lesson)
         } else if (a.kind === 'ask_disable') {
+          const held = must(await sb.from('mgmt_decisions').select('id, answered_at').eq('subject_key', subjectKey).eq('status', 'answered').eq('answer', 'hold'), 'rule_review hold')
+          if ((held ?? []).some(h => !holdExpired(h, new Date()))) { log(`보류 중이라 다시 묻지 않음 ${subjectKey}`); continue }
           log(`규칙 재검토 물음 ${subjectKey}`)
           dryNote('decision', rule.company, `"${rule.title}" 규칙이 두 번 연속 빠졌어요. 어떻게 할까요?`)
           tally.decisions++
