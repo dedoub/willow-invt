@@ -331,3 +331,16 @@ test('I9: judge 프롬프트는 개인 메시지를 무시하라고 적는다', 
   const p = buildPrompt({ company: 'tensw', items: [], openCases: [], openSchedules: [] })
   assert.match(p, /개인·가족·개인투자 메시지는 무시한다\(아무 항목도 만들지 않는다\)/)
 })
+
+test('I10: codexRunner 는 임시 폴더를 cwd 로, 읽기 전용 샌드박스로 부른다', () => {
+  let captured
+  const fakeExec = (cmd, args, opts) => {
+    captured = { args, opts }
+    fs.writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify({ cases: [], entries: [], schedules: [], decisions: [] }))
+  }
+  codexRunner('프롬프트', { exec: fakeExec })
+  const outDir = path.dirname(captured.args[captured.args.indexOf('-o') + 1])
+  assert.equal(captured.opts.cwd, outDir)
+  assert.equal(captured.args[captured.args.indexOf('--sandbox') + 1], 'read-only')
+  assert.ok(captured.args.includes('--ephemeral'))
+})

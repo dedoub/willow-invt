@@ -53,8 +53,9 @@ export function codexRunner(prompt, { exec = execFileSync, schema = SCHEMA } = {
   try {
     // stderr 는 절대 캡처하지 않는다(ignore) — codex 실패 시 에러 메시지에 프롬프트·본문 일부가
     // 섞여 로그로 새는 것을 막는다.
-    exec('codex', ['exec', '--ephemeral', '--skip-git-repo-check', '--output-schema', schema, '-o', out, '-'],
-      { input: prompt, encoding: 'utf8', timeout: 600_000, stdio: ['pipe', 'ignore', 'ignore'] })
+    // I10: 임시 폴더에서, 읽기 전용 샌드박스로 — 메일 본문의 지시가 저장소·파일을 건드리지 못하게.
+    exec('codex', ['exec', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '--output-schema', schema, '-o', out, '-'],
+      { cwd: dir, input: prompt, encoding: 'utf8', timeout: 600_000, stdio: ['pipe', 'ignore', 'ignore'] })
     return JSON.parse(fs.readFileSync(out, 'utf8'))
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })

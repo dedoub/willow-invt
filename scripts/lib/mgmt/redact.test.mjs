@@ -60,3 +60,15 @@ test('6줄 이상 백업코드는 키워드 없어도 마스크함', () => {
   assert.doesNotMatch(r.text, /a1b2c3d4/)
   assert.ok(r.found.includes('backup_codes'))
 })
+
+test('I10: Supabase sb_secret_/sb_publishable_ 키와 api_key=… 꼴을 가린다', () => {
+  const r = redact('키: sb_secret_AbCdEf1234567890xyz 와 sb_publishable_ZyXw9876543210abc')
+  assert.doesNotMatch(r.text, /AbCdEf1234567890xyz|ZyXw9876543210abc/)
+  assert.ok(r.found.includes('api_key'))
+  for (const t of ['API_KEY=abc123def456', 'secret-key: s3cr3t!', 'accessKey = AKzz99', 'apikey:xyz']) {
+    const x = redact(`설정 ${t} 끝`)
+    assert.match(x.text, /\[가림\]/, t)
+    assert.doesNotMatch(x.text, /abc123def456|s3cr3t!|AKzz99|xyz 끝/, t)
+  }
+  assert.equal(redact('api 키를 발급받았어요').text, 'api 키를 발급받았어요')
+})

@@ -15,6 +15,8 @@ const RULES = [
   ['api_key', /\b(?:sk|pk|rk)-[A-Za-z0-9_-]{16,}\b/g, MASK],
   ['api_key', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, MASK],
   ['api_key', /\b(?:ghp|gho|github_pat|xox[bap])_[A-Za-z0-9_]{16,}\b/g, MASK],
+  ['api_key', /\bsb_(?:secret|publishable)_[A-Za-z0-9_-]{8,}/g, MASK],
+  ['api_key', /\b((?:api|secret|access)[_-]?key\s*[:=]\s*)\S+/gi, '$1' + MASK],
   ['rrn', /\b\d{6}-[1-4]\d{6}\b/g, MASK],
   // 사업자등록번호(3-2-5) 제외
   ['account', /\b\d{3,6}-\d{2,6}-\d{4,8}(?:-\d{1,3})?\b/g, (match) => {
