@@ -22,7 +22,7 @@ import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decision
 import { scorecard, skillCandidates } from './lib/mgmt/weekly.mjs'
 import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
 import { redact } from './lib/mgmt/redact.mjs'
-import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, holdExpired } from './lib/mgmt/runner-helpers.mjs'
+import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, holdExpired, splitMessage, countJudgeFailures, poisonedSources, dryLine, mergeDryLines, dryDigestLines } from './lib/mgmt/runner-helpers.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -50,6 +50,18 @@ function fail(step, e) {
   failures.push(step)
   log(`실패 ${step}: ${message}`)
   recordFailure(step, message)
+}
+// I6: dry 실행에서 했을 일을 ~/.willow/mgmt-agent-dry.jsonl 에 모은다(7일 보관) — dry 요약이 오늘 것을 종류별로 보여 준다.
+const DRY_FILE = path.join(os.homedir(), '.willow/mgmt-agent-dry.jsonl')
+const dryBuffer = []
+function dryNote(kind, company, title) { if (dryRun) dryBuffer.push(dryLine(kind, company, title)) }
+function flushDry() {
+  if (!dryRun || !dryBuffer.length) return
+  try {
+    const lines = fs.existsSync(DRY_FILE) ? fs.readFileSync(DRY_FILE, 'utf8').split('\n').filter(Boolean) : []
+    fs.mkdirSync(path.dirname(DRY_FILE), { recursive: true })
+    fs.writeFileSync(DRY_FILE, mergeDryLines(lines, dryBuffer.splice(0)).join('\n') + '\n')
+  } catch (e) { console.error(`[mgmt] dry 기록 못 함: ${e instanceof Error ? e.message : e}`) }
 }
 const COMPANIES = ['tensw', 'willow']
 const CONTEXTS = [['tensoftworks', 'tensw'], ['default', 'willow']]
@@ -91,7 +103,7 @@ if (args[0] === 'lesson') {
 
 let selected
 const nowKst = kst()
-try { selected = planSteps(nowKst.toISOString().slice(11, 16), only, { monday: nowKst.getUTCDay() === 1 }) } catch (e) { log(e.message); process.exit(2) }
+try { selected = planSteps(nowKst.toISOString().slice(11, 16), only, { monday: nowKst.getUTCDay() === 1, dry: dryRun }) } catch (e) { log(e.message); process.exit(2) }
 
 // 락 — 살아 있는 pid 가 있으면 바로 끝낸다.
 const LOCK = path.join(os.homedir(), '.willow/mgmt-agent.lock')
@@ -122,13 +134,21 @@ async function loadCeoChatId() {
 async function telegram(text, { buttons, kind = 'decision' } = {}) {
   const dryDigest = dryRun && process.env.MGMT_DRY_DIGEST === '1' && kind === 'digest'
   if (dryRun && !dryDigest) { log(`(dry) 윌리: ${text.split('\n')[0]}`); return null }
-  const body = { chat_id: await loadCeoChatId(), text: dryRun ? `(시험 운행) ${text}` : text, ...(buttons && !dryRun ? { reply_markup: { inline_keyboard: buttons } } : {}) }
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    const j = await r.json().catch(() => ({}))
-    if (!j.ok) { fail(`telegram:${kind}`, `윌리 전송 실패: ${j.description ?? r.status}`); return null }
-    return j.result?.message_id ?? null
-  } catch (e) { fail(`telegram:${kind}`, e); return null }
+  // I7: 3,800자 넘으면 줄 경계에서 여러 통으로. 버튼은 마지막 통에만(돌려주는 message_id 도 그 통).
+  const chunks = splitMessage(dryRun ? `(시험 운행) ${text}` : text)
+  const chatId = await loadCeoChatId()
+  let mid = null
+  for (const [i, chunk] of chunks.entries()) {
+    const last = i === chunks.length - 1
+    const body = { chat_id: chatId, text: chunk, ...(last && buttons && !dryRun ? { reply_markup: { inline_keyboard: buttons } } : {}) }
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const j = await r.json().catch(() => ({}))
+      if (!j.ok) { fail(`telegram:${kind}`, `윌리 전송 실패: ${j.description ?? r.status}`); return null }
+      mid = j.result?.message_id ?? null
+    } catch (e) { fail(`telegram:${kind}`, e); return null }
+  }
+  return mid
 }
 
 async function loadRules() {
@@ -156,20 +176,33 @@ async function stepRules() {
     const missed = planMissed(rows, from)
     tally.inserted += plan.insert.length; tally.updated += plan.update.length; tally.missed += missed.length
     log(`${company}: 추가 ${plan.insert.length} · 갱신 ${plan.update.length} · 빠짐 ${missed.length}`)
+    for (const r of plan.insert) dryNote('schedule', company, `${r.schedule_date} ${r.title}`)
     await applyPlan(sb, table, plan, { dryRun, log, onWrite })
     await applyPlan(sb, table, { insert: [], update: missed }, { dryRun, log, onWrite })
   }
 }
 
 async function stepCollect() {
+  // M5: 오늘 실제 실행에서 3번 넘게 실패한 소스는 오늘은 건너뛴다(실패 줄은 하루 한 번 'collect:<source>:skipped').
+  let poison = { skip: new Set(), alreadyMarked: new Set() }
+  try { poison = poisonedSources(fs.existsSync(FAIL_FILE) ? fs.readFileSync(FAIL_FILE, 'utf8').split('\n').filter(Boolean) : [], todayKey()) } catch {}
+  const skipped = source => {
+    if (!poison.skip.has(source)) return false
+    if (!poison.alreadyMarked.has(source)) { fail(`collect:${source}:skipped`, '오늘 3번 넘게 실패 — 오늘은 건너뜀'); poison.alreadyMarked.add(source) }
+    else log(`건너뜀(오늘 3번 넘게 실패) ${source}`)
+    return true
+  }
   const batches = []
   for (const [context, company] of CONTEXTS) {
     const source = `mail:${company}`
+    if (skipped(source)) continue
     try { batches.push({ source, company, items: await readMail(sb, context, await getCursor(sb, source)) }) }
     catch (e) { fail(`collect:${source}`, e) }
   }
-  try { for (const [space, items] of await readChat(sb, s => getCursor(sb, s))) batches.push({ source: `chat:${space}`, company: 'tensw', items }) }
-  catch (e) { fail('collect:chat', e) }
+  if (!skipped('chat')) {
+    try { for (const [space, items] of await readChat(sb, s => getCursor(sb, s))) if (!skipped(`chat:${space}`)) batches.push({ source: `chat:${space}`, company: 'tensw', items }) }
+    catch (e) { fail('collect:chat', e) }
+  }
   // 교훈: 회사별 활성·judge/close 범위·최근 20개를 judge 프롬프트에 넣는다. 못 읽어도 수집은 계속한다.
   let allLessons = []
   try { allLessons = await loadLessons(sb) } catch (e) { fail('collect:lessons', e) }
@@ -199,6 +232,8 @@ async function collectBatches(batches, allLessons, prompted) {
         const plan = planJudgement(b.company, j, { items, openSchedules: openSchedules ?? [] })
         tally.entries += plan.entries.length; tally.inserted += plan.scheduleInserts.length; tally.updated += plan.scheduleUpdates.length; tally.decisions += plan.decisions.length
         log(`${b.source} [${i + 1}-${i + items.length}] 건 ${plan.cases.length} · 기록 ${plan.entries.length} · 일정 +${plan.scheduleInserts.length}/~${plan.scheduleUpdates.length} · 결정 ${plan.decisions.length} · 버림 ${plan.dropped}`)
+        for (const r of plan.scheduleInserts) dryNote('schedule', b.company, `${r.schedule_date} ${r.title}`)
+        for (const d of plan.decisions) dryNote('decision', b.company, d.question)
         await applyJudgement(sb, plan, { dryRun, log, onWrite })
         await saveCursor(sb, b.source, items, { dryRun })
       }
@@ -245,6 +280,7 @@ async function stepClose() {
       if (!c) continue
       n++
       log(`완료 ${company} ${row.schedule_date} ${row.title} ← ${c.ev.kind} ${c.ev.note ?? ''}`)
+      dryNote('close', company, `${row.schedule_date} ${row.title} ← ${c.ev.kind}`)
       if (!dryRun) await onWrite(table, must(await sb.from(table).update(c.patch).eq('id', row.id).select('*').maybeSingle(), `close ${row.id}`))
     }
     tally.closed += n
@@ -299,6 +335,7 @@ async function stepDecide() {
       const d = missedDecision(company, m)
       tally.decisions++
       log(`결정 만들기 ${d.subject_key}`)
+      dryNote('decision', company, d.question)
       if (!dryRun) { const { error } = await sb.from('mgmt_decisions').insert(d); if (error && error.code !== '23505') fail(`decide:missed:${m.source_key}`, error.message) }
     }
   }
@@ -369,7 +406,14 @@ async function stepDigest() {
   const { count, error } = await sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).in('status', ['open', 'sent'])
   if (error) throw new Error(`open decisions: ${error.message}`)
   let text = digestMessage({ date: today, done, created, inferred: (inferred ?? []).map(r => `${r.title}(매월 ${r.rule.day}일)`), missed, openDecisions: Array(count ?? 0).fill(0), failures: failureLabels(fileFailures), reused })
-  if (dryRun) text = [text ?? `경영관리 ${today}`, `이번 실행(dry): 추가 ${tally.inserted} · 갱신 ${tally.updated} · 빠짐 ${tally.missed} · 완료 ${tally.closed} · 기록 ${tally.entries} · 결정 ${tally.decisions}`].join('\n')
+  if (dryRun) {
+    // I6: dry 에서는 원장이 안 바뀌므로 오늘 dry 실행들이 했을 일을 종류별로 붙인다.
+    flushDry()
+    let wouldDo = []
+    try { wouldDo = dryDigestLines(fs.existsSync(DRY_FILE) ? fs.readFileSync(DRY_FILE, 'utf8').split('\n').filter(Boolean) : [], today) } catch {}
+    text = [text ?? `경영관리 ${today}`, `이번 실행(dry): 추가 ${tally.inserted} · 갱신 ${tally.updated} · 빠짐 ${tally.missed} · 완료 ${tally.closed} · 기록 ${tally.entries} · 결정 ${tally.decisions}`,
+      ...(wouldDo.length ? ['오늘 시험 운행에서 했을 일:', ...wouldDo] : [])].join('\n')
+  }
   if (text) await telegram(text, { kind: 'digest' })
   else log('요약할 것 없음')
 }
@@ -391,6 +435,7 @@ async function stepInfer() {
   log(`이벤트 ${events.length} → 추론 규칙 ${found.length} (상한 ${INFER_LIMIT}, 신뢰 ≥ ${MIN_CONFIDENCE})`)
   for (const r of found) {
     log(`추론 규칙 ${r.company} ${r.title} 매월 ${r.rule.day}일 (신뢰 ${r.confidence})`)
+    dryNote('inferred', r.company, `${r.title}(매월 ${r.rule.day}일)`)
     if (!dryRun) { const { error } = await sb.from('mgmt_rules').insert(r); if (error && error.code !== '23505') throw error }
   }
 }
@@ -428,6 +473,7 @@ async function stepTune() {
           await tuneLesson(rule.company, rule.id, a.lesson)
         } else if (a.kind === 'ask_disable') {
           log(`규칙 재검토 물음 ${subjectKey}`)
+          dryNote('decision', rule.company, `"${rule.title}" 규칙이 두 번 연속 빠졌어요. 어떻게 할까요?`)
           tally.decisions++
           if (!dryRun) {
             const { error } = await sb.from('mgmt_decisions').insert({
@@ -483,7 +529,7 @@ async function stepWeekly() {
 
   // judgeFailures: mgmt_cursors 정체 대신 실패 기록에서 곧바로 센다(더 정확 — 커서는 소스가 조용해도 안 움직일 수 있다).
   const failLines = fs.existsSync(FAIL_FILE) ? fs.readFileSync(FAIL_FILE, 'utf8').split('\n').filter(Boolean) : []
-  const judgeFailures = pruneFailureLines(failLines).filter(l => { try { const f = JSON.parse(l); return f.step === 'collect' && !f.dry } catch { return false } }).length
+  const judgeFailures = countJudgeFailures(pruneFailureLines(failLines))
 
   const s = scorecard({ from, to, writes, reverts, closedByEvidence, missed, asked, reused, judgeFailures })
   log(`성적표 ${from}~${to}: 쓴 일정 ${writes} · 되돌림 ${reverts} · 근거로 닫음 ${closedByEvidence} · 빠짐 ${missed} · 결정 ${asked} · 재사용 ${reused} · 해석실패 ${judgeFailures}`)
@@ -545,5 +591,6 @@ const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close:
 for (const name of selected) {
   try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }
+flushDry()
 log(`끝${failures.length ? ` — 실패: ${failures.join(', ')}` : ''}`)
 process.exitCode = failures.length ? 1 : 0

@@ -1,20 +1,24 @@
 // runner-helpers.mjs — 실행기(mgmt-agent.mjs)의 DB 없는 순수 로직. 시험은 runner-helpers.test.mjs.
 import { findEvidence, closePatch } from './closers.mjs'
 import { normalizeSubject } from './infer.mjs'
+import { redact } from './redact.mjs'
 
 export const addDays = (key, n) => { const t = new Date(`${key}T00:00:00Z`); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10) }
 
 // learn(되돌림에서 배우기)이 맨 앞. 07:00~07:29 이면 infer, 월요일 그 시각이면 infer 다음에 tune, 18:30~18:59 이면 마지막에 digest.
 // 월요일 07:30~07:59 이면 마지막에 weekly(주간 성적표 + 스킬 후보).
 export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer', 'tune', 'weekly']
-export function planSteps(hm, only = null, { monday = false } = {}) {
+// I5: dry 는 collect(Codex 호출)를 digest 와 같은 18:30~18:59 실행에서만 돈다. --only collect 는 그대로.
+export function planSteps(hm, only = null, { monday = false, dry = false } = {}) {
   if (only !== null && only !== undefined) {
     if (!STEP_NAMES.includes(only)) throw new Error(`알 수 없는 단계 "${only}" (${STEP_NAMES.join('|')})`)
     return [only]
   }
   const inferWindow = hm >= '07:00' && hm < '07:30'
   const weeklyWindow = monday && hm >= '07:30' && hm < '08:00'
-  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', 'collect', 'close', 'decide', ...(hm >= '18:30' && hm < '19:00' ? ['digest'] : []), ...(weeklyWindow ? ['weekly'] : [])]
+  const digestWindow = hm >= '18:30' && hm < '19:00'
+  const collect = !dry || digestWindow ? ['collect'] : []
+  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', ...collect, 'close', 'decide', ...(digestWindow ? ['digest'] : []), ...(weeklyWindow ? ['weekly'] : [])]
 }
 
 // mgmt:<company>:<task>:<YYYY-MM>:<step>
@@ -194,4 +198,78 @@ export function holdExpired(d, now = new Date()) {
   if (!isHold(d)) return false
   const t = Date.parse(d.answered_at)
   return !Number.isNaN(t) && now.getTime() - t >= HOLD_DAYS * 86_400_000
+}
+
+// I7: 텔레그램 한 통 상한(4096)보다 여유 있게 3,800자에서 줄 단위로 나눈다. 한 줄이 넘치면 그 줄만 자른다.
+export const TELEGRAM_CHUNK = 3800
+export function splitMessage(text, max = TELEGRAM_CHUNK) {
+  const pieces = String(text ?? '').split('\n').flatMap(line => {
+    if (line.length <= max) return [line]
+    const parts = []
+    for (let i = 0; i < line.length; i += max) parts.push(line.slice(i, i + max))
+    return parts
+  })
+  const out = []
+  let cur = null
+  for (const p of pieces) {
+    if (cur === null) cur = p
+    else if (cur.length + 1 + p.length <= max) cur += `\n${p}`
+    else { out.push(cur); cur = p }
+  }
+  out.push(cur ?? '')
+  return out
+}
+
+// I8: 주간 성적표의 해석 실패 = 오늘까지 7일 안의 non-dry collect* 실패(하루 한 번 남기는 skipped 표시는 빼고).
+export function countJudgeFailures(lines) {
+  return lines.filter(l => { try { const f = JSON.parse(l); return String(f.step ?? '').startsWith('collect') && !String(f.step).endsWith(':skipped') && !f.dry } catch { return false } }).length
+}
+
+// M5: 같은 collect 소스가 오늘(KST) 실제 실행에서 3번 이상 실패했으면 오늘은 건너뛴다.
+// 돌려주는 값: { skip: Set<source>, alreadyMarked: Set<source> } — alreadyMarked 는 오늘 skipped 줄이 이미 있는 소스.
+export const POISON_LIMIT = 3
+export function poisonedSources(lines, today, limit = POISON_LIMIT) {
+  const counts = new Map(), alreadyMarked = new Set()
+  for (const f of failuresOn(lines, today)) {
+    if (f.dry) continue
+    const m = /^collect:(.+?)(:skipped)?$/.exec(String(f.step ?? ''))
+    if (!m || m[1] === 'lessons' || m[1] === 'lesson-hits') continue
+    if (m[2]) { alreadyMarked.add(m[1]); continue }
+    counts.set(m[1], (counts.get(m[1]) ?? 0) + 1)
+  }
+  return { skip: new Set([...counts].filter(([, n]) => n >= limit).map(([k]) => k)), alreadyMarked }
+}
+
+// I6: dry 실행에서 에이전트가 했을 일(~/.willow/mgmt-agent-dry.jsonl). 한 줄에 {at, date, kind, company, title}.
+export const DRY_KINDS = { schedule: '만들 일정', decision: '물을 결정', inferred: '추정 규칙', close: '닫을 일정' }
+export function dryLine(kind, company, title, now = new Date()) {
+  return JSON.stringify({ at: now.toISOString(), date: kstDateOf(now.toISOString()), kind, company, title: redact(String(title ?? '')).text.slice(0, 200) })
+}
+// 기존 줄(7일 넘은 것은 버림)에 새 줄을 더한다 — 같은 날·종류·회사·제목은 한 번만.
+export function mergeDryLines(lines, fresh, now = new Date()) {
+  const kept = pruneFailureLines(lines, now)
+  const seen = new Set(kept.map(l => { try { const f = JSON.parse(l); return `${f.date}|${f.kind}|${f.company}|${f.title}` } catch { return '' } }))
+  for (const l of fresh) {
+    const f = JSON.parse(l)
+    const k = `${f.date}|${f.kind}|${f.company}|${f.title}`
+    if (seen.has(k)) continue
+    seen.add(k); kept.push(l)
+  }
+  return kept
+}
+// 오늘 줄을 종류별로 묶어 요약 줄로. 종류당 제목 30개까지.
+export function dryDigestLines(lines, today, { perKind = 30 } = {}) {
+  const by = new Map()
+  for (const f of failuresOn(lines, today)) {
+    if (!DRY_KINDS[f.kind]) continue
+    if (!by.has(f.kind)) by.set(f.kind, [])
+    by.get(f.kind).push(`${f.company === 'willow' ? '윌로우' : '텐소'} ${redact(f.title).text}`)
+  }
+  const out = []
+  for (const kind of Object.keys(DRY_KINDS)) {
+    const ts = by.get(kind)
+    if (!ts?.length) continue
+    out.push(`${DRY_KINDS[kind]} ${ts.length}: ${ts.slice(0, perKind).join(', ')}${ts.length > perKind ? ` 외 ${ts.length - perKind}건` : ''}`)
+  }
+  return out
 }

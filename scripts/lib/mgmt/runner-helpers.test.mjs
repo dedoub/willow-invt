@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, findAdoption, holdExpired, DECISIONS_PER_RUN } from './runner-helpers.mjs'
+import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel, staleMissedDecisionIds, pickDecisionsToSend, findAdoption, holdExpired, DECISIONS_PER_RUN, splitMessage, countJudgeFailures, poisonedSources, dryLine, mergeDryLines, dryDigestLines } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
@@ -220,4 +220,58 @@ test('I4: 재무 동기화 세금 고지 행(접두사+대상 월)도 넘겨받�
   const rejectedRow = { ...row, evidence: [{ kind: 'rejected', ref: 'tensw-finance:tax-obligation:social:2026-09' }] }
   assert.equal(planClose(rejectedRow, rule, { taxObligations: [], ledgerRows }, { now }), null)
   assert.equal(findAdoption(row, { ...rule, adopt_prefix: undefined }, ledgerRows, { now }), null)
+})
+
+test('I5: dry 는 collect 를 18:30~18:59 에만, --only collect 는 그대로', () => {
+  assert.deepEqual(planSteps('10:05', null, { dry: true }), ['learn', 'rules', 'close', 'decide'])
+  assert.deepEqual(planSteps('18:35', null, { dry: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'digest'])
+  assert.deepEqual(planSteps('10:05', 'collect', { dry: true }), ['collect'])
+  assert.deepEqual(planSteps('10:05', null, { dry: false }), ['learn', 'rules', 'collect', 'close', 'decide'])
+})
+
+test('I7: 3,800자 넘으면 줄 경계에서 나눈다, 긴 한 줄은 자른다', () => {
+  const line = 'x'.repeat(1000)
+  const text = Array(9).fill(line).join('\n')
+  const parts = splitMessage(text)
+  assert.equal(parts.length, 3)
+  assert.ok(parts.every(p => p.length <= 3800))
+  assert.equal(parts.join('\n'), text)
+  assert.deepEqual(splitMessage('짧은 글'), ['짧은 글'])
+  const long = splitMessage('y'.repeat(8000))
+  assert.deepEqual(long.map(p => p.length), [3800, 3800, 400])
+})
+
+const fl = (step, at, dry = false) => JSON.stringify({ at, date: kstDateOf(at), step, message: 'x', dry })
+test('I8: 주간 해석 실패는 collect 로 시작하는 non-dry 실패', () => {
+  const lines = [fl('collect:mail:tensw', '2026-09-29T01:00:00Z'), fl('collect:chat:spaces/A', '2026-09-29T02:00:00Z'), fl('collect', '2026-09-29T03:00:00Z'),
+    fl('collect:mail:tensw', '2026-09-29T04:00:00Z', true), fl('close', '2026-09-29T05:00:00Z'), fl('collect:mail:tensw:skipped', '2026-09-29T06:00:00Z')]
+  assert.equal(countJudgeFailures(lines), 3)
+})
+
+test('M5: 같은 소스가 오늘 3번 실패하면 건너뛴다(dry 실패·어제 실패는 세지 않음)', () => {
+  const today = '2026-09-30'
+  const at = h => `2026-09-30T0${h}:00:00Z`
+  const lines = [fl('collect:mail:tensw', at(1)), fl('collect:mail:tensw', at(2)), fl('collect:mail:tensw', at(3)),
+    fl('collect:chat:spaces/A', at(1)), fl('collect:chat:spaces/A', at(2)), fl('collect:chat:spaces/A', at(3), true),
+    fl('collect:mail:willow', '2026-09-29T01:00:00Z'), fl('collect:mail:willow', '2026-09-29T02:00:00Z'), fl('collect:mail:willow', at(1)),
+    fl('collect:lessons', at(1)), fl('collect:lessons', at(2)), fl('collect:lessons', at(3))]
+  const p = poisonedSources(lines, today)
+  assert.deepEqual([...p.skip], ['mail:tensw'])
+  assert.equal(p.alreadyMarked.size, 0)
+  const marked = poisonedSources([...lines, fl('collect:mail:tensw:skipped', at(4))], today)
+  assert.ok(marked.alreadyMarked.has('mail:tensw'))
+  assert.deepEqual([...marked.skip], ['mail:tensw'], 'skipped 줄은 실패 수에 더하지 않는다')
+})
+
+test('I6: dry 기록은 가리고, 같은 날 같은 항목은 한 번, 7일 넘은 건 버리고, 요약은 종류별', () => {
+  const now = new Date('2026-09-30T09:00:00Z')
+  const old = dryLine('schedule', 'tensw', '옛 일정', new Date('2026-09-20T00:00:00Z'))
+  const a = dryLine('schedule', 'tensw', '10월 급여대장 요청', now)
+  const b = dryLine('decision', 'willow', '계정 password: Abc!2345xy 공유됨', now)
+  const c = dryLine('inferred', 'tensw', 'GS네오텍 사용내역(매월 8일)', now)
+  const merged = mergeDryLines([old, a], [a, b, c], now)
+  assert.equal(merged.length, 3)
+  assert.doesNotMatch(merged.join('\n'), /Abc!2345xy/)
+  const digest = dryDigestLines(merged, '2026-09-30')
+  assert.deepEqual(digest, ['만들 일정 1: 텐소 10월 급여대장 요청', '물을 결정 1: 윌로우 계정 password: [가림] 공유됨', '추정 규칙 1: 텐소 GS네오텍 사용내역(매월 8일)'])
 })
