@@ -17,17 +17,17 @@ export function planTuning(rule, occurrences, { today = null, lastKeepAt = null 
   const eligible = today ? occurrences.filter(o => o.schedule_date < today) : occurrences
   const recent = [...eligible].sort((a, b) => a.schedule_date.localeCompare(b.schedule_date))
   const last2 = recent.slice(-2), last3 = recent.slice(-3)
-  if (last2.length === 2 && last2.every(o => o.agent_state === 'missed')) {
+  // 빠짐 = missed 표시가 남아 있고 아직 안 닫힌 회차(대표가 나중에 닫은 missed 행은 빠짐이 아니다).
+  const isMissed = o => o.agent_state === 'missed' && !o.is_completed
+  // 추정 규칙은 두 회차 근거가 없으면(빠짐 포함) 묻지 않고 스스로 끈다 — 씨앗 규칙만 대표에게 묻는다.
+  if (rule.origin === 'inferred' && last2.length === 2 && last2.every(o => !o.is_completed))
+    return [{ kind: 'deactivate', lesson: `추정 규칙 "${rule.title ?? rule.task_key}" 는 두 회차 근거가 없어 껐다` }]
+  if (last2.length === 2 && last2.every(isMissed)) {
     const stale = lastKeepAt && !last2.every(o => o.schedule_date > String(lastKeepAt).slice(0, 10))
-    // stale(유지 답변보다 앞선 빠짐뿐) 이면 다시 묻지도, 아래 deactivate 로 흘러 조용히 끄지도 않는다 — 그대로 둔다.
+    // stale(유지 답변보다 앞선 빠짐뿐) 이면 다시 묻지 않는다 — 그대로 둔다.
     if (!stale) return [{ kind: 'ask_disable', lesson: `"${rule.task_key}/${rule.step}" 규칙이 두 번 연속 빠졌다` }]
     return []
   }
-  // 추정 규칙 + 두 회차 모두 근거 없음(missed 아닌, 아직 완료되지 않은) → 조용히 끈다.
-  // missed 두 번은 위에서 먼저 걸러 ask_disable 로 가므로(대표에게 물음), 여기 오는 건 missed 로
-  // 표시되기 전 상태(아직 marked 안 된 지난 회차 등)뿐이다.
-  if (rule.origin === 'inferred' && last2.length === 2 && last2.every(o => !o.is_completed))
-    return [{ kind: 'deactivate', lesson: `추정 규칙 "${rule.title ?? rule.task_key}" 는 두 회차 근거가 없어 껐다` }]
   if (last3.length === 3 && last3.every(o => o.is_completed && doneDate(o))) {
     // 사람이 날짜를 직접 적은(origin manual) 회차는 규칙의 날짜에 대해 아무것도 말해주지 않으므로 제외.
     const allRuleDated = last3.every(o => o.origin !== 'manual')

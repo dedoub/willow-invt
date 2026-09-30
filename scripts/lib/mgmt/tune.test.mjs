@@ -57,8 +57,14 @@ test('규칙 유지(keep) 답변보다 앞선 빠짐만으로는 다시 묻지 �
   assert.equal(planTuning(rule, [after1, after2], { lastKeepAt: '2026-08-25T00:00:00Z' })[0].kind, 'ask_disable')
 })
 
-test('추정 규칙이 두 번 연속 missed 면 ask_disable 이 deactivate 보다 먼저다 — 빠짐은 사람에게 묻고, 근거 없음(아직 안 지남)만 조용히 끈다', () => {
+test('I2: 추정 규칙이 두 번 연속 missed 면 묻지 않고 스스로 끈다(spec) — 씨앗 규칙만 ask_disable', () => {
   const inf = { ...rule, origin: 'inferred' }
   const a = planTuning(inf, [occ('2026-08-21', null, 'missed'), occ('2026-09-22', null, 'missed')])
-  assert.equal(a[0].kind, 'ask_disable')
+  assert.equal(a[0].kind, 'deactivate')
+  assert.equal(planTuning(rule, [occ('2026-08-21', null, 'missed'), occ('2026-09-22', null, 'missed')])[0].kind, 'ask_disable')
+})
+
+test('I2: missed 표시가 남았어도 이미 닫힌 회차는 빠짐으로 세지 않는다', () => {
+  const closedMissed = { ...occ('2026-09-22', null, 'missed'), is_completed: true }
+  assert.deepEqual(planTuning(rule, [occ('2026-08-21', null, 'missed'), closedMissed]), [])
 })

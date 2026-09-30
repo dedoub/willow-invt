@@ -363,7 +363,7 @@ async function stepInfer() {
 // Task 17: 규칙 스스로 조정. 규칙마다 최근 6개월의, 오늘보다 앞선(이미 마감 지난) 회차만 날짜순으로
 // 읽어 planTuning 에 넘긴다 — stepRules 가 60일 앞까지 미리 깔아 둔 아직 안 지난 planned 행이 섞이면
 // last2/last3 가 늘 "아직 안 지남"으로 끝나 아무 것도 안 걸린다. shift_day → mgmt_rules.rule.day 갱신,
-// ask_disable → 결정함에 rule_review 물음, deactivate → active 끔, confirm → 추정 표시를 벗긴다
+// ask_disable → 결정함에 rule_review 물음(씨앗 규칙만), deactivate → active 끔(추정 규칙은 묻지 않고 끈다), confirm → 추정 표시를 벗긴다
 // (confidence=1, origin='seed'). 모두 대표 승인 전이라도 원장은 그대로 두고 규칙 자체만 고친다
 // (메일·메시지 발송 없음).
 async function stepTune() {
@@ -381,7 +381,7 @@ async function stepTune() {
     const table = tableFor(rule.company)
     const prefix = `mgmt:${rule.company}:${rule.task_key}:`
     const subjectKey = `${rule.company}:rule:${rule.task_key}:${rule.step}`
-    const rows = must(await sb.from(table).select('id, schedule_date, source_key, is_completed, agent_state, evidence, origin').like('source_key', `${prefix}%`).gte('schedule_date', since).lt('schedule_date', today), table)
+    const rows = must(await sb.from(table).select('id, schedule_date, source_key, is_completed, agent_state, evidence, origin').or(NOT_PERSONAL).like('source_key', `${prefix}%`).gte('schedule_date', since).lt('schedule_date', today), table)
     const occurrences = (rows ?? []).filter(r => parseSourceKey(r.source_key)?.step === rule.step)
     if (!occurrences.length) continue
     const lastKeepAt = lastKeepAtBySubject.get(subjectKey) ?? null
