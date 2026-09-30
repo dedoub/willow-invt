@@ -4,6 +4,7 @@
 //   node scripts/mgmt-agent.mjs lesson --company tensw|willow [--scope judge|rule|close|decision] "문장" [--dry]
 // --dry 는 DB 쓰기·윌리 전송 없이 무엇을 할지 로그만 남긴다. MGMT_DRY_DIGEST=1 이면 dry 에서도
 // 저녁 요약 한 통만 "(시험 운행)" 으로 윌리에게 보낸다(결정 메시지는 dry 에서 보내지 않는다).
+// dry 는 --only 가 없으면 collect(Codex)를 18:30~18:59 회차에서만 돌고, 했을 일을 ~/.willow/mgmt-agent-dry.jsonl 에 모은다.
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'

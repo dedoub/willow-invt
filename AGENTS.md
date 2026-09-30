@@ -252,10 +252,13 @@ npm run mgmt:test
 ```
 
 - 도입 첫 2주는 launchd 가 `--dry` + `MGMT_DRY_DIGEST=1` 로 돈다 — DB 쓰기 없이, 저녁 요약만
-  "(시험 운행)" 표시로 윌리에게 간다. `--only` 값은
+  "(시험 운행)" 표시로 윌리에게 간다. dry 는 `collect`(Codex)를 18:3x 회차에서만 돌고(`--dry --only collect`
+  는 언제든), 했을 일을 `~/.willow/mgmt-agent-dry.jsonl`(7일)에 모아 그 요약에 종류별로 붙인다. `--only` 값은
   `learn|rules|collect|close|decide|digest|infer|tune|weekly` 중 하나.
-- 발송은 하지 않는다(메일·챗 쓰기 금지). 결정함의 승인은 매번 윌리에게 묻고, 같은 분류
-  판단은 지난 답을 재사용한다.
+- 발송은 하지 않는다(메일·챗 쓰기 금지). 결정함의 승인·보안은 매번 윌리에게 묻고, 같은 분류
+  판단은 지난 답을 재사용한다. 결정은 한 회차에 오래된 것부터 5건까지만 보낸다. 보류는 7일 뒤 만료.
+- 빠짐(missed)은 정기 규칙 행(`mgmt:…`)만. 추론 규칙은 한 회차 5개·신뢰 0.6·3개월 이상, 세금·보험·급여와
+  개인·가족·증권·보안 알림은 제외. 개인·가족 메일은 Codex 판단에도 넘기지 않는다.
 - `origin='manual'`(사람이 적은 일정)은 규칙이 날짜·제목을 다시 손대지 않는다.
   `category='personal'` 은 읽지도 쓰지도 않는다. 비밀값은 `redact()` 를 거쳐 값 없이 기록한다.
 - 반복 규칙은 `mgmt_rules`. 추정 규칙을 끄려면 `update mgmt_rules set active=false where title=…`.

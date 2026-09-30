@@ -11,9 +11,12 @@ description: Use when running, checking or tuning the Tensoftworks/Willow manage
 1. **규칙 → 일정** (`rules`): `mgmt_rules` 의 정기 업무를 오늘~60일로 깐다. 사람이 적은 행
    (`origin='manual'`)은 날짜·제목을 다시 손대지 않는다.
 2. **메일·스페이스 → 일정 갱신** (`collect`): 텐소·윌로우 메일함과 텐소 구글 챗 스페이스를 읽어
-   Codex 판단(`judge`)으로 새 일정·완료·결정 후보를 뽑는다.
+   Codex 판단(`judge`)으로 새 일정·완료·결정 후보를 뽑는다. 개인·가족·개인투자 메시지(류하·가족·증권·
+   거래내역·병원·보안 알림 등, `isPersonalItem()`)는 Codex 에 넘기지 않는다. Codex 는 임시 폴더에서
+   `--sandbox read-only` 로 돈다.
 3. **증빙 → 완료 처리** (`close`): 세금 고지·메일·현금 원장에서 근거를 찾은 정기 행만 완료로 닫는다.
-   추측으로 닫지 않는다.
+   추측으로 닫지 않는다. 규칙에 `adopt_prefix` 가 있고 커머셜 인보이스·재무 동기화가 같은 회차 행을
+   ±5일 안에 만들었으면 규칙 행은 `{kind:'adopted', ref:<그 행 키>}` 로 닫고 그 행이 일을 맡는다.
 
 결정이 필요한 것(빠진 일정, 반복 규칙 채택 여부 등)만 `decide` 단계가 윌리 버튼으로 CEO에게 묻는다.
 저녁 요약(`digest`)이 그날 한 일·빠진 일·결정 대기·실패를 모은다. 아침 회차(07:0x)는 지난 6개월
@@ -41,7 +44,8 @@ npm run mgmt:test                                   # 유닛 테스트
 `--only` 없이 부르면 시각에 따라 자동으로 고른다(07:00~07:30 은 `infer` 도 포함(월요일이면 `infer`
 다음에 `tune` 도), 07:30~07:59 이고 월요일이면 끝에 `weekly` 도, 18:30~19:00 은 `digest` 도 포함,
 그 외 시간은 `learn → rules → collect → close → decide`). 모든 회차는 `learn` 으로 시작한다. 잘못된 `--only` 값은
-바로 종료 코드 2 로 실패한다.
+바로 종료 코드 2 로 실패한다. **`--dry` 이고 `--only` 가 없으면 `collect`(Codex 호출)는 18:30~18:59 회차에서만
+돈다**(`--dry --only collect` 는 언제든 돈다).
 
 ## 스케줄
 
@@ -53,7 +57,12 @@ launchd `com.willow.mgmt-agent` 가 평일 07~20시, 매시 :05·:35 에 `script
 
 - 동시 실행 방지: `~/.willow/mgmt-agent.lock` (pid 기록, 35분 넘으면 죽은 락으로 보고 무시).
 - 시간 상한: 20분(그 안에 못 끝내면 `timeout` 실패로 기록하고 종료).
-- 실패 기록: `~/.willow/mgmt-agent-failures.jsonl` — 그날 실패가 저녁 요약에 모여 나온다.
+- 실패 기록: `~/.willow/mgmt-agent-failures.jsonl` — 그날 실패가 저녁 요약에 모여 나온다. 같은 수집
+  소스(`mail:tensw`, `chat:spaces/…` 등)가 그날 실제 실행에서 3번 넘게 실패하면 그날 남은 회차는 그 소스를
+  건너뛰고 `collect:<소스>:skipped` 한 줄만 남긴다.
+- dry 기록: `~/.willow/mgmt-agent-dry.jsonl`(7일, 같은 날 같은 항목은 한 번, 제목은 가림) — dry 회차가
+  **했을 일**(만들 일정·물을 결정·추정 규칙·닫을 일정)을 모으고, dry 저녁 요약이 그날 것을 종류별로 붙인다.
+- 윌리 메시지가 3,800자를 넘으면 줄 경계에서 여러 통으로 나뉜다(버튼은 마지막 통에).
 
 ## 반복 규칙 끄기·보기
 
@@ -105,8 +114,9 @@ update mgmt_lessons set active=false where lesson='…';   -- 틀린 교훈 끄�
    윌리가 "경영관리 교훈: …" 을 받으면 이 명령을 그대로 부른다(회사가 불분명하면 되묻는다). `--scope`
    기본값은 `judge`, 회사·범위가 틀리면 종료 코드 2. 문장은 저장 전에 비밀값을 가린다.
 2. **규칙 자동 조정** (`tune`, 월요일 07:0x 회차, `infer` 다음) — 정기 회차가 계속 며칠 일찍 끝나면
-   그 요일로 당기고(`shift_day`), 두 번 연속 빠지면 규칙을 끌지 결정함에 묻고(`ask_disable`), 추정
-   규칙이 근거 없이 두 번 어긋나면 조용히 끄고(`deactivate`), 세 번 맞으면 추정 표시를 뗀다(`confirm`).
+   그 요일로 당기고(`shift_day`), 씨앗 규칙이 두 번 연속 빠지면 규칙을 끌지 결정함에 묻고(`ask_disable`), 추정
+   규칙은 두 회차 근거가 없으면(빠짐 포함) 묻지 않고 조용히 끄고(`deactivate`), 세 번 맞으면 추정 표시를 뗀다(`confirm`).
+   빠짐은 `agent_state='missed'` 이면서 아직 안 닫힌 회차만 센다.
    모두 메일·메시지 발송 없이 규칙 자체만 고친다(대표 승인은 `ask_disable` 물음에만 필요).
 3. **월요일 주간 성적표** (`weekly`, 월요일 07:3x 회차) — 지난 7일치 쓴 일정·근거로 닫은 수·되돌림
    (과 되돌림률)·빠짐·물어본 결정·지난 판단 재사용·해석 실패를 한 통으로 윌리에게 보낸다
@@ -132,8 +142,13 @@ from mgmt_decisions where status in ('open','sent') order by created_at;
 ```
 
 `open` 은 아직 버튼을 못 보낸 것(다음 `decide` 회차가 보낸다), `sent` 는 윌리에 이미 간 것.
-CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `answered` 로 바꾸고, 같은 성격의 다음
+**한 회차에 오래된 것부터 5건까지만 보낸다** — 나머지는 다음 회차. 빠짐(missed) 결정은 정기 규칙 행
+(`mgmt:…`)에만 생기고(대화·메일에서 만든 행은 빠짐으로 돌리지 않는다), 원장 행이 그 사이 닫혔으면
+보내기 전에 `expired` 로 돌린다.
+CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `open`·`sent` 인 결정만 `answered` 로 바꾸고, 같은 성격의 다음
 결정은 `reuseAnswer()` 가 버튼 없이 지난 답을 재사용한다(저녁 요약에 "지난 판단 재사용"으로 나온다).
+발송 승인(`send_approval`)과 보안(`security`) 결정은 재사용하지 않는다. **보류**도 `answered`(`answer='hold'`)로
+기록되어 결정함을 막지 않고, 에이전트는 아무 것도 반영하지 않다가 7일 뒤 `expired` 로 돌린다.
 
 ## 하면 안 되는 것
 
@@ -156,7 +171,7 @@ CEO 가 텔레그램 버튼으로 답하면 `telegram-bot.ts` 가 `answered` 로
 | "오늘 요약", "경영관리 요약" | `node scripts/mgmt-agent.mjs --only digest` | 요약 텍스트 그대로 |
 | "결정함에 뭐 있어" | 위 SQL(`mgmt_decisions` open/sent) | 질문 목록 |
 | "그 규칙 빼줘 X", "반복 규칙에서 X 끄기" | 위 SQL(`update mgmt_rules set active=false …`) | 끈 규칙 제목 |
-| "반복 규칙 뭐 새로 찾았어" | `node scripts/mgmt-agent.mjs --only infer` | 새 추정 규칙 목록(신뢰도 포함) |
+| "반복 규칙 뭐 새로 찾았어" | `node scripts/mgmt-agent.mjs --only infer` | 새 추정 규칙 목록(신뢰도 포함). 한 회차 5개까지, 신뢰 0.6·3개월 이상, 세금·보험·급여(씨앗 몫)와 개인·잡음은 빠진다 |
 | "경영관리 교훈: …" | `node scripts/mgmt-agent.mjs lesson --company <tensw\|willow> --scope judge "…"` (회사가 불분명하면 묻는다) | 저장된 교훈 문장 |
 | "교훈 뭐 쌓였어" | 위 SQL(`mgmt_lessons` active) | 교훈 목록 |
 | "6~9월로 다시 재봐줘", "재현 시험 돌려줘" | `node scripts/mgmt-replay.mjs` | `scripts/logs/mgmt-replay-2026-06-09.md` 요지 |
