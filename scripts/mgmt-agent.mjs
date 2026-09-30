@@ -17,9 +17,11 @@ import { getCursor, saveCursor, readMail, readChat } from './lib/mgmt/sources.mj
 import { buildPrompt, judge } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules } from './lib/mgmt/infer.mjs'
+import { planTuning } from './lib/mgmt/tune.mjs'
 import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
 import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
-import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
+import { redact } from './lib/mgmt/redact.mjs'
+import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
@@ -87,7 +89,8 @@ if (args[0] === 'lesson') {
 }
 
 let selected
-try { selected = planSteps(kst().toISOString().slice(11, 16), only) } catch (e) { log(e.message); process.exit(2) }
+const nowKst = kst()
+try { selected = planSteps(nowKst.toISOString().slice(11, 16), only, { monday: nowKst.getUTCDay() === 1 }) } catch (e) { log(e.message); process.exit(2) }
 
 // 락 — 살아 있는 pid 가 있으면 바로 끝낸다.
 const LOCK = path.join(os.homedir(), '.willow/mgmt-agent.lock')
@@ -260,6 +263,20 @@ async function stepDecide() {
     } catch (e) { fail(`decide:missed-answer:${d.id}`, e) }
   }
 
+  // Task 17: rule_review 답 반영. off → 그 규칙 끄기, keep(또는 모르는 답) → 아무것도 안 함.
+  // 어느 쪽이든 다시 반영되지 않게 expired 로 돌린다(R2 와 같은 패턴).
+  const answeredRuleReviews = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'rule_review').eq('status', 'answered'), 'answered rule_review')
+  for (const d of answeredRuleReviews ?? []) {
+    try {
+      const r = ruleReviewAnswerPatch(d)
+      if (r) {
+        log(`규칙 끄기 반영 ${d.subject_key}`)
+        if (!dryRun) must(await sb.from('mgmt_rules').update(r.patch).eq('company', r.company).eq('task_key', r.task_key).eq('step', r.step).select('id').maybeSingle(), `rule off ${d.subject_key}`)
+      }
+      if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
+    } catch (e) { fail(`decide:rule-review-answer:${d.id}`, e) }
+  }
+
   for (const company of COMPANIES) {
     const missed = must(await sb.from(tableFor(company)).select('title, schedule_date, source_key').eq('agent_state', 'missed').eq('is_completed', false).or(NOT_PERSONAL), 'missed rows')
     for (const m of missed ?? []) {
@@ -341,6 +358,52 @@ async function stepInfer() {
   }
 }
 
+// Task 17: 규칙 스스로 조정. 규칙마다 최근 6개월 회차를 날짜순으로 읽어 planTuning 에 넘긴다.
+// shift_day → mgmt_rules.rule.day 갱신, ask_disable → 결정함에 rule_review 물음, deactivate → active 끔,
+// confirm → 추정 표시를 벗긴다(confidence=1, origin='seed'). 모두 대표 승인 전이라도 원장은 그대로 두고
+// 규칙 자체만 고친다(메일·메시지 발송 없음).
+async function stepTune() {
+  const rules = must(await sb.from('mgmt_rules').select('*').eq('active', true), 'mgmt_rules')
+  const since = addDays(todayKey(), -180)
+  for (const rule of rules ?? []) {
+    const table = tableFor(rule.company)
+    const prefix = `mgmt:${rule.company}:${rule.task_key}:`
+    const rows = must(await sb.from(table).select('id, schedule_date, source_key, is_completed, agent_state, evidence, origin').like('source_key', `${prefix}%`).gte('schedule_date', since), table)
+    const occurrences = (rows ?? []).filter(r => parseSourceKey(r.source_key)?.step === rule.step)
+    if (!occurrences.length) continue
+    for (const a of planTuning(rule, occurrences)) {
+      try {
+        if (a.kind === 'shift_day') {
+          log(`규칙 조정 ${rule.company} ${rule.task_key}/${rule.step}: ${rule.rule.day}일 → ${a.to}일`)
+          if (!dryRun) must(await sb.from('mgmt_rules').update({ rule: { ...rule.rule, day: a.to } }).eq('id', rule.id).select('id').maybeSingle(), `tune shift ${rule.id}`)
+          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+        } else if (a.kind === 'ask_disable') {
+          const subject_key = `${rule.company}:rule:${rule.task_key}:${rule.step}`
+          log(`규칙 재검토 물음 ${subject_key}`)
+          tally.decisions++
+          if (!dryRun) {
+            const { error } = await sb.from('mgmt_decisions').insert({
+              company: rule.company, kind: 'rule_review', subject_key,
+              question: `"${rule.title}" 규칙이 두 번 연속 빠졌어요. 어떻게 할까요?`,
+              options: [{ id: 'off', label: '규칙 끄기' }, { id: 'keep', label: '유지' }],
+              recommended: null, schedule_key: null, refs: [], status: 'open',
+            })
+            if (error && error.code !== '23505') fail(`tune:ask_disable:${rule.id}`, error.message)
+          }
+          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+        } else if (a.kind === 'deactivate') {
+          log(`규칙 끔(추정, 근거 없음) ${rule.company} ${rule.task_key}/${rule.step}`)
+          if (!dryRun) must(await sb.from('mgmt_rules').update({ active: false }).eq('id', rule.id).select('id').maybeSingle(), `tune deactivate ${rule.id}`)
+          await saveLesson(sb, { company: rule.company, scope: 'rule', lesson: redact(a.lesson).text, example: null, source: 'auto', source_ref: rule.id }, { dryRun })
+        } else if (a.kind === 'confirm') {
+          log(`규칙 확정 ${rule.company} ${rule.task_key}/${rule.step} (추정 표시 제거)`)
+          if (!dryRun) must(await sb.from('mgmt_rules').update({ confidence: a.confidence, origin: 'seed' }).eq('id', rule.id).select('id').maybeSingle(), `tune confirm ${rule.id}`)
+        }
+      } catch (e) { fail(`tune:${rule.id}:${a.kind}`, e) }
+    }
+  }
+}
+
 // 되돌림에서 배우기: 에이전트가 마지막으로 쓴 값과 지금 행을 비교한다. 대표가 지웠거나 다시 열었거나
 // 날짜·이름을 바꿨으면 교훈으로 적고, 되돌림을 고정하고, 기록을 지금 값으로 맞춘다
 // (지워진 행·개인 일정이 된 행·30일 넘은 완료 기록은 기록 삭제).
@@ -369,7 +432,7 @@ async function stepLearn() {
   }
 }
 
-const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer }
+const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer, tune: stepTune }
 for (const name of selected) {
   try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }

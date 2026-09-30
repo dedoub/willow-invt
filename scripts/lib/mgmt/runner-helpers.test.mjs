@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './runner-helpers.mjs'
+import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, ruleReviewAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
@@ -10,8 +10,19 @@ test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('19:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('10:05', 'close'), ['close'])
   assert.deepEqual(planSteps('10:05', 'learn'), ['learn'])
+  assert.deepEqual(planSteps('10:05', 'tune'), ['tune'])
   assert.throws(() => planSteps('10:05', 'nope'))
   assert.throws(() => planSteps('10:05', ''))
+})
+
+test('planSteps: 월요일 07:00~07:29 이면 infer 다음에 tune', () => {
+  assert.deepEqual(planSteps('07:05', null, { monday: true }), ['learn', 'infer', 'tune', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:29', null, { monday: true }), ['learn', 'infer', 'tune', 'rules', 'collect', 'close', 'decide'])
+  // 화요일 같은 시각엔 tune 이 없다
+  assert.deepEqual(planSteps('07:05', null, { monday: false }), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:05'), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
+  // 월요일이어도 시간대가 아니면 tune 없음
+  assert.deepEqual(planSteps('07:35', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide'])
 })
 
 test('parseSourceKey', () => {
@@ -86,6 +97,14 @@ test('missedAnswerPatch: R2', () => {
   assert.equal(missedAnswerPatch({ id: 'd', answer: 'hold' }, r, '2026-09-30'), null)
   assert.equal(missedAnswerPatch({ id: 'd', answer: 'done' }, { ...r, is_completed: true }, '2026-09-30'), null)
   assert.equal(missedAnswerPatch({ id: 'd', answer: 'done' }, null, '2026-09-30'), null)
+})
+
+test('ruleReviewAnswerPatch: off 만 규칙을 끈다', () => {
+  const p = ruleReviewAnswerPatch({ answer: 'off', subject_key: 'tensw:rule:attendance:send' })
+  assert.deepEqual(p, { company: 'tensw', task_key: 'attendance', step: 'send', patch: { active: false } })
+  assert.equal(ruleReviewAnswerPatch({ answer: 'keep', subject_key: 'tensw:rule:attendance:send' }), null)
+  assert.equal(ruleReviewAnswerPatch({ answer: 'off', subject_key: 'willow:missed:mgmt:willow:x:2026-09:y' }), null)
+  assert.equal(ruleReviewAnswerPatch({ answer: 'off', subject_key: null }), null)
 })
 
 test('mailEvent / cashEvent', () => {
