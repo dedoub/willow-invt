@@ -14,7 +14,8 @@ export function parseDecisionCallback(data) {
 }
 
 export function reuseAnswer(decision, past) {
-  if (decision.kind === 'send_approval') return null
+  // 발송 승인·보안(평문 비밀 공유)은 매번 대표가 본다 — 지난 답으로 자동 처리하지 않는다.
+  if (decision.kind === 'send_approval' || decision.kind === 'security') return null
   return past.find(p => p.status === 'answered' && p.subject_key === decision.subject_key && p.answer && p.answer !== 'hold')?.answer ?? null
 }
 

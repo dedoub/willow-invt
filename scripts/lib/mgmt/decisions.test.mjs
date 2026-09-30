@@ -34,3 +34,9 @@ test('digestMessage: 지난 판단 재사용 줄', () => {
   const s = digestMessage({ date: '2026-10-01', done: [], created: [], inferred: [], missed: [], openDecisions: [], failures: [], reused: ['아크로스 자문료 분류…'] })
   assert.match(s, /지난 판단 재사용 1: 아크로스 자문료 분류…/)
 })
+
+test('M3: 보안 결정은 지난 답으로 자동 처리하지 않는다', () => {
+  const past = [{ subject_key: 'tensw:security:db-password', answer: 'rotate', status: 'answered' }]
+  assert.equal(reuseAnswer({ kind: 'security', subject_key: 'tensw:security:db-password' }, past), null)
+  assert.equal(reuseAnswer({ kind: 'classify', subject_key: 'tensw:security:db-password' }, past), 'rotate')
+})
