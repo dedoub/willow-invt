@@ -1893,7 +1893,7 @@ alter table mgmt_agent_writes enable row level security;
   - moved → scope rule(키가 `mgmt:` 로 시작) 또는 judge, "`<title>` 날짜는 `<old>`가 아니라 `<new>`(대표가 옮김)"
   - renamed → scope judge, "`<old>` 는 `<new>` 로 부른다"
 - Produces: `lessonsForPrompt(lessons, company, limit = 20) → string[]` — active, company 가 같거나 null, 최근순.
-- Produces (I/O): `recordWrite(sb, table, row)`, `loadWrites(sb, table)`, `saveLesson(sb, lesson)` (unique 충돌 무시), `bumpHits(sb, ids)`.
+- Produces (I/O): `recordWrite(sb, table, row)`, `loadWrites(sb, table)`, `saveLesson(sb, lesson)` (unique 충돌 무시), `bumpHits(sb, lessons)`.
 - `buildPrompt({ …, lessons = [] })`: lessons 가 있으면 규칙 목록 뒤에 `지난 교훈(반드시 지킨다):` 와 한 줄씩.
 - 실행기: `applyPlan`/`applyJudgement`/`stepClose` 가 행을 insert·update 한 뒤 `recordWrite` 로 snapshot 저장(insert 는 `.select('*').single()` 로 id 를 받는다). 새 단계 `learn`(주기 실행 맨 앞): 두 테이블 `loadWrites` → 현재 행 → `detectReverts` → `lessonFromRevert` → `saveLesson` → snapshot 을 현재 값으로 갱신(지워진 행은 기록 삭제).
 - 명령: `node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "형운 메일은 제목 상호로 회사를 가른다"` → `source='ceo_correction'`. 윌리가 "경영관리 교훈: …" 을 받으면 이 명령을 부른다(스킬 문서에 적는다, Task 15 파일 갱신).
