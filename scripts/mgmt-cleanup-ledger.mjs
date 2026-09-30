@@ -19,10 +19,25 @@ const ADOPT = [
   [/(\d+)월 급여이체 및 급여명세서/, () => ['payroll', 'payday', 'payroll-payday']],
 ]
 
-const { data: willow } = await sb.from('willow_mgmt_schedules').select('*')
-const { data: tensw } = await sb.from('tensw_mgmt_schedules').select('*')
+// category='personal' 행은 읽지도 쓰지도 않는다(전역 제약). null 은 아직 미분류라 포함한다.
+const { data: willow } = await sb.from('willow_mgmt_schedules').select('*').or('category.is.null,category.neq.personal')
+const { data: tensw } = await sb.from('tensw_mgmt_schedules').select('*').or('category.is.null,category.neq.personal')
 
-// 1. 윌로우 테이블의 텐소 행 이동
+// 3(먼저 실행). 지난 공휴일 표시 — 이동보다 먼저 닫아야 텐소-분류 공휴일 행이 옮겨갈 때
+// 이미 닫힌 상태(is_completed/agent_state/evidence)를 그대로 들고 간다. 같은 행 객체를 참조로
+// 들고 있으므로(배열에서 filter 는 복사하지 않는다), 여기서 Object.assign 한 값을 아래 이동 단계가 그대로 본다.
+for (const [table, rows] of [['tensw_mgmt_schedules', tensw], ['willow_mgmt_schedules', willow]]) {
+  for (const r of rows.filter(r => !r.is_completed && /설 연휴|추석 연휴/.test(r.title ?? '') && r.schedule_date < '2026-09-30')) {
+    say(`닫기(${table}): ${r.schedule_date} ${r.title}`)
+    const patch = { is_completed: true, agent_state: 'done', evidence: [{ kind: 'cleanup', note: '지난 공휴일 표시' }] }
+    if (apply) {
+      const { error } = await sb.from(table).update(patch).eq('id', r.id)
+      if (error) throw error
+    }
+    Object.assign(r, patch)
+  }
+}
+// 1. 윌로우 테이블의 텐소 행 이동 — r 은 위 3번에서 이미 닫혔으면 그 상태를 그대로 복사한다.
 for (const r of willow.filter(r => r.category === 'tensw-mgmt')) {
   say(`이동 → 텐소: ${r.schedule_date} ${r.title}`)
   if (apply) {
@@ -36,13 +51,9 @@ for (const r of willow.filter(r => r.category === 'tensw-mgmt')) {
 // 2. 개인 일정
 for (const r of willow.filter(r => r.category !== 'personal' && r.category !== 'tensw-mgmt' && !r.source_key && PERSONAL.test(r.title ?? ''))) {
   say(`개인으로: ${r.schedule_date} ${r.title}`)
-  if (apply) await sb.from('willow_mgmt_schedules').update({ category: 'personal' }).eq('id', r.id)
-}
-// 3. 지난 공휴일 표시
-for (const [table, rows] of [['tensw_mgmt_schedules', tensw], ['willow_mgmt_schedules', willow]]) {
-  for (const r of rows.filter(r => !r.is_completed && /설 연휴|추석 연휴/.test(r.title ?? '') && r.schedule_date < '2026-09-30')) {
-    say(`닫기(${table}): ${r.schedule_date} ${r.title}`)
-    if (apply) await sb.from(table).update({ is_completed: true, agent_state: 'done', evidence: [{ kind: 'cleanup', note: '지난 공휴일 표시' }] }).eq('id', r.id)
+  if (apply) {
+    const { error } = await sb.from('willow_mgmt_schedules').update({ category: 'personal' }).eq('id', r.id)
+    if (error) throw error
   }
 }
 // 4. 선등록 행 입양
@@ -54,7 +65,10 @@ for (const r of tensw.filter(r => !r.source_key && !r.is_completed)) {
     const period = `2026-${String(m[1]).padStart(2, '0')}`
     const key = scheduleKey('tensw', task, period, step)
     say(`입양: ${r.title} → ${key}`)
-    if (apply) await sb.from('tensw_mgmt_schedules').update({ source_key: key, origin: 'seed', agent_state: 'planned', recipe }).eq('id', r.id)
+    if (apply) {
+      const { error } = await sb.from('tensw_mgmt_schedules').update({ source_key: key, origin: 'seed', agent_state: 'planned', recipe }).eq('id', r.id)
+      if (error) throw error
+    }
   }
 }
 // 5. 7/27 상환 행은 결정함으로(여기서는 id 만) — 이 테이블엔 transaction_date 가 없다.
