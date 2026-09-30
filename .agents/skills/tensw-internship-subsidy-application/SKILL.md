@@ -98,15 +98,23 @@ node scripts/gangnam-attendance-send.mjs --month 2026-09 --key-suffix _form9 --r
 
 ## 4대보험 사업장 가입자 명부 (4insure, 크롬)
 
-1. 크롬에서 `www.4insure.or.kr` 공동인증서 로그인. 로그인 스크립트는 공용 도구를 쓴다
-   (`scripts/lib/desktop.mjs`, `scripts/lib/cert-dialog.mjs`, 인증서 소유자·비밀번호는 `tensw-local-finance.mjs`의
-   `financeIdentity`·`readCertificatePassword`). 인증서는 **소유자 이름으로** 고르고, 입력된 비밀번호 길이를
-   가림 글자 수로 확인한 뒤에만 "확인"을 누른다(잠금 카운터).
-2. 맥에서는 AnySign4PC가 필요하다. 반복 설치 창이 뜨면 기관 안내 "맥(MAC) anysign 반복 설치 해결 방법"을 따른다
-   (관리자 권한 설치는 CEO가 맥 암호를 넣는다).
-3. 증명서 발급 → 사업장 가입자 명부 발급 → 크롬 인쇄 "PDF로 저장" →
-   `06-draft-submission/4_4대사회보험_사업장가입자명부_YYYYMMDD.pdf`. **발급번호와 발급시각**을 보고와 위키에 적는다.
-4. 명부에서 대상자 3명의 국민연금·건강·고용·산재 가입을 확인한다.
+2026-09-30 이 순서로 발급했다(발급번호 20260930668385). 크롬 탭은 `scripts/lib/desktop.mjs`로 다룬다.
+
+1. `https://www.4insure.or.kr/pbiz/mjon/processIdPswdLgnView.do` → **"브라우저 인증"**(`#btnCertLgn2`, CEO 지정).
+   인증서 위치 `#xwup_media_localstorage`(브라우저) → 목록에서 **"텐소프트웍스"가 든 한 줄만** 고른다
+   (범용기업 / 한국무역정보통신). 두 줄 이상이거나 없으면 멈춘다.
+2. 암호는 `tensw-local-finance.mjs`의 `readCertificatePassword()`(텐소 키체인)로 **붙여넣고**, 가림 글자 수가
+   암호 길이와 같을 때만 `#xwup_OkButton`을 **한 번** 누른다. 거부되면 재시도하지 말고 보고(5회면 잠김).
+3. 증명서발급 → "증명서(가입내역확인_사업장,전체가입자) 신청/발급"(`/pbiz/cert/insertBplcCerfAplyAncView.do`)
+   → 안내 "확인" → 사업장 가입자 명부 · 확인용 · 주민등록순(기본값) → "신청".
+4. 네 기관(국민연금·건강·산재·고용)이 모두 **출력가능**이 될 때까지 새로고침(보통 1분 안).
+   상태는 표 칸에서 읽는다 — 페이지의 절차 안내에도 같은 낱말이 있어 본문 전체를 세면 틀린다.
+5. **출력은 1회뿐.** "출력"(`#btnPrint`)은 보고서 창을 팝업으로 연다 — 스크립트 `click()`은 크롬 팝업 차단에
+   걸린다. `chromeElementRect`로 자리를 잡아 **실제 마우스 클릭**(`clickSettled`)으로 누른다.
+6. 보고서 창(`/report/reportMarkanyPop.jsp`) → PRINT → 인쇄방식 **pdf**·전체 → "인쇄" → 크롬 미리보기
+   "PDF로 저장" → "저장" → 저장 창에서 ⌘⇧G 로 `~/Downloads` 붙여넣기 → Return 두 번. 파일은 `Report.pdf`.
+7. `06-draft-submission/4_4대사회보험_사업장가입자명부_YYYYMMDD.pdf`로 옮기고 발급번호·발급시각을 기록.
+   대상자 3명의 네 보험 취득일이 모두 있는지 본다.
 
 ## HWP 도구 (`scripts/hwp/hwp.mjs`)
 
