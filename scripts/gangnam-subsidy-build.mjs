@@ -7,6 +7,10 @@
  *   node scripts/gangnam-subsidy-build.mjs attendance --month 2026-09 [--key-suffix _form9]
  *        → 사람마다 서식 9 출근부(담당 서명만) → 비공개 버킷 tensw-attendance/2026/{source,plain,signed}/…
  *          메일은 gangnam-attendance-send.mjs 가 보낸다.
+ *   node scripts/gangnam-subsidy-build.mjs status  --month 2026-09   # 기관 요청 5종 대비 준비 현황(윌리 보고용)
+ *   node scripts/gangnam-subsidy-build.mjs collect --month 2026-09   # 인턴 회신(서명본)을 03-attendance-received 로
+ *   node scripts/gangnam-subsidy-build.mjs submit  --month 2026-09   # 5종 교차검증 → 07 폴더 → 기관 제출 Gmail 초안
+ *        submit --send 는 CEO 승인 뒤에만. 검증이 하나라도 틀리면 초안을 만들지 않는다.
  *
  * 값은 손으로 옮기지 않는다:
  *   대상자·주민번호·전환일·기본급  비공개 버킷 tensw-attendance/config/subsidy-roster.json
@@ -29,14 +33,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
+import { google } from 'googleapis'
 import { fill, toPdf, colors } from './hwp/hwp.mjs'
 
 const args = process.argv.slice(2)
 const cmd = args[0]
 const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
 const month = flag('--month')
-if (!['application', 'attendance'].includes(cmd) || !/^\d{4}-\d{2}$/.test(month ?? '')) {
-  console.error('usage: gangnam-subsidy-build.mjs application|attendance --month YYYY-MM [--key-suffix _form9]')
+if (!['application', 'attendance', 'status', 'collect', 'submit'].includes(cmd) || !/^\d{4}-\d{2}$/.test(month ?? '')) {
+  console.error('usage: gangnam-subsidy-build.mjs application|attendance|status|collect|submit --month YYYY-MM')
   process.exit(1)
 }
 const [Y, M] = month.split('-').map(Number)
@@ -80,7 +85,7 @@ const roster = JSON.parse(fs.readFileSync(await download('config/subsidy-roster.
 const form = await download('forms/2026-gangnam-internship-forms.hwp', path.join(work, 'form.hwp'))
 
 // 기본급은 그 달 급여명세서와 대조한다(명부만 믿으면 급여가 바뀐 달에 틀린 신청서가 나간다)
-for (const p of roster.people) {
+for (const p of (cmd === 'application' ? roster.people : [])) {
   const slip = findIn(path.join(DIR, '04-payslips'), new RegExp(`급여명세서_${Y}${MM}_${p.name}\\.pdf$`))
   if (!slip) { console.log(`  ! ${p.name} 급여명세서가 없어 기본급을 대조하지 못했어요(명부 ${won(p.basePay)})`); continue }
   const got = Number((pdfText(slip).match(/기본급\s+([\d,]+)원/) ?? [])[1]?.replace(/,/g, ''))
@@ -183,4 +188,162 @@ if (cmd === 'attendance') {
   }
   console.log(`출근부 ${roster.people.length}장. 메일: node scripts/gangnam-attendance-send.mjs --month ${month}${suffix ? ` --key-suffix ${suffix}` : ''}`)
 }
+
+// ─── 인턴 회신·제출 ─────────────────────────────────────────────────────────
+async function gmailClient() {
+  const { data: token, error } = await sb.from('gmail_tokens').select('*').eq('context', 'tensoftworks')
+    .order('updated_at', { ascending: false }).limit(1).single()
+  if (error || !token) throw new Error(`tensoftworks Gmail 토큰이 없어요: ${error?.message}`)
+  const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID_TENSW, process.env.GOOGLE_CLIENT_SECRET_TENSW, process.env.GOOGLE_REDIRECT_URI)
+  auth.setCredentials({ access_token: token.access_token, refresh_token: token.refresh_token })
+  return google.gmail({ version: 'v1', auth })
+}
+const attachmentParts = (part) => !part ? [] : [
+  ...(part.filename && part.body?.attachmentId ? [{ filename: part.filename, mimeType: part.mimeType, id: part.body.attachmentId }] : []),
+  ...(part.parts ?? []).flatMap(attachmentParts),
+]
+const RECEIVED = path.join(DIR, '03-attendance-received')
+/** 그 사람의 서명본: 우리가 그 스레드에 마지막으로 보낸 메일 뒤에 온, 첨부 있는 회신(재서명 요청 뒤엔 새 서명본만 잡힌다) */
+const receivedFile = (p) => fs.existsSync(RECEIVED)
+  ? fs.readdirSync(RECEIVED).filter(f => !f.startsWith('._') && f.normalize('NFC').startsWith(`${month}_${p.name}_signed_`)).sort().pop() : null
+
+async function collect() {
+  const gmail = await gmailClient()
+  const me = (await gmail.users.getProfile({ userId: 'me' })).data.emailAddress
+  fs.mkdirSync(RECEIVED, { recursive: true })
+  for (const p of roster.people) {
+    const q = `from:${p.email} subject:"${Y}년 ${M}월 출근부" has:attachment`
+    const hit = (await gmail.users.messages.list({ userId: 'me', q, maxResults: 1 })).data.messages?.[0]
+    if (!hit) { console.log(`  ${p.name}: 회신 없음`); continue }
+    const thread = (await gmail.users.threads.get({ userId: 'me', id: hit.threadId, format: 'full' })).data.messages
+    const from = (m) => (m.payload.headers.find(h => h.name === 'From')?.value ?? '')
+    const lastOurs = thread.map((m, i) => ({ m, i })).filter(({ m }) => from(m).includes(me) && !(m.labelIds ?? []).includes('DRAFT')).pop()?.i ?? -1
+    const reply = thread.slice(lastOurs + 1).filter(m => from(m).includes(p.email) && attachmentParts(m.payload).length).pop()
+    if (!reply) { console.log(`  ${p.name}: 마지막 요청(${lastOurs >= 0 ? '보냄' : '없음'}) 뒤 회신 없음 — 기다림`); continue }
+    const parts = attachmentParts(reply.payload).filter(a => /pdf|image/.test(a.mimeType))
+    if (parts.length !== 1) { console.log(`  ${p.name}: 첨부가 ${parts.length}개 — 사람이 확인해야 해요 (메일 ${reply.id})`); continue }
+    const ext = parts[0].mimeType === 'application/pdf' ? '.pdf' : parts[0].mimeType === 'image/png' ? '.png' : '.jpg'
+    const out = path.join(RECEIVED, `${month}_${p.name}_signed_${reply.id}${ext}`)
+    if (!fs.existsSync(out)) {
+      const data = (await gmail.users.messages.attachments.get({ userId: 'me', messageId: reply.id, id: parts[0].id })).data.data
+      fs.writeFileSync(out, Buffer.from(data, 'base64url'), { mode: 0o600 })
+    }
+    console.log(`  ${p.name}: ${path.basename(out)} (${new Date(Number(reply.internalDate)).toLocaleString('ko-KR')})`)
+  }
+}
+
+/** 제출 5종의 자리. 없으면 null */
+function documents() {
+  const d6 = path.join(DIR, '06-draft-submission'), d7 = path.join(DIR, '07-final-submission')
+  const pick = (dir, re) => fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => !f.startsWith('._') && re.test(f.normalize('NFC'))).sort().map(f => path.join(dir, f)).pop() ?? null : null
+  return {
+    application: pick(d7, new RegExp(`^1_.*신청_${Y}${MM}\\.pdf$`)),
+    attendance: roster.people.map(p => receivedFile(p) && path.join(RECEIVED, receivedFile(p))),
+    payslips: pick(d6, new RegExp(`^3_급여명세서_${Y}${MM}.*\\.pdf$`)),
+    roster: pick(d6, /^4_4대사회보험_사업장가입자명부_\d{8}\.pdf$/),
+    transfer: pick(d6, new RegExp(`^5_.*급여이체확인_${Y}${MM}.*\\.pdf$`)),
+  }
+}
+const pages = (f) => Number(execFileSync('pdfinfo', [f], { encoding: 'utf8' }).match(/Pages:\s+(\d+)/)?.[1] ?? 0)
+const namesIn = (f) => roster.people.filter(p => pdfText(f).includes(p.name)).map(p => p.name)
+
+/** 교차검증. 틀린 것 목록을 돌려준다(빈 배열 = 통과) */
+function verify(doc) {
+  const bad = [], all = roster.people.map(p => p.name)
+  const need = (ok, msg) => { if (!ok) bad.push(msg) }
+  const total = won(roster.subsidyPerPerson * roster.people.length)
+  need(doc.application, '1 신청서가 없어요 (application 먼저)')
+  if (doc.application) {
+    const t = pdfText(doc.application)
+    need(pages(doc.application) === 1, '1 신청서가 한 장이 아니에요')
+    need(all.every(n => t.includes(n)), `1 신청서에 대상자가 빠졌어요 (${namesIn(doc.application).join('·')})`)
+    need(t.includes(total), `1 신청서 신청금액이 ${total}원이 아니에요`)
+    // 제목의 "( 9 )"는 PDF 글자로 뽑히지 않는다 — 대상 기간으로 월을 본다
+    need(t.includes(`${Y}.${MM}.01.`) && t.includes(`${Y}.${MM}.${String(facts.lastDay).padStart(2, '0')}.`), '1 신청서의 대상 기간이 그 달이 아니에요')
+  }
+  roster.people.forEach((p, i) => need(doc.attendance[i], `2 ${p.name} 출근부 서명본이 아직 없어요 (collect)`))
+  need(doc.payslips && all.every(n => namesIn(doc.payslips).includes(n)), '3 급여명세서에 대상자가 다 있지 않아요')
+  need(doc.roster && all.every(n => namesIn(doc.roster).includes(n)), '4 가입자 명부에 대상자가 다 있지 않아요')
+  if (doc.transfer) {
+    const t = pdfText(doc.transfer)
+    need(all.every(n => t.includes(n)), '5 이체확인증에 대상자가 다 있지 않아요')
+  } else bad.push('5 급여이체확인증이 없어요')
+  return bad
+}
+
+async function status() {
+  const doc = documents()
+  const line = (n, label, f, extra = '') => console.log(`${f ? '✅' : '⏳'} ${n}. ${label}${f ? ` — ${Array.isArray(f) ? f.filter(Boolean).length + '/' + f.length + '명' : path.basename(f) + ` (${pages(f)}쪽)`}` : ' — 없음'}${extra}`)
+  console.log(`${month}분 강남구 인턴십 지원금 — 제출 ${facts.replyDue ? '' : ''}마감 ${Y}-${String(M + 1 > 12 ? 1 : M + 1).padStart(2, '0')}-15, gnk@gngucci.or.kr`)
+  line(1, '[서식13] 정규직 전환 지원금 신청서', doc.application)
+  line(2, '[서식9] 출근부 인턴 서명본(지급액=실지급액)', doc.attendance.some(Boolean) ? doc.attendance : null,
+    doc.attendance.every(Boolean) ? '' : ` — 기다림: ${roster.people.filter((p, i) => !doc.attendance[i]).map(p => p.name).join('·')}`)
+  line(3, '임금대장(급여명세서) 사본', doc.payslips)
+  line(4, '4대 사회보험 사업장 가입자 명부', doc.roster)
+  line(5, '계좌이체 내역(은행 발급 이체확인증)', doc.transfer)
+  const bad = verify(doc)
+  console.log(bad.length ? `\n남은 것:\n${bad.map(b => '  - ' + b).join('\n')}` : '\n5종 교차검증 통과 — submit 로 제출 초안을 만들 수 있어요')
+}
+
+async function submit() {
+  const doc = documents()
+  const bad = verify(doc)
+  if (bad.length) throw new Error(`교차검증 실패 — 제출 초안을 만들지 않았어요:\n${bad.join('\n')}`)
+  const out = path.join(DIR, '07-final-submission')
+  // 출근부 3장을 명부 순서대로 한 PDF 로(사진 회신은 PDF 로 바꿔 넣는다)
+  const merged = path.join(out, `2_출근부_${Y}${MM}_${roster.people.length}명_서식9.pdf`)
+  execFileSync(PY, ['-c', `
+import sys
+from pypdf import PdfReader, PdfWriter
+from PIL import Image
+import io
+w = PdfWriter()
+for f in sys.argv[2:]:
+    if f.lower().endswith('.pdf'):
+        for pg in PdfReader(f).pages: w.add_page(pg)
+    else:
+        buf = io.BytesIO(); Image.open(f).convert('RGB').save(buf, 'PDF', resolution=150); buf.seek(0)
+        for pg in PdfReader(buf).pages: w.add_page(pg)
+w.write(open(sys.argv[1], 'wb'))
+`, merged, ...doc.attendance])
+  const files = [
+    doc.application, merged,
+    ...[[doc.payslips, `3_급여명세서_${Y}${MM}_${roster.people.length}명.pdf`], [doc.roster, path.basename(doc.roster)],
+      [doc.transfer, `5_우리은행_급여이체확인_${Y}${MM}_${roster.people.length}명.pdf`]].map(([src, name]) => {
+      const dst = path.join(out, name); if (src !== dst) fs.copyFileSync(src, dst); return dst
+    }),
+  ]
+  const total = won(roster.subsidyPerPerson * roster.people.length)
+  const subject = `[텐소프트웍스] ${Y}년 ${M}월 강남구 인턴십 지원금 신청`
+  const text = `안녕하세요, 텐소프트웍스입니다.
+
+${Y}년 ${M}월 강남구 중소기업 인턴십 정규직 전환 지원금 신청 서류를 제출합니다.
+- 대상: ${roster.people.map(p => p.name).join('·')} ${roster.people.length}명
+- 신청금액: ${total}원
+- 첨부: 신청서(서식13), 출근부(서식9), 급여명세서, 4대 사회보험 사업장 가입자 명부, 급여이체확인증
+
+접수 확인 부탁드립니다.
+
+${roster.contact.name} 드림 (${roster.contact.phone})
+`
+  const gmail = await gmailClient()
+  const from = (await gmail.users.getProfile({ userId: 'me' })).data.emailAddress
+  const b64 = (x) => Buffer.from(x, 'utf8').toString('base64')
+  const bd = `b${Date.now().toString(36)}`
+  const raw = [`From: ${from}`, 'To: gnk@gngucci.or.kr', `Subject: =?UTF-8?B?${b64(subject)}?=`, 'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${bd}"`, '', `--${bd}`, 'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64', '', b64(text), '',
+    ...files.flatMap(f => { const n = `=?UTF-8?B?${b64(path.basename(f))}?=`; return [`--${bd}`, `Content-Type: application/pdf; name="${n}"`,
+      'Content-Transfer-Encoding: base64', `Content-Disposition: attachment; filename="${n}"`, '', fs.readFileSync(f).toString('base64'), ''] }),
+    `--${bd}--`, ''].join('\r\n')
+  const body = { raw: Buffer.from(raw).toString('base64url') }
+  const res = args.includes('--send')
+    ? await gmail.users.messages.send({ userId: 'me', requestBody: body })
+    : await gmail.users.drafts.create({ userId: 'me', requestBody: { message: body } })
+  console.log(`${args.includes('--send') ? '발송' : '초안'} ${res.data.id} — ${from} → gnk@gngucci.or.kr\n제목 ${subject}\n첨부:\n${files.map(f => '  ' + path.basename(f) + ` (${pages(f)}쪽)`).join('\n')}`)
+}
+
+if (cmd === 'status') await status()
+if (cmd === 'collect') { await collect(); await status() }
+if (cmd === 'submit') await submit()
 fs.rmSync(work, { recursive: true, force: true })

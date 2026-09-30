@@ -182,6 +182,9 @@ node scripts/gangnam-attendance-send.mjs --send          # 실제 발송(승인 
 ```bash
 node scripts/gangnam-subsidy-build.mjs application --month 2026-10   # 신청서 HWP+PDF(인감) → tmp/…/07-final-submission
 node scripts/gangnam-subsidy-build.mjs attendance  --month 2026-10   # 서식 9 출근부 3장(담당 서명만) → 버킷
+node scripts/gangnam-subsidy-build.mjs status      --month 2026-10   # 기관 요청 5종 대비 준비 현황
+node scripts/gangnam-subsidy-build.mjs collect     --month 2026-10   # 인턴 서명본 회신 받기
+node scripts/gangnam-subsidy-build.mjs submit      --month 2026-10   # 5종 교차검증 → 기관 제출 초안(--send 는 승인 뒤)
 node scripts/hwp/hwp.mjs dump|fill|colors|pdf …                      # HWP 직접 편집 도구
 ```
 
@@ -191,6 +194,7 @@ node scripts/hwp/hwp.mjs dump|fill|colors|pdf …                      # HWP 직
 - 제출 5종: 신청서 · 출근부(인턴 서명본) · 급여명세서 · 4대보험 사업장 가입자 명부 · 우리은행 급여이체확인증.
   명부·이체확인증 받는 법은 스킬 문서. 5종 교차검증이 끝나야 제출 메일 초안을 만든다.
 - **기본은 초안까지만.** 기관 제출·인턴 회신 요청 모두 CEO 승인 뒤 발송.
+- 윌리는 즉석 스크립트를 짜지 않고 위 명령만 쓴다. CEO 말 → 명령 표는 스킬 문서 「윌리(텔레그램)로 할 때」.
 - 자세한 배경과 덫은 `.claude/skills/tensw-internship-subsidy-application/SKILL.md`.
 
 ### 텐소프트웍스 월 급여

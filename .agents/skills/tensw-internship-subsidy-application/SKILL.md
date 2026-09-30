@@ -53,6 +53,24 @@ description: Use when preparing Tensoftworks Gangnam internship subsidy applicat
 봉은사로105길54-5, 402호"(8월 제출본과 같게, CEO) · 담당자(연락처는 명부 `contact`) · 계좌 신한 140-013-150883 ·
 1인 150만원 · 신청일은 그 달 말일.
 
+## 윌리(텔레그램)로 할 때
+
+CEO가 윌리에게 말하면 윌리(Codex)는 아래 명령만 쓴다. 즉석 스크립트를 새로 짜지 않는다.
+
+| CEO 말 | 명령 | 끝나면 보고할 것 |
+|---|---|---|
+| "지원금 준비 상황", "지원금 서류 뭐 남았어" | `node scripts/gangnam-subsidy-build.mjs status --month YYYY-MM` | 출력 그대로(5종 ✅/⏳, 남은 것) |
+| "지원금 신청서 만들어" | `… application --month YYYY-MM` | 파일 경로, 신청금액, 대상자 |
+| "출근부 만들어", "출근부 준비" | `… attendance --month YYYY-MM` → `gangnam-attendance-send.mjs --month YYYY-MM`(초안) | 초안 3통, 회신기한 |
+| "출근부 보내줘" | `gangnam-attendance-send.mjs --month YYYY-MM --send` | 발송 3통 |
+| "출근부 회신 확인", "서명본 받았어?" | `… collect --month YYYY-MM` | 받은 사람·기다리는 사람 |
+| "가입자 명부 발급" | 아래 「4대보험 사업장 가입자 명부」 절차 | 발급번호·발급시각 |
+| "지원금 제출 준비", "제출 메일 만들어" | `… submit --month YYYY-MM` | 초안 ID, 첨부 5종, 검증 결과 |
+| "지원금 제출해", "보내" (초안 확인 뒤) | `… submit --month YYYY-MM --send` | 발송 결과 |
+
+`submit`은 5종 교차검증이 하나라도 틀리면 초안을 만들지 않고 틀린 것을 알려 준다 — 그걸 그대로 보고한다.
+발송(`--send`)은 CEO가 초안을 보고 보내라고 한 뒤에만.
+
 ## 순서
 
 1. **안내 확인.** 기관의 그 달 안내 메일(`01-guidance`)에서 서식 번호·지급액 기재 방식·마감을 확인한다.
@@ -68,11 +86,13 @@ description: Use when preparing Tensoftworks Gangnam internship subsidy applicat
 4. **신청서.** `node scripts/gangnam-subsidy-build.mjs application --month 2026-10`
    한 장이 아니거나 회색 글자가 남으면 스크립트가 멈춘다. 결과 PDF를 직전 달 제출본과 나란히 놓고 본다.
 5. **가입자 명부**(아래 절).
-6. **5종 교차검증** — 대상자 수·이름, 대상 월, 지급일, 명세서·이체확인·출근부 금액, 신청금액 합계(1인 150만원×인원),
-   서명·직인, PDF 열림. 하나라도 틀리면 제출 초안을 만들지 않는다.
-7. **제출 메일 초안** — 받는 사람 `gnk@gngucci.or.kr`(최신 기관 메일로 재확인), 발신은 Gmail에 연결된 실제 계정.
-   제목 `[텐소프트웍스] YYYY년 M월 강남구 인턴십 지원금 신청`. 본문: 대상 월·인원·총 신청금액·첨부 5종·담당자.
-   첨부 순서 1 신청서 · 2 출근부(3명 병합) · 3 급여명세서(병합) · 4 가입자 명부 · 5 이체확인증(병합).
+6. **서명본 수집** — `… collect --month YYYY-MM`. 인턴마다 우리가 스레드에 마지막으로 보낸 요청 **뒤에 온** 회신
+   첨부만 받는다(재서명 요청 전 회신은 안 잡힌다). 사진 회신도 받는다. 첨부가 여러 개면 멈추고 사람에게 묻는다.
+7. **5종 교차검증 + 제출 초안** — `… submit --month YYYY-MM`. 신청서(한 장·대상자·합계·대상 기간), 출근부 서명본
+   전원, 명세서·명부·이체확인증의 대상자를 본다. 통과하면 출근부를 명부 순서로 한 PDF로 합치고 5종을
+   `07-final-submission`에 모아 `gnk@gngucci.or.kr`로 초안을 만든다(발신 dw.kim@tensoftworks.com).
+   제목 `[텐소프트웍스] YYYY년 M월 강남구 인턴십 지원금 신청`. 첨부 순서 1 신청서 · 2 출근부 · 3 급여명세서 ·
+   4 가입자 명부 · 5 이체확인증. 출근부 서명·자필 칸은 사람이 한 번 눈으로 본다(스캔이라 기계가 못 읽는다).
 8. **위키**(`tensw-mgmt` / 재무)에 그 달 노트를 남기고 첨부는 비공개 버킷 링크(`/api/files/…`)로.
 
 ## 서식이 바뀌어 다시 서명받을 때
