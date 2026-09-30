@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { planJudgement, applyJudgement } from './apply-judgement.mjs'
-import { buildPrompt, codexRunner } from './judge.mjs'
+import { buildPrompt, codexRunner, isPersonalItem } from './judge.mjs'
 
 const items = [
   { source: 'chat', company: 'tensw', ref: 'spaces/A/messages/1', text: '@김동욱 이사님 NIA 9월 월간보고 10/2까지 부탁드립니다', at: '2026-09-30T01:00:00Z' },
@@ -318,4 +318,16 @@ test('5/7f. 이번 실행에 없는 case_name 은 (company, name) 으로 DB 에�
     entries: [{ company: 'tensw', case_name: 'X', kind: 'todo', body: 'b', actor: null, assignee: null, due_date: null, source: 'chat', source_ref: 'r1', occurred_at: '2026-10-01T00:00:00Z' }] }
   await applyJudgement({ from }, plan, {})
   assert.equal(calls.insert[0].row.case_id, 'case-99')
+})
+
+test('I9: 개인·가족·개인투자 메시지는 judge 앞에서 거른다', () => {
+  assert.equal(isPersonalItem({ subject: '[미래에셋증권] 김류하님의 거래내역입니다', from: 'noreply@miraeasset.com', text: '' }), true)
+  assert.equal(isPersonalItem({ subject: '류하 학원 상담 안내', from: 'a@b.c', text: '' }), true)
+  assert.equal(isPersonalItem({ subject: 'Security alert', from: 'no-reply@accounts.google.com', text: 'New sign-in' }), true)
+  assert.equal(isPersonalItem({ subject: '[GS네오텍] 2026년 9월 사용내역 안내', from: 'bill@gsneotek.com', text: '사용내역을 보내드립니다' }), false)
+  assert.equal(isPersonalItem({ space: 'Tensw 운영자방', from: '김의향', text: '세금계산서 발행 부탁드립니다' }), false)
+})
+test('I9: judge 프롬프트는 개인 메시지를 무시하라고 적는다', () => {
+  const p = buildPrompt({ company: 'tensw', items: [], openCases: [], openSchedules: [] })
+  assert.match(p, /개인·가족·개인투자 메시지는 무시한다\(아무 항목도 만들지 않는다\)/)
 })

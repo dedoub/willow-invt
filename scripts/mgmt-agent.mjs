@@ -14,7 +14,7 @@ import { makeCalendar } from './lib/mgmt/calendar.mjs'
 import { SEED_RULES } from './lib/mgmt/seed-rules.mjs'
 import { planOccurrences, planMissed, applyPlan, tableFor } from './lib/mgmt/ledger.mjs'
 import { getCursor, saveCursor, readMail, readChat } from './lib/mgmt/sources.mjs'
-import { buildPrompt, judge } from './lib/mgmt/judge.mjs'
+import { buildPrompt, judge, isPersonalItem } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules, INFER_LIMIT, MIN_CONFIDENCE } from './lib/mgmt/infer.mjs'
 import { planTuning } from './lib/mgmt/tune.mjs'
@@ -223,7 +223,11 @@ async function collectBatches(batches, allLessons, prompted) {
     try {
       for (let i = 0; i < b.items.length; i += 60) {
         if (Date.now() - START > COLLECT_DEADLINE_MS) { log(`18분 경과 — ${b.source} 는 ${i}건까지 반영, 나머지는 다음 실행`); return }
-        const items = b.items.slice(i, i + 60)
+        const batch = b.items.slice(i, i + 60)
+        // I9: 개인·가족·개인투자 메시지는 judge 에 넘기지 않는다(커서는 묶음 전체로 넘긴다).
+        const items = batch.filter(x => !isPersonalItem(x))
+        if (items.length < batch.length) log(`${b.source} 개인 메시지 ${batch.length - items.length}건 제외`)
+        if (!items.length) { await saveCursor(sb, b.source, batch, { dryRun }); continue }
         const openCases = must(await sb.from('mgmt_cases').select('name').eq('company', b.company).eq('status', 'open'), 'mgmt_cases')
         const openSchedules = must(await sb.from(table).select('id, title, schedule_date, source_key, evidence').eq('is_completed', false).or(NOT_PERSONAL).gte('schedule_date', addDays(todayKey(), -60)), table)
         const used = pickLessons(allLessons, b.company, 20, { scopes: PROMPT_SCOPES })
@@ -231,11 +235,11 @@ async function collectBatches(batches, allLessons, prompted) {
         for (const l of used) prompted.set(l.id, l)
         const plan = planJudgement(b.company, j, { items, openSchedules: openSchedules ?? [] })
         tally.entries += plan.entries.length; tally.inserted += plan.scheduleInserts.length; tally.updated += plan.scheduleUpdates.length; tally.decisions += plan.decisions.length
-        log(`${b.source} [${i + 1}-${i + items.length}] 건 ${plan.cases.length} · 기록 ${plan.entries.length} · 일정 +${plan.scheduleInserts.length}/~${plan.scheduleUpdates.length} · 결정 ${plan.decisions.length} · 버림 ${plan.dropped}`)
+        log(`${b.source} [${i + 1}-${i + batch.length}] 건 ${plan.cases.length} · 기록 ${plan.entries.length} · 일정 +${plan.scheduleInserts.length}/~${plan.scheduleUpdates.length} · 결정 ${plan.decisions.length} · 버림 ${plan.dropped}`)
         for (const r of plan.scheduleInserts) dryNote('schedule', b.company, `${r.schedule_date} ${r.title}`)
         for (const d of plan.decisions) dryNote('decision', b.company, d.question)
         await applyJudgement(sb, plan, { dryRun, log, onWrite })
-        await saveCursor(sb, b.source, items, { dryRun })
+        await saveCursor(sb, b.source, batch, { dryRun })
       }
     } catch (e) { fail(`collect:${b.source}`, e) }
   }

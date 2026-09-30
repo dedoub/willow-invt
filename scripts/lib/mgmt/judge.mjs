@@ -5,10 +5,19 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { redact } from './redact.mjs'
+import { PERSONAL_WORDS } from './infer.mjs'
 
 const SCHEMA = path.join(path.dirname(fileURLToPath(import.meta.url)), 'judge-schema.json')
 
 const field = v => redact(v ?? '').text
+
+// I9: 개인·가족·개인투자 메시지는 judge 에 넘기지 않는다(추론 제외 낱말 + 가족 이름). 제목·보낸이·방 이름·본문 앞부분을 본다.
+export const FAMILY_NAMES = ['류하', '김류하']
+const PERSONAL_ITEM_WORDS = [...new Set([...PERSONAL_WORDS, ...FAMILY_NAMES])].map(w => w.toLowerCase())
+export function isPersonalItem(item) {
+  const head = [item?.subject, item?.from, item?.space, String(item?.text ?? '').slice(0, 300)].filter(Boolean).join(' ').toLowerCase()
+  return PERSONAL_ITEM_WORDS.some(w => head.includes(w))
+}
 
 export function buildPrompt({ company, items, openCases, openSchedules, lessons = [] }) {
   const name = company === 'willow' ? '윌로우인베스트먼트' : '텐소프트웍스'
@@ -25,6 +34,7 @@ export function buildPrompt({ company, items, openCases, openSchedules, lessons 
     '- 비밀번호·키·계좌가 평문으로 보이면 kind=security 항목으로 "무엇이 누구에게 공유됐는지"만 적고 값은 적지 않는다.',
     '- 결정(decisions)은 대표 판단이 필요한 것만: 예산 밖 지출, 가격·계약 조건, 대외 제출 범위, 참석자, 처음 보는 거래 성격.',
     '- 개발 세부·잡담은 kind=daily 한 줄로 끝낸다(스페이스별 하루 한 단락).',
+    '- 개인·가족·개인투자 메시지는 무시한다(아무 항목도 만들지 않는다).',
     ...(lessons.length ? ['', '지난 교훈(반드시 지킨다):', ...lessons.map(l => `- ${field(l).replace(/\n+/g, ' / ')}`)] : []),
     '',
     `열린 건: ${JSON.stringify(openCases.map(c => field(c.name)))}`,
