@@ -7,7 +7,7 @@ export const addDays = (key, n) => { const t = new Date(`${key}T00:00:00Z`); t.s
 // 07:00~07:29 이면 infer 먼저, 18:30~18:59 이면 마지막에 digest.
 export const STEP_NAMES = ['rules', 'collect', 'close', 'decide', 'digest', 'infer']
 export function planSteps(hm, only = null) {
-  if (only) {
+  if (only !== null && only !== undefined) {
     if (!STEP_NAMES.includes(only)) throw new Error(`알 수 없는 단계 "${only}" (${STEP_NAMES.join('|')})`)
     return [only]
   }
@@ -23,9 +23,10 @@ export function parseSourceKey(key) {
 // *_mgmt_cash 는 날짜가 payment_date(없으면 issue_date), 분류가 type 이다. 부호도 섞여 있다
 // (지출이 양수인 expense 행, 음수인 liability 행). 'salary' 분류는 없으므로 급여 이체는
 // 적요·상대에 "급여"가 있고 나가는 돈(지출·부채 상환 또는 음수)이면 salary 로 본다.
+// 부채(liability) 행은 음수일 때만 나가는 돈이다(양수 liability 는 차입 등 들어온 돈).
 export function cashDirection(row) {
   if (Number(row.amount) < 0) return 'out'
-  return ['expense', 'liability'].includes(row.type) ? 'out' : 'in'
+  return row.type === 'expense' ? 'out' : 'in'
 }
 export function cashFact(row, table) {
   const counterparty = row.counterparty || row.description || ''
@@ -90,3 +91,37 @@ export function cashEvent(row, table, company) {
   const dir = cashDirection(row)
   return { company, kind: 'cash', table, counterparty: f.counterparty, key: `cash:${table}:${f.counterparty}:${dir}`, label: `${f.counterparty} ${dir === 'out' ? '출금' : '입금'}`, date: f.date, ref: row.id }
 }
+
+// KST 날짜 키. 'YYYY-MM-DD' 는 그대로, 시각이 있으면 KST 로 바꿔서.
+export function kstDateOf(at) {
+  const s = String(at ?? '')
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  const t = new Date(s)
+  return Number.isNaN(t.getTime()) ? null : new Date(t.getTime() + 9 * 3600e3).toISOString().slice(0, 10)
+}
+
+// 오늘(KST) 닫힌 행: 증빙 중 하나의 at 이 오늘(KST).
+export const closedToday = (rows, today) => rows.filter(r => r.agent_state === 'done' && (r.evidence ?? []).some(e => kstDateOf(e?.at) === today))
+
+// 실패 기록(~/.willow/mgmt-agent-failures.jsonl) — 한 줄에 {at, date, step, message, dry}.
+export function failureLine(step, message, now = new Date(), dry = false) {
+  return JSON.stringify({ at: now.toISOString(), date: kstDateOf(now.toISOString()), step, message: String(message ?? '').slice(0, 300), dry })
+}
+// 7일보다 오래된 줄과 깨진 줄은 버린다.
+export function pruneFailureLines(lines, now = new Date(), keepDays = 7) {
+  const cutoff = now.getTime() - keepDays * 86_400_000
+  return lines.filter(l => { try { return new Date(JSON.parse(l).at).getTime() >= cutoff } catch { return false } })
+}
+export function failuresOn(lines, today) {
+  const out = []
+  for (const l of lines) { try { const f = JSON.parse(l); if (f.date === today) out.push(f) } catch {} }
+  return out
+}
+// 요약용 "HH:MM 단계" 목록.
+export const failureLabels = fs => fs.map(f => `${kstTime(f.at)} ${f.step}`)
+const kstTime = at => new Date(new Date(at).getTime() + 9 * 3600e3).toISOString().slice(11, 16)
+
+// 지난 판단 재사용으로 자동 답한 결정의 표식.
+export const reuseRefs = d => [...(Array.isArray(d.refs) ? d.refs : []), { kind: 'reuse', from: d.subject_key }]
+export const isReuse = d => (Array.isArray(d.refs) ? d.refs : []).some(r => r?.kind === 'reuse')
+export const reuseLabel = d => { const q = String(d.question ?? ''); return q.length > 30 ? `${q.slice(0, 30)}…` : q }

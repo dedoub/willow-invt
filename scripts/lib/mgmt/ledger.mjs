@@ -19,12 +19,16 @@ export function planOccurrences(rules, existingRows, { from, to, cal }) {
       const title = fill(rule.title, period)
       const found = byKey.get(key)
       if (found) {
+        // 사람이 적은 행(origin manual)은 날짜·제목을 사람 것 그대로 둔다.
+        if (found.origin === 'manual') continue
         const patch = {}
         if (found.schedule_date !== date) patch.schedule_date = date
         if (found.title !== title) patch.title = title
         if (Object.keys(patch).length) update.push({ id: found.id, patch })
         continue
       }
+      // 같은 회차를 가리키는 키(접두사 + 대상 월)가 있으면 날짜와 상관없이 그 행을 쓴다.
+      if (rule.adopt_prefix && byKey.has(`${rule.adopt_prefix}${period}`)) continue
       if (rule.adopt_prefix && existingRows.some(r => r.source_key?.startsWith(rule.adopt_prefix) && daysBetween(r.schedule_date, date) <= ADOPT_WINDOW_DAYS)) continue
       insert.push({
         title, schedule_date: date, type: 'deadline', category: 'other', source_key: key,

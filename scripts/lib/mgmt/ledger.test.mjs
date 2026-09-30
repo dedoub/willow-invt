@@ -70,3 +70,17 @@ test('씨앗 규칙은 두 회사를 모두 덮고 키가 겹치지 않는다', 
   const keys = SEED_RULES.map(r => `${r.company}:${r.task_key}:${r.step}`)
   assert.equal(new Set(keys).size, keys.length)
 })
+
+test('접두사+대상 월 키가 있으면 날짜가 멀어도 받아 쓴다', () => {
+  const send = { id: 'r3', company: 'tensw', task_key: 'attendance', step: 'send', title: '{period} 출근부 발송', rule: { kind: 'month_end', shift: 'prev' }, lead_days: 1, recipe: null, completion: null, adopt_prefix: 'gangnam-attendance:send:' }
+  const existing = [{ id: 'g1', source_key: 'gangnam-attendance:send:2026-09', schedule_date: '2026-09-22', title: '[인사] 출근부 발송 (9월분)', is_completed: true }]
+  const p = planOccurrences([send], existing, { from: '2026-09-01', to: '2026-09-30', cal })
+  assert.deepEqual(p, { insert: [], update: [] })
+  const other = planOccurrences([send], [{ ...existing[0], source_key: 'gangnam-attendance:send:2026-08' }], { from: '2026-09-01', to: '2026-09-30', cal })
+  assert.equal(other.insert.length, 1)
+})
+test('사람이 적은 행(manual)은 날짜·제목을 바꾸지 않는다', () => {
+  const existing = [{ id: 's1', source_key: 'mgmt:tensw:payroll:2026-10:request', schedule_date: '2026-10-20', title: '10월 급여대장 요청 이메일 발송', is_completed: false, origin: 'manual' }]
+  const p = planOccurrences([payroll], existing, { from: '2026-10-01', to: '2026-10-31', cal })
+  assert.deepEqual(p, { insert: [], update: [] })
+})

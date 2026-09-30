@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, addDays } from './runner-helpers.mjs'
+import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, addDays, kstDateOf, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './runner-helpers.mjs'
 
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['rules', 'collect', 'close', 'decide'])
@@ -10,6 +10,7 @@ test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('19:05'), ['rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('10:05', 'close'), ['close'])
   assert.throws(() => planSteps('10:05', 'nope'))
+  assert.throws(() => planSteps('10:05', ''))
 })
 
 test('parseSourceKey', () => {
@@ -29,6 +30,9 @@ test('cashFact: 날짜는 payment_date 우선, 급여 이체는 salary', () => {
   assert.equal(h.counterparty, '급여 환급')
   assert.equal(cashDirection({ type: 'revenue', amount: 5 }), 'in')
   assert.equal(cashDirection({ type: 'revenue', amount: -5 }), 'out')
+  assert.equal(cashDirection({ type: 'liability', amount: 5 }), 'in')
+  assert.equal(cashDirection({ type: 'liability', amount: -5 }), 'out')
+  assert.equal(cashFact({ id: 'd', type: 'liability', counterparty: '급여 선급', amount: 100, payment_date: '2026-09-01' }, 't').category, 'liability')
 })
 
 test('splitMailFacts', () => {
@@ -102,4 +106,41 @@ test('mailEvent / cashEvent', () => {
 test('addDays', () => {
   assert.equal(addDays('2026-09-30', 1), '2026-10-01')
   assert.equal(addDays('2026-09-30', -45), '2026-08-16')
+})
+
+test('kstDateOf / closedToday: KST 날짜로 비교', () => {
+  assert.equal(kstDateOf('2026-09-30'), '2026-09-30')
+  assert.equal(kstDateOf('2026-09-29T16:00:00Z'), '2026-09-30')
+  assert.equal(kstDateOf('2026-09-30T15:30:00Z'), '2026-10-01')
+  assert.equal(kstDateOf(null), null)
+  const rows = [
+    { title: 'a', agent_state: 'done', evidence: [{ at: '2026-09-29T16:10:00Z' }] },
+    { title: 'b', agent_state: 'done', evidence: [{ at: '2026-09-30T15:10:00Z' }] },
+    { title: 'c', agent_state: 'done', evidence: [{ at: '2026-09-30' }] },
+    { title: 'd', agent_state: 'planned', evidence: [{ at: '2026-09-30' }] },
+  ]
+  assert.deepEqual(closedToday(rows, '2026-09-30').map(r => r.title), ['a', 'c'])
+})
+
+test('실패 기록: 줄 만들기·7일 정리·오늘 것만', () => {
+  const now = new Date('2026-09-30T09:40:00Z')
+  const l = failureLine('collect:mail:tensw', 'boom', now)
+  assert.deepEqual(JSON.parse(l), { at: '2026-09-30T09:40:00.000Z', date: '2026-09-30', step: 'collect:mail:tensw', message: 'boom', dry: false })
+  const old = failureLine('rules', 'x', new Date('2026-09-20T00:00:00Z'))
+  const early = failureLine('timeout', '', new Date('2026-09-29T15:30:00Z')) // KST 09-30 00:30
+  const yesterday = failureLine('close', '', new Date('2026-09-29T14:00:00Z')) // KST 09-29 23:00
+  assert.deepEqual(pruneFailureLines([old, l, 'not json', early], now), [l, early])
+  const today = failuresOn([l, early, yesterday, 'bad'], '2026-09-30')
+  assert.deepEqual(today.map(f => f.step), ['collect:mail:tensw', 'timeout'])
+  assert.deepEqual(failureLabels(today), ['18:40 collect:mail:tensw', '00:30 timeout'])
+})
+
+test('지난 판단 재사용 표식', () => {
+  const d = { subject_key: 'willow:classify:akros', refs: ['m1'], question: '아크로스 자문료 입금을 매출로 분류할까요? 지난달과 같은 건입니다' }
+  assert.deepEqual(reuseRefs(d), ['m1', { kind: 'reuse', from: 'willow:classify:akros' }])
+  assert.deepEqual(reuseRefs({ subject_key: 'k', refs: null }), [{ kind: 'reuse', from: 'k' }])
+  assert.equal(isReuse({ refs: reuseRefs(d) }), true)
+  assert.equal(isReuse({ refs: ['m1'] }), false)
+  assert.equal(reuseLabel(d), '아크로스 자문료 입금을 매출로 분류할까요? 지난달과 같…')
+  assert.equal(reuseLabel({ question: '짧음' }), '짧음')
 })

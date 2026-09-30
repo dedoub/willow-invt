@@ -18,12 +18,13 @@ export function reuseAnswer(decision, past) {
   return past.find(p => p.status === 'answered' && p.subject_key === decision.subject_key && p.answer && p.answer !== 'hold')?.answer ?? null
 }
 
-export function digestMessage({ date, done, created, inferred, missed, openDecisions, failures }) {
+export function digestMessage({ date, done, created, inferred, missed, openDecisions, failures, reused = [] }) {
   const parts = []
   if (done.length) parts.push(`완료 ${done.length}: ${done.join(', ')}`)
   if (created.length) parts.push(`새 일정 ${created.length}: ${created.join(', ')}`)
   if (inferred.length) parts.push(`새 반복 규칙(추정) ${inferred.length}: ${inferred.join(', ')} — 빼려면 "규칙 빼 <이름>"`)
   if (missed.length) parts.push(`빠짐 ${missed.length}: ${missed.join(', ')}`)
+  if (reused.length) parts.push(`지난 판단 재사용 ${reused.length}: ${reused.join(', ')}`)
   if (openDecisions.length) parts.push(`대기 중인 결정 ${openDecisions.length}건`)
   if (failures.length) parts.push(`실패·재시도 예정: ${failures.join(', ')}`)
   return parts.length ? [`경영관리 ${date}`, ...parts].join('\n') : null

@@ -29,3 +29,8 @@ test('같은 판단은 다시 묻지 않되 발송 승인은 예외', () => {
   assert.equal(reuseAnswer({ kind: 'classify', subject_key: 'tensw:classify:GS네오텍' }, past), 'expense')
   assert.equal(reuseAnswer({ kind: 'send_approval', subject_key: 'tensw:classify:GS네오텍' }, past), null)
 })
+
+test('digestMessage: 지난 판단 재사용 줄', () => {
+  const s = digestMessage({ date: '2026-10-01', done: [], created: [], inferred: [], missed: [], openDecisions: [], failures: [], reused: ['아크로스 자문료 분류…'] })
+  assert.match(s, /지난 판단 재사용 1: 아크로스 자문료 분류…/)
+})

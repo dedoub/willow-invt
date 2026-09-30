@@ -17,16 +17,35 @@ import { buildPrompt, judge } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules } from './lib/mgmt/infer.mjs'
 import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
-import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent } from './lib/mgmt/runner-helpers.mjs'
+import { addDays, planSteps, parseSourceKey, cashFact, splitMailFacts, planClose, missedDecision, missedAnswerPatch, mailEvent, cashEvent, closedToday, failureLine, pruneFailureLines, failuresOn, failureLabels, reuseRefs, isReuse, reuseLabel } from './lib/mgmt/runner-helpers.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(ROOT, '.env.local'), quiet: true })
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry')
-const only = args.includes('--only') ? args[args.indexOf('--only') + 1] ?? '' : null
+const onlyArg = args.includes('--only') ? args[args.indexOf('--only') + 1] ?? '' : null
+const only = onlyArg !== null && onlyArg.startsWith('--') ? '' : onlyArg
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
 const log = m => console.log(`${new Date().toISOString()} [mgmt] ${m}`)
+const START = Date.now()
+const COLLECT_DEADLINE_MS = 18 * 60e3 // 20분 상한 전에 judge 를 더 부르지 않고 멈춘다.
 const failures = []
+// 실패는 이번 실행 목록과 ~/.willow/mgmt-agent-failures.jsonl 에 함께 남긴다 — 18:35 요약이 오늘 것을 모두 보고한다.
+const FAIL_FILE = path.join(os.homedir(), '.willow/mgmt-agent-failures.jsonl')
+function recordFailure(step, message) {
+  try {
+    const lines = fs.existsSync(FAIL_FILE) ? fs.readFileSync(FAIL_FILE, 'utf8').split('\n').filter(Boolean) : []
+    const kept = [...pruneFailureLines(lines), failureLine(step, message, new Date(), dryRun)]
+    fs.mkdirSync(path.dirname(FAIL_FILE), { recursive: true })
+    fs.writeFileSync(FAIL_FILE, kept.join('\n') + '\n')
+  } catch (e) { console.error(`[mgmt] 실패 기록 못 함: ${e instanceof Error ? e.message : e}`) }
+}
+function fail(step, e) {
+  const message = e instanceof Error ? e.message : String(e ?? '')
+  failures.push(step)
+  log(`실패 ${step}: ${message}`)
+  recordFailure(step, message)
+}
 const COMPANIES = ['tensw', 'willow']
 const CONTEXTS = [['tensoftworks', 'tensw'], ['default', 'willow']]
 const CASH_TABLES = [['tensw_mgmt_cash', 'tensw'], ['willow_mgmt_cash', 'willow']]
@@ -51,11 +70,16 @@ const LOCK = path.join(os.homedir(), '.willow/mgmt-agent.lock')
 fs.mkdirSync(path.dirname(LOCK), { recursive: true })
 try {
   const pid = Number(fs.readFileSync(LOCK, 'utf8'))
-  if (pid && pid !== process.pid) { process.kill(pid, 0); log(`이미 실행 중(${pid})`); process.exit(0) }
+  // 35분 넘은 락은 죽은 실행의 흔적으로 본다(상한이 20분이라 살아 있을 수 없다).
+  const stale = Date.now() - fs.statSync(LOCK).mtimeMs > 35 * 60e3
+  if (stale) log(`오래된 락 무시(${pid})`)
+  else if (pid && pid !== process.pid) { process.kill(pid, 0); log(`이미 실행 중(${pid})`); process.exit(0) }
 } catch {}
 fs.writeFileSync(LOCK, String(process.pid))
 process.on('exit', () => { try { if (fs.readFileSync(LOCK, 'utf8') === String(process.pid)) fs.unlinkSync(LOCK) } catch {} })
-setTimeout(() => { log('시간 상한 20분 초과'); process.exit(3) }, 20 * 60e3).unref()
+process.on('SIGTERM', () => process.exit(143))
+process.on('SIGINT', () => process.exit(130))
+setTimeout(() => { log('시간 상한 20분 초과'); recordFailure('timeout', '시간 상한 20분 초과'); process.exit(3) }, 20 * 60e3).unref()
 
 // 윌리(CEO 봇)가 쓰는 chat id — telegram-bot.ts loadCeoChatId 와 같은 출처.
 let ceoChatId
@@ -71,10 +95,12 @@ async function telegram(text, { buttons, kind = 'decision' } = {}) {
   const dryDigest = dryRun && process.env.MGMT_DRY_DIGEST === '1' && kind === 'digest'
   if (dryRun && !dryDigest) { log(`(dry) 윌리: ${text.split('\n')[0]}`); return null }
   const body = { chat_id: await loadCeoChatId(), text: dryRun ? `(시험 운행) ${text}` : text, ...(buttons && !dryRun ? { reply_markup: { inline_keyboard: buttons } } : {}) }
-  const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  const j = await r.json().catch(() => ({}))
-  if (!j.ok) log(`윌리 전송 실패: ${j.description ?? r.status}`)
-  return j.result?.message_id ?? null
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const j = await r.json().catch(() => ({}))
+    if (!j.ok) { fail(`telegram:${kind}`, `윌리 전송 실패: ${j.description ?? r.status}`); return null }
+    return j.result?.message_id ?? null
+  } catch (e) { fail(`telegram:${kind}`, e); return null }
 }
 
 async function loadRules() {
@@ -94,7 +120,7 @@ async function stepRules() {
   const from = todayKey(), to = addDays(from, 60)
   for (const company of COMPANIES) {
     const table = tableFor(company)
-    const rows = must(await sb.from(table).select('id, title, schedule_date, source_key, is_completed, agent_state, evidence, category').or(NOT_PERSONAL).gte('schedule_date', addDays(from, -45)), table)
+    const rows = must(await sb.from(table).select('id, title, schedule_date, source_key, is_completed, agent_state, evidence, category, origin').or(NOT_PERSONAL).gte('schedule_date', addDays(from, -45)), table)
     const plan = planOccurrences(rules.filter(r => r.company === company), rows, { from, to, cal })
     const missed = planMissed(rows, from)
     tally.inserted += plan.insert.length; tally.updated += plan.update.length; tally.missed += missed.length
@@ -109,17 +135,19 @@ async function stepCollect() {
   for (const [context, company] of CONTEXTS) {
     const source = `mail:${company}`
     try { batches.push({ source, company, items: await readMail(sb, context, await getCursor(sb, source)) }) }
-    catch (e) { failures.push(`collect:${source}`); log(`읽기 실패 ${source}: ${e instanceof Error ? e.message : e}`) }
+    catch (e) { fail(`collect:${source}`, e) }
   }
   try { for (const [space, items] of await readChat(sb, s => getCursor(sb, s))) batches.push({ source: `chat:${space}`, company: 'tensw', items }) }
-  catch (e) { failures.push('collect:chat'); log(`읽기 실패 chat: ${e instanceof Error ? e.message : e}`) }
+  catch (e) { fail('collect:chat', e) }
   log(`새 메시지: ${batches.map(b => `${b.source}=${b.items.length}`).join(', ') || '없음'}`)
 
   for (const b of batches) {
+    if (Date.now() - START > COLLECT_DEADLINE_MS) { log('18분 경과 — 나머지는 다음 실행에서 이어 읽음'); return }
     const table = tableFor(b.company)
     // 한 묶음이 실패하면 그 소스의 커서는 거기서 멈춘다(반영된 묶음까지만 저장).
     try {
       for (let i = 0; i < b.items.length; i += 60) {
+        if (Date.now() - START > COLLECT_DEADLINE_MS) { log(`18분 경과 — ${b.source} 는 ${i}건까지 반영, 나머지는 다음 실행`); return }
         const items = b.items.slice(i, i + 60)
         const openCases = must(await sb.from('mgmt_cases').select('name').eq('company', b.company).eq('status', 'open'), 'mgmt_cases')
         const openSchedules = must(await sb.from(table).select('id, title, schedule_date, source_key, evidence').eq('is_completed', false).or(NOT_PERSONAL).gte('schedule_date', addDays(todayKey(), -60)), table)
@@ -130,7 +158,7 @@ async function stepCollect() {
         await applyJudgement(sb, plan, { dryRun, log })
         await saveCursor(sb, b.source, items, { dryRun })
       }
-    } catch (e) { failures.push(`collect:${b.source}`); log(`반영 실패 ${b.source}: ${e instanceof Error ? e.message : e}`) }
+    } catch (e) { fail(`collect:${b.source}`, e) }
   }
 }
 
@@ -180,14 +208,16 @@ async function stepDecide() {
   // R2: 답이 달린 missed 결정부터 원장에 반영하고, 다시 반영되지 않게 expired 로 돌린다.
   const answered = must(await sb.from('mgmt_decisions').select('*').eq('kind', 'missed').eq('status', 'answered'), 'answered missed')
   for (const d of answered ?? []) {
-    const table = tableFor(d.company)
-    const row = d.schedule_key ? must(await sb.from(table).select('id, title, schedule_date, is_completed, evidence').eq('source_key', d.schedule_key).maybeSingle(), table) : null
-    const patch = missedAnswerPatch(d, row, today)
-    if (patch) log(`빠짐 답 반영 ${d.company} ${row.title} ← ${d.answer}`)
-    if (dryRun) continue
-    if (patch) must(await sb.from(table).update(patch).eq('id', row.id), `missed apply ${row.id}`)
-    // 윌리는 보류를 answered 로 두지 않으므로(answer='hold', status 그대로) 여기 온 답은 모두 끝난 답이다.
-    must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
+    try {
+      const table = tableFor(d.company)
+      const row = d.schedule_key ? must(await sb.from(table).select('id, title, schedule_date, is_completed, evidence').eq('source_key', d.schedule_key).or(NOT_PERSONAL).maybeSingle(), table) : null
+      const patch = missedAnswerPatch(d, row, today)
+      if (patch) log(`빠짐 답 반영 ${d.company} ${row.title} ← ${d.answer}`)
+      if (dryRun) continue
+      if (patch) must(await sb.from(table).update(patch).eq('id', row.id), `missed apply ${row.id}`)
+      // 윌리는 보류를 answered 로 두지 않으므로(answer='hold', status 그대로) 여기 온 답은 모두 끝난 답이다.
+      must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
+    } catch (e) { fail(`decide:missed-answer:${d.id}`, e) }
   }
 
   for (const company of COMPANIES) {
@@ -197,7 +227,7 @@ async function stepDecide() {
       const d = missedDecision(company, m)
       tally.decisions++
       log(`결정 만들기 ${d.subject_key}`)
-      if (!dryRun) { const { error } = await sb.from('mgmt_decisions').insert(d); if (error && error.code !== '23505') throw error }
+      if (!dryRun) { const { error } = await sb.from('mgmt_decisions').insert(d); if (error && error.code !== '23505') fail(`decide:missed:${m.source_key}`, error.message) }
     }
   }
 
@@ -205,16 +235,24 @@ async function stepDecide() {
   const past = must(await sb.from('mgmt_decisions').select('subject_key, answer, status').eq('status', 'answered'), 'past decisions')
   log(`열린 결정 ${open?.length ?? 0}`)
   for (const d of open ?? []) {
-    const auto = reuseAnswer(d, past ?? [])
-    if (auto) {
-      log(`지난 판단 재사용 ${d.subject_key} → ${auto}`)
-      if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'answered', answer: auto, answered_at: new Date().toISOString() }).eq('id', d.id), `reuse ${d.id}`)
-      continue
-    }
-    const { text, buttons } = decisionMessage(d)
-    const mid = await telegram(text, { buttons })
-    if (!dryRun && mid) must(await sb.from('mgmt_decisions').update({ status: 'sent', telegram_message_id: mid }).eq('id', d.id), `sent ${d.id}`)
+    try {
+      const auto = reuseAnswer(d, past ?? [])
+      if (auto) {
+        log(`지난 판단 재사용 ${d.subject_key} → ${auto}`)
+        // 버튼 없이 답했다는 표식(refs 의 reuse) — 저녁 요약에 "지난 판단 재사용" 으로 나온다.
+        if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'answered', answer: auto, answered_at: new Date().toISOString(), telegram_message_id: null, refs: reuseRefs(d) }).eq('id', d.id), `reuse ${d.id}`)
+        continue
+      }
+      const { text, buttons } = decisionMessage(d)
+      const mid = await telegram(text, { buttons })
+      if (!dryRun && mid) must(await sb.from('mgmt_decisions').update({ status: 'sent', telegram_message_id: mid }).eq('id', d.id), `sent ${d.id}`)
+    } catch (e) { fail(`decide:${d.id}`, e) }
   }
+}
+
+function todaysFailures(today) {
+  if (!fs.existsSync(FAIL_FILE)) return []
+  return failuresOn(fs.readFileSync(FAIL_FILE, 'utf8').split('\n').filter(Boolean), today).filter(f => dryRun || !f.dry)
 }
 
 async function stepDigest() {
@@ -222,18 +260,22 @@ async function stepDigest() {
   const done = [], created = [], missed = []
   for (const company of COMPANIES) {
     const table = tableFor(company)
-    const rows = must(await sb.from(table).select('title, category, created_at, agent_state, evidence, is_completed').like('source_key', 'mgmt%').or(`created_at.gte.${startOfToday()},agent_state.in.(missed,done)`), table)
-    for (const r of rows ?? []) {
-      if (r.category === 'personal') continue
-      if (r.agent_state === 'missed' && !r.is_completed) missed.push(r.title)
-      else if (r.agent_state === 'done') { if ((r.evidence ?? []).some(e => String(e?.at ?? '').startsWith(today))) done.push(r.title) }
-      else if (new Date(r.created_at) >= new Date(startOfToday())) created.push(r.title)
-    }
+    const base = () => sb.from(table).select('title, agent_state, evidence').like('source_key', 'mgmt%').or(NOT_PERSONAL)
+    const newRows = must(await base().gte('created_at', startOfToday()).neq('agent_state', 'missed'), `${table} created`)
+    const missedRows = must(await base().eq('agent_state', 'missed').eq('is_completed', false), `${table} missed`)
+    const doneRows = must(await base().eq('agent_state', 'done').gte('schedule_date', addDays(today, -45)), `${table} done`)
+    created.push(...(newRows ?? []).filter(r => r.agent_state !== 'done').map(r => r.title))
+    missed.push(...(missedRows ?? []).map(r => r.title))
+    done.push(...closedToday(doneRows ?? [], today).map(r => r.title))
   }
+  const reusedRows = must(await sb.from('mgmt_decisions').select('question, refs').eq('status', 'answered').gte('answered_at', startOfToday()), 'reused decisions')
+  const reused = (reusedRows ?? []).filter(isReuse).map(reuseLabel)
+  let fileFailures = []
+  try { fileFailures = todaysFailures(today) } catch {}
   const inferred = must(await sb.from('mgmt_rules').select('title, rule').eq('origin', 'inferred').gte('created_at', startOfToday()), 'inferred rules')
   const { count, error } = await sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).in('status', ['open', 'sent'])
   if (error) throw new Error(`open decisions: ${error.message}`)
-  let text = digestMessage({ date: today, done, created, inferred: (inferred ?? []).map(r => `${r.title}(매월 ${r.rule.day}일)`), missed, openDecisions: Array(count ?? 0).fill(0), failures })
+  let text = digestMessage({ date: today, done, created, inferred: (inferred ?? []).map(r => `${r.title}(매월 ${r.rule.day}일)`), missed, openDecisions: Array(count ?? 0).fill(0), failures: failureLabels(fileFailures), reused })
   if (dryRun) text = [text ?? `경영관리 ${today}`, `이번 실행(dry): 추가 ${tally.inserted} · 갱신 ${tally.updated} · 빠짐 ${tally.missed} · 완료 ${tally.closed} · 기록 ${tally.entries} · 결정 ${tally.decisions}`].join('\n')
   if (text) await telegram(text, { kind: 'digest' })
   else log('요약할 것 없음')
@@ -261,7 +303,7 @@ async function stepInfer() {
 
 const STEPS = { rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer }
 for (const name of selected) {
-  try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { failures.push(name); log(`실패 ${name}: ${e instanceof Error ? e.message : e}`) }
+  try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }
 log(`끝${failures.length ? ` — 실패: ${failures.join(', ')}` : ''}`)
 process.exitCode = failures.length ? 1 : 0
