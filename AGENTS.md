@@ -185,6 +185,7 @@ node scripts/gangnam-subsidy-build.mjs attendance  --month 2026-10   # 서식 9 
 node scripts/gangnam-subsidy-build.mjs status      --month 2026-10   # 기관 요청 5종 대비 준비 현황
 node scripts/gangnam-subsidy-build.mjs collect     --month 2026-10   # 인턴 서명본 회신 받기
 node scripts/gangnam-subsidy-build.mjs submit      --month 2026-10   # 5종 교차검증 → 기관 제출 초안(--send 는 승인 뒤)
+node scripts/gangnam-subsidy-build.mjs correction  --month 2026-10   # 기관 보완요청: 새 서명본 병합 → 상공회 보완 메일 스레드에 답장 초안
 node scripts/hwp/hwp.mjs dump|fill|colors|pdf …                      # HWP 직접 편집 도구
 ```
 

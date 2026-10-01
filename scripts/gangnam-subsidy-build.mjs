@@ -42,8 +42,8 @@ if (args.includes('--send')) assertSendAllowed('gangnam-subsidy-build.mjs')
 const cmd = args[0]
 const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
 const month = flag('--month')
-if (!['application', 'attendance', 'status', 'collect', 'submit'].includes(cmd) || !/^\d{4}-\d{2}$/.test(month ?? '')) {
-  console.error('usage: gangnam-subsidy-build.mjs application|attendance|status|collect|submit --month YYYY-MM')
+if (!['application', 'attendance', 'status', 'collect', 'submit', 'correction'].includes(cmd) || !/^\d{4}-\d{2}$/.test(month ?? '')) {
+  console.error('usage: gangnam-subsidy-build.mjs application|attendance|status|collect|submit|correction --month YYYY-MM')
   process.exit(1)
 }
 const [Y, M] = month.split('-').map(Number)
@@ -376,7 +376,57 @@ ${roster.contact.name} 드림 (${roster.contact.phone})
   console.log(`${args.includes('--send') ? '발송' : '초안'} ${res.data.id} — ${from} → gnk@gngucci.or.kr\n제목 ${subject}\n첨부:\n${files.map(f => '  ' + path.basename(f) + ` (${pages(f)}쪽)`).join('\n')}`)
 }
 
+// 기관 보완요청에 답한다(2026-10-01). 인턴이 다시 보낸 서명본을 합쳐, 상공회의 최신 "보완" 메일 스레드에 답장 초안을 만든다.
+// node scripts/gangnam-subsidy-build.mjs correction --month 2026-09   (먼저 collect 로 새 서명본을 받는다)
+async function correction() {
+  const doc = documents()
+  const missing = roster.people.filter((p, i) => !doc.attendance[i]).map(p => p.name)
+  if (missing.length) throw new Error(`서명본이 없어요: ${missing.join('·')} — collect 먼저`)
+  const out = path.join(DIR, '07-final-submission'); fs.mkdirSync(out, { recursive: true })
+  const merged = path.join(out, `2_출근부_${Y}${MM}_${roster.people.length}명_서식9_보완.pdf`)
+  execFileSync(PY, ['-c', `
+import sys, io
+from pypdf import PdfReader, PdfWriter
+from PIL import Image
+w = PdfWriter()
+for f in sys.argv[2:]:
+    if f.lower().endswith('.pdf'):
+        for pg in PdfReader(f).pages: w.add_page(pg)
+    else:
+        buf = io.BytesIO(); Image.open(f).convert('RGB').save(buf, 'PDF', resolution=150); buf.seek(0)
+        for pg in PdfReader(buf).pages: w.add_page(pg)
+w.write(open(sys.argv[1], 'wb'))
+`, merged, ...doc.attendance])
+  const gmail = await gmailClient()
+  const from = (await gmail.users.getProfile({ userId: 'me' })).data.emailAddress
+  const hit = (await gmail.users.messages.list({ userId: 'me', q: `from:gnk@gngucci.or.kr subject:보완 subject:"${Y}년 ${M}월" newer_than:30d`, maxResults: 1 })).data.messages?.[0]
+  if (!hit) throw new Error(`상공회의 ${Y}년 ${M}월 보완요청 메일을 찾지 못했어요`)
+  const src = (await gmail.users.messages.get({ userId: 'me', id: hit.id, format: 'metadata', metadataHeaders: ['Subject', 'Message-Id', 'References'] })).data
+  const h = Object.fromEntries(src.payload.headers.map(x => [x.name.toLowerCase(), x.value]))
+  const subject = /^re:/i.test(h.subject) ? h.subject : `Re: ${h.subject}`
+  const text = `안녕하세요, 텐소프트웍스입니다.
+
+보완 요청하신 ${M}월 출근부를 수정해 다시 보내드립니다.
+
+첨부: 출근부(서식 9) ${roster.people.length}명(${roster.people.map(p => p.name).join('·')}) 병합본 1부
+
+감사합니다.
+${roster.contact.name} 드림 (${roster.contact.phone})
+`
+  const b64 = (x) => Buffer.from(x, 'utf8').toString('base64')
+  const bd = `b${Date.now().toString(36)}`, n = `=?UTF-8?B?${b64(path.basename(merged))}?=`
+  const raw = [`From: ${from}`, 'To: gnk@gngucci.or.kr', `Subject: =?UTF-8?B?${b64(subject)}?=`,
+    `In-Reply-To: ${h['message-id']}`, `References: ${[h.references, h['message-id']].filter(Boolean).join(' ')}`, 'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${bd}"`, '', `--${bd}`, 'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64', '', b64(text), '',
+    `--${bd}`, `Content-Type: application/pdf; name="${n}"`, 'Content-Transfer-Encoding: base64', `Content-Disposition: attachment; filename="${n}"`, '',
+    fs.readFileSync(merged).toString('base64'), '', `--${bd}--`, ''].join('\r\n')
+  const res = await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: Buffer.from(raw).toString('base64url'), threadId: src.threadId } } })
+  console.log(`초안 ${res.data.id} — 상공회 보완요청 스레드에 답장(${subject})\n첨부: ${path.basename(merged)} (${pages(merged)}쪽)\n발송은 대표가 Gmail 에서 확인 후`)
+}
+
 if (cmd === 'status') await status()
+if (cmd === 'correction') await correction()
 if (cmd === 'collect') { await collect(); await status() }
 if (cmd === 'submit') await submit()
 fs.rmSync(work, { recursive: true, force: true })
