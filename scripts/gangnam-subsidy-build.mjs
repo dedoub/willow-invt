@@ -167,7 +167,7 @@ if (cmd === 'attendance') {
   const holidayName = Object.fromEntries((facts.holidays ?? []).map(h => [h.day, h.label]))
   const dow = d => new Date(Date.UTC(Y, M - 1, d)).getUTCDay()
   // 토요일은 원래 쉬는 무급휴무일 — 공휴일과 겹치면 "토요일(추석)"처럼 적고 유급휴일에 넣지 않는다(CEO 2026-10-01).
-  const kindOf = d => dow(d) === 6 ? (holidayName[d] ? `토요일(${holidayName[d]})` : '토요일') : holidayName[d] ? holidayName[d] : dow(d) === 0 ? '주휴무일' : ''
+  const kindOf = d => dow(d) === 6 ? (holidayName[d] ? `토요일(${holidayName[d]})` : '토요일휴무') : holidayName[d] ? holidayName[d] : dow(d) === 0 ? '주휴무일' : ''
   const days = Array.from({ length: facts.lastDay }, (_, i) => i + 1)
   const leftRows = Array.from({ length: 10 }, (_, i) => 22 + i)
   const rightRows = [4, 5, 7, 9, 11, 13, 14, 15, 16, 18, ...Array.from({ length: 11 }, (_, i) => 21 + i)]
