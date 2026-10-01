@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """강남구 인턴십 출근부 PDF 의 담당 칸에 대표 서명을 얹는다.
 
-  python3 scripts/gangnam_attendance_sign.py <입력.pdf> <출력.pdf> <왼쪽칸수> <오른쪽칸수> <시드> <서명폴더>
+  python3 scripts/gangnam_attendance_sign.py <입력.pdf> <출력.pdf> <왼쪽칸수|m:마스크> <오른쪽칸수|m:마스크> <시드> <서명폴더>
 
 서명 표본은 저장소에 두지 않는다. 비공개 버킷 signatures/dw.kim/attendance/ 에 21장이
 있으니 받아서 폴더로 넘긴다(공개 버킷에 두면 URL 만으로 누구나 가져간다).
@@ -37,12 +37,18 @@ def row_boxes(page, band):
     rows.sort(key=lambda r: -r[0])                  # 위에서 아래로
     return rows
 
+def _mask(spec):
+    # 숫자면 앞에서부터 그 줄 수만큼, 'm:1101…' 이면 1 인 줄에만 찍는다(달력 전체를 적는 출근부의 주말·공휴일 줄은 0).
+    spec = str(spec)
+    return [c == '1' for c in spec[2:]] if spec.startswith('m:') else [True] * int(spec)
+
 def stamp(src, dst, left_count, right_count, seed_key, samples):
     reader = PdfReader(src)
     writer = PdfWriter()
+    lmask, rmask = _mask(left_count), _mask(right_count)
     for pno, page in enumerate(reader.pages):
-        left = row_boxes(page, LEFT_BAND)[:left_count]
-        right = row_boxes(page, RIGHT_BAND)[:right_count]
+        left = [r for r, on in zip(row_boxes(page, LEFT_BAND), lmask) if on]
+        right = [r for r, on in zip(row_boxes(page, RIGHT_BAND), rmask) if on]
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=(float(page.mediabox.width), float(page.mediabox.height)))
         for band, rows in ((LEFT_BAND, left), (RIGHT_BAND, right)):
@@ -76,5 +82,5 @@ if __name__ == '__main__':
     samples = sorted(_glob.glob(f'{sig_dir}/*.png'))
     if not samples:
         raise SystemExit(f'서명 표본이 없습니다: {sig_dir}')
-    got = stamp(src_pdf, dst_pdf, int(left_n), int(right_n), seed, samples)
+    got = stamp(src_pdf, dst_pdf, left_n, right_n, seed, samples)
     print(f'찍은 칸 왼쪽 {got[0]} + 오른쪽 {got[1]} = {sum(got)}  → {dst_pdf}')

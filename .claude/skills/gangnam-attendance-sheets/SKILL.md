@@ -15,12 +15,15 @@ description: Use when preparing, signing or sending the Gangnam internship atten
 한컴 "PDF로 저장하기" → 담당 칸 서명). 실지급액은 우리은행 급여이체확인 PDF에서 읽으므로 **급여 이체 뒤**에 만든다.
 
 ```bash
-node scripts/gangnam-subsidy-build.mjs attendance --month 2026-10   # signed/2026-10_{cho,lee,jeon}.pdf
+node scripts/gangnam-subsidy-build.mjs attendance --month 2026-10 --leave lee:14,jeon:10+11   # 연차일(인턴 회신 원본으로 확인)
 node scripts/gangnam-attendance-send.mjs --month 2026-10            # 초안 → 승인 뒤 --send
 ```
 
-- 날짜는 서식 8과 같게("10    1", "     2" …). 출근 표시·출근/결근/유급휴일 일수·인턴 확인·수령확인은
-  **비워 둔다**(인턴 자필). 빨간 "자필서명" 안내 글자는 지운다.
+- **달력의 모든 날짜를 적는다**(CEO 2026-10-01). 날마다 출근 칸에 `근무`·`연차`·공휴일 이름(`추석` 등)·`토요일`·
+  `주휴무일`(일요일)을 적고, 상단 `출근 : N일, 결근 : N일, 유급휴일 : N일`도 채운다.
+  유급휴일 = 주휴일(일요일) + 법정공휴일(주말에 겹친 날 포함) + 본인 연차. 공휴일은 `scripts/lib/kr_workdays.py` 가 정본이다
+  (설·추석은 일요일에 겹칠 때만 대체공휴일 — 2026-09-28 을 휴일로 잘못 넣었던 일이 있다).
+- 인턴 확인·수령확인은 **비워 둔다**(인턴 본인 서명). 담당 서명은 근무일 줄에만 찍는다. 빨간 "자필서명" 안내 글자는 지운다.
 - **서명을 옮겨 붙이지 않는다.** 서식이 바뀌면 새 서식을 보내 다시 서명받는다(`--resign`, 아래). 2026-09에
   서식 8 서명본을 잘라 서식 9에 얹은 출근부가 만들어졌다 — 위조라 폐기했다.
 - 서식이 바뀌어 다시 받을 때: `… attendance --month M --key-suffix _form9` 뒤

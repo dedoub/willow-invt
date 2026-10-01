@@ -158,22 +158,45 @@ if (cmd === 'attendance') {
     const n = String(i).padStart(2, '0')
     await download(`dw.kim/attendance/sig_${n}.png`, path.join(sigDir, `sig_${n}.png`), 'signatures')
   }
-  const days = facts.workdays
+  // 달력의 모든 날을 적는다(CEO 2026-10-01): 날마다 근무·연차·공휴일 이름·토요일·주휴무일(일요일)을 적고,
+  // 상단 출근·결근·유급휴일 합계도 채운다. 인턴 서명 칸은 비워 본인이 서명하고, 담당 서명은 근무일 줄에만 찍는다.
+  // 연차: --leave lee:14,jeon:10 (인턴 회신 원본에서 확인한 날)
+  const leave = Object.fromEntries((flag('--leave') ?? '').split(',').filter(Boolean).map(x => {
+    const [code, ds] = x.split(':'); return [code, ds.split('+').map(Number)]
+  }))
+  const holidayName = Object.fromEntries((facts.holidays ?? []).map(h => [h.day, h.label]))
+  const dow = d => new Date(Date.UTC(Y, M - 1, d)).getUTCDay()
+  const kindOf = d => holidayName[d] ? holidayName[d] : dow(d) === 0 ? '주휴무일' : dow(d) === 6 ? '토요일' : ''
+  const days = Array.from({ length: facts.lastDay }, (_, i) => i + 1)
   const leftRows = Array.from({ length: 10 }, (_, i) => 22 + i)
   const rightRows = [4, 5, 7, 9, 11, 13, 14, 15, 16, 18, ...Array.from({ length: 11 }, (_, i) => 21 + i)]
   const left = days.slice(0, 10), right = days.slice(10)
   const suffix = flag('--key-suffix') ?? ''
+  const sundays = days.filter(d => dow(d) === 0 && !holidayName[d]).length
+  const legal = days.filter(d => holidayName[d]).length                      // 법정공휴일(주말에 겹친 날 포함)
   for (const p of roster.people) {
+    const myLeave = leave[p.code] ?? []
+    const workDays = days.filter(d => !kindOf(d))
+    const counts = { 출근: workDays.length - myLeave.length, 결근: 0, 유급휴일: sundays + legal + myLeave.length }
     const v = {
       r0c10p0: `근무기간 : ${Y}.${MM}.01 – ${MM}.${String(facts.lastDay).padStart(2, '0')}  (1개월)`,
       r4c5p0: `( ${M} )월`,
       r8c1p0: `성    명 : ${p.name}`, r8c1p1: '인턴 업체 : ㈜텐소프트웍스', r8c1p2: `- 위 인턴업체에서 ( ${M} )월에`,
       r8c1p3: '(정규직)으로 근무하였습니다.', r8c1p5: '근무지역 :', r8c1p6: '강남구 봉은사로105길54-5, 402호',
+      r1c10p0: `출근 : ${counts.출근}일, 결근 : ${counts.결근}일, 유급휴일 : ${counts.유급휴일}일`,
       r22c6p0: '', r32c13p1: '인턴(정규직)',                              // 빨간 "자필서명" 안내는 지운다(CEO)
       r32c3p0: `지급일 :${facts.payDate.replaceAll('-', '.')}`, r32c8p0: `지급액 : ${net[p.code]}원`,
     }
-    left.forEach((d, i) => { v[`r${leftRows[i]}c0p0`] = i === 0 ? `${M}    ${d}` : `     ${d}` })   // 서식 8 과 같은 날짜 표기
-    right.forEach((d, i) => { v[`r${rightRows[i]}c10p0`] = i === 0 ? `${M}    ${d}` : `     ${d}` })
+    const mark = d => myLeave.includes(d) ? '연차' : kindOf(d) || '근무'
+    left.forEach((d, i) => {                                                                     // 서식 8 과 같은 날짜 표기
+      v[`r${leftRows[i]}c0p0`] = i === 0 ? `${M}    ${d}` : `     ${d}`
+      if (mark(d)) v[`r${leftRows[i]}c2p0`] = mark(d)
+    })
+    right.forEach((d, i) => {
+      v[`r${rightRows[i]}c10p0`] = i === 0 ? `${M}    ${d}` : `     ${d}`
+      if (mark(d)) v[`r${rightRows[i]}c11p0`] = mark(d)
+    })
+    const stampMask = list => 'm:' + list.map(d => kindOf(d) ? '0' : '1').join('')
     const tsv = path.join(work, `${p.code}.tsv`); writeValues(tsv, v)
     const hwp = path.join(work, `${p.code}.hwp`)
     console.log(fill(form, hwp, tsv, { form: '서식 9', noAlign: true }).trim())
@@ -182,7 +205,9 @@ if (cmd === 'attendance') {
     if (pages !== 1) throw new Error(`${p.name} 출근부 PDF 가 ${pages}쪽이에요`)
     const signed = path.join(work, `${p.code}_signed.pdf`)
     console.log(execFileSync(PY, [path.join(ROOT, 'scripts/gangnam_attendance_sign.py'), plain, signed,
-      String(left.length), String(right.length), `${p.name}|${month}`, sigDir], { cwd: ROOT, encoding: 'utf8' }).trim())
+      stampMask(left), stampMask(right), `${p.name}|${month}`, sigDir], { cwd: ROOT, encoding: 'utf8' }).trim())
+    fs.copyFileSync(signed, path.join(DIR, '03-attendance', `출근부_${Y}${MM}_${p.name}_전체날짜${suffix}.pdf`))
+    console.log(`  ${p.name}: 출근 ${counts.출근} · 결근 ${counts.결근} · 유급휴일 ${counts.유급휴일} (연차 ${myLeave.join(',') || '없음'})`)
     await upload(`${Y}/source/${month}_form9_${p.code}.hwp`, hwp, 'application/x-hwp')
     await upload(`${Y}/plain/${month}_${p.code}${suffix}.pdf`, plain, 'application/pdf')
     await upload(`${Y}/signed/${month}_${p.code}${suffix}.pdf`, signed, 'application/pdf')
