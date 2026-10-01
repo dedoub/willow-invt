@@ -166,14 +166,15 @@ if (cmd === 'attendance') {
   }))
   const holidayName = Object.fromEntries((facts.holidays ?? []).map(h => [h.day, h.label]))
   const dow = d => new Date(Date.UTC(Y, M - 1, d)).getUTCDay()
-  const kindOf = d => holidayName[d] ? holidayName[d] : dow(d) === 0 ? '주휴무일' : dow(d) === 6 ? '토요일' : ''
+  // 토요일은 원래 쉬는 무급휴무일 — 공휴일과 겹치면 "토요일(추석)"처럼 적고 유급휴일에 넣지 않는다(CEO 2026-10-01).
+  const kindOf = d => dow(d) === 6 ? (holidayName[d] ? `토요일(${holidayName[d]})` : '토요일') : holidayName[d] ? holidayName[d] : dow(d) === 0 ? '주휴무일' : ''
   const days = Array.from({ length: facts.lastDay }, (_, i) => i + 1)
   const leftRows = Array.from({ length: 10 }, (_, i) => 22 + i)
   const rightRows = [4, 5, 7, 9, 11, 13, 14, 15, 16, 18, ...Array.from({ length: 11 }, (_, i) => 21 + i)]
   const left = days.slice(0, 10), right = days.slice(10)
   const suffix = flag('--key-suffix') ?? ''
   const sundays = days.filter(d => dow(d) === 0 && !holidayName[d]).length
-  const legal = days.filter(d => holidayName[d]).length                      // 법정공휴일(주말에 겹친 날 포함)
+  const legal = days.filter(d => holidayName[d] && dow(d) !== 6).length     // 법정공휴일(토요일 겹침은 빼고, 일요일 겹침은 한 번만)
   for (const p of roster.people) {
     const myLeave = leave[p.code] ?? []
     const workDays = days.filter(d => !kindOf(d))
@@ -188,13 +189,15 @@ if (cmd === 'attendance') {
       r32c3p0: `지급일 :${facts.payDate.replaceAll('-', '.')}`, r32c8p0: `지급액 : ${net[p.code]}원`,
     }
     const mark = d => myLeave.includes(d) ? '연차' : kindOf(d) || '근무'
+    // 한 줄로 적는다(CEO: "토요일(추석)"이 칸을 조금 넘쳐도 괜찮다).
+    const put = (key, text) => { v[`${key}p0`] = text }
     left.forEach((d, i) => {                                                                     // 서식 8 과 같은 날짜 표기
       v[`r${leftRows[i]}c0p0`] = i === 0 ? `${M}    ${d}` : `     ${d}`
-      if (mark(d)) v[`r${leftRows[i]}c2p0`] = mark(d)
+      if (mark(d)) put(`r${leftRows[i]}c2`, mark(d))
     })
     right.forEach((d, i) => {
       v[`r${rightRows[i]}c10p0`] = i === 0 ? `${M}    ${d}` : `     ${d}`
-      if (mark(d)) v[`r${rightRows[i]}c11p0`] = mark(d)
+      if (mark(d)) put(`r${rightRows[i]}c11`, mark(d))
     })
     const stampMask = list => 'm:' + list.map(d => kindOf(d) ? '0' : '1').join('')
     const tsv = path.join(work, `${p.code}.tsv`); writeValues(tsv, v)
