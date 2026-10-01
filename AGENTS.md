@@ -268,6 +268,22 @@ npm run mgmt:test
 - 자세한 배경과 덫은 `.claude/skills/mgmt-agent/SKILL.md`, 설계는
   `docs/superpowers/specs/2026-09-30-mgmt-agent-design.md`.
 
+### 홈택스 전자세금계산서 발급
+`hometax-tax-invoice-issue` · 트리거: "세금계산서 작성", "세금계산서 발급", "체육회 계산서", "홈택스 발급"
+
+매출관리(`tensw_mgmt_sales`) 예정 행으로 홈택스 건별발급 화면을 채운다. 받는 곳 정보는 같은 상대에게
+직전에 발급한 계산서 상세에서 가져온다.
+
+```bash
+node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회           # 작성 + 캡처만
+node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회 --issue   # 대표 "발급해" 뒤에만
+```
+
+- **발급은 메일 발송과 같다**(홈택스가 받는 곳에 보낸다). 기본은 캡처까지, `--issue` 는 승인 뒤. 디스패치 중에는 잠긴다.
+- 인증서는 텐소 범용만 소유자 이름으로, 비밀번호는 한 번. 승인번호를 못 읽으면 다시 발급하지 말고 발급목록을 확인한다.
+- 발급 뒤 매출관리 행이 `pending` + 승인번호로 바뀐다. 작성일자는 오늘까지만 된다.
+- 자세한 배경과 덫은 `.claude/skills/hometax-tax-invoice-issue/SKILL.md`.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - 첨부 버킷은 모두 private. 새 첨부 URL 은 `/api/files/…` 로 저장되고, 예전에 저장된
