@@ -284,6 +284,14 @@ node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회 --issue   # 
 - 발급 뒤 매출관리 행이 `pending` + 승인번호로 바뀐다. 작성일자는 오늘까지만 된다.
 - 자세한 배경과 덫은 `.claude/skills/hometax-tax-invoice-issue/SKILL.md`.
 
+### 텐소 경영지원 (김의향 이사 인수인계)
+`tensw-admin-ops` · 트리거: "연구소", "벤처확인", "신용평가", "대출 연장", "직접생산", "사업재편", "임치", "건강검진", "의무교육", "인수인계"
+
+업무 15개의 과거 처리·에이전트 몫·대표 몫이 스킬 문서에 있다. 반복 업무는 `mgmt_rules`(task_key `research-note`·`woori-credit`·
+`sme-cert`·`restructuring`·`public-credit`·`health-check`·`mandatory-edu`)로, 기한 하나짜리는 일정 원장
+`mgmt:tensw:handover:*` 로 들어가 있다. 아직 레시피 명령은 없다 — 에이전트는 기한 알림과 서류 목록·초안까지 한다.
+원문 매뉴얼의 비밀번호·개인정보는 옮기지 않는다.
+
 ## Notes
 - 파일 업로드 시 service_role 키 사용 (RLS 우회)
 - 첨부 버킷은 모두 private. 새 첨부 URL 은 `/api/files/…` 로 저장되고, 예전에 저장된
