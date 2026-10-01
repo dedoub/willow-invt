@@ -404,25 +404,35 @@ w.write(open(sys.argv[1], 'wb'))
   const src = (await gmail.users.messages.get({ userId: 'me', id: hit.id, format: 'metadata', metadataHeaders: ['Subject', 'Message-Id', 'References'] })).data
   const h = Object.fromEntries(src.payload.headers.map(x => [x.name.toLowerCase(), x.value]))
   const subject = /^re:/i.test(h.subject) ? h.subject : `Re: ${h.subject}`
+  // 보완 회신에도 제출 5종을 모두 다시 붙인다(CEO 2026-10-01). 출근부만 새 서명본 병합으로 바꾼다.
+  const files = [doc.application, merged, doc.payslips, doc.roster, doc.transfer]
+  const lost = ['1 신청서', '2 출근부', '3 급여명세서', '4 가입자 명부', '5 이체확인증'].filter((_, i) => !files[i])
+  if (lost.length) throw new Error(`다시 붙일 서류가 없어요: ${lost.join(', ')}`)
   const text = `안녕하세요, 텐소프트웍스입니다.
 
-보완 요청하신 ${M}월 출근부를 수정해 다시 보내드립니다.
+보완 요청하신 ${M}월 출근부를 수정해, 신청 서류 전체와 함께 다시 보내드립니다.
 
-첨부: 출근부(서식 9) ${roster.people.length}명(${roster.people.map(p => p.name).join('·')}) 병합본 1부
+첨부(5종)
+1. 지원금 신청서(서식 13)
+2. 출근부(서식 9) ${roster.people.length}명 — 수정본
+3. 급여명세서
+4. 4대 사회보험 사업장 가입자 명부
+5. 급여이체확인증
 
 감사합니다.
 ${roster.contact.name} 드림 (${roster.contact.phone})
 `
   const b64 = (x) => Buffer.from(x, 'utf8').toString('base64')
-  const bd = `b${Date.now().toString(36)}`, n = `=?UTF-8?B?${b64(path.basename(merged))}?=`
+  const bd = `b${Date.now().toString(36)}`
   const raw = [`From: ${from}`, 'To: gnk@gngucci.or.kr', `Subject: =?UTF-8?B?${b64(subject)}?=`,
     `In-Reply-To: ${h['message-id']}`, `References: ${[h.references, h['message-id']].filter(Boolean).join(' ')}`, 'MIME-Version: 1.0',
     `Content-Type: multipart/mixed; boundary="${bd}"`, '', `--${bd}`, 'Content-Type: text/plain; charset="UTF-8"',
     'Content-Transfer-Encoding: base64', '', b64(text), '',
-    `--${bd}`, `Content-Type: application/pdf; name="${n}"`, 'Content-Transfer-Encoding: base64', `Content-Disposition: attachment; filename="${n}"`, '',
-    fs.readFileSync(merged).toString('base64'), '', `--${bd}--`, ''].join('\r\n')
+    ...files.flatMap(f => { const n = `=?UTF-8?B?${b64(path.basename(f))}?=`; return [`--${bd}`, `Content-Type: application/pdf; name="${n}"`,
+      'Content-Transfer-Encoding: base64', `Content-Disposition: attachment; filename="${n}"`, '', fs.readFileSync(f).toString('base64'), ''] }),
+    `--${bd}--`, ''].join('\r\n')
   const res = await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: Buffer.from(raw).toString('base64url'), threadId: src.threadId } } })
-  console.log(`초안 ${res.data.id} — 상공회 보완요청 스레드에 답장(${subject})\n첨부: ${path.basename(merged)} (${pages(merged)}쪽)\n발송은 대표가 Gmail 에서 확인 후`)
+  console.log(`초안 ${res.data.id} — 상공회 보완요청 스레드에 답장(${subject})\n첨부:\n${files.map(f => '  ' + path.basename(f) + ` (${pages(f)}쪽)`).join('\n')}\n발송은 대표가 Gmail 에서 확인 후`)
 }
 
 if (cmd === 'status') await status()
