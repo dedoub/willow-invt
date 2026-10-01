@@ -59,6 +59,8 @@ const agents = (await api('GET', '/agents')).data ?? []
 let agent = agents.find(a => a.name === NAME)
 const numbers = (await api('GET', '/numbers')) ?? []
 const numList = Array.isArray(numbers) ? numbers : numbers.data ?? []
+// 가입하면 "내 첫 에이전트"가 번호에 붙어 있다 — 새로 만들지 않고 그걸 AI 비서로 바꾼다.
+agent ??= agents.find(a => numList.some(n => n.agentId === a.agentId))
 const hooks = (await api('GET', '/webhooks')).data ?? []
 const hookUrl = `${BASE}/api/phone/clawops?t=${TOKEN ?? ''}`
 
