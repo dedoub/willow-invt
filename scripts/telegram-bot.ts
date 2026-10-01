@@ -4332,7 +4332,7 @@ ${memoText}`
 
   const { cleanText, actions } = extractActions(response)
   const actionResults: string[] = []
-  for (const action of actions) actionResults.push(await executeAction(action, { chatId }))
+  for (const action of actions) actionResults.push(await executeAction(action, { chatId: ceoChatId ?? undefined }))
 
   const body = [cleanText, actionResults.length ? actionResults.join('\n') : '']
     .filter(Boolean).join('\n\n')
