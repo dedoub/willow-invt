@@ -32,7 +32,7 @@ export function pickEvent(body: Record<string, unknown>): { callId: string | nul
   const s = (v: unknown) => (typeof v === 'string' && v ? v : null)
   return {
     callId: s(body.CallId) ?? s(body.callId) ?? s(data.callId) ?? s(data.CallId) ?? s(body.call_id) ?? s(data.call_id),
-    event: s(body.type) ?? s(body.event) ?? s(body.eventType) ?? s(body.CallStatus) ?? null,
+    event: s(body.Event) ?? s(body.type) ?? s(body.event) ?? s(body.eventType) ?? s(body.CallStatus) ?? null,
   }
 }
 

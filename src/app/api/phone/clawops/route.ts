@@ -62,11 +62,15 @@ export async function POST(req: NextRequest) {
   if (ready && rec.needsCallback && !spam && !prev?.schedule_id) {
     const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)
     const who = [rec.name, rec.org].filter(Boolean).join(' · ') || (rec.callbackNumber ?? call.from ?? '번호 미상')
-    const { data: s } = await sb.from('tensw_mgmt_schedules').upsert({
-      source_key: `mgmt:tensw:phone:${callId}`, schedule_date: today, type: 'deadline', category: 'other',
+    // source_key 유일 색인이 부분 색인(where not null)이라 upsert onConflict 를 못 쓴다 — 찾고 없으면 넣는다
+    const key = `mgmt:tensw:phone:${callId}`
+    const { data: found } = await sb.from('tensw_mgmt_schedules').select('id').eq('source_key', key).maybeSingle()
+    const { data: s, error: se } = found ? { data: found, error: null } : await sb.from('tensw_mgmt_schedules').insert({
+      source_key: key, schedule_date: today, type: 'deadline', category: 'other',
       title: `회신 전화: ${who}`, description: `${summary?.coreSummary ?? ''}\n회신번호 ${rec.callbackNumber ?? call.from ?? '미상'}`.trim(),
       origin: 'manual', agent_state: 'planned', evidence: [{ kind: 'phone', ref: callId }], is_completed: false,
-    }, { onConflict: 'source_key' }).select('id').single()
+    }).select('id').single()
+    if (se) console.error('[phone] 회신 일정 저장 실패', se.message)
     if (s) await sb.from('tensw_phone_calls').update({ schedule_id: s.id }).eq('call_id', callId)
   }
   return NextResponse.json({ ok: true, callId, event, summarized: ready })
