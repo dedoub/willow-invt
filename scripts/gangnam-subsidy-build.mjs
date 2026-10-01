@@ -188,7 +188,7 @@ if (cmd === 'attendance') {
       r22c6p0: '', r32c13p1: '인턴(정규직)',                              // 빨간 "자필서명" 안내는 지운다(CEO)
       r32c3p0: `지급일 :${facts.payDate.replaceAll('-', '.')}`, r32c8p0: `지급액 : ${net[p.code]}원`,
     }
-    const mark = d => myLeave.includes(d) ? '연차' : kindOf(d) || '근무'
+    const mark = d => myLeave.includes(d) ? '연차' : kindOf(d) || '○'
     // 한 줄로 적는다(CEO: "토요일(추석)"이 칸을 조금 넘쳐도 괜찮다).
     const put = (key, text) => { v[`${key}p0`] = text }
     left.forEach((d, i) => {                                                                     // 서식 8 과 같은 날짜 표기
@@ -202,7 +202,10 @@ if (cmd === 'attendance') {
     const stampMask = list => 'm:' + list.map(d => kindOf(d) ? '0' : '1').join('')
     const tsv = path.join(work, `${p.code}.tsv`); writeValues(tsv, v)
     const hwp = path.join(work, `${p.code}.hwp`)
-    console.log(fill(form, hwp, tsv, { form: '서식 9', noAlign: true }).trim())
+    // 출근 칸 표시(○·연차·휴무·추석)만 가운데 정렬한다. 날짜·머리글·서명 칸은 양식 배치(빈칸으로 맞춘 자리)를 그대로 둔다.
+    const markCells = new Set([...leftRows.map(r => `r${r}c2`), ...rightRows.map(r => `r${r}c11`)])
+    const keep = [...new Set(Object.keys(v).map(k => k.slice(0, k.indexOf('p'))))].filter(k => !markCells.has(k))
+    console.log(fill(form, hwp, tsv, { form: '서식 9', skip: keep.join(',') }).trim())
     const plain = path.join(work, `${p.code}.pdf`)
     const { pages } = await toPdf(hwp, plain)
     if (pages !== 1) throw new Error(`${p.name} 출근부 PDF 가 ${pages}쪽이에요`)
