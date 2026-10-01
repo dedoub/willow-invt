@@ -66,6 +66,9 @@ export async function fetchSummary(callId: string): Promise<CallSummary | null> 
 }
 export async function fetchTranscript(callId: string): Promise<string | null> {
   const t = await api<{ status?: string; segments?: { speaker?: string; text?: string }[] }>(`/calls/${callId}/transcript`)
+  // 조직 설정 "통화 받아쓰기"가 꺼져 있으면 not_requested — 이 통화만 받아쓰기를 요청한다(분당 10원).
+  // 끝나면 transcript.completed 웹훅으로 다시 온다.
+  if (t?.status === 'not_requested' || t?.status === 'failed') { await api(`/calls/${callId}/transcript`, { method: 'POST' }); return null }
   if (t?.status !== 'completed') return null
   // 화자 이름(speaker_0…, 예전엔 AGENT/CUSTOMER)과 역할의 연결은 보장되지 않는다. AI 비서가 먼저 인사하므로
   // 첫 발화의 화자를 AI 로 본다.
@@ -82,10 +85,12 @@ const URGENT_WORDS = /급(합|한|히)|긴급|오늘 ?중|당장|마감/
 export function parseRecord(text: string | null) {
   const lines = (text ?? '').split('\n')
   const ai = lines.filter(l => l.startsWith('[AI]')).map(l => l.slice(4).trim())
-  const confirm = [...ai].reverse().find(l => l.includes('확인하겠습니다') && /성함|회신/.test(l)) ?? ''
+  // 지침대로 "확인하겠습니다" 로 복창하지 않아도("…성함은 김동욱, 연락처는 …") 성함이 든 마지막 AI 줄을 쓴다
+  const confirm = [...ai].reverse().find(l => l.includes('확인하겠습니다') && /성함|회신/.test(l))
+    ?? [...ai].reverse().find(l => /성함/.test(l) && /(번호|연락처)/.test(l)) ?? ''
   const field = (k: string) => confirm.match(new RegExp(`${k}(?:은|는)?\\s*([^,.?]+)`))?.[1]?.replace(/\s*맞으신가요$/, '').trim() || null
   const isAd = ai.some(l => l.includes('광고 전화로 확인'))
-  const callbackNumber = field('회신 ?번호')?.replace(/[^\d-]/g, '') || null
+  const callbackNumber = (field('회신 ?번호') ?? field('연락처'))?.replace(/[^\d-]/g, '') || null
   const purpose = field('용건')
   const callerText = lines.filter(l => l.startsWith('[발신자]')).join(' ')
   return {
@@ -110,9 +115,58 @@ export function chatText(c: { from: string | null; startedAt: string | null; dur
   return lines.join('\n')
 }
 
-export async function postChat(text: string) {
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const fmtPhone = (n: string | null) => !n ? null : n.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, '$1-$2-$3')
+
+/** 구글챗 카드(cardsV2). 알림 미리보기용으로 text 도 같이 보낸다. */
+export function chatCard(
+  c: { callId: string; from: string | null; startedAt: string | null; durationSec: number | null },
+  rec: ReturnType<typeof parseRecord>, summary: CallSummary | null, transcript: string | null,
+) {
+  const when = c.startedAt ? new Date(c.startedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '시각 미상'
+  const number = fmtPhone(rec.callbackNumber) ?? fmtPhone(c.from) ?? '번호 미상'
+  const who = [rec.name, rec.org].filter(Boolean).join(' · ') || '이름 미상'
+  const tags = [rec.urgent ? '<font color="#d93025"><b>급함</b></font>' : null, rec.needsCallback ? '<font color="#1a73e8"><b>회신 필요</b></font>' : null, rec.category ? esc(rec.category) : null].filter(Boolean).join('  ·  ')
+  const kv = (label: string, text: string, icon: string) => ({ decoratedText: { startIcon: { materialIcon: { name: icon } }, topLabel: label, text, wrapText: true } })
+  const sections: unknown[] = [{
+    widgets: [
+      kv('발신자', `<b>${esc(who)}</b>`, 'person'),
+      kv('회신 번호', `<b>${esc(number)}</b>${c.from && fmtPhone(c.from) !== number ? `  <font color="#5f6368">(발신 ${esc(fmtPhone(c.from)!)})</font>` : ''}`, 'call'),
+      kv('통화', `${esc(when)} · ${c.durationSec ?? '?'}초`, 'schedule'),
+      ...(tags ? [kv('구분', tags, 'label')] : []),
+    ],
+  }]
+  const body: unknown[] = []
+  if (rec.purpose) body.push(kv('용건', esc(rec.purpose), 'chat'))
+  if (summary?.coreSummary) body.push({ textParagraph: { text: `<b>요약</b><br>${esc(summary.coreSummary)}` } })
+  const todo = [...(summary?.followUps ?? []), ...(summary?.decisions ?? [])]
+  if (todo.length) body.push({ textParagraph: { text: `<b>할 일</b><br>${todo.map(t => `• ${esc(t)}`).join('<br>')}` } })
+  if (body.length) sections.push({ header: '내용', widgets: body })
+  if (transcript) sections.push({
+    header: '녹취', collapsible: true, uncollapsibleWidgetsCount: 0,
+    widgets: [{ textParagraph: { text: esc(transcript).replace(/\[AI\]/g, '<b>AI</b>').replace(/\[발신자\]/g, '<b>발신자</b>').replace(/\n/g, '<br>') } }],
+  })
+  return {
+    text: `${rec.urgent ? '🔴 ' : ''}📞 대표번호 부재중 · ${who} (${number})`,
+    cardsV2: [{
+      cardId: c.callId,
+      card: {
+        header: {
+          title: `${rec.urgent ? '🔴 ' : ''}대표번호 부재중 전화`,
+          subtitle: `${who} · ${number}`,
+          imageUrl: 'https://fonts.gstatic.com/s/i/googlematerialicons/phone_missed/v6/24px.svg',
+          imageType: 'CIRCLE',
+        },
+        sections,
+      },
+    }],
+  }
+}
+
+export async function postChat(message: string | object) {
   const url = process.env.TENSW_PHONE_CHAT_WEBHOOK
   if (!url) return false
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify({ text }) })
+  const body = typeof message === 'string' ? { text: message } : message
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(body) })
   return res.ok
 }

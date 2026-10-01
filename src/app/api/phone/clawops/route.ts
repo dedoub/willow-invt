@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
-  chatText, computeSignature, fetchCall, fetchSummary, fetchTranscript, parseRecord, pickEvent, postChat, safeEqual,
+  chatCard, computeSignature, fetchCall, fetchSummary, fetchTranscript, parseRecord, pickEvent, postChat, safeEqual,
 } from '@/lib/phone/clawops'
 
 export const maxDuration = 60
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const ready = !!summary
   const spam = rec.category === '광고'
   if (ready && !prev?.chat_notified_at && !spam) {
-    if (await postChat(chatText(call, rec, summary))) {
+    if (await postChat(chatCard(call, rec, summary, transcript))) {
       await sb.from('tensw_phone_calls').update({ chat_notified_at: new Date().toISOString() }).eq('call_id', callId)
     }
   }

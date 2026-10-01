@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { chatText, computeSignature, parseRecord, pickEvent } from './clawops'
+import { chatCard, chatText, computeSignature, parseRecord, pickEvent } from './clawops'
 
 const memo = [
   '[AI] 안녕하세요, 텐소프트웍스입니다. 지금 담당자가 전화를 받기 어려워 AI 비서가 대신 받았습니다.',
@@ -50,4 +50,19 @@ test('구글챗 문장', () => {
   assert.match(t, /^🔴 📞 대표번호 부재중 — 김은희 · 서울시체육회 \(010-1234-5678\)/)
   assert.match(t, /회신 필요/)
   assert.match(t, /• 오늘 중 회신/)
+})
+
+test('형식대로 복창하지 않아도 성함·연락처가 든 마지막 AI 줄을 읽는다', () => {
+  const r = parseRecord('[AI] 무엇을 도와드릴까요\n[발신자] 도서관 홈페이지 유지 보수 건입니다\n[AI] 네, 용건은 도서관 홈페이지 유지 보수 관련 문의, 성함은 김동욱, 연락처는 010-9621-0010.')
+  assert.equal(r.name, '김동욱')
+  assert.equal(r.callbackNumber, '010-9621-0010')
+  assert.equal(r.purpose, '도서관 홈페이지 유지 보수 관련 문의')
+  assert.equal(r.needsCallback, true)
+})
+
+test('카드: 헤더·회신 번호·녹취 접기', () => {
+  const m = chatCard({ callId: 'CA1', from: '01096291025', startedAt: '2026-10-01T15:29:04Z', durationSec: 61 }, parseRecord(memo), { coreSummary: '요약' }, memo) as { cardsV2: { card: { header: { subtitle: string }; sections: { header?: string; collapsible?: boolean }[] } }[] }
+  const card = m.cardsV2[0].card
+  assert.match(card.header.subtitle, /김은희 · 서울시체육회 · 010-1234-5678/)
+  assert.equal(card.sections.find(s => s.header === '녹취')?.collapsible, true)
 })

@@ -80,7 +80,8 @@ console.log(`에이전트 ${agent.agentId} 지침 반영 (${INSTRUCTIONS.length}
 let num = numList[0]
 if (!num && process.argv.includes('--new-number')) { num = await api('POST', '/numbers'); console.log(`070 번호 발급: ${num.number}`) }
 if (num) {
-  await api('PUT', `/numbers/${num.number}`, { routingType: 'agent', agentId: agent.agentId })
+  // 통화가 끝나면 상태 콜백 → 서버가 받아쓰기를 요청 → transcript/summary 웹훅으로 이어진다
+  await api('PUT', `/numbers/${num.number}`, { routingType: 'agent', agentId: agent.agentId, statusCallback: hookUrl, statusCallbackEvents: 'completed' })
   console.log(`번호 ${num.number} → 에이전트 연결. LG U+ 02 번호의 무응답·통화중 착신을 이 번호로 걸면 된다.`)
 } else console.log('070 번호가 없어요. 발급하려면 --new-number (월 요금 발생)')
 
