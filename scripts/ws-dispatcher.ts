@@ -12,8 +12,12 @@
 import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { runAgent } from './lib/agent-cli'
+import { BOT_MODEL, runAgent } from './lib/agent-cli'
 import { clip, formatFailureReport, formatSuccessReport, timeoutForSource } from './lib/dispatch-report'
+// @ts-ignore — .mjs 모듈(타입 선언 없음)
+import { buildDispatchPrompt, supersededIds, sentDuring } from './lib/dispatch-control.mjs'
+// @ts-ignore
+import { holdNoSend } from './lib/send-guard.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -60,6 +64,15 @@ async function tgReport(chatId: number | null, text: string) {
 
 // pending 하나를 원자적으로 클레임 (status pending→running). 성공 시 행 반환, 없으면 null.
 async function claimNext(): Promise<any | null> {
+  // 정정 지시가 몰리면 마지막 것만 실행한다. 앞선 것은 skipped(실행 안 함)로 두고 맥락으로 넘긴다.
+  const all = await rest('ws_commands?status=eq.pending&order=created_at.asc&select=id,project,instruction,created_at')
+  for (const id of supersededIds(all)) {
+    await rest(`ws_commands?id=eq.${id}&status=eq.pending`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'skipped', error: 'superseded: 15분 안에 같은 프로젝트에 새 지시가 와서 실행하지 않음', finished_at: new Date().toISOString() }),
+    })
+    console.log(`⏭️  건너뜀(뒤 지시로 대체): ${short(all.find((r: any) => r.id === id)?.instruction ?? '', 60)}`)
+  }
   const pending = await rest('ws_commands?status=eq.pending&order=created_at.asc&limit=1&select=id')
   if (!pending.length) return null
   const id = pending[0].id
@@ -110,11 +123,23 @@ async function runOne(cmd: any) {
       : ''
     // 상한은 작업 종류를 따라간다. GSC 색인처럼 브라우저를 직접 모는 배치는 15분에 안 끝난다.
     const timeoutMs = timeoutForSource(cmd.source)
-    const out = await runAgent(contextPrefix + cmd.instruction, {
-      backend: 'codex',
-      cwd: cmd.cwd,
-      timeoutMs,
-    } as any)
+    const since = new Date(Date.now() - 30 * 60_000).toISOString()
+    const skipped = await rest(`ws_commands?project=eq.${encodeURIComponent(cmd.project)}&status=eq.skipped&finished_at=gte.${since}&select=instruction&order=created_at.asc`)
+    const prompt = buildDispatchPrompt({ instruction: cmd.instruction, contextPrefix, superseded: skipped.map((r: any) => short(r.instruction, 300)) })
+    const startedAt = new Date().toISOString()
+    const release = holdNoSend(String(cmd.id))
+    let out: string
+    try {
+      out = await runAgent(prompt, {
+        backend: 'codex',
+        model: BOT_MODEL,
+        cwd: cmd.cwd,
+        timeoutMs,
+      } as any)
+    } finally {
+      release()
+    }
+    await auditSends(cmd, startedAt)
     appendHistory(cmd.project, { instruction: cmd.instruction, result: short(out, 600), at: new Date().toISOString() })
     await rest(`ws_commands?id=eq.${cmd.id}`, {
       method: 'PATCH',
@@ -133,6 +158,28 @@ async function runOne(cmd: any) {
       timeoutMs: timeoutForSource(cmd.source),
       finishedAt: new Date().toISOString(),
     }))
+  }
+}
+
+// 실행 중 실제로 나간 메일이 있으면 바로 대표에게 알린다(발송 차단을 피해 간 경우까지 잡는다).
+async function auditSends(cmd: any, startedAt: string) {
+  try {
+    // @ts-ignore
+    const { readMail } = await import('./lib/mgmt/sources.mjs')
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(URL!, KEY!, { auth: { persistSession: false } })
+    const endedAt = new Date().toISOString()
+    const sent: any[] = []
+    for (const ctx of ['tensoftworks', 'default']) {
+      const mails = await readMail(sb, ctx, { last_seen_at: startedAt }, { limit: 50, maxPages: 2, format: 'metadata' })
+      sent.push(...sentDuring(mails, startedAt, endedAt).map((m: any) => ({ ...m, ctx })))
+    }
+    if (!sent.length) return
+    const lines = sent.map(m => `· ${m.to} — ${m.subject}`).join('\n')
+    console.error(`⚠️ 디스패치 중 메일 ${sent.length}통 발송됨`)
+    await tgReport(cmd.source_chat_id, `⚠️ 디스패치 작업 중 메일 ${sent.length}통이 나갔어요(발송 금지 규칙 위반).\n${lines}\n작업: ${short(cmd.instruction, 120)}`)
+  } catch (e) {
+    console.error(`발송 점검 실패: ${(e as Error).message}`)
   }
 }
 
@@ -180,7 +227,7 @@ async function processBridge(): Promise<number> {
         const reply = await runAgent(
           `다른 에이전트 '${from}'가 워크스테이션 브리지로 이렇게 물었습니다:\n"${msg.body}"\n\n` +
           `윌로우인베스트먼트 CEO의 비서 '윌리'로서 답하세요. 필요하면 willow-dashboard MCP 도구로 실제 데이터를 확인하세요. 답변 본문만 간결히 출력하세요.`,
-          { backend: 'codex', cwd: ROOT, timeoutMs: timeoutForSource('bridge') } as any
+          { backend: 'codex', model: BOT_MODEL, cwd: ROOT, timeoutMs: timeoutForSource('bridge') } as any
         )
         await rest('ws_thread_events', {
           method: 'POST',

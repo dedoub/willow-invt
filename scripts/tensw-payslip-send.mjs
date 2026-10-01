@@ -15,6 +15,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
+import { assertSendAllowed } from './lib/send-guard.mjs'
 
 const BUCKET = 'wiki-attachments'
 const SECTION = 'tensw-mgmt'
@@ -43,6 +44,7 @@ const PEOPLE = Object.freeze({
 
 const args = process.argv.slice(2)
 const has = flag => args.includes(flag)
+if (has('--send')) assertSendAllowed('tensw-payslip-send.mjs')
 const value = flag => { const index = args.indexOf(flag); return index >= 0 ? args[index + 1] : undefined }
 
 const month = value('--month')

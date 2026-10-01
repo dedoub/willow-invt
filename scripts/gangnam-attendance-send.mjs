@@ -25,6 +25,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
+import { assertSendAllowed } from './lib/send-guard.mjs'
 
 const INTERNS = [
   { name: '조성민', code: 'cho', email: 'sm.cho@tensoftworks.com' },
@@ -41,6 +42,7 @@ const BUCKET = 'tensw-attendance'
 
 const args = process.argv.slice(2)
 const has = (f) => args.includes(f)
+if (has('--send')) assertSendAllowed('gangnam-attendance-send.mjs')
 const value = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined }
 
 const now = new Date()

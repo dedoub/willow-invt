@@ -15,6 +15,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { google } from 'googleapis'
 import { createClient } from '@supabase/supabase-js'
+import { assertSendAllowed } from './lib/send-guard.mjs'
 
 const TO = 'jjtaxro@daum.net'        // 세무법인형운 세무자료
 const CC = 'ch.kim@tsw.im'          // 김철형 대표
@@ -22,6 +23,7 @@ const CONTEXT = 'tensoftworks'
 
 const args = process.argv.slice(2)
 const has = (f) => args.includes(f)
+if (has('--send')) assertSendAllowed('tensw-payroll-request.mjs')
 const value = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined }
 
 const now = new Date()

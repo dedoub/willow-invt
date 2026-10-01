@@ -35,8 +35,10 @@ import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 import { fill, toPdf, colors } from './hwp/hwp.mjs'
+import { assertSendAllowed } from './lib/send-guard.mjs'
 
 const args = process.argv.slice(2)
+if (args.includes('--send')) assertSendAllowed('gangnam-subsidy-build.mjs')
 const cmd = args[0]
 const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
 const month = flag('--month')
