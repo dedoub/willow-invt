@@ -49,3 +49,11 @@ test('M7: getCursor 는 행을 정규화하고, 행이 없을 때만 24시간 �
   assert.equal(d.last_ref, null); assert.ok(Date.now() - Date.parse(d.last_seen_at) > 23 * 3600e3)
   await assert.rejects(getCursor(fakeSb({ data: null, error: { message: 'boom' } }), 'mail:tensw'), /boom/)
 })
+
+import { isDraftMail, FIRST_READ_DAYS } from './sources.mjs'
+test('초안 메일은 사실로 읽지 않는다', () => {
+  assert.equal(isDraftMail({ labelIds: ['DRAFT'] }), true)
+  assert.equal(isDraftMail({ labelIds: ['SENT'] }), false)
+  assert.equal(isDraftMail({}), false)
+})
+test('처음 보는 소스는 14일 전부터 읽는다', () => { assert.equal(FIRST_READ_DAYS, 14) })

@@ -16,8 +16,13 @@ const isValidDate = d => {
 const OTHER = { tensw: 'willow', willow: 'tensw' }
 // 정기 원장 키(mgmt:)와 메일 키(mgmt-mail:)에는 회사가 박혀 있다. chat 키(mgmt-chat:)는
 // 텐소 스페이스뿐이라 회사가 없다 — willow 입장에서는 어떤 mgmt-chat: 행도 자기 것이 아니다.
+// 모니터링 행(watch:)은 다른 사람 일정이다 — 앞에 붙은 'watch:' 를 떼고 회사를 본다.
+// 김동욱 본인(또는 비어 있음)이 아니면 다른 사람 일정이다.
+export const SELF = /김동욱|동욱|^나$|본인|우리/
+export const isOthers = owner => typeof owner === 'string' && owner.trim() !== '' && !SELF.test(owner)
 const belongsToOther = (sourceKey, company) => {
   if (typeof sourceKey !== 'string') return false
+  sourceKey = sourceKey.replace(/^watch:/, '')
   const other = OTHER[company]
   if (sourceKey.startsWith(`mgmt:${other}:`) || sourceKey.startsWith(`mgmt-mail:${other}:`)) return true
   if (company === 'willow' && sourceKey.startsWith('mgmt-chat:')) return true
@@ -73,9 +78,13 @@ export function planJudgement(company, j, { items, openSchedules }) {
     const item = byRef.get(s.source_ref)
     if (s.op === 'create') {
       if (!isValidDate(s.date)) { dropped++; continue }
+      // 다른 사람 일정(대표 회의 등)은 [이름] 을 붙여 모니터링으로만 둔다 — watch: 키라 완료·빠짐·결정 대상이 아니다.
+      const others = isOthers(s.owner)
+      const baseKey = nextKey(keyFor(company, item))
       scheduleInserts.push({
-        table, title: clean(s.title), schedule_date: s.date, type: 'deadline', category: 'other',
-        source_key: nextKey(keyFor(company, item)), origin: item.source === 'chat' ? 'chat' : 'email',
+        table, title: others ? `[${clean(s.owner)}] ${clean(s.title)}` : clean(s.title), schedule_date: s.date,
+        type: s.kind === 'meeting' ? 'meeting' : 'deadline', category: 'other',
+        source_key: others ? `watch:${baseKey}` : baseKey, origin: item.source === 'chat' ? 'chat' : 'email',
         recipe: null, agent_state: 'planned', is_completed: false,
         evidence: [{ kind: 'message', ref: item.ref, at: item.at, note: clean(s.reason) }],
       })
@@ -85,7 +94,7 @@ export function planJudgement(company, j, { items, openSchedules }) {
     if (!row) { dropped++; continue }
     // 정기 규칙 행(mgmt:)은 반영도 임의로 닫거나 날짜를 옮기지 않는다 — 증빙만 남긴다.
     // 대화·메일에서 난 행(mgmt-chat:/mgmt-mail:)만 실제로 닫거나 날짜를 옮긴다.
-    const canMutate = row.source_key.startsWith('mgmt-chat:') || row.source_key.startsWith('mgmt-mail:')
+    const canMutate = /^(watch:)?mgmt-(chat|mail):/.test(row.source_key)
     const ev = { kind: 'message', ref: item.ref, at: item.at, note: clean(s.reason) }
     if (s.op === 'complete') {
       mergeUpdate(row, canMutate ? { is_completed: true, agent_state: 'done' } : {}, ev)

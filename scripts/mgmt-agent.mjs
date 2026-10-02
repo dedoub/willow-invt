@@ -19,7 +19,7 @@ import { buildPrompt, judge, isPersonalItem } from './lib/mgmt/judge.mjs'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules, INFER_LIMIT, MIN_CONFIDENCE } from './lib/mgmt/infer.mjs'
 import { planTuning } from './lib/mgmt/tune.mjs'
-import { decisionMessage, digestMessage, reuseAnswer } from './lib/mgmt/decisions.mjs'
+import { decisionMessage, digestMessage, reuseAnswer, CASE_DECISION_KINDS, decisionEntry, decisionLine, isStaleDecision } from './lib/mgmt/decisions.mjs'
 import { scorecard, skillCandidates } from './lib/mgmt/weekly.mjs'
 import { recordWrite, forgetWrites, loadWrites, loadLessons, loadSuppressedKeys, pickLessons, PROMPT_SCOPES, planLearn, parseLessonArgs, saveLesson, bumpHits } from './lib/mgmt/lessons.mjs'
 import { redact } from './lib/mgmt/redact.mjs'
@@ -211,13 +211,19 @@ async function stepCollect() {
   log(`새 메시지: ${batches.map(b => `${b.source}=${b.items.length}`).join(', ') || '없음'}`)
   // 프롬프트에 들어간 교훈은 실행당 한 번만 hits 를 올린다(수집이 도중에 끝나도).
   const prompted = new Map()
-  try { await collectBatches(batches, allLessons, prompted) }
+  // 최근 21일 대표 결정을 판단에 넣는다 — 결정에 맞는 후속 할 일을 만들고 같은 걸 다시 묻지 않게.
+  const recentDecisions = {}
+  try {
+    const rows = must(await sb.from('mgmt_decisions').select('company, question, options, answer, answered_at').in('status', ['answered', 'expired']).not('answer', 'is', null).neq('answer', 'hold').gte('answered_at', new Date(Date.now() - 21 * 864e5).toISOString()).order('answered_at', { ascending: false }).limit(40), 'recent decisions')
+    for (const d of rows ?? []) (recentDecisions[d.company] ??= []).push(decisionLine(d))
+  } catch (e) { fail('collect:decisions', e) }
+  try { await collectBatches(batches, allLessons, prompted, recentDecisions) }
   finally {
     try { await bumpHits(sb, [...prompted.values()], { dryRun }) } catch (e) { fail('collect:lesson-hits', e) }
   }
 }
 
-async function collectBatches(batches, allLessons, prompted) {
+async function collectBatches(batches, allLessons, prompted, recentDecisions = {}) {
   for (const b of batches) {
     if (Date.now() - START > COLLECT_DEADLINE_MS) { log('18분 경과 — 나머지는 다음 실행에서 이어 읽음'); return }
     const table = tableFor(b.company)
@@ -233,7 +239,7 @@ async function collectBatches(batches, allLessons, prompted) {
         const openCases = must(await sb.from('mgmt_cases').select('name').eq('company', b.company).eq('status', 'open'), 'mgmt_cases')
         const openSchedules = must(await sb.from(table).select('id, title, schedule_date, source_key, evidence').eq('is_completed', false).or(NOT_PERSONAL).gte('schedule_date', addDays(todayKey(), -60)), table)
         const used = pickLessons(allLessons, b.company, 20, { scopes: PROMPT_SCOPES })
-        const j = await judge(buildPrompt({ company: b.company, items, openCases: openCases ?? [], openSchedules: openSchedules ?? [], lessons: used.map(l => l.lesson) }))
+        const j = await judge(buildPrompt({ company: b.company, items, openCases: openCases ?? [], openSchedules: openSchedules ?? [], lessons: used.map(l => l.lesson), decisions: recentDecisions[b.company] ?? [] }))
         for (const l of used) prompted.set(l.id, l)
         const plan = planJudgement(b.company, j, { items, openSchedules: openSchedules ?? [] })
         tally.entries += plan.entries.length; tally.inserted += plan.scheduleInserts.length; tally.updated += plan.scheduleUpdates.length; tally.decisions += plan.decisions.length
@@ -333,6 +339,23 @@ async function stepDecide() {
       }
       if (!dryRun) must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `expire ${d.id}`)
     } catch (e) { fail(`decide:rule-review-answer:${d.id}`, e) }
+  }
+
+  // 메일·스페이스 결정의 답을 기록부에 남긴다(답한 지 30일 안). (kind, source_ref, body) 유일 제약이 중복을 막는다.
+  // 상태는 answered 로 둔다 — reuseAnswer 가 같은 주제의 지난 답을 찾을 때 쓴다.
+  const caseAnswers = must(await sb.from('mgmt_decisions').select('*').in('kind', CASE_DECISION_KINDS).eq('status', 'answered').neq('answer', 'hold').gte('answered_at', new Date(now - 30 * 864e5).toISOString()), 'answered case decisions')
+  for (const d of caseAnswers ?? []) {
+    const e = decisionEntry(d)
+    if (!e || dryRun) continue
+    const { error } = await sb.from('mgmt_entries').insert(e)
+    if (!error) log(`결정 반영 ${d.company} ${e.body.slice(0, 70)}`)
+    else if (error.code !== '23505') fail(`decide:case-answer:${d.id}`, error)
+  }
+  // 보낸 지 14일 넘게 답이 없는 결정은 접는다(결정함이 막히지 않게). 저녁 요약 '대기 중인 결정' 수에서 빠진다.
+  const sentRows = must(await sb.from('mgmt_decisions').select('id, status, created_at, question').eq('status', 'sent'), 'sent decisions')
+  for (const d of (sentRows ?? []).filter(x => isStaleDecision(x, now))) {
+    log(`오래된 결정 접음 ${d.question.slice(0, 50)}`)
+    if (!dryRun) { try { must(await sb.from('mgmt_decisions').update({ status: 'expired' }).eq('id', d.id), `stale ${d.id}`) } catch (e) { fail(`decide:stale:${d.id}`, e) } }
   }
 
   // I3: 빠짐 결정은 정기 규칙 행(mgmt:…)만 만든다.

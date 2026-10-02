@@ -30,3 +30,23 @@ export function digestMessage({ date, done, created, inferred, missed, openDecis
   if (failures.length) parts.push(`실패·재시도 예정: ${failures.join(', ')}`)
   return parts.length ? [`경영관리 ${date}`, ...parts].join('\n') : null
 }
+
+// 메일·스페이스에서 나온 결정(scope·money 등)에 대표가 답하면, 그 답을 기록부(decision)에 남긴다.
+// 전에는 missed·rule_review 답만 반영하고 나머지는 답을 받아도 아무 일도 없었다(임치 '회수' 답이 묻힘, 2026-10-02).
+export const CASE_DECISION_KINDS = ['send_approval', 'money', 'scope', 'attendee', 'classify', 'security']
+export function answerLabel(d) {
+  return (d.options ?? []).find(o => o.id === d.answer)?.label ?? d.answer
+}
+export function decisionEntry(d) {
+  if (!d?.answer || d.answer === 'hold') return null
+  return {
+    company: d.company, case_id: null, kind: 'decision', body: `대표 결정: ${d.question} → ${answerLabel(d)}`,
+    actor: '대표', assignee: null, due_date: null, source: 'decision', source_ref: d.id,
+    occurred_at: d.answered_at ?? new Date().toISOString(),
+  }
+}
+// 판단 프롬프트에 넣을 한 줄
+export const decisionLine = d => `${d.question} → ${answerLabel(d)} (${String(d.answered_at ?? '').slice(0, 10)})`
+// 보낸 뒤 오래 답이 없는 결정은 접는다 — 계속 쌓이면 결정함이 막힌다. 저녁 요약에 접은 것을 알린다.
+export const STALE_DECISION_DAYS = 14
+export const isStaleDecision = (d, now = new Date()) => d.status === 'sent' && (now - new Date(d.created_at)) / 86_400_000 > STALE_DECISION_DAYS

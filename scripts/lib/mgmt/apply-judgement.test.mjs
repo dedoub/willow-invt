@@ -345,3 +345,33 @@ test('I10: codexRunner 는 임시 폴더를 cwd 로, 읽기 전용 샌드박스�
   assert.equal(captured.args[captured.args.indexOf('--sandbox') + 1], 'read-only')
   assert.ok(captured.args.includes('--ephemeral'))
 })
+
+test('다른 사람 회의는 [이름]·watch: 키·meeting 으로, 본인 일은 그대로', () => {
+  const jj = { cases: [], entries: [], decisions: [], schedules: [
+    { op: 'create', title: '독립기념관 9월 월간보고 14:00(13:30 도착)', date: '2026-10-02', source_ref: 'spaces/A/messages/1', match_key: null, reason: '외부 일정', kind: 'meeting', owner: '김철형' },
+    { op: 'create', title: 'NIA 9월 월간보고 자료', date: '2026-10-02', source_ref: 'spaces/A/messages/1', match_key: null, reason: '요청', kind: 'task', owner: '김동욱' },
+  ] }
+  const p = planJudgement('tensw', jj, { items, openSchedules: [] })
+  const [others, mine] = p.scheduleInserts
+  assert.equal(others.title, '[김철형] 독립기념관 9월 월간보고 14:00(13:30 도착)')
+  assert.equal(others.type, 'meeting')
+  assert.match(others.source_key, /^watch:mgmt-chat:spaces\/A\/messages\/1$/)
+  assert.equal(mine.title, 'NIA 9월 월간보고 자료')
+  assert.equal(mine.type, 'deadline')
+  assert.match(mine.source_key, /^mgmt-chat:spaces\/A\/messages\/1:2$/)
+})
+
+test('모니터링 행도 완료 신호로 닫힌다(watch: 대화 행)', () => {
+  const openW = [{ id: 'w1', source_key: 'watch:mgmt-chat:spaces/A/messages/0', title: '[김철형] 회의', schedule_date: '2026-09-30', evidence: [] }]
+  const jj = { cases: [], entries: [], decisions: [], schedules: [{ op: 'complete', title: '회의', date: null, source_ref: 'spaces/A/messages/2', match_key: 'watch:mgmt-chat:spaces/A/messages/0', reason: '다녀왔습니다', kind: 'meeting', owner: '김철형' }] }
+  const p = planJudgement('tensw', jj, { items, openSchedules: openW })
+  assert.equal(p.scheduleUpdates[0].patch.is_completed, true)
+})
+
+test('판단 프롬프트: 일정 kind·owner 규칙, 초안 금지, 최근 대표 결정', () => {
+  const s = buildPrompt({ company: 'tensw', items, openCases: [], openSchedules: [], decisions: ['임치계약 갱신? → 임치물 회수 후 종료 (2026-10-01)'] })
+  assert.match(s, /kind\(task=/)
+  assert.match(s, /owner/)
+  assert.match(s, /초안/)
+  assert.match(s, /최근 대표 결정[\s\S]*임치물 회수 후 종료/)
+})

@@ -40,3 +40,24 @@ test('M3: 보안 결정은 지난 답으로 자동 처리하지 않는다', () =
   assert.equal(reuseAnswer({ kind: 'security', subject_key: 'tensw:security:db-password' }, past), null)
   assert.equal(reuseAnswer({ kind: 'classify', subject_key: 'tensw:security:db-password' }, past), 'rotate')
 })
+
+import { decisionEntry, decisionLine, isStaleDecision, answerLabel } from './decisions.mjs'
+
+test('대표 답을 라벨로 기록부 decision 항목을 만든다(보류·무응답은 안 만든다)', () => {
+  const d = { id: 'd1', company: 'tensw', question: '임치계약을 갱신할까요?', options: [{ id: 'renew', label: '갱신' }, { id: 'retrieve', label: '임치물 회수 후 종료' }], answer: 'retrieve', answered_at: '2026-10-01T02:10:00Z' }
+  const e = decisionEntry(d)
+  assert.equal(e.kind, 'decision')
+  assert.equal(e.body, '대표 결정: 임치계약을 갱신할까요? → 임치물 회수 후 종료')
+  assert.equal(e.source, 'decision'); assert.equal(e.source_ref, 'd1')
+  assert.equal(decisionEntry({ ...d, answer: 'hold' }), null)
+  assert.equal(decisionEntry({ ...d, answer: null }), null)
+  assert.equal(answerLabel({ ...d, answer: 'x' }), 'x')
+  assert.match(decisionLine(d), /회수 후 종료 \(2026-10-01\)$/)
+})
+
+test('보낸 지 14일 넘게 답 없는 결정만 오래된 것', () => {
+  const now = new Date('2026-10-20T00:00:00Z')
+  assert.equal(isStaleDecision({ status: 'sent', created_at: '2026-10-01T00:00:00Z' }, now), true)
+  assert.equal(isStaleDecision({ status: 'sent', created_at: '2026-10-10T00:00:00Z' }, now), false)
+  assert.equal(isStaleDecision({ status: 'answered', created_at: '2026-09-01T00:00:00Z' }, now), false)
+})

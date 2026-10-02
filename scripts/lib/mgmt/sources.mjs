@@ -10,6 +10,9 @@ function plainText(part) {
   return ''
 }
 
+// 초안은 사실이 아니다 — 아직 안 보낸 메일을 "제출했다·신청 완료"로 읽는 사고가 있었다(2026-10-02, SMINFO·LG U+ 초안).
+export const isDraftMail = m => (m?.labelIds ?? []).includes('DRAFT')
+
 export function normalizeGmail(m, context) {
   return {
     source: 'mail', company: context === 'default' ? 'willow' : 'tensw', context,
@@ -65,7 +68,10 @@ async function oauthFor(sb, context) {
   return o
 }
 
-const defaultSince = () => new Date(Date.now() - 86_400_000).toISOString()
+// 처음 보는 소스(새 스페이스 등)는 14일 전부터 읽는다. 하루만 보면 가동 직전 올라온 회의 공지를 놓친다
+// (2026-09-29 업무보고의 10/2 독립기념관 회의를 놓침).
+export const FIRST_READ_DAYS = 14
+const defaultSince = () => new Date(Date.now() - FIRST_READ_DAYS * 86_400_000).toISOString()
 
 // 읽기 오류는 던진다 — 조용히 24시간 전으로 돌아가면 그 사이 메시지를 다시 판단한다. 기본값은 행이 없을 때만.
 export async function getCursor(sb, source) {
@@ -89,9 +95,10 @@ export async function readMail(sb, context, cursor, { limit = 100, maxPages = 20
   let pageToken, pages = 0
   do {
     pages++
-    const list = await gmail.users.messages.list({ userId: 'me', q: `after:${after} -in:chats`, maxResults: limit, pageToken })
+    const list = await gmail.users.messages.list({ userId: 'me', q: `after:${after} -in:chats -in:drafts`, maxResults: limit, pageToken })
     for (const { id } of list.data.messages ?? []) {
       const { data } = await gmail.users.messages.get({ userId: 'me', id, format, ...(format === 'metadata' ? { metadataHeaders: ['From', 'To', 'Subject'] } : {}) })
+      if (isDraftMail(data)) continue
       out.push(normalizeGmail(data, context))
     }
     pageToken = list.data.nextPageToken
