@@ -7,7 +7,8 @@ description: Use for the Tensoftworks 대표번호(02-563-1271) AI 전화비서 
 
 ```
 02-563-1271 (LG U+ 기업 인터넷전화로 번호이동 예정)
-  └ 무응답·통화중 착신 → ClawOps 070 → AI 비서(메모 접수, 광고 거르기)
+  └ 무응답·통화중 착신 → ClawOps 070-5276-7849 → AI 비서(메모 접수, 광고 거르기)
+       ├ 통화 중 MCP 도구 save_call_memo → /api/phone/mcp → tensw_phone_memos (이름·소속·회신번호·용건을 AI 가 칸으로)
        └ 웹훅 summary.completed / transcript.completed
             → /api/phone/clawops  (?t=CLAWOPS_WEBHOOK_TOKEN)
                  ├ tensw_phone_calls 저장(통화·녹취·요약은 ClawOps API 에서 다시 읽음)
@@ -30,6 +31,12 @@ npx tsx --test src/lib/phone/clawops.test.ts
 | `CLAWOPS_WEBHOOK_TOKEN` | 둘 다(2026-10-02 넣음) | 웹훅 URL 의 `?t=` |
 | `CLAWOPS_SIGNING_KEY` | 선택 | 폼 상태콜백 서명 확인용 |
 | `TENSW_PHONE_CHAT_WEBHOOK` | Vercel Production | 구글챗 스페이스 > 앱 및 통합 > 웹훅 URL |
+
+## 이름·용건은 어디서 오나
+
+정본은 통화 중 AI 가 부르는 `save_call_memo` 메모다. 도구 호출엔 통화 ID가 없어서 웹훅이 통화 시작~끝+90초 사이 메모를 짝짓는다
+(동시 통화 1개 플랜이라 겹치지 않는다 — 플랜을 올려 동시 통화가 생기면 이 짝짓기를 다시 봐야 한다).
+메모가 없으면 녹취 해석(`parseRecord`: 복창 문장, 자기소개)이 대비책이다. 모든 처리는 Vercel·ClawOps·Supabase 에서만 돈다(맥·세션 무관).
 
 ## 지침 고치기
 
