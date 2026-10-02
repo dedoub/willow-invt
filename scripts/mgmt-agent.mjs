@@ -18,6 +18,7 @@ import { planOccurrences, planMissed, applyPlan, tableFor } from './lib/mgmt/led
 import { getCursor, saveCursor, readMail, readChat } from './lib/mgmt/sources.mjs'
 import { buildPrompt, judge, isPersonalItem } from './lib/mgmt/judge.mjs'
 import { briefMessage, parseNoteArgs, noteRows } from './lib/mgmt/brief.mjs'
+import { richDigest, esc } from './lib/mgmt/digest.mjs'
 import { randomUUID } from 'node:crypto'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules, INFER_LIMIT, MIN_CONFIDENCE } from './lib/mgmt/infer.mjs'
@@ -162,7 +163,7 @@ async function loadCeoChatId() {
 }
 
 // kind: 'decision' | 'digest'. dry 에서는 MGMT_DRY_DIGEST=1 이고 digest 일 때만 보낸다.
-async function telegram(text, { buttons, kind = 'decision' } = {}) {
+async function telegram(text, { buttons, kind = 'decision', html = false } = {}) {
   const dryDigest = dryRun && process.env.MGMT_DRY_DIGEST === '1' && kind === 'digest'
   // dry 요약은 로그에 통째로 남긴다(무엇을 보냈을지 확인용). 결정은 첫 줄만.
   if (dryRun && !dryDigest) { log(`(dry) 윌리: ${kind === 'digest' ? text : text.split('\n')[0]}`); return null }
@@ -172,7 +173,7 @@ async function telegram(text, { buttons, kind = 'decision' } = {}) {
   let mid = null
   for (const [i, chunk] of chunks.entries()) {
     const last = i === chunks.length - 1
-    const body = { chat_id: chatId, text: chunk, ...(last && buttons && !dryRun ? { reply_markup: { inline_keyboard: buttons } } : {}) }
+    const body = { chat_id: chatId, text: chunk, ...(html ? { parse_mode: 'HTML', disable_web_page_preview: true } : {}), ...(last && buttons && !dryRun ? { reply_markup: { inline_keyboard: buttons } } : {}) }
     try {
       const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const j = await r.json().catch(() => ({}))
@@ -452,13 +453,13 @@ async function stepDigest() {
   const done = [], created = [], missed = []
   for (const company of COMPANIES) {
     const table = tableFor(company)
-    const base = () => sb.from(table).select('title, agent_state, evidence').like('source_key', 'mgmt%').or(NOT_PERSONAL)
+    const base = () => sb.from(table).select('title, schedule_date, agent_state, evidence').like('source_key', 'mgmt%').or(NOT_PERSONAL)
     const newRows = must(await base().gte('created_at', startOfToday()).neq('agent_state', 'missed'), `${table} created`)
     const missedRows = must(await base().eq('agent_state', 'missed').eq('is_completed', false), `${table} missed`)
     const doneRows = must(await base().eq('agent_state', 'done').gte('schedule_date', addDays(today, -45)), `${table} done`)
-    created.push(...(newRows ?? []).filter(r => r.agent_state !== 'done').map(r => r.title))
-    missed.push(...(missedRows ?? []).map(r => r.title))
-    done.push(...closedToday(doneRows ?? [], today).map(r => r.title))
+    created.push(...(newRows ?? []).filter(r => r.agent_state !== 'done').map(r => ({ ...r, company })))
+    missed.push(...(missedRows ?? []).map(r => ({ ...r, company })))
+    done.push(...closedToday(doneRows ?? [], today).map(r => ({ ...r, company })))
   }
   const reusedRows = must(await sb.from('mgmt_decisions').select('question, refs').eq('status', 'answered').gte('answered_at', startOfToday()), 'reused decisions')
   const reused = (reusedRows ?? []).filter(isReuse).map(reuseLabel)
@@ -467,16 +468,17 @@ async function stepDigest() {
   const inferred = must(await sb.from('mgmt_rules').select('title, rule').eq('origin', 'inferred').gte('created_at', startOfToday()), 'inferred rules')
   const { count, error } = await sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).in('status', ['open', 'sent'])
   if (error) throw new Error(`open decisions: ${error.message}`)
-  let text = digestMessage({ date: today, done, created, inferred: (inferred ?? []).map(r => `${r.title}(매월 ${r.rule.day}일)`), missed, openDecisions: Array(count ?? 0).fill(0), failures: failureLabels(fileFailures), reused })
+  // 2026-10-02 대표 요청: 회사별·날짜별로 묶어 보기 좋게(텔레그램 HTML).
+  let text = richDigest({ date: today, done, created, missed, inferred: (inferred ?? []).map(r => ({ title: r.title, day: r.rule.day })), openDecisions: count ?? 0, failures: failureLabels(fileFailures), reused })
   if (dryRun) {
     // I6: dry 에서는 원장이 안 바뀌므로 오늘 dry 실행들이 했을 일을 종류별로 붙인다.
     flushDry()
     let wouldDo = []
     try { wouldDo = dryDigestLines(fs.existsSync(DRY_FILE) ? fs.readFileSync(DRY_FILE, 'utf8').split('\n').filter(Boolean) : [], today) } catch {}
-    text = [text ?? `경영관리 ${today}`, `이번 실행(dry): 추가 ${tally.inserted} · 갱신 ${tally.updated} · 빠짐 ${tally.missed} · 완료 ${tally.closed} · 기록 ${tally.entries} · 결정 ${tally.decisions}`,
-      ...(wouldDo.length ? ['오늘 시험 운행에서 했을 일:', ...wouldDo] : [])].join('\n')
+    text = [text ?? `📋 <b>경영관리 저녁 요약</b> · ${today}`, `<i>이번 실행(dry): 추가 ${tally.inserted} · 갱신 ${tally.updated} · 빠짐 ${tally.missed} · 완료 ${tally.closed} · 기록 ${tally.entries} · 결정 ${tally.decisions}</i>`,
+      ...(wouldDo.length ? ['오늘 시험 운행에서 했을 일:', ...wouldDo.map(esc)] : [])].join('\n')
   }
-  if (text) await telegram(text, { kind: 'digest' })
+  if (text) await telegram(text, { kind: 'digest', html: true })
   else log('요약할 것 없음')
 }
 
