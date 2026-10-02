@@ -36,9 +36,27 @@ export async function POST(req: NextRequest) {
   const call = await fetchCall(callId)
   if (!call) return NextResponse.json({ ok: true, skipped: 'unknown call' })
   const [summary, transcript] = await Promise.all([fetchSummary(callId), fetchTranscript(callId)])
-  const rec = parseRecord(transcript)
-
   const sb = db()
+  // AI 비서가 통화 중 save_call_memo 로 남긴 메모가 있으면 그게 정본이다. 도구 호출엔 통화 ID가 없어 통화 시간대로 짝짓는다
+  // (동시 통화 1개 플랜). 녹취 패턴 해석은 메모가 없을 때의 대비책.
+  const rec = parseRecord(transcript)
+  if (call.startedAt) {
+    const from = new Date(call.startedAt).getTime()
+    const to = from + ((call.durationSec ?? 600) + 90) * 1000
+    const { data: memos } = await sb.from('tensw_phone_memos').select('*')
+      .gte('created_at', new Date(from - 5000).toISOString()).lte('created_at', new Date(to).toISOString())
+      .order('created_at', { ascending: true })
+    for (const m of memos ?? []) {            // 나중 호출이 앞 값을 덮는다(빈 칸은 덮지 않음)
+      if (m.caller_name) rec.name = m.caller_name
+      if (m.caller_org) rec.org = m.caller_org
+      if (m.callback_number) rec.callbackNumber = /발신/.test(m.callback_number) ? (call.from ?? null) : m.callback_number
+      if (m.purpose) rec.purpose = m.purpose
+      if (typeof m.urgent === 'boolean') rec.urgent = m.urgent
+      if (m.category) rec.category = m.category
+    }
+    if (memos?.length) rec.needsCallback = rec.category !== '광고'
+  }
+
   const { data: prev } = await sb.from('tensw_phone_calls').select('chat_notified_at, schedule_id').eq('call_id', callId).maybeSingle()
   const row = {
     call_id: callId, from_number: call.from, to_number: call.to, started_at: call.startedAt, duration_sec: call.durationSec,

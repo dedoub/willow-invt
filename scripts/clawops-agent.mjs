@@ -38,6 +38,12 @@ export const INSTRUCTIONS = `당신은 주식회사 텐소프트웍스 대표번
 5. 반드시 이 형식으로 복창합니다: "확인하겠습니다. 성함 [성함], 소속 [소속], 회신 번호 [번호], 용건 [한 줄 용건] 맞으신가요?" (모르는 칸은 "미확인")
 6. 맞다고 하면: "담당자에게 바로 전달하겠습니다. 감사합니다." 하고 마칩니다.
 
+[메모 저장 — 반드시]
+- 이름, 소속, 회신 번호, 용건 중 하나라도 알게 되면 그 자리에서 save_call_memo 도구를 부릅니다. 더 알게 되면 다시 부릅니다(마지막 값이 남습니다).
+- 발신자가 복창 전에 끊어도 메모가 남도록, 복창을 기다리지 말고 먼저 저장합니다.
+- 이름은 직함을 뺀 사람 이름만, 소속은 회사·기관 이름만 넣습니다. "이 번호로" 연락 달라고 하면 회신 번호에 "발신번호"라고 넣습니다.
+- 광고·영업 전화면 category 를 "광고"로 저장합니다. 도구 이야기는 발신자에게 하지 않습니다.
+
 [광고·영업 전화]
 - 대출, 보험, 카드, 마케팅 대행, 설문, 광고 제안처럼 우리 고객이 아닌 판매 전화로 보이면 메모를 받지 않고 "광고 전화로 확인되어 따로 전달하지 않습니다. 필요하시면 admin@tensoftworks.com 으로 자료를 보내 주세요. 감사합니다."라고 말하고 마칩니다.
 
@@ -84,6 +90,17 @@ if (num) {
   await api('PUT', `/numbers/${num.number}`, { routingType: 'agent', agentId: agent.agentId, statusCallback: hookUrl, statusCallbackEvents: 'completed' })
   console.log(`번호 ${num.number} → 에이전트 연결. LG U+ 02 번호의 무응답·통화중 착신을 이 번호로 걸면 된다.`)
 } else console.log('070 번호가 없어요. 발급하려면 --new-number (월 요금 발생)')
+
+// 통화 중 메모 도구(MCP) — 대시보드 서버 /api/phone/mcp, 상태 없는 JSON 응답
+const MCP_URL = `${BASE}/api/phone/mcp`
+const conns = (await api('GET', '/mcp-connections')).data ?? []
+let conn = conns.find(c => c.url === MCP_URL)
+if (!conn) conn = await api('POST', '/mcp-connections', { name: '텐소 통화 메모', url: MCP_URL, transport: 'streamable_http', authType: 'bearer', secret: TOKEN })
+else await api('POST', `/mcp-connections/${conn.connectionId}/credential`, { secret: TOKEN }).catch(() => {})
+const tested = await api('POST', `/mcp-connections/${conn.connectionId}/test`)
+console.log(`MCP 연결 ${conn.connectionId} 테스트: ${tested?.status ?? JSON.stringify(tested).slice(0, 120)} 도구 ${(tested?.tools ?? []).map(t => t.name).join(',')}`)
+await api('PUT', `/agents/${agent.agentId}/mcp-connections/${conn.connectionId}`, { allowedTools: ['save_call_memo'], failureMode: 'continue' })
+console.log('에이전트에 save_call_memo 연결')
 
 const events = ['summary.completed', 'transcript.completed']
 const same = hooks.find(h => String(h.url).startsWith(`${BASE}/api/phone/clawops`))
