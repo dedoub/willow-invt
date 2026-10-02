@@ -74,3 +74,10 @@ test('복창 전에 끊긴 통화도 발신자 말에서 이름·소속·회신 
   assert.equal(r.needsCallback, true)
   assert.equal(r.category, '문의')
 })
+
+test('"저는" 없이 직함까지 붙여 소개해도 이름·소속을 읽는다', () => {
+  const r = parseRecord('[AI] 안녕하세요.\n[발신자] 안녕하세요. 텐소프트웍스 김동욱 이사입니다.\n[발신자] 성균관대 홈페이지 유지 보수 건으로 논의가 필요하니 저한테 전화 주세요.')
+  assert.equal(r.name, '김동욱')
+  assert.equal(r.org, '텐소프트웍스')
+  assert.equal(r.needsCallback, true)
+})

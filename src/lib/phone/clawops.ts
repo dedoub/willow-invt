@@ -94,10 +94,17 @@ export function parseRecord(text: string | null) {
   const purpose = field('용건')
   const callerText = lines.filter(l => l.startsWith('[발신자]')).map(l => l.slice(5).trim()).join(' ')
   // 복창 전에 끊긴 통화: 발신자 말에서 "저는 ○○ ○○○입니다", "연락 주세요", "이 번호로" 를 읽는다
-  const intro = callerText.match(/저는\s+(.+?)\s*(?:입니다|이에요|예요|인데요)/)?.[1]?.trim() ?? null
-  const introParts = intro?.split(/\s+/) ?? []
-  const callerName = introParts.length > 1 && /^[가-힣]{2,4}$/.test(introParts.at(-1)!) ? introParts.at(-1)! : intro
-  const callerOrg = introParts.length > 1 && callerName === introParts.at(-1) ? introParts.slice(0, -1).join(' ') : null
+  // 자기소개: "저는 윌로우 인베스트먼트 김동욱입니다", "텐소프트웍스 김동욱 이사입니다" — 직함은 떼고 마지막 한글 2~4자를 이름으로
+  const TITLE = /^(이사|대표|대표님|팀장|과장|부장|실장|차장|대리|주임|교수|선생님|사서|담당자?)$/
+  const introLine = lines.filter(l => l.startsWith('[발신자]')).map(l => l.slice(5).trim())
+    .find(l => /(?:입니다|이에요|예요|인데요)/.test(l) && !/연락|전화|문의|건으로/.test(l.split(/입니다|이에요|예요|인데요/)[0]))
+  const intro = introLine?.match(/(?:저는\s+)?([가-힣A-Za-z0-9() ]+?)\s*(?:입니다|이에요|예요|인데요)/)?.[1]
+    ?.trim().replace(/^(?:(?:네|예|안녕하세요)[,.\s]*)*(?:저는\s+)?/, '').trim() ?? null
+  const introParts = (intro?.split(/\s+/) ?? []).filter(Boolean)
+  while (introParts.length > 1 && TITLE.test(introParts.at(-1)!)) introParts.pop()
+  const last = introParts.at(-1)
+  const callerName = last && /^[가-힣]{2,4}$/.test(last) && !TITLE.test(last) ? last : null
+  const callerOrg = callerName && introParts.length > 1 ? introParts.slice(0, -1).join(' ') : null
   const asksCallback = /연락\s*(?:주|부탁|바랍|드려)|전화\s*(?:주|부탁)|회신/.test(callerText)
   const name = field('성함') ?? callerName
   return {
