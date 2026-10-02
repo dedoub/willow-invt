@@ -92,13 +92,20 @@ export function parseRecord(text: string | null) {
   const isAd = ai.some(l => l.includes('광고 전화로 확인'))
   const callbackNumber = (field('회신 ?번호') ?? field('연락처'))?.replace(/[^\d-]/g, '') || null
   const purpose = field('용건')
-  const callerText = lines.filter(l => l.startsWith('[발신자]')).join(' ')
+  const callerText = lines.filter(l => l.startsWith('[발신자]')).map(l => l.slice(5).trim()).join(' ')
+  // 복창 전에 끊긴 통화: 발신자 말에서 "저는 ○○ ○○○입니다", "연락 주세요", "이 번호로" 를 읽는다
+  const intro = callerText.match(/저는\s+(.+?)\s*(?:입니다|이에요|예요|인데요)/)?.[1]?.trim() ?? null
+  const introParts = intro?.split(/\s+/) ?? []
+  const callerName = introParts.length > 1 && /^[가-힣]{2,4}$/.test(introParts.at(-1)!) ? introParts.at(-1)! : intro
+  const callerOrg = introParts.length > 1 && callerName === introParts.at(-1) ? introParts.slice(0, -1).join(' ') : null
+  const asksCallback = /연락\s*(?:주|부탁|바랍|드려)|전화\s*(?:주|부탁)|회신/.test(callerText)
+  const name = field('성함') ?? callerName
   return {
-    category: isAd ? '광고' : (purpose ? (AD_WORDS.test(purpose) ? '광고' : '문의') : null),
+    category: isAd ? '광고' : (purpose || callerText ? ((purpose && AD_WORDS.test(purpose)) ? '광고' : '문의') : null),
     urgent: !isAd && URGENT_WORDS.test(`${purpose ?? ''} ${callerText}`),
-    needsCallback: !isAd && !!(callbackNumber || field('성함')),
-    name: field('성함'),
-    org: field('소속'),
+    needsCallback: !isAd && !!(callbackNumber || field('성함') || asksCallback),
+    name,
+    org: field('소속') ?? callerOrg,
     callbackNumber,
     purpose,
   }

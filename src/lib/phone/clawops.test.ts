@@ -66,3 +66,11 @@ test('카드: 헤더·회신 번호·녹취 접기', () => {
   assert.match(card.header.subtitle, /김은희 · 서울시체육회 · 010-1234-5678/)
   assert.equal(card.sections.find(s => s.header === '녹취')?.collapsible, true)
 })
+
+test('복창 전에 끊긴 통화도 발신자 말에서 이름·소속·회신 요청을 읽는다', () => {
+  const r = parseRecord('[AI] 안녕하세요. 텐소프트웍스입니다.\n[발신자] 네, 안녕하세요. 저는 윌로우 인베스트먼트 김동욱입니다.\n[발신자] 새로운 개발 건 관련해서 연락 주시면 감사하겠습니다. 연락처는 이 번호로 연락 주세요.')
+  assert.equal(r.name, '김동욱')
+  assert.equal(r.org, '윌로우 인베스트먼트')
+  assert.equal(r.needsCallback, true)
+  assert.equal(r.category, '문의')
+})
