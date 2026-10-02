@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 경영관리 에이전트 — 한 번 돌고 끝난다. launchd 가 30분마다 부른다(scripts/run-mgmt-agent.sh).
-//   node scripts/mgmt-agent.mjs [--dry] [--only learn|rules|collect|close|decide|digest|infer]
+//   node scripts/mgmt-agent.mjs [--dry] [--only learn|rules|collect|close|decide|digest|infer|tune|weekly|brief]
+//   node scripts/mgmt-agent.mjs note --company tensw [--kind todo] [--case 건] [--assignee 김동욱] [--due D] [--date D --title T [--time HH:MM] [--meeting] [--owner 이름]] "본문"
 //   node scripts/mgmt-agent.mjs lesson --company tensw|willow [--scope judge|rule|close|decision] "문장" [--dry]
 // --dry 는 DB 쓰기·윌리 전송 없이 무엇을 할지 로그만 남긴다. MGMT_DRY_DIGEST=1 이면 dry 에서도
 // 저녁 요약 한 통만 "(시험 운행)" 으로 윌리에게 보낸다(결정 메시지는 dry 에서 보내지 않는다).
@@ -16,6 +17,8 @@ import { SEED_RULES } from './lib/mgmt/seed-rules.mjs'
 import { planOccurrences, planMissed, applyPlan, tableFor } from './lib/mgmt/ledger.mjs'
 import { getCursor, saveCursor, readMail, readChat } from './lib/mgmt/sources.mjs'
 import { buildPrompt, judge, isPersonalItem } from './lib/mgmt/judge.mjs'
+import { briefMessage, parseNoteArgs, noteRows } from './lib/mgmt/brief.mjs'
+import { randomUUID } from 'node:crypto'
 import { planJudgement, applyJudgement } from './lib/mgmt/apply-judgement.mjs'
 import { inferRules, INFER_LIMIT, MIN_CONFIDENCE } from './lib/mgmt/infer.mjs'
 import { planTuning } from './lib/mgmt/tune.mjs'
@@ -99,6 +102,33 @@ if (args[0] === 'lesson') {
   try { res = await saveLesson(sb, lesson, { dryRun }) } catch (e) { log(`lesson 저장 실패: ${e.message ?? e}`); process.exit(1) }
   if (res.duplicate) log(`이미 있는 교훈이에요: ${lesson.company}/${lesson.scope}: ${lesson.lesson}`)
   else log(`교훈 ${dryRun ? '(dry, 저장 안 함) ' : '저장 '}${lesson.company}/${lesson.scope}: ${lesson.lesson}`)
+  process.exit(0)
+}
+
+// 명령 `note`: 대화형 세션(Claude·윌리)에서 한 일을 기록부(와 원하면 일정)에 남긴다 — 2026-10-02 리뷰.
+// 그날 한 일을 사람이 손으로 일정·위키에 옮기지 않게. 본문은 redact 를 거친다.
+if (args[0] === 'note') {
+  let n
+  try { n = parseNoteArgs(args.slice(1)) } catch (e) { log(`note: ${e.message}`); process.exit(2) }
+  n.body = redact(n.body).text; if (n.title) n.title = redact(n.title).text
+  const { entry, caseName, schedule } = noteRows(n, { id: randomUUID().slice(0, 8) })
+  if (dryRun) { log(`note (dry) ${JSON.stringify({ entry, caseName, schedule })}`); process.exit(0) }
+  try {
+    let case_id = null
+    if (caseName) {
+      const { data, error } = await sb.from('mgmt_cases').upsert({ company: n.company, name: caseName, updated_at: new Date().toISOString() }, { onConflict: 'company,name' }).select('id').single()
+      if (error) throw error
+      case_id = data.id
+    }
+    must(await sb.from('mgmt_entries').insert({ ...entry, case_id }), 'note entry')
+    log(`기록 ${n.company} ${n.kind}${caseName ? ` [${caseName}]` : ''}: ${entry.body.slice(0, 80)}`)
+    if (schedule) {
+      const table = tableFor(n.company)
+      const row = must(await sb.from(table).insert(schedule).select('*').single(), 'note schedule')
+      await onWrite(table, row)
+      log(`일정 ${schedule.schedule_date} ${schedule.title}`)
+    }
+  } catch (e) { log(`note 저장 실패: ${e.message ?? e}`); process.exit(1) }
   process.exit(0)
 }
 
@@ -590,7 +620,13 @@ async function stepWeekly() {
   }
 
   const skillLine = dryRun ? `개발 에이전트에 넘길 스킬 후보 ${opened}개(시험 운행)` : `개발 에이전트에 넘긴 스킬 후보 ${opened}개`
-  await telegram([s.text, skillLine].join('\n'), { kind: 'digest' })
+  // 판단 품질(2026-10-02 리뷰): 대표 답 비율, 답 없이 접힌 결정, 대화형 세션 메모 수(에이전트가 못 잡아 사람이 넣은 일).
+  const q = async (qb, label) => { const { count, error } = await qb; if (error) { fail(`weekly:${label}`, error.message); return 0 } return count ?? 0 }
+  const answeredN = await q(sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).eq('status', 'answered').gte('answered_at', sinceISO), 'answered')
+  const staleN = await q(sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).eq('status', 'expired').is('answer', null).gte('created_at', sinceISO), 'stale')
+  const notesN = await q(sb.from('mgmt_entries').select('id', { count: 'exact', head: true }).eq('source', 'session').gte('created_at', sinceISO), 'notes')
+  const qualityLine = `판단 품질: 결정 ${asked}건 중 대표 답 ${answeredN} · 답 없이 접힘 ${staleN} · 사람이 직접 넣은 메모 ${notesN}(에이전트가 놓친 일 후보)`
+  await telegram([s.text, qualityLine, skillLine].join('\n'), { kind: 'digest' })
 }
 
 // 되돌림에서 배우기: 에이전트가 마지막으로 쓴 값과 지금 행을 비교한다. 대표가 지웠거나 다시 열었거나
@@ -621,7 +657,25 @@ async function stepLearn() {
   }
 }
 
-const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer, tune: stepTune, weekly: stepWeekly }
+// 아침 브리핑(07:3x): 오늘·지난 미완료·이번 주 일정(대표 일정 모니터링 포함)과 대표 몫 할 일, 대기 결정.
+async function stepBrief() {
+  const today = todayKey(), until = addDays(today, 7)
+  const rows = [], overdue = []
+  for (const company of COMPANIES) {
+    const table = tableFor(company)
+    const cols = 'title, schedule_date, start_time, source_key'
+    rows.push(...(must(await sb.from(table).select(cols).eq('is_completed', false).or(NOT_PERSONAL).gte('schedule_date', today).lte('schedule_date', until), `${table} brief`) ?? []).map(r => ({ ...r, company })))
+    // 지난 미완료: 대화·메일·메모에서 난 행만(정기 규칙 행은 빠짐 결정으로 따로 묻는다), 2주 안.
+    overdue.push(...(must(await sb.from(table).select(cols).eq('is_completed', false).or(NOT_PERSONAL).lt('schedule_date', today).gte('schedule_date', addDays(today, -14)).like('source_key', 'mgmt-%'), `${table} overdue`) ?? []).map(r => ({ ...r, company })))
+  }
+  const todos = must(await sb.from('mgmt_entries').select('company, body, due_date').eq('kind', 'todo').is('done_at', null).ilike('assignee', '%김동욱%').gte('occurred_at', new Date(Date.now() - 21 * 864e5).toISOString()).or(`due_date.is.null,due_date.lte.${until}`).order('occurred_at', { ascending: false }).limit(30), 'brief todos')
+  const { count } = await sb.from('mgmt_decisions').select('id', { count: 'exact', head: true }).in('status', ['open', 'sent'])
+  const text = briefMessage({ today, rows, overdue, todos: todos ?? [], openDecisions: count ?? 0 })
+  log(`아침 브리핑: 오늘 ${rows.filter(r => r.schedule_date === today).length} · 이번 주 ${rows.length} · 지난 미완료 ${overdue.length} · 대표 몫 ${todos?.length ?? 0}`)
+  await telegram(text, { kind: 'digest' })
+}
+
+const STEPS = { learn: stepLearn, rules: stepRules, collect: stepCollect, close: stepClose, decide: stepDecide, digest: stepDigest, infer: stepInfer, tune: stepTune, weekly: stepWeekly, brief: stepBrief }
 for (const name of selected) {
   try { log(`단계 ${name}${dryRun ? ' (dry)' : ''}`); await STEPS[name]() } catch (e) { fail(name, e) }
 }

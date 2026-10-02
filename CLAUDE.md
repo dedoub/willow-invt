@@ -248,10 +248,13 @@ node scripts/mgmt-agent.mjs --only digest         # 저녁 요약
 node scripts/mgmt-agent.mjs --only tune           # 규칙 자동 조정(월요일 07:0x)
 node scripts/mgmt-agent.mjs --only weekly         # 주간 성적표 + 스킬 후보(월요일 07:3x)
 node scripts/mgmt-agent.mjs lesson --company tensw --scope judge "문장"   # 대표 교정을 교훈으로
+node scripts/mgmt-agent.mjs note --company tensw [--kind todo --assignee 김동욱 --due D] [--case 건] [--date D --title T [--time HH:MM] [--meeting] [--owner 김철형]] "본문"   # 대화형 세션에서 한 일을 원장에
+node scripts/mgmt-agent.mjs --only brief            # 아침 브리핑(평일 07:3x 자동)
 node scripts/mgmt-replay.mjs                      # 6~9월 재현 시험(읽기 전용)
 npm run mgmt:test
 ```
 
+- **대화형 세션(Claude·윌리)에서 경영 일을 처리하면 끝에 `note` 로 원장에 남긴다** — 한 일(material), 남은 일(todo, assignee), 날짜 있는 일(--date). 다른 사람 회의는 `--owner 이름 --meeting`(모니터링).
 - 2026-09-30 부터 실운행(대표님 지시: 돌리면서 고친다). 시험하려면 `MGMT_ARGS=--dry` + `MGMT_DRY_DIGEST=1` 로 돌리면
   DB 쓰기 없이 "(시험 운행)" 요약만 윌리에게 간다. dry 는 `collect`(Codex)를 18:3x 회차에서만 돌고(`--dry --only collect`
   는 언제든), 했을 일을 `~/.willow/mgmt-agent-dry.jsonl`(7일)에 모아 그 요약에 종류별로 붙인다. `--only` 값은

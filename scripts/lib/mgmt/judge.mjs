@@ -19,7 +19,8 @@ export function isPersonalItem(item) {
 
 export function buildPrompt({ company, items, openCases, openSchedules, lessons = [], decisions = [] }) {
   const name = company === 'willow' ? '윌로우인베스트먼트' : '텐소프트웍스'
-  const lines = items.map(x => `- ref=${x.ref} | ${x.at} | ${field(x.space ?? x.subject ?? '')} | ${field(x.from ?? '')}${x.direction === 'out' ? ' (우리가 보냄)' : ''}: ${field(x.text).replace(/\n+/g, ' / ')}`)
+  const att = x => (x.attachments?.length ? ` [첨부: ${x.attachments.slice(0, 8).map(field).join(', ')}]` : '')
+  const lines = items.map(x => `- ref=${x.ref} | ${x.at} | ${field(x.space ?? x.subject ?? '')} | ${field(x.from ?? '')}${x.direction === 'out' ? ' (우리가 보냄)' : ''}: ${field(x.text).replace(/\n+/g, ' / ')}${att(x)}`)
   return [
     `너는 ${name} 경영관리 기록 담당이다. 아래 새 메시지를 읽고 JSON 스키마대로만 답한다.`,
     '규칙:',
@@ -30,6 +31,8 @@ export function buildPrompt({ company, items, openCases, openSchedules, lessons 
     '- schedules 마다 kind(task=할 일·마감, meeting=회의·방문·발표·미팅)와 owner(그 일을 맡거나 참석하는 사람 이름. 김동욱 본인 일이거나 모르면 null)를 적는다.',
     '- 다른 사람(대표·직원)의 대외 회의·방문·발표도 일시가 있으면 owner 를 그 사람으로 해서 낸다(모니터링용). 시각·장소·일찍 도착 요청은 title 에 짧게 넣는다.',
     '- 아직 보내지 않은 계획·초안을 "제출했다·신청 완료"로 적지 않는다. 우리가 실제로 보낸 메일만 완료다.',
+    '- 첨부 서류(계약서·협약서·신청서·공문·증명서·견적서)가 오면 material 항목에 파일명과 해야 할 일(검토·서명·작성·제출·보관)을 적고, 할 일이 있으면 todo 도 낸다.',
+    '- todo 의 assignee 는 그 일을 해야 하는 사람. 김동욱만 할 수 있는 일(서명·발송·결제·제출·서류 준비)은 assignee=김동욱.',
     '- 처리했습니다·송금했습니다·발급했습니다·반영되었습니다·제출했습니다 같은 완료 말이 열린 일정과 짝이면 op=complete, match_key 는 그 일정의 key.',
     '- 날짜가 바뀌었다는 말이면 op=update.',
     '- 비밀번호·키·계좌가 평문으로 보이면 kind=security 항목으로 "무엇이 누구에게 공유됐는지"만 적고 값은 적지 않는다.',

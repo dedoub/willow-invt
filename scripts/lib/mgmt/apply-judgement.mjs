@@ -94,7 +94,7 @@ export function planJudgement(company, j, { items, openSchedules }) {
     if (!row) { dropped++; continue }
     // 정기 규칙 행(mgmt:)은 반영도 임의로 닫거나 날짜를 옮기지 않는다 — 증빙만 남긴다.
     // 대화·메일에서 난 행(mgmt-chat:/mgmt-mail:)만 실제로 닫거나 날짜를 옮긴다.
-    const canMutate = /^(watch:)?mgmt-(chat|mail):/.test(row.source_key)
+    const canMutate = /^(watch:)?mgmt-(chat|mail|note):/.test(row.source_key)
     const ev = { kind: 'message', ref: item.ref, at: item.at, note: clean(s.reason) }
     if (s.op === 'complete') {
       mergeUpdate(row, canMutate ? { is_completed: true, agent_state: 'done' } : {}, ev)

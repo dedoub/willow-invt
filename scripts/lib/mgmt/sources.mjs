@@ -13,12 +13,14 @@ function plainText(part) {
 // 초안은 사실이 아니다 — 아직 안 보낸 메일을 "제출했다·신청 완료"로 읽는 사고가 있었다(2026-10-02, SMINFO·LG U+ 초안).
 export const isDraftMail = m => (m?.labelIds ?? []).includes('DRAFT')
 
+const fileNames = part => !part ? [] : [...(part.filename ? [part.filename] : []), ...(part.parts ?? []).flatMap(fileNames)]
 export function normalizeGmail(m, context) {
   return {
     source: 'mail', company: context === 'default' ? 'willow' : 'tensw', context,
     ref: m.id, thread: m.threadId, from: header(m, 'From'), to: header(m, 'To'), subject: header(m, 'Subject'),
     text: plainText(m.payload).slice(0, 4000), at: new Date(Number(m.internalDate)).toISOString(),
     direction: (m.labelIds ?? []).includes('SENT') ? 'out' : 'in',
+    attachments: fileNames(m.payload).filter(n => !/^image\d*\.(png|jpe?g|gif)$/i.test(n)),
   }
 }
 

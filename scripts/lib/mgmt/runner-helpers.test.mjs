@@ -5,7 +5,7 @@ import { planSteps, parseSourceKey, cashFact, cashDirection, splitMailFacts, pla
 test('planSteps: 시간대별 단계', () => {
   assert.deepEqual(planSteps('10:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('07:05'), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
-  assert.deepEqual(planSteps('07:35'), ['learn', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:35'), ['learn', 'rules', 'collect', 'close', 'decide', 'brief'])
   assert.deepEqual(planSteps('18:35'), ['learn', 'rules', 'collect', 'close', 'decide', 'digest'])
   assert.deepEqual(planSteps('19:05'), ['learn', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('10:05', 'close'), ['close'])
@@ -23,14 +23,14 @@ test('planSteps: 월요일 07:00~07:29 이면 infer 다음에 tune', () => {
   assert.deepEqual(planSteps('07:05', null, { monday: false }), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('07:05'), ['learn', 'infer', 'rules', 'collect', 'close', 'decide'])
   // 월요일 07:30~07:59 은 tune 대신(infer 창을 벗어났으므로) weekly 가 끝에 붙는다
-  assert.deepEqual(planSteps('07:35', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'weekly'])
+  assert.deepEqual(planSteps('07:35', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'brief', 'weekly'])
 })
 
 test('planSteps: 월요일 07:30~07:59 이면 weekly', () => {
-  assert.deepEqual(planSteps('07:30', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'weekly'])
-  assert.deepEqual(planSteps('07:59', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'weekly'])
+  assert.deepEqual(planSteps('07:30', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'brief', 'weekly'])
+  assert.deepEqual(planSteps('07:59', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide', 'brief', 'weekly'])
   // 화요일 같은 시각엔 weekly 없다
-  assert.deepEqual(planSteps('07:35', null, { monday: false }), ['learn', 'rules', 'collect', 'close', 'decide'])
+  assert.deepEqual(planSteps('07:35', null, { monday: false }), ['learn', 'rules', 'collect', 'close', 'decide', 'brief'])
   // 월요일이어도 시간대 밖이면 weekly 없다
   assert.deepEqual(planSteps('08:00', null, { monday: true }), ['learn', 'rules', 'collect', 'close', 'decide'])
   assert.deepEqual(planSteps('07:29', null, { monday: true }), ['learn', 'infer', 'tune', 'rules', 'collect', 'close', 'decide'])

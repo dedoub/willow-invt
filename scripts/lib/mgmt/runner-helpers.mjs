@@ -7,7 +7,8 @@ export const addDays = (key, n) => { const t = new Date(`${key}T00:00:00Z`); t.s
 
 // learn(되돌림에서 배우기)이 맨 앞. 07:00~07:29 이면 infer, 월요일 그 시각이면 infer 다음에 tune, 18:30~18:59 이면 마지막에 digest.
 // 월요일 07:30~07:59 이면 마지막에 weekly(주간 성적표 + 스킬 후보).
-export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer', 'tune', 'weekly']
+// 07:30~07:59 이면 decide 뒤에 brief(아침 브리핑) — 2026-10-02 리뷰.
+export const STEP_NAMES = ['learn', 'rules', 'collect', 'close', 'decide', 'digest', 'infer', 'tune', 'weekly', 'brief']
 // I5: dry 는 collect(Codex 호출)를 digest 와 같은 18:30~18:59 실행에서만 돈다. --only collect 는 그대로.
 export function planSteps(hm, only = null, { monday = false, dry = false } = {}) {
   if (only !== null && only !== undefined) {
@@ -15,10 +16,11 @@ export function planSteps(hm, only = null, { monday = false, dry = false } = {})
     return [only]
   }
   const inferWindow = hm >= '07:00' && hm < '07:30'
-  const weeklyWindow = monday && hm >= '07:30' && hm < '08:00'
+  const briefWindow = hm >= '07:30' && hm < '08:00'
+  const weeklyWindow = monday && briefWindow
   const digestWindow = hm >= '18:30' && hm < '19:00'
   const collect = !dry || digestWindow ? ['collect'] : []
-  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', ...collect, 'close', 'decide', ...(digestWindow ? ['digest'] : []), ...(weeklyWindow ? ['weekly'] : [])]
+  return ['learn', ...(inferWindow ? ['infer', ...(monday ? ['tune'] : [])] : []), 'rules', ...collect, 'close', 'decide', ...(digestWindow ? ['digest'] : []), ...(briefWindow ? ['brief'] : []), ...(weeklyWindow ? ['weekly'] : [])]
 }
 
 // mgmt:<company>:<task>:<YYYY-MM>:<step>
