@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createClient } from '@supabase/supabase-js'
 import { countKstDailyReviewnotesActivations } from './lib/reviewnotes-activation-alert'
+import { countKstDailyScriptaActivations, freshScriptaActivations, scriptaActivationMessage, type ScriptaActivation, type ScriptaUserLite } from './lib/scripta-activation-alert'
 import { execSync, spawn } from 'child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join, basename, relative } from 'path'
@@ -59,6 +60,11 @@ const reviewnotesSupabase = process.env.REVIEWNOTES_SUPABASE_URL && reviewnotesK
   : null
 
 const MAX_HISTORY = 50 // 대화 기록 최대 보관 수
+// 스크립타는 유저가 auth.users 에 있고 테이블이 RLS 로 잠겨 있어 SECURITY DEFINER RPC 로만 읽는다.
+const scriptaSupabase = process.env.SCRIPTA_SUPABASE_URL && process.env.SCRIPTA_SUPABASE_SERVICE_KEY
+  ? createClient(process.env.SCRIPTA_SUPABASE_URL, process.env.SCRIPTA_SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+  : null
+
 const MAX_PROMPT_HISTORY = 20 // 프롬프트에는 최근 대화만 주입해 응답 지연을 줄임
 const MAX_AUTO_MESSAGES = 10 // 자동 메시지(브리핑/알림) 최대 보관 수
 const POLL_INTERVAL = 1500 // ms
@@ -79,6 +85,7 @@ const VOICECARDS_PURCHASE_MONITOR_INTERVAL = 5 * 60 * 1000 // 5분마다 결제 
 const REVIEWNOTES_MONITOR_INTERVAL = 20 * 60 * 1000 // 20분마다 ReviewNotes 이상징후 점검
 const REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 ReviewNotes 신규 활성화 점검
 const ENABLE_VOICECARDS_LOCAL_LOG_MONITOR = process.env.WILLY_ENABLE_VOICECARDS_LOCAL_LOG_MONITOR === '1'
+const SCRIPTA_ACTIVATION_MONITOR_INTERVAL = 15 * 60 * 1000 // 15분마다 Scripta 신규 활성화 점검
 const TELEGRAM_RETRY_FALLBACK_MS = 1000
 const TELEGRAM_RETRY_CAP_MS = 3 * 60 * 1000
 const TYPING_MIN_INTERVAL_MS = 6000
@@ -3422,6 +3429,48 @@ async function monitorReviewnotesActivations() {
     ...activatedUserIds,
   ]))
   saveReviewnotesMonitorState()
+// Scripta 신규 활성 사용자(첫 글 등록) — 리뷰노트 알림과 같은 방식. 알린 사용자는 상태 파일에 남긴다.
+const SCRIPTA_MONITOR_STATE_FILE = join(__dirname, 'logs', 'scripta-monitor-state.json')
+function loadScriptaActivatedIds(): string[] | undefined {
+  try {
+    const saved = JSON.parse(readFileSync(SCRIPTA_MONITOR_STATE_FILE, 'utf-8'))
+    return Array.isArray(saved?.activatedUserIds) ? saved.activatedUserIds.filter((v: unknown): v is string => typeof v === 'string') : undefined
+  } catch { return undefined }
+}
+function saveScriptaActivatedIds(ids: string[]) {
+  try { writeFileSync(SCRIPTA_MONITOR_STATE_FILE, JSON.stringify({ activatedUserIds: ids }, null, 2)) }
+  catch (err) { console.error('scripta monitor state 저장 실패:', err) }
+}
+
+async function monitorScriptaActivations() {
+  if (!ceoChatId || !scriptaSupabase) return
+  const { data, error } = await scriptaSupabase.rpc('sc_dashboard_stats')
+  if (error) throw error
+  const activation = ((data as { activation?: ScriptaActivation[] } | null)?.activation ?? [])
+  const known = loadScriptaActivatedIds()
+  const allIds = activation.map(a => a.userId)
+  if (!known) { saveScriptaActivatedIds(allIds); return }
+
+  const fresh = freshScriptaActivations(activation, known)
+  if (!fresh.length) return
+  const { data: users, error: userError } = await scriptaSupabase.rpc('sc_users')
+  if (userError) throw userError
+  const byId = new Map(((users ?? []) as ScriptaUserLite[]).map(u => [u.user_id, u]))
+  const dailyCumulative = countKstDailyScriptaActivations(activation)
+
+  for (const a of fresh.sort((x, y) => x.at.localeCompare(y.at))) {
+    const message = scriptaActivationMessage(a, byId.get(a.userId), dailyCumulative)
+    recordRuntimeEvent({
+      botKey: 'willy-bot', jsonlPath: BOT_RUNTIME_JSONL_FILE, level: 'info',
+      source: 'scripta_activation_alert', message: 'scripta new user activated',
+      details: { userId: a.userId, email: byId.get(a.userId)?.email ?? null, firstTextAt: a.at, dailyCumulative },
+    })
+    await sendMessage(ceoChatId, message)
+    await appendToConversation(ceoChatId, { role: 'assistant', content: `[Scripta 활성 사용자 알림]\n${message}`, timestamp: new Date().toISOString() })
+  }
+  saveScriptaActivatedIds(Array.from(new Set([...known, ...allIds])))
+}
+
 }
 
 async function monitorReviewnotesSignals() {
@@ -7245,6 +7294,15 @@ async function main() {
   setTimeout(() => {
     void monitorVoicecardsUserEvents().catch(err => console.error('VoiceCards user event monitor bootstrap error:', err))
   }, 8000)
+
+  // Scripta 신규 활성화 감시 (15분 간격)
+  console.log(`🎉 Scripta 신규 활성화 감시 활성화 (${SCRIPTA_ACTIVATION_MONITOR_INTERVAL / 60000}분 간격)`)
+  setInterval(async () => {
+    try { await monitorScriptaActivations() } catch (err) { console.error('Scripta activation monitor error:', err) }
+  }, SCRIPTA_ACTIVATION_MONITOR_INTERVAL)
+  setTimeout(() => {
+    void monitorScriptaActivations().catch(err => console.error('Scripta activation monitor bootstrap error:', err))
+  }, 12000)
 
   // ReviewNotes 신규 활성화 감시 (15분 간격)
   console.log(`🎉 ReviewNotes 신규 활성화 감시 활성화 (${REVIEWNOTES_ACTIVATION_MONITOR_INTERVAL / 60000}분 간격)`)
