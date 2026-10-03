@@ -21,6 +21,7 @@ import {
 } from './lib/desktop.mjs'
 import { anchoredPoint, buttonPoint, certificateRowPoint, windowRect } from './lib/cert-dialog.mjs'
 import { financeIdentity } from './lib/tensw-local-finance.mjs'
+import { ensureLaunchdDaemons } from './lib/cert-cleanup.mjs'
 
 const execFileAsync = promisify(execFile)
 const CLICLICK = '/opt/homebrew/bin/cliclick'
@@ -462,6 +463,8 @@ async function run() {
   const blocked = DRY_RUN ? null : await blockingCertLock(CERT_LOCK)
   if (blocked) throw new Error(certLockMessage('우리카드', blocked, CERT_LOCK))
 
+  // TouchEnNx 데몬(CrossEXService)이 없으면 페이지가 보안프로그램 설치 화면으로 보낸다.
+  await ensureLaunchdDaemons({ log: message => console.log(`[woori-card-login] ${message}`) })
   if (!modalOpen) await openCertificateDialog()
   await dismissModuleAlert()
 

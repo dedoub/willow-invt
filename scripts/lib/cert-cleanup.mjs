@@ -38,6 +38,21 @@ export const SECURITY_PROCESSES = [
   'WizVera', 'Veraport', 'XecureWeb', 'IPinside', 'Interezen',
   'nProtect Netizen', 'TouchEnKey', 'TouchEnNxKey',
 ]
+
+// launchd 가 로그인 때 한 번만 띄우는 데몬(RunAtLoad, KeepAlive 없음). 다른 모듈은 페이지가
+// 다시 띄우지만 이것들은 한 번 내리면 재부팅 전까지 안 돌아온다. CrossEXService 가 꺼지면
+// 우리카드 TouchEnNx 가 wss://127.0.0.1:34581~3 데몬을 못 찾아 KeySharpBiz 미설치로 보고
+// 보안프로그램 설치 화면으로 보낸다 — 재설치해도 데몬은 안 뜬다(2026-09-27~10-04 우리카드
+// 로그인 매회 실패, 9/18 수집 뒤 모듈 내리기를 넣은 뒤부터). 그래서 내리지 않고, 쓰기 전에 살린다.
+export const LAUNCHD_DAEMONS = {
+  CrossEXService: 'kr.co.iniline.crossex-service',
+}
+
+/** 수집 뒤 내릴 이름. launchd 데몬은 뺀다. */
+export function quitTargets(names = SECURITY_PROCESSES) {
+  return names.filter(name => !(name in LAUNCHD_DAEMONS))
+}
+
 const CANCEL_LABELS = ['취소', '취소하기', '닫기', 'Cancel']
 const DISMISS_LABELS = ['확인', 'OK']
 const SCREENSHOT = path.join(os.tmpdir(), 'willow-cert-cleanup.png')
@@ -171,7 +186,7 @@ async function isRunning(processName) {
  */
 export async function quitSecurityModules({ log = () => {} } = {}) {
   const stopped = []
-  for (const processName of SECURITY_PROCESSES) {
+  for (const processName of quitTargets()) {
     if (!(await isRunning(processName))) continue
     await execFileAsync('/usr/bin/pkill', ['-x', processName]).catch(() => {})
     // 스스로 정리할 틈을 준다. 그래도 남으면 끊는다 — 남은 모듈이 다음 실행의
@@ -188,4 +203,22 @@ export async function quitSecurityModules({ log = () => {} } = {}) {
     log(`${processName} 내렸어요.`)
   }
   return stopped
+}
+
+/** launchd 데몬이 꺼져 있으면 띄운다. 띄운 이름을 돌려준다. */
+export async function ensureLaunchdDaemons({ log = () => {} } = {}) {
+  const started = []
+  for (const [processName, label] of Object.entries(LAUNCHD_DAEMONS)) {
+    if (await isRunning(processName)) continue
+    const uid = process.getuid?.() ?? os.userInfo().uid
+    await execFileAsync('/bin/launchctl', ['kickstart', `gui/${uid}/${label}`]).catch(err => {
+      log(`${processName} 띄우지 못했어요: ${err.message}`)
+    })
+    for (let i = 0; i < 10 && !(await isRunning(processName)); i += 1) await sleep(500)
+    if (await isRunning(processName)) {
+      started.push(processName)
+      log(`${processName} 꺼져 있어 띄웠어요.`)
+    }
+  }
+  return started
 }
