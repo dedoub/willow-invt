@@ -10,7 +10,11 @@ description: Use when issuing a Tensoftworks sales 전자세금계산서 on 홈�
 ```bash
 node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회              # 작성만 하고 캡처 (발급 안 함)
 node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회 --issue      # 대표 "발급해" 뒤에만
-#   [--sale-id <uuid>] [--date YYYY-MM-DD] [--keep-open]
+#   [--sale-id <uuid>] [--date YYYY-MM-DD] [--supplier-email admin@tensoftworks.com] [--keep-open]
+
+# 이미 발급한 건의 품목 이름이 틀렸을 때 — 수정세금계산서(기재사항 착오·정정): 취소 1장 + 수정 1장
+node scripts/hometax-amend-tax-invoice.mjs --approval <당초 승인번호> --item "<새 품목 이름>"            # 작성 + 캡처
+node scripts/hometax-amend-tax-invoice.mjs --approval … --item "…" --issue                              # 대표 승인 뒤에만
 ```
 
 캡처는 `~/logs/tensw-local-finance/issue/draft_<사업자번호>_<작성일>.png`, 발급 뒤 `issued_<작성일>_<승인번호>.png`.
@@ -61,6 +65,9 @@ node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회 --issue     
 | "8월거 참고해" | 이미 직전 발급분을 참고한다. 다른 달을 참고하라면 그 달 행의 품목을 예정 행에 옮겨 적는다 |
 
 ## 덫
+
+- **품목 달은 발급 전에 대표에게 묻는다.** 독립기념관은 8/23 "8월", 9/2 "9월" 로 나갔는데, 10/2 건을 "10월" 로 발급했다가 대표가 "9월" 로 고쳐 수정발급했다(2026-10-04). 앞 달 품목을 그대로 따라 하지 말고 캡처를 보일 때 달을 짚어 확인받는다.
+- 발급 결과 창의 문구는 "확인 버튼을 누르면 메일이 발송됩니다" 다. 스크립트는 확인을 누르지 않고 창을 닫는다 — 메일이 실제로 갔는지는 홈택스 메일발송목록(메일 관리)에서 본다. 계산서 자체(국세청 전송)는 발급으로 끝난다.
 
 - 같은 크롬 프로필(`~/.willow/browser-profiles/tensw-finance`)을 수집기와 같이 쓴다. 다른 홈택스 스크립트가 돌고 있으면 프로필 잠금으로 실패한다 — 끝난 뒤 다시.
 - 로그인 직후 뜨는 공지 팝업 창을 닫고 시작한다(스크립트가 한다). 팝업을 본 창으로 잘못 잡으면 화면을 못 찾는다.

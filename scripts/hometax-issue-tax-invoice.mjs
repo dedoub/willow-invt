@@ -3,7 +3,7 @@
 //
 //   node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회              # 작성만 하고 캡처(발급 안 함)
 //   node scripts/hometax-issue-tax-invoice.mjs --counterparty 체육회 --issue      # CEO "발급해" 뒤에만
-//   [--sale-id <uuid>] [--date 2026-10-01] [--keep-open]
+//   [--sale-id <uuid>] [--date 2026-10-01] [--supplier-email admin@tensoftworks.com] [--keep-open]
 //
 // 받는 곳(상호·대표·주소·업태·종목·이메일)은 같은 사업자번호로 직전에 발급한 세금계산서의 홈택스 상세에서 가져온다
 // (8월분을 참고해 9월분을 쓴 2026-10-01 방식). 품목·금액은 매출관리 행의 items, 작성일자는 --date(기본 오늘).
@@ -17,7 +17,7 @@ import dotenv from 'dotenv'
 import { chromium } from 'playwright'
 import { createClient } from '@supabase/supabase-js'
 import { hometaxLogin } from './lib/hometax-session.mjs'
-import { readCertificatePassword, selectCorporateCertificate, financeIdentity } from './lib/tensw-local-finance.mjs'
+import { signAndIssue } from './lib/hometax-sign.mjs'
 import { assertSendAllowed } from './lib/send-guard.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -28,6 +28,8 @@ const ISSUE = args.includes('--issue')
 if (ISSUE) assertSendAllowed('hometax-issue-tax-invoice.mjs --issue')   // 발급은 메일 발송과 같다 — 디스패치 중에는 막힌다
 const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)
 const WRITE_DATE = flag('--date') ?? kstToday()
+// 공급자(우리) 담당 이메일. 기본은 홈택스 계정 이메일(dw.kim). 대표 지시로 바꿀 때만 넘긴다(2026-10-04 admin@).
+const SUPPLIER_EMAIL = flag('--supplier-email')
 if (WRITE_DATE > kstToday()) { console.error(`작성일자 ${WRITE_DATE} 는 오늘 뒤예요 — 홈택스는 오늘까지만 받아요`); process.exit(1) }
 const OUT_DIR = path.join(process.env.HOME, 'logs', 'tensw-local-finance', 'issue')
 fs.mkdirSync(OUT_DIR, { recursive: true })
@@ -113,6 +115,11 @@ async function fillForm(page, sale, rec) {
   const [id, dom] = rec.email.split('@')
   await set('edtDmnrMchrgEmlIdTop', id)
   await set('edtDmnrMchrgEmlDmanTop', dom)
+  if (SUPPLIER_EMAIL) {
+    const [sid, sdom] = SUPPLIER_EMAIL.split('@')
+    await set('edtSplrEmlIdTop', sid)
+    await set('edtSplrEmlDmanTop', sdom)
+  }
   const dd = WRITE_DATE.slice(8, 10)
   for (const [i, it] of (sale.items ?? []).entries()) {
     const r = `genEtxivLsatTop_${i}_`                      // 월 칸은 작성일자에서 자동으로 채워져 잠겨 있다
@@ -125,11 +132,13 @@ async function fillForm(page, sale, rec) {
   await page.waitForTimeout(800)
   const got = await page.evaluate(P => {
     const v = id => { const e = document.getElementById(P + id); return e ? (e.value ?? e.textContent).trim() : undefined }   // 합계 칸은 input 이 아니라 span 이다
-    return { total: v('edtTotaAmtTop'), supply: v('edtSumSplCftTop') }
+    return { total: v('edtTotaAmtTop'), supply: v('edtSumSplCftTop'), splrEmail: `${v('edtSplrEmlIdTop')}@${v('edtSplrEmlDmanTop')}`, date: v('calWrtDtTop_input') }
   }, P.slice(1))
   const n = s => Number(String(s ?? '').replaceAll(',', ''))
   if (n(got.total) !== Number(sale.total_amount) || n(got.supply) !== Number(sale.supply_amount))
     throw new Error(`화면 합계(${got.total}/${got.supply})가 매출관리(${sale.total_amount}/${sale.supply_amount})와 달라요 — 발급하지 않아요`)
+  if (SUPPLIER_EMAIL && got.splrEmail !== SUPPLIER_EMAIL) throw new Error(`공급자 이메일이 ${got.splrEmail} 로 남았어요(원한 것 ${SUPPLIER_EMAIL}) — 발급하지 않아요`)
+  log(`화면 확인 — 작성일자 ${got.date} · 공급자 이메일 ${got.splrEmail}`)
   const shot = path.join(OUT_DIR, `draft_${rec.bizNo}_${WRITE_DATE}.png`)
   const box = await page.evaluate(P => {
     const a = document.getElementById(P + 'edtSplrTnmNmTop').getBoundingClientRect(), b = document.getElementById(P + 'btnIsn').getBoundingClientRect()
@@ -147,29 +156,10 @@ async function fillForm(page, sale, rec) {
 
 // 4. 발급: 확인 → 공동·금융 인증 → 범용 인증서 → 비밀번호 한 번
 async function issue(page, sale) {
-  await page.locator(`${P}btnIsn`).click()
-  await page.waitForTimeout(3000)
-  await page.locator('[id$=_wframe_trigger20]').filter({ hasText: '인증' }).first().click()      // 확인(인증 화면 이동)
-  await page.waitForTimeout(3000)
-  await page.locator('button', { hasText: /공동.금융 인증/ }).first().click()
-  await page.waitForTimeout(6000)
-  const frame = page.frames().find(f => f.name() === 'dscert')
-  if (!frame) throw new Error('인증서 창이 뜨지 않았어요 — 발급하지 않았어요')
-  const trs = frame.locator('tr'); const rows = []
-  for (let i = 0, n = await trs.count(); i < n; i++) {
-    const c = (await trs.nth(i).locator('td').allTextContents()).map(x => x.trim()).filter(Boolean)
-    if (c.length >= 4) rows.push({ locator: trs.nth(i), owner: c[0], purpose: c[1], issuer: c[2], expiresAt: c[3] })
-  }
-  const general = rows.filter(r => /범용/.test(r.purpose))            // 전자세금계산서 서명은 범용(기업)만 된다
-  const sel = general[selectCorporateCertificate(general, new Date(), financeIdentity().certificateOwnerKeyword).index]
-  await sel.locator.click()
-  await frame.locator('input[type="password"]:not([disabled])').first().fill(await readCertificatePassword(), { timeout: 10000 })
-  await frame.locator('#btn_confirm_iframe').click()                    // 한 번만. 거부되면 다시 시도하지 않는다
-  await page.waitForTimeout(9000)
-  const text = await page.evaluate(() => document.body.innerText)
+  const { text, shot } = await signAndIssue(page, {
+    shot: approvals => path.join(OUT_DIR, `issued_${WRITE_DATE}_${approvals[0] ?? 'unknown'}.png`),
+  })
   const approval = text.match(/승인번호\s*:\s*(\d{8}-\d{8}-\d{8})/)?.[1]
-  const shot = path.join(OUT_DIR, `issued_${WRITE_DATE}_${approval ?? 'unknown'}.png`)
-  await page.screenshot({ path: shot })
   if (!approval) throw new Error(`발급 결과를 확인하지 못했어요 — 캡처 ${shot}. 홈택스 발급목록을 사람이 확인해야 해요(다시 발급하지 말 것)`)
   const emails = text.match(/발급한 전자세금계산서가 ([^\n]+?)로 발송/)?.[1] ?? ''
   const { error } = await sb.from('tensw_mgmt_sales').update({
